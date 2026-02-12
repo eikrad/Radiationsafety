@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["graph*"]
+
+[tool.setuptools]
+py-modules = ["ingestion"]
+
+[project]
+name = "radiationsafety"
+version = "0.1.0"
+description = "RAG system for IAEA and Danish radiation safety documents"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "black>=26.1.0",
+    "chromadb>=1.4.1",
+    "fastapi>=0.115.0",
+    "isort>=7.0.0",
+    "langchain>=1.2.7",
+    "langchain-chroma>=1.1.0",
+    "langchain-community>=0.4.1",
+    "langchain-google-genai>=2.0.0",
+    "langchain-mistralai>=0.1.0",
+    "langchain-text-splitters>=1.1.0",
+    "langchainhub>=0.1.21",
+    "langgraph>=1.0.7",
+    "pypdf>=5.0.0",
+    "python-dotenv>=1.2.1",
+    "uvicorn[standard]>=0.32.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_*.py"]
+addopts = "-s -v"
