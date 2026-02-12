@@ -1,5 +1,7 @@
 # Radiation Safety RAG
 
+![Alpha](https://img.shields.io/badge/status-alpha-orange)
+
 RAG system for querying IAEA and Danish radiation safety documents.
 
 ## Setup
