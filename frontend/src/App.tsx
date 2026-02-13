@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
+import type { QueryResponse, SourceInfo } from './types'
 import './App.css'
 
 const API_BASE = '/api'
@@ -8,10 +9,10 @@ const API_BASE = '/api'
 export default function App() {
   const [loading, setLoading] = useState(false)
   const [answer, setAnswer] = useState('')
-  const [sources, setSources] = useState([])
+  const [sources, setSources] = useState<SourceInfo[]>([])
   const [error, setError] = useState('')
 
-  async function handleSubmit(question) {
+  async function handleSubmit(question: string) {
     setLoading(true)
     setError('')
     setAnswer('')
@@ -22,12 +23,14 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Request failed')
-      setAnswer(data.answer || '')
-      setSources(data.sources || [])
+      const data = (await res.json()) as QueryResponse & { detail?: string }
+      if (!res.ok) throw new Error(data.detail ?? 'Request failed')
+      setAnswer(data.answer ?? '')
+      setSources(data.sources ?? [])
     } catch (err) {
-      setError(err.message || 'Failed to get answer. Is the backend running?')
+      setError(
+        err instanceof Error ? err.message : 'Failed to get answer. Is the backend running?'
+      )
     } finally {
       setLoading(false)
     }

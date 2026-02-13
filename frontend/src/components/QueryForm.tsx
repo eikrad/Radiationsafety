@@ -1,9 +1,15 @@
-import { useState } from 'react'
+import { useState, FormEvent } from 'react'
 
-export function QueryForm({ onSubmit, loading, disabled }) {
+interface QueryFormProps {
+  onSubmit: (question: string) => void
+  loading: boolean
+  disabled: boolean
+}
+
+export function QueryForm({ onSubmit, loading, disabled }: QueryFormProps) {
   const [question, setQuestion] = useState('')
 
-  function handleSubmit(e) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (question.trim()) {
       onSubmit(question.trim())

@@ -27,15 +27,19 @@ RAG system for querying IAEA and Danish radiation safety documents.
    uv run uvicorn api.main:app --reload --port 8000
    ```
 
-5. Start frontend:
-   ```bash
-   cd frontend && npm install && npm run dev
-   ```
+5. Frontend – choose one:
+   - **Single server**: `cd frontend && npm run build` then open http://localhost:8000
+   - **Dev mode** (hot reload): `cd frontend && npm install && npm run dev` then open http://localhost:5173
 
 6. Optional CLI:
    ```bash
    uv run python main.py
    ```
+
+## Testing
+
+- **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
+- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
 
 ## Collections
 
