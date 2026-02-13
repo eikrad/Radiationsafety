@@ -22,8 +22,10 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
         else:
             web_search = True
 
+    chat_history = state.get("chat_history") or []
     return {
         "documents": filtered,
         "question": question,
         "web_search": web_search or len(filtered) == 0,
+        "chat_history": chat_history,
     }

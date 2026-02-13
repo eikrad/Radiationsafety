@@ -23,14 +23,18 @@ def test_health(client: TestClient):
 
 
 def test_query_returns_answer(client: TestClient):
-    """Query endpoint returns answer and sources."""
+    """Query endpoint returns answer, sources, and chat_history."""
     res = client.post("/query", json={"question": "What is radiation protection?"})
     assert res.status_code == 200
     data = res.json()
     assert "answer" in data
     assert "sources" in data
+    assert "chat_history" in data
     assert isinstance(data["sources"], list)
+    assert isinstance(data["chat_history"], list)
     assert "Test answer from mocked graph" in data["answer"]
+    assert len(data["chat_history"]) == 1
+    assert data["chat_history"][0][0] == "What is radiation protection?"
 
 
 def test_query_requires_question(client: TestClient):

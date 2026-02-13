@@ -21,12 +21,16 @@ def _env_no_api_calls(monkeypatch):
 def mock_graph():
     """Mock graph that returns a fixed result."""
     def _invoke(inputs):
+        question = inputs.get("question", "")
+        hist = inputs.get("chat_history") or []
+        new_hist = list(hist) + [(question, "Test answer from mocked graph.")]
         return {
-            "question": inputs.get("question", ""),
+            "question": question,
             "generation": "Test answer from mocked graph.",
             "documents": [],
             "web_search": False,
             "web_search_attempted": False,
+            "chat_history": new_hist,
         }
     graph = MagicMock()
     graph.invoke.side_effect = _invoke

@@ -24,4 +24,10 @@ def retrieve(state: GraphState) -> Dict[str, Any]:
             seen.add(key)
             merged.append(d)
 
-    return {"documents": merged, "question": question, "web_search_attempted": False}
+    chat_history = state.get("chat_history") or []
+    return {
+        "documents": merged,
+        "question": question,
+        "web_search_attempted": False,
+        "chat_history": chat_history,
+    }

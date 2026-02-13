@@ -13,3 +13,4 @@ class GraphState(TypedDict):
     web_search: bool
     documents: List[Document]
     web_search_attempted: bool  # Prevent infinite web search loop
+    chat_history: List[tuple[str, str]]  # (question, answer) pairs for follow-ups

@@ -2,11 +2,36 @@
   max-width: 720px;
   margin: 0 auto;
   padding: 2rem;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .app header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.conversation-area {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin-bottom: 1rem;
+}
+
+.input-area {
+  flex-shrink: 0;
+  padding-top: 1rem;
+  border-top: 1px solid #333;
 }
 
 .app header h1 {
@@ -22,7 +47,6 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .query-form textarea {
@@ -52,39 +76,69 @@
   background: #1a1a1a;
   border-radius: 8px;
   border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.response-display .message {
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid #333;
+}
+
+.response-display .message-user {
+  background: #252525;
+  border-left-color: #646cff;
+}
+
+.response-display .message-assistant {
+  background: #1e1e1e;
+  border-left-color: #4ade80;
 }
 
 .response-display h3 {
-  font-size: 1rem;
+  font-size: 0.85rem;
   margin-bottom: 0.5rem;
   color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.answer-text {
+.response-display h4 {
+  font-size: 0.8rem;
+  margin: 0.75rem 0 0.25rem;
+  color: #888;
+}
+
+.message-text {
   white-space: pre-wrap;
   line-height: 1.6;
 }
 
-.sources ul {
+.response-display .sources ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.sources li {
+.response-display .sources li {
   padding: 0.25rem 0;
   font-size: 0.9rem;
 }
 
-.source {
+.response-display .source {
   color: #646cff;
 }
 
-.doc-type {
+.response-display .doc-type {
   color: #888;
 }
 
 @media (prefers-color-scheme: light) {
+  .input-area {
+    border-top-color: #ddd;
+  }
   .query-form textarea {
     background: #f5f5f5;
     border-color: #ccc;
@@ -92,5 +146,11 @@
   .response-display {
     background: #f9f9f9;
     border-color: #ddd;
+  }
+  .response-display .message-user {
+    background: #e8e8ff;
+  }
+  .response-display .message-assistant {
+    background: #e8f5e9;
   }
 }

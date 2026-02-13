@@ -3,42 +3,62 @@ import { describe, expect, it } from 'vitest'
 import { ResponseDisplay } from './ResponseDisplay'
 
 describe('ResponseDisplay', () => {
-  it('returns null when no answer and no sources', () => {
-    const { container } = render(<ResponseDisplay answer="" sources={[]} />)
+  it('returns null when no messages', () => {
+    const { container } = render(<ResponseDisplay messages={[]} />)
     expect(container.firstChild).toBeNull()
   })
 
-  it('renders answer when provided', () => {
-    render(<ResponseDisplay answer="Radiation is..." sources={[]} />)
-    expect(screen.getByText('Answer')).toBeInTheDocument()
+  it('renders user and assistant messages', () => {
+    render(
+      <ResponseDisplay
+        messages={[
+          { role: 'user', content: 'What is radiation?' },
+          { role: 'assistant', content: 'Radiation is...' },
+        ]}
+      />
+    )
+    expect(screen.getByText('You')).toBeInTheDocument()
+    expect(screen.getByText('Assistant')).toBeInTheDocument()
+    expect(screen.getByText('What is radiation?')).toBeInTheDocument()
     expect(screen.getByText('Radiation is...')).toBeInTheDocument()
   })
 
-  it('renders sources when provided', () => {
+  it('renders sources for assistant messages', () => {
     render(
       <ResponseDisplay
-        answer=""
-        sources={[
-          { source: 'doc1.pdf', document_type: 'IAEA' },
-          { source: 'doc2.pdf', document_type: null },
+        messages={[
+          { role: 'user', content: 'Q' },
+          {
+            role: 'assistant',
+            content: 'A',
+            sources: [
+              { source: 'doc1.pdf', document_type: 'IAEA' },
+              { source: 'doc2.pdf', document_type: null },
+            ],
+          },
         ]}
       />
     )
     expect(screen.getByText('Sources')).toBeInTheDocument()
     expect(screen.getByText('doc1.pdf')).toBeInTheDocument()
     expect(screen.getByText('doc2.pdf')).toBeInTheDocument()
-    expect(screen.getByText(/\IAEA/)).toBeInTheDocument()
+    expect(screen.getByText(/IAEA/)).toBeInTheDocument()
   })
 
-  it('renders both answer and sources', () => {
+  it('renders multiple turns', () => {
     render(
       <ResponseDisplay
-        answer="The answer"
-        sources={[{ source: 'ref.pdf', document_type: 'Danish law' }]}
+        messages={[
+          { role: 'user', content: 'Q1' },
+          { role: 'assistant', content: 'A1' },
+          { role: 'user', content: 'And what about X?' },
+          { role: 'assistant', content: 'X is...' },
+        ]}
       />
     )
-    expect(screen.getByText('The answer')).toBeInTheDocument()
-    expect(screen.getByText('ref.pdf')).toBeInTheDocument()
-    expect(screen.getByText(/Danish law/)).toBeInTheDocument()
+    expect(screen.getByText('Q1')).toBeInTheDocument()
+    expect(screen.getByText('A1')).toBeInTheDocument()
+    expect(screen.getByText('And what about X?')).toBeInTheDocument()
+    expect(screen.getByText('X is...')).toBeInTheDocument()
   })
 })
