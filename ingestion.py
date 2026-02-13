@@ -78,12 +78,13 @@ def _table_to_markdown(table: list[list[str | None]]) -> str:
 
 
 def _load_pdf_with_pdfplumber_tables(file_path: str | Path, source_label: str | None = None) -> list[Document]:
-    """Load PDF with pdfplumber, extracting tables via layout analysis (better for borderless tables)."""
+    """Load PDF with pdfplumber. Uses 'lines' strategy for tables with visible grid (e.g. Limits)."""
     import pdfplumber
 
     label = source_label or str(file_path)
     docs = []
-    table_settings = {"vertical_strategy": "text", "horizontal_strategy": "text"}
+    table_settings = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
+    header_row: list[str] | None = None
     with pdfplumber.open(str(file_path)) as pdf:
         for i, page in enumerate(pdf.pages):
             parts = []
@@ -91,6 +92,10 @@ def _load_pdf_with_pdfplumber_tables(file_path: str | Path, source_label: str | 
             for t in tables:
                 md = _table_to_markdown(t)
                 if md:
+                    if header_row is None and t:
+                        header_row = [str(c or "") for c in t[0]]
+                    elif header_row and t and len(t[0]) == len(header_row) and i > 0:
+                        md = _table_to_markdown([header_row] + t)
                     parts.append(md)
             text = page.extract_text() or ""
             if not parts:
@@ -118,8 +123,8 @@ def _load_pdf_with_tables(file_path: str | Path, source_label: str | None = None
     except Exception:
         pass
     table_settings = {
-        "vertical_strategy": "text",
-        "horizontal_strategy": "text",
+        "vertical_strategy": "lines",
+        "horizontal_strategy": "lines",
     }
     try:
         loader = PyMuPDFLoader(
@@ -257,8 +262,8 @@ def ingest():
         separators=["\n\n", "\n", ". ", " ", ""],
     )
     text_splitter_dk = RecursiveCharacterTextSplitter(
-        chunk_size=1200,
-        chunk_overlap=150,
+        chunk_size=2500,
+        chunk_overlap=200,
         separators=["\n\n", "§ ", "\n", ". ", " ", ""],
     )
     embeddings = _get_embeddings()
