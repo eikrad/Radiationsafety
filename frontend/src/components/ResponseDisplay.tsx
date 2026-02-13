@@ -1,4 +1,11 @@
-export function ResponseDisplay({ answer, sources }) {
+import type { SourceInfo } from '../types'
+
+interface ResponseDisplayProps {
+  answer: string
+  sources: SourceInfo[]
+}
+
+export function ResponseDisplay({ answer, sources }: ResponseDisplayProps) {
   if (!answer && (!sources || sources.length === 0)) return null
 
   return (

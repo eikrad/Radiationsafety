@@ -33,6 +33,13 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.28.0",
+    "pytest-asyncio>=0.24.0",
+]
+
 [tool.black]
 line-length = 88
 target-version = ["py312"]
@@ -42,6 +49,7 @@ profile = "black"
 line_length = 88
 
 [tool.pytest.ini_options]
-testpaths = ["."]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-s -v"
+asyncio_mode = "auto"
