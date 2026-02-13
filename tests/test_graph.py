@@ -46,8 +46,14 @@ def test_grade_generation_grounded_useful_when_grounded_and_answers(monkeypatch)
     mock_ans = MagicMock()
     mock_ans.invoke.return_value = MagicMock(binary_score=True)
 
-    with patch("graph.graph.hallucination_grader", mock_hall):
-        with patch("graph.graph.answer_grader", mock_ans):
+    def make_hall(_llm=None):
+        return mock_hall
+
+    def make_ans(_llm=None):
+        return mock_ans
+
+    with patch("graph.graph.get_hallucination_grader", make_hall):
+        with patch("graph.graph.get_answer_grader", make_ans):
             state: GraphState = {
                 "question": "What is radiation?",
                 "generation": "Radiation is...",
@@ -68,8 +74,14 @@ def test_grade_generation_grounded_end_when_hallucination(monkeypatch):
     mock_hall.invoke.return_value = MagicMock(binary_score=False)
     mock_ans = MagicMock()
 
-    with patch("graph.graph.hallucination_grader", mock_hall):
-        with patch("graph.graph.answer_grader", mock_ans):
+    def make_hall(_llm=None):
+        return mock_hall
+
+    def make_ans(_llm=None):
+        return mock_ans
+
+    with patch("graph.graph.get_hallucination_grader", make_hall):
+        with patch("graph.graph.get_answer_grader", make_ans):
             state: GraphState = {
                 "question": "What is radiation?",
                 "generation": "Random stuff",

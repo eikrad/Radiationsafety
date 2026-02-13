@@ -1,11 +1,11 @@
 """Chain to grade whether the generation is grounded in the documents."""
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
 
 from graph.llm_factory import get_llm
-
-llm = get_llm()
 
 
 class GradeHallucinations(BaseModel):
@@ -15,8 +15,6 @@ class GradeHallucinations(BaseModel):
         description="Answer is grounded in the facts, 'yes' or 'no'"
     )
 
-
-structured_llm_grader = llm.with_structured_output(GradeHallucinations)
 
 system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts.
 Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""
@@ -28,4 +26,8 @@ hallucination_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-hallucination_grader = hallucination_prompt | structured_llm_grader
+
+def get_hallucination_grader(llm: BaseChatModel | None = None) -> Runnable:
+    """Return hallucination grader for the given LLM. Uses get_llm() if llm is None."""
+    model = llm or get_llm()
+    return hallucination_prompt | model.with_structured_output(GradeHallucinations)

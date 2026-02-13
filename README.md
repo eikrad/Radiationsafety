@@ -10,7 +10,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
    - `LLM_PROVIDER`: `gemini` or `mistral`
    - `GOOGLE_API_KEY` or `MISTRAL_API_KEY` (depending on provider)
    - Optional: `WEB_SEARCH_ENABLED=true`, `BRAVE_SEARCH_API_KEY` for fallback
-   - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing
+   - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing (tracing is auto-disabled when API keys are sent from the frontend to avoid leaking keys to LangSmith)
 
 2. Install dependencies:
    ```bash
