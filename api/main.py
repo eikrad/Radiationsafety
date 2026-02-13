@@ -86,6 +86,26 @@ def _to_lists(history: list[tuple[str, str]]) -> list[list[str]]:
     return [[q, a] for q, a in history]
 
 
+# Phrases that do not require RAG retrieval (cost savings, no DB/LLM calls)
+_NON_QUESTION_PATTERNS = frozenset({
+    "thank you", "thanks", "danke", "merci", "thx",
+    "ok", "okay", "bye", "goodbye", "tschüss", "ciao",
+    "yes", "no", "all right", "alright", "got it",
+})
+
+
+def _is_non_question(text: str) -> bool:
+    """Return True if the input looks like a greeting/acknowledgment, not a real question."""
+    t = text.strip().lower()
+    if len(t) < 3:
+        return True
+    if t in _NON_QUESTION_PATTERNS:
+        return True
+    if not any(c.isalnum() for c in t):
+        return True
+    return False
+
+
 @api_router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
     """Run RAG pipeline and return answer with sources."""
@@ -98,6 +118,15 @@ def query(req: QueryRequest):
             warning=None,
         )
     chat_history = _to_tuples(req.chat_history)
+    if _is_non_question(req.question):
+        answer = "You're welcome! Ask me anything about radiation safety."
+        updated_history = chat_history + [(req.question, answer)]
+        return QueryResponse(
+            answer=answer,
+            sources=[],
+            chat_history=_to_lists(updated_history),
+            warning=None,
+        )
     result = graph.invoke(
         {
             "question": req.question,

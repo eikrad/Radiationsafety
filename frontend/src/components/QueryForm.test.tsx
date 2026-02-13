@@ -15,7 +15,7 @@ describe('QueryForm', () => {
     expect(screen.getByRole('button', { name: /Searching/i })).toBeInTheDocument()
   })
 
-  it('calls onSubmit with question when form submitted', async () => {
+  it('calls onSubmit with question and clears field when form submitted', async () => {
     const onSubmit = vi.fn()
     const user = userEvent.setup()
     render(<QueryForm onSubmit={onSubmit} loading={false} disabled={false} />)
@@ -23,6 +23,7 @@ describe('QueryForm', () => {
     await user.type(textarea, 'What is radiation?')
     await user.click(screen.getByRole('button', { name: /Ask/i }))
     expect(onSubmit).toHaveBeenCalledWith('What is radiation?')
+    expect(textarea).toHaveValue('')
   })
 
   it('does not call onSubmit when question is empty', async () => {

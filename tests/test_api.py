@@ -49,6 +49,17 @@ def test_query_empty_question(client: TestClient):
     assert res.status_code == 200
 
 
+def test_query_non_question_short_circuit(client: TestClient):
+    """Thank you / acknowledgments bypass graph and return friendly response."""
+    res = client.post("/query", json={"question": "Thank you"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "You're welcome" in data["answer"]
+    assert data["sources"] == []
+    assert len(data["chat_history"]) == 1
+    assert data["chat_history"][0][0] == "Thank you"
+
+
 def test_query_returns_warning_when_set(client: TestClient):
     """Query endpoint returns warning when retrieval_warning is set."""
     from api.main import app, app_state

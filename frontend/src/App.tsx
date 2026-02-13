@@ -60,6 +60,27 @@ export default function App() {
       <div className="input-area">
         {error && <p className="error">{error}</p>}
         <QueryForm onSubmit={handleSubmit} loading={loading} disabled={false} />
+        {messages.some((m) => m.role === 'assistant') && (
+          <div className="followup-suggestions">
+            <span className="followup-label">Follow-up:</span>
+            <button
+              type="button"
+              className="followup-chip"
+              onClick={() => handleSubmit('Can you explain that in more detail?')}
+              disabled={loading}
+            >
+              Can you explain that in more detail?
+            </button>
+            <button
+              type="button"
+              className="followup-chip"
+              onClick={() => handleSubmit('What sources and limits apply to this?')}
+              disabled={loading}
+            >
+              What sources and limits apply to this?
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
