@@ -1,0 +1,13 @@
+---
+description: Project structure and conventions; read AGENTS.md for full reference
+alwaysApply: true
+---
+
+# Project reference
+
+For project structure, data flow, where to add nodes/chains, and conventions, **read `AGENTS.md` at the project root**. Use it when navigating the codebase, adding features, or fixing bugs.
+
+Summary:
+- Backend: `api/main.py` (routes), `graph/graph.py` (workflow), `graph/nodes/`, `graph/chains/`, `ingestion.py`
+- Frontend: `frontend/src/App.tsx`, `frontend/src/components/`, `frontend/src/constants.ts`
+- Tests: `tests/` (pytest), frontend tests in `frontend/src/**/*.test.tsx`
