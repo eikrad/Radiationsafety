@@ -2,7 +2,8 @@
 
 from typing import Any, Dict
 
-from graph.chains.generation import generation_chain
+from graph.chains.generation import get_generation_chain
+from graph.llm_factory import get_llm
 from graph.state import GraphState
 
 
@@ -21,13 +22,15 @@ def generate(state: GraphState) -> Dict[str, Any]:
     question = state["question"]
     documents = state["documents"]
     chat_history = state.get("chat_history") or []
+    llm = state.get("llm") or get_llm()
+    chain = get_generation_chain(llm)
 
     context = ""
     if documents:
         context = "\n\n".join(d.page_content for d in documents)
 
     chat_history_str = _format_chat_history(chat_history)
-    generation = generation_chain.invoke(
+    generation = chain.invoke(
         {
             "context": context,
             "chat_history": chat_history_str,

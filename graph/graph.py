@@ -6,8 +6,8 @@ from typing import Any, Dict
 from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
 
-from graph.chains.answer_grader import answer_grader
-from graph.chains.hallucinations_grader import hallucination_grader
+from graph.chains.answer_grader import get_answer_grader
+from graph.chains.hallucinations_grader import get_hallucination_grader
 from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEB_SEARCH
 from graph.nodes import generate, grade_documents, retrieve, web_search
 from graph.state import GraphState
@@ -30,22 +30,27 @@ def decide_to_generate(state: GraphState) -> str:
 
 def grade_generation_grounded(state: GraphState) -> str:
     """Check grounding and answer quality; return outcome for routing."""
+    from graph.llm_factory import get_llm
+
     question = state["question"]
     documents = state["documents"]
     generation = state["generation"]
     web_search_attempted = state.get("web_search_attempted", False)
+    llm = state.get("llm") or get_llm()
+    hall_grader = get_hallucination_grader(llm)
+    ans_grader = get_answer_grader(llm)
 
     docs_str = (
         "\n\n".join(d.page_content for d in documents) if documents else "No documents"
     )
-    hall_score = hallucination_grader.invoke(
+    hall_score = hall_grader.invoke(
         {"documents": docs_str, "generation": generation}
     )
     if not hall_score.binary_score:
         if _web_search_enabled() and not web_search_attempted:
             return "web_search"
         return "end"
-    ans_score = answer_grader.invoke({"question": question, "generation": generation})
+    ans_score = ans_grader.invoke({"question": question, "generation": generation})
     if ans_score.binary_score:
         return "useful"
     if _web_search_enabled() and not web_search_attempted:

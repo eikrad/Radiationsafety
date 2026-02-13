@@ -1,11 +1,11 @@
 """Chain to grade document relevance to the question."""
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
 
 from graph.llm_factory import get_llm
-
-llm = get_llm()
 
 
 class GradeDocuments(BaseModel):
@@ -15,8 +15,6 @@ class GradeDocuments(BaseModel):
         description="Documents are relevant to the question, 'yes' or 'no'"
     )
 
-
-structured_llm_grader = llm.with_structured_output(GradeDocuments)
 
 system = """You are a grader assessing relevance of a retrieved document to a user question.
 If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant.
@@ -29,4 +27,8 @@ grade_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-retrieval_grader = grade_prompt | structured_llm_grader
+
+def get_retrieval_grader(llm: BaseChatModel | None = None) -> Runnable:
+    """Return retrieval grader for the given LLM. Uses get_llm() if llm is None."""
+    model = llm or get_llm()
+    return grade_prompt | model.with_structured_output(GradeDocuments)

@@ -1,6 +1,6 @@
 """Graph state for RAG pipeline."""
 
-from typing import List, NotRequired, TypedDict
+from typing import Any, List, NotRequired, TypedDict
 
 from langchain_core.documents import Document
 
@@ -15,3 +15,4 @@ class GraphState(TypedDict):
     web_search_attempted: bool  # Prevent infinite web search loop
     chat_history: List[tuple[str, str]]  # (question, answer) pairs for follow-ups
     retrieval_warning: NotRequired[str]  # Set when web search didn't yield good results
+    llm: NotRequired[Any]  # Chat model for generation/grading; uses env fallback if absent

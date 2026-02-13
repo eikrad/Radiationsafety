@@ -49,6 +49,34 @@ def test_query_empty_question(client: TestClient):
     assert res.status_code == 200
 
 
+def test_query_accepts_model_and_api_keys(client: TestClient):
+    """Query accepts model and api_keys in request body."""
+    res = client.post(
+        "/query",
+        json={
+            "question": "What is radiation protection?",
+            "model": "mistral",
+            "api_keys": {"mistral": "test-key-from-request"},
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "Test answer from mocked graph" in data["answer"]
+
+
+def test_query_api_key_error_when_openai_selected_no_key(client: TestClient, monkeypatch):
+    """When model=openai and no API key in request or env, returns 400 with API key message."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    res = client.post(
+        "/query",
+        json={"question": "What is radiation?", "model": "openai"},
+    )
+    assert res.status_code == 400
+    data = res.json()
+    assert "detail" in data
+    assert "API key" in data["detail"]
+
+
 def test_query_non_question_short_circuit(client: TestClient):
     """Thank you / acknowledgments bypass graph and return friendly response."""
     res = client.post("/query", json={"question": "Thank you"})

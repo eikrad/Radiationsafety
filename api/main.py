@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -47,6 +47,9 @@ class QueryRequest(BaseModel):
 
     question: str
     chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
+    model: str | None = None  # "mistral" | "gemini" | "openai"
+    model_variant: str | None = None  # e.g. "gemini-2.5-flash-lite", "gpt-4o-mini"
+    api_keys: dict[str, str] | None = None  # {"mistral": "...", "gemini": "...", "openai": "..."}
 
 
 class SourceInfo(BaseModel):
@@ -86,6 +89,11 @@ def _to_lists(history: list[tuple[str, str]]) -> list[list[str]]:
     return [[q, a] for q, a in history]
 
 
+# Input limits (security / DoS prevention)
+_MAX_QUESTION_LEN = 10_000
+_MAX_CHAT_HISTORY_LEN = 20
+_MAX_API_KEY_LEN = 256
+
 # Phrases that do not require RAG retrieval (cost savings, no DB/LLM calls)
 _NON_QUESTION_PATTERNS = frozenset({
     "thank you", "thanks", "danke", "merci", "thx",
@@ -106,9 +114,47 @@ def _is_non_question(text: str) -> bool:
     return False
 
 
+def _validate_query_request(req: QueryRequest) -> None:
+    """Validate request inputs; raise HTTPException on violation."""
+    if len(req.question) > _MAX_QUESTION_LEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Question exceeds maximum length of {_MAX_QUESTION_LEN} characters.",
+        )
+    if req.chat_history and len(req.chat_history) > _MAX_CHAT_HISTORY_LEN:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Chat history exceeds maximum of {_MAX_CHAT_HISTORY_LEN} entries.",
+        )
+    if req.api_keys:
+        for k, v in req.api_keys.items():
+            if v and len(str(v)) > _MAX_API_KEY_LEN:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"API key for {k} exceeds maximum length.",
+                )
+
+
+def _resolve_model_and_key(
+    model: str | None,
+    api_keys: dict[str, str] | None,
+) -> tuple[str, str | None]:
+    """Resolve model (whitelist) and api_key for the request. Returns (model, api_key)."""
+    from graph.llm_factory import ALLOWED_PROVIDERS
+
+    prov = (model or os.getenv("LLM_PROVIDER", "mistral")).lower()
+    if prov not in ALLOWED_PROVIDERS:
+        prov = "mistral"
+    key = None
+    if api_keys and isinstance(api_keys, dict):
+        key = api_keys.get(prov) or api_keys.get(prov.strip())
+    return prov, key if key else None
+
+
 @api_router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
     """Run RAG pipeline and return answer with sources."""
+    _validate_query_request(req)
     graph = app_state["graph"]
     if not graph:
         return QueryResponse(
@@ -127,16 +173,43 @@ def query(req: QueryRequest):
             chat_history=_to_lists(updated_history),
             warning=None,
         )
-    result = graph.invoke(
-        {
+    model, api_key = _resolve_model_and_key(req.model, req.api_keys)
+    model_variant = req.model_variant
+    try:
+        from graph.llm_factory import APIKeyError, get_llm
+
+        llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
+    except APIKeyError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e),
+        )
+    try:
+        invoke_input = {
             "question": req.question,
             "generation": "",
             "web_search": False,
             "documents": [],
             "web_search_attempted": False,
             "chat_history": chat_history,
+            "llm": llm,
         }
-    )
+        if req.api_keys:
+            import langsmith as ls
+
+            with ls.tracing_context(enabled=False):
+                result = graph.invoke(invoke_input)
+        else:
+            result = graph.invoke(invoke_input)
+    except Exception as e:
+        err_msg = str(e)
+        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "quota" in err_msg.lower():
+            raise HTTPException(
+                status_code=429,
+                detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
+            )
+        raise
+
     answer = result.get("generation", "")
     docs = result.get("documents", [])
     sources = []

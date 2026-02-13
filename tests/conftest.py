@@ -15,6 +15,7 @@ def _env_no_api_calls(monkeypatch):
     monkeypatch.setenv("LANGCHAIN_API_KEY", "")
     monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
 
 @pytest.fixture
@@ -33,6 +34,7 @@ def mock_graph():
             "chat_history": new_hist,
             "retrieval_warning": None,
         }
+
     graph = MagicMock()
     graph.invoke.side_effect = _invoke
     return graph
