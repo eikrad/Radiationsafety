@@ -45,3 +45,10 @@ RAG system for querying IAEA and Danish radiation safety documents.
 
 - `radiation-iaea`: IAEA and IAEA_other PDFs
 - `radiation-dk-law`: Bekendtgørelse (Danish legislation) PDFs
+
+## Credits and references
+
+This project was inspired by and draws on patterns from the **LangChain / LangGraph course** by **Eden Marco** and the accompanying open-source repository:
+
+- **Eden Marco** – [LangChain course](https://github.com/emarco177/langchain-course) (GitHub)
+- Repository: [github.com/emarco177/langchain-course](https://github.com/emarco177/langchain-course) (Apache-2.0)

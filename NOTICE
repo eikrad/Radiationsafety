@@ -1,0 +1,12 @@
+Radiation Safety RAG
+Copyright 2025 The authors of the Radiation Safety RAG project
+
+This product includes or is based on ideas and patterns from the following:
+
+  LangChain / LangGraph course and repository
+  Copyright Eden Marco
+  https://github.com/emarco177/langchain-course
+  Licensed under the Apache License, Version 2.0
+
+You may obtain a copy of the Apache License at
+http://www.apache.org/licenses/LICENSE-2.0
