@@ -11,8 +11,10 @@ export function QueryForm({ onSubmit, loading, disabled }: QueryFormProps) {
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (question.trim()) {
-      onSubmit(question.trim())
+    const q = question.trim()
+    if (q) {
+      onSubmit(q)
+      setQuestion('')
     }
   }
 
