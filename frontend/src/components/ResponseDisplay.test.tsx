@@ -45,6 +45,22 @@ describe('ResponseDisplay', () => {
     expect(screen.getByText(/IAEA/)).toBeInTheDocument()
   })
 
+  it('renders warning when present', () => {
+    render(
+      <ResponseDisplay
+        messages={[
+          { role: 'user', content: 'Q' },
+          {
+            role: 'assistant',
+            content: 'A',
+            warning: 'Die Websuche konnte keine ausreichend guten Quellen liefern.',
+          },
+        ]}
+      />
+    )
+    expect(screen.getByText(/Websuche.*Quellen/)).toBeInTheDocument()
+  })
+
   it('renders multiple turns', () => {
     render(
       <ResponseDisplay

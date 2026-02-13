@@ -36,6 +36,15 @@ def test_load_dk_law_docs_returns_empty_when_no_dir(tmp_path, monkeypatch):
     assert docs == []
 
 
+def test_load_dk_law_docs_returns_empty_for_empty_dir(tmp_path, monkeypatch):
+    """load_dk_law_docs returns [] when Bekendtgørelse exists but has no PDFs."""
+    dk = tmp_path / "Bekendtgørelse"
+    dk.mkdir()
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    docs = load_dk_law_docs()
+    assert docs == []
+
+
 def test_collection_names():
     """Collection names match expected constants."""
     assert IAEA_COLLECTION == "radiation-iaea"

@@ -111,6 +111,16 @@
   color: #888;
 }
 
+.message-warning {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(245, 158, 11, 0.2);
+  border-left: 3px solid #f59e0b;
+  font-size: 0.9rem;
+  color: #fbbf24;
+  border-radius: 4px;
+}
+
 .message-text {
   white-space: pre-wrap;
   line-height: 1.6;
@@ -152,5 +162,10 @@
   }
   .response-display .message-assistant {
     background: #e8f5e9;
+  }
+  .message-warning {
+    background: #fef3c7;
+    color: #b45309;
+    border-left-color: #f59e0b;
   }
 }

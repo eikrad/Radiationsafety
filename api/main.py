@@ -62,6 +62,7 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceInfo]
     chat_history: list[list[str]]  # [[q,a],[q,a],...] including new turn
+    warning: str | None = None  # When web search or retrieval didn't help
 
 
 api_router = APIRouter()
@@ -94,6 +95,7 @@ def query(req: QueryRequest):
             answer="Backend not ready. Please try again shortly.",
             sources=[],
             chat_history=[],
+            warning=None,
         )
     chat_history = _to_tuples(req.chat_history)
     result = graph.invoke(
@@ -119,10 +121,12 @@ def query(req: QueryRequest):
             seen.add(key)
             sources.append(SourceInfo(source=str(src), document_type=dtype))
     updated_history = result.get("chat_history") or chat_history
+    warning = result.get("retrieval_warning")
     return QueryResponse(
         answer=answer,
         sources=sources,
         chat_history=_to_lists(updated_history),
+        warning=warning,
     )
 
 

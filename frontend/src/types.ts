@@ -7,10 +7,12 @@ export interface QueryResponse {
   answer: string
   sources: SourceInfo[]
   chat_history: [string, string][]  // [[q,a],[q,a],...]
+  warning?: string | null
 }
 
 export interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: SourceInfo[]
+  warning?: string | null
 }

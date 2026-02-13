@@ -29,6 +29,8 @@ dependencies = [
     "langchainhub>=0.1.21",
     "langgraph>=1.0.7",
     "pypdf>=5.0.0",
+    "pdfplumber>=0.11.0",
+    "pymupdf>=1.25.0",
     "python-dotenv>=1.2.1",
     "uvicorn[standard]>=0.32.0",
 ]

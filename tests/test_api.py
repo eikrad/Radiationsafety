@@ -47,3 +47,29 @@ def test_query_empty_question(client: TestClient):
     """Query accepts empty string question (validation may vary)."""
     res = client.post("/query", json={"question": ""})
     assert res.status_code == 200
+
+
+def test_query_returns_warning_when_set(client: TestClient):
+    """Query endpoint returns warning when retrieval_warning is set."""
+    from api.main import app, app_state
+    mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
+
+    def _invoke(inputs):
+        return {
+            "question": inputs.get("question", ""),
+            "generation": "Answer with poor sources",
+            "documents": [],
+            "web_search": False,
+            "web_search_attempted": True,
+            "chat_history": [],
+            "retrieval_warning": "Die Websuche konnte keine ausreichend guten Quellen liefern.",
+        }
+
+    mock.invoke.side_effect = _invoke
+    app_state["graph"] = mock
+    with TestClient(app) as c:
+        res = c.post("/query", json={"question": "test"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "warning" in data
+    assert "Websuche" in data["warning"]

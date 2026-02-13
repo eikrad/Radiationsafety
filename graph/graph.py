@@ -1,6 +1,7 @@
 """LangGraph RAG workflow with optional Brave Search fallback."""
 
 import os
+from typing import Any, Dict
 
 from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
@@ -12,6 +13,8 @@ from graph.nodes import generate, grade_documents, retrieve, web_search
 from graph.state import GraphState
 
 load_dotenv()
+
+FINALIZE = "finalize"
 
 
 def _web_search_enabled() -> bool:
@@ -50,12 +53,24 @@ def grade_generation_grounded(state: GraphState) -> str:
     return "end"
 
 
+def finalize(state: GraphState) -> Dict[str, Any]:
+    """Set retrieval_warning when web search was attempted but didn't yield good results."""
+    warning = None
+    if state.get("web_search_attempted"):
+        warning = (
+            "Die Websuche konnte keine ausreichend guten Quellen liefern. "
+            "Die Antwort basiert möglicherweise auf unzureichenden Informationen."
+        )
+    return {"retrieval_warning": warning}
+
+
 workflow = StateGraph(GraphState)
 
 workflow.add_node(RETRIEVE, retrieve)
 workflow.add_node(GRADE_DOCUMENTS, grade_documents)
 workflow.add_node(WEB_SEARCH, web_search)
 workflow.add_node(GENERATE, generate)
+workflow.add_node(FINALIZE, finalize)
 
 workflow.set_entry_point(RETRIEVE)
 workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
@@ -68,7 +83,8 @@ workflow.add_edge(WEB_SEARCH, GENERATE)
 workflow.add_conditional_edges(
     GENERATE,
     grade_generation_grounded,
-    {"useful": END, "web_search": WEB_SEARCH, "end": END},
+    {"useful": END, "web_search": WEB_SEARCH, "end": FINALIZE},
 )
+workflow.add_edge(FINALIZE, END)
 
 app = workflow.compile()

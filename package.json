@@ -1,0 +1,8 @@
+{
+  "name": "radiationsafety",
+  "private": true,
+  "scripts": {
+    "test": "npm run test --prefix frontend",
+    "test:watch": "npm run test:watch --prefix frontend"
+  }
+}
