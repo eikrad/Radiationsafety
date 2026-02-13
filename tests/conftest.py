@@ -31,6 +31,7 @@ def mock_graph():
             "web_search": False,
             "web_search_attempted": False,
             "chat_history": new_hist,
+            "retrieval_warning": None,
         }
     graph = MagicMock()
     graph.invoke.side_effect = _invoke

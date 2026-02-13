@@ -39,7 +39,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
 ## Testing
 
 - **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
-- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
+- **Frontend**: `npm run test` or `npm run test:watch` (from project root), or `cd frontend && npm run test`
 
 ## Collections
 

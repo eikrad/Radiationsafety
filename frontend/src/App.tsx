@@ -35,6 +35,7 @@ export default function App() {
           role: 'assistant',
           content: data.answer ?? '',
           sources: data.sources ?? [],
+          warning: data.warning ?? null,
         },
       ]
       setMessages(newMessages)
