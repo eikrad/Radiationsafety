@@ -47,6 +47,7 @@ def web_search(state: GraphState) -> Dict[str, Any]:
     question = state["question"]
     existing_docs = list(state.get("documents") or [])
 
+    chat_history = state.get("chat_history") or []
     api_key = os.getenv("BRAVE_SEARCH_API_KEY")
     if not api_key:
         return {
@@ -54,6 +55,7 @@ def web_search(state: GraphState) -> Dict[str, Any]:
             "question": question,
             "web_search": False,
             "web_search_attempted": state.get("web_search_attempted", False),
+            "chat_history": chat_history,
         }
 
     domain_filter = f" ({IAEA_DOMAIN} OR {' OR '.join(DK_DOMAINS)})"
@@ -68,6 +70,7 @@ def web_search(state: GraphState) -> Dict[str, Any]:
             "question": question,
             "web_search": False,
             "web_search_attempted": state.get("web_search_attempted", False),
+            "chat_history": chat_history,
         }
 
     contents = _extract_contents(results)
@@ -83,4 +86,5 @@ def web_search(state: GraphState) -> Dict[str, Any]:
         "question": question,
         "web_search": False,
         "web_search_attempted": True,
+        "chat_history": chat_history,
     }

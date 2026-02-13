@@ -46,6 +46,7 @@ class QueryRequest(BaseModel):
     """Request body for /query."""
 
     question: str
+    chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
 
 
 class SourceInfo(BaseModel):
@@ -60,6 +61,7 @@ class QueryResponse(BaseModel):
 
     answer: str
     sources: list[SourceInfo]
+    chat_history: list[list[str]]  # [[q,a],[q,a],...] including new turn
 
 
 api_router = APIRouter()
@@ -71,6 +73,18 @@ def health():
     return {"status": "ok", "graph_loaded": app_state["graph"] is not None}
 
 
+def _to_tuples(history: list[list[str]] | None) -> list[tuple[str, str]]:
+    """Convert [[q,a],[q,a]] to [(q,a),(q,a)]."""
+    if not history:
+        return []
+    return [(h[0], h[1]) for h in history if len(h) >= 2]
+
+
+def _to_lists(history: list[tuple[str, str]]) -> list[list[str]]:
+    """Convert [(q,a),(q,a)] to [[q,a],[q,a]]."""
+    return [[q, a] for q, a in history]
+
+
 @api_router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
     """Run RAG pipeline and return answer with sources."""
@@ -79,7 +93,9 @@ def query(req: QueryRequest):
         return QueryResponse(
             answer="Backend not ready. Please try again shortly.",
             sources=[],
+            chat_history=[],
         )
+    chat_history = _to_tuples(req.chat_history)
     result = graph.invoke(
         {
             "question": req.question,
@@ -87,6 +103,7 @@ def query(req: QueryRequest):
             "web_search": False,
             "documents": [],
             "web_search_attempted": False,
+            "chat_history": chat_history,
         }
     )
     answer = result.get("generation", "")
@@ -101,7 +118,12 @@ def query(req: QueryRequest):
         if key not in seen:
             seen.add(key)
             sources.append(SourceInfo(source=str(src), document_type=dtype))
-    return QueryResponse(answer=answer, sources=sources)
+    updated_history = result.get("chat_history") or chat_history
+    return QueryResponse(
+        answer=answer,
+        sources=sources,
+        chat_history=_to_lists(updated_history),
+    )
 
 
 app.include_router(api_router, prefix="/api")
