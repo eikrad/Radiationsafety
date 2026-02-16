@@ -41,8 +41,6 @@ def generate(state: GraphState) -> Dict[str, Any]:
     updated_history = list(chat_history) + [(question, generation)]
 
     return {
-        "documents": documents,
-        "question": question,
         "generation": generation,
         "chat_history": updated_history,
     }

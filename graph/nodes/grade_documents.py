@@ -1,5 +1,6 @@
 """Grade retrieved documents for relevance; set web_search flag if none relevant."""
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict
 
 from graph.chains.retrieval_grader import get_retrieval_grader
@@ -14,21 +15,22 @@ def grade_documents(state: GraphState) -> Dict[str, Any]:
     llm = state.get("llm") or get_llm()
     grader = get_retrieval_grader(llm)
 
+    def grade_one(doc):
+        score = grader.invoke({"question": question, "document": doc.page_content})
+        return doc, score.binary_score
+
     filtered = []
     web_search = False
-    for d in documents:
-        score = grader.invoke(
-            {"question": question, "document": d.page_content}
-        )
-        if score.binary_score:
-            filtered.append(d)
-        else:
-            web_search = True
+    with ThreadPoolExecutor(max_workers=min(8, max(1, len(documents)))) as executor:
+        futures = {executor.submit(grade_one, d): d for d in documents}
+        for fut in as_completed(futures):
+            doc, relevant = fut.result()
+            if relevant:
+                filtered.append(doc)
+            else:
+                web_search = True
 
-    chat_history = state.get("chat_history") or []
     return {
         "documents": filtered,
-        "question": question,
         "web_search": web_search or len(filtered) == 0,
-        "chat_history": chat_history,
     }

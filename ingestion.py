@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 from dotenv import load_dotenv
+from graph.llm_factory import get_embeddings
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import DirectoryLoader, PyMuPDFLoader, PyPDFLoader
 from langchain_core.documents import Document
@@ -26,19 +27,6 @@ DK_LAW_COLLECTION = "radiation-dk-law"
 # Google Gemini free tier: 100 embedding requests/min; batch + delay to avoid 429
 GEMINI_BATCH_SIZE = 80
 GEMINI_BATCH_DELAY_SEC = 65
-
-
-def _get_embeddings():
-    """Return embeddings based on LLM_PROVIDER env (gemini or mistral)."""
-    provider = os.getenv("LLM_PROVIDER", "mistral").lower()
-    if provider == "gemini":
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
-        return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
-    else:
-        from langchain_mistralai import MistralAIEmbeddings
-
-        return MistralAIEmbeddings(model="mistral-embed")
 
 
 def load_iaea_docs():
@@ -266,7 +254,7 @@ def ingest():
         chunk_overlap=200,
         separators=["\n\n", "§ ", "\n", ". ", " ", ""],
     )
-    embeddings = _get_embeddings()
+    embeddings = get_embeddings()
 
     # IAEA collection
     iaea_docs = load_iaea_docs()
@@ -293,9 +281,15 @@ def ingest():
         print(f"Ingested {len(dk_splits)} chunks into {DK_LAW_COLLECTION}")
 
 
+_retrievers_cache: tuple | None = None
+
+
 def get_retrievers():
-    """Return retriever instances for both collections (for use in graph)."""
-    embeddings = _get_embeddings()
+    """Return retriever instances for both collections (for use in graph). Cached per process."""
+    global _retrievers_cache
+    if _retrievers_cache is not None:
+        return _retrievers_cache
+    embeddings = get_embeddings()
     iaea = Chroma(
         collection_name=IAEA_COLLECTION,
         embedding_function=embeddings,
@@ -306,7 +300,8 @@ def get_retrievers():
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
     ).as_retriever(search_kwargs={"k": 5})
-    return iaea, dk
+    _retrievers_cache = (iaea, dk)
+    return _retrievers_cache
 
 
 if __name__ == "__main__":

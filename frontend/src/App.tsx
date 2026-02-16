@@ -4,6 +4,7 @@ import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
 import { MODELS, STORAGE_KEYS, type Model } from './constants'
+import { loadApiKeys, loadModelVariants } from './storage'
 import type { Message, QueryResponse } from './types'
 import './App.css'
 
@@ -15,38 +16,6 @@ function loadStoredModel(): Model {
     if (raw && MODELS.includes(raw as Model)) return raw as Model
   } catch {}
   return 'mistral'
-}
-
-function loadApiKeys(): Record<Model, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.apiKeys)
-    if (!raw) return { mistral: '', gemini: '', openai: '' }
-    const parsed = JSON.parse(raw) as Record<string, string>
-    return {
-      mistral: parsed.mistral ?? '',
-      gemini: parsed.gemini ?? '',
-      openai: parsed.openai ?? '',
-    }
-  } catch {
-    return { mistral: '', gemini: '', openai: '' }
-  }
-}
-
-function loadModelVariants(): Record<Model, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.modelVariants)
-    if (!raw) {
-      return { mistral: 'default', gemini: 'gemini-2.5-flash-lite', openai: 'gpt-4o-mini' }
-    }
-    const parsed = JSON.parse(raw) as Record<string, string>
-    return {
-      mistral: parsed.mistral ?? 'default',
-      gemini: parsed.gemini ?? 'gemini-2.5-flash-lite',
-      openai: parsed.openai ?? 'gpt-4o-mini',
-    }
-  } catch {
-    return { mistral: 'default', gemini: 'gemini-2.5-flash-lite', openai: 'gpt-4o-mini' }
-  }
 }
 
 export default function App() {
@@ -114,8 +83,8 @@ export default function App() {
       const msg =
         err instanceof Error ? err.message : 'Failed to get answer. Is the backend running?'
       setError(msg)
-      const lower = msg.toLowerCase()
-      if (lower.includes('api key') || lower.includes('rate limit') || lower.includes('quota')) {
+      const msgLower = msg.toLowerCase()
+      if (msgLower.includes('api key') || msgLower.includes('rate limit') || msgLower.includes('quota')) {
         setSettingsOpen(true)
       }
     } finally {
@@ -148,14 +117,18 @@ export default function App() {
         <ResponseDisplay messages={messages} />
       </div>
       <div className="input-area">
-        {error && (
-          <p className={error.toLowerCase().includes('rate limit') ? 'error error-rate-limit' : 'error'}>
-            {error}
-            {error.toLowerCase().includes('rate limit') && (
-              <span className="error-hint"> You can switch to another model in Settings.</span>
-            )}
-          </p>
-        )}
+        {error && (() => {
+          const errorLower = error.toLowerCase()
+          const isRateLimit = errorLower.includes('rate limit')
+          return (
+            <p className={isRateLimit ? 'error error-rate-limit' : 'error'}>
+              {error}
+              {isRateLimit && (
+                <span className="error-hint"> You can switch to another model in Settings.</span>
+              )}
+            </p>
+          )
+        })()}
         <QueryForm onSubmit={handleSubmit} loading={loading} disabled={false} />
         {messages.some((m) => m.role === 'assistant') && (
           <div className="followup-suggestions">

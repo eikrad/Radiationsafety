@@ -233,8 +233,7 @@ def query(req: QueryRequest):
 
 
 app.include_router(api_router, prefix="/api")
-
-# Keep /health and /query for direct API access
+# Expose same routes at root (e.g. /health, /query) for direct API access
 app.include_router(api_router)
 
 
@@ -275,10 +274,8 @@ if _FRONTEND_DIST.exists():
     def serve_spa(path: str):
         """SPA fallback: serve index.html for client-side routes."""
         if path.startswith("api") or path == "api":
-            from fastapi import HTTPException
             raise HTTPException(404)
         index_html = _FRONTEND_DIST / "index.html"
         if index_html.exists():
             return FileResponse(index_html)
-        from fastapi import HTTPException
         raise HTTPException(404)

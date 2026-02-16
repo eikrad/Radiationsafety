@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { MODELS, MODEL_VARIANTS, STORAGE_KEYS, type Model } from '../constants'
+import { loadApiKeys, loadModelVariants } from '../storage'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -10,46 +11,6 @@ const MODEL_LABELS: Record<Model, string> = {
   mistral: 'Mistral API Key',
   gemini: 'Gemini API Key',
   openai: 'OpenAI API Key',
-}
-
-function loadApiKeys(): Record<Model, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.apiKeys)
-    if (!raw) return { mistral: '', gemini: '', openai: '' }
-    const parsed = JSON.parse(raw) as Record<string, string>
-    return {
-      mistral: parsed.mistral ?? '',
-      gemini: parsed.gemini ?? '',
-      openai: parsed.openai ?? '',
-    }
-  } catch {
-    return { mistral: '', gemini: '', openai: '' }
-  }
-}
-
-function loadModelVariants(): Record<Model, string> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.modelVariants)
-    if (!raw) {
-      return {
-        mistral: 'default',
-        gemini: 'gemini-2.5-flash-lite',
-        openai: 'gpt-4o-mini',
-      }
-    }
-    const parsed = JSON.parse(raw) as Record<string, string>
-    return {
-      mistral: parsed.mistral ?? 'default',
-      gemini: parsed.gemini ?? 'gemini-2.5-flash-lite',
-      openai: parsed.openai ?? 'gpt-4o-mini',
-    }
-  } catch {
-    return {
-      mistral: 'default',
-      gemini: 'gemini-2.5-flash-lite',
-      openai: 'gpt-4o-mini',
-    }
-  }
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {

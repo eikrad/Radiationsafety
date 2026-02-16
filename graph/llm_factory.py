@@ -2,10 +2,6 @@
 
 import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai"})
 
 
