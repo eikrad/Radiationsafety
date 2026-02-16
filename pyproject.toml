@@ -7,7 +7,7 @@ where = ["."]
 include = ["graph*"]
 
 [tool.setuptools]
-py-modules = ["ingestion"]
+py-modules = ["ingestion", "ingestion_fetch", "document_updates"]
 
 [project]
 name = "radiationsafety"
@@ -19,6 +19,7 @@ dependencies = [
     "black>=26.1.0",
     "chromadb>=1.4.1",
     "fastapi>=0.115.0",
+    "python-multipart>=0.0.9",
     "isort>=7.0.0",
     "langchain>=1.2.7",
     "langchain-chroma>=1.1.0",
@@ -32,6 +33,7 @@ dependencies = [
     "pypdf>=5.0.0",
     "pdfplumber>=0.11.0",
     "pymupdf>=1.25.0",
+    "pyyaml>=6.0",
     "python-dotenv>=1.2.1",
     "uvicorn[standard]>=0.32.0",
 ]

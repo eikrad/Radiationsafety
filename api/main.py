@@ -1,19 +1,19 @@
-"""FastAPI backend: /query, /health, and optional frontend serving."""
+"""FastAPI backend: /query, /health, document updates, ingest, and optional frontend serving."""
 
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, FastAPI, HTTPException
+from fastapi import APIRouter, BackgroundTasks, File, Form, FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 load_dotenv()
 
-app_state = {"graph": None}
+app_state = {"graph": None, "ingest_status": "idle"}
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
@@ -68,13 +68,207 @@ class QueryResponse(BaseModel):
     warning: str | None = None  # When web search or retrieval didn't help
 
 
+class SetSourceUrlBody(BaseModel):
+    """Request body for PATCH /documents/source/{source_id}/url."""
+
+    url: str
+
+
 api_router = APIRouter()
+
+
+def _run_ingest() -> None:
+    """Run ingestion and clear retriever cache. Updates app_state ingest_status."""
+    app_state["ingest_status"] = "running"
+    try:
+        import ingestion
+
+        ingestion.ingest()
+        ingestion.clear_retrievers_cache()
+    finally:
+        app_state["ingest_status"] = "idle"
 
 
 @api_router.get("/health")
 def health():
     """Health check."""
     return {"status": "ok", "graph_loaded": app_state["graph"] is not None}
+
+
+@api_router.get("/documents/check-updates")
+def documents_check_updates():
+    """Return list of registered sources with current/remote version and update availability."""
+    try:
+        from document_updates import check_updates
+
+        sources = check_updates()
+        return {"sources": sources, "recent_iaea": []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.patch("/documents/source/{source_id}/url")
+def documents_set_source_url(source_id: str, body: SetSourceUrlBody):
+    """Set or update a document source URL manually. URL must be from retsinformation.dk, sst.dk, or iaea.org."""
+    url = (body.url or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="url is required")
+    try:
+        from document_updates import _allowed_url, update_registry_url, load_registry_raw
+    except ImportError:
+        raise HTTPException(status_code=500, detail="document_updates not available")
+    if not _allowed_url(url):
+        raise HTTPException(
+            status_code=400,
+            detail="URL must be from retsinformation.dk, sst.dk, or iaea.org.",
+        )
+    raw = load_registry_raw()
+    if not any((s.get("id") or "").strip() == source_id.strip() for s in raw):
+        raise HTTPException(status_code=404, detail=f"Source '{source_id}' not found")
+    update_registry_url(source_id, url)
+    return {"ok": True, "message": "URL updated."}
+
+
+@api_router.get("/documents/source/{source_id}/file")
+def documents_get_source_file(source_id: str):
+    """Serve the local PDF for a document source. Returns 404 if source not found or no local file."""
+    try:
+        from document_updates import _load_registry, get_local_pdf_path
+    except ImportError:
+        raise HTTPException(status_code=500, detail="document_updates not available")
+    registry = _load_registry()
+    source = next((s for s in registry if (s.id or "").strip() == source_id.strip()), None)
+    if not source:
+        raise HTTPException(status_code=404, detail=f"Source '{source_id}' not found")
+    path = get_local_pdf_path(source)
+    if not path or not path.exists():
+        raise HTTPException(status_code=404, detail="No local file for this source")
+    return FileResponse(path, media_type="application/pdf", filename=path.name)
+
+
+@api_router.post("/documents/source/{source_id}/lookup-url")
+def documents_lookup_source_url(source_id: str):
+    """Try to find the document URL (Danish: sst.dk or retsinformation.dk via Brave/probe; IAEA: search). If found, update registry and return URL."""
+    try:
+        from document_updates import lookup_source_url, update_registry_url
+    except ImportError:
+        raise HTTPException(status_code=500, detail="document_updates not available")
+    url, error = lookup_source_url(source_id)
+    if not url:
+        raise HTTPException(status_code=404, detail=error or "URL not found")
+    update_registry_url(source_id, url)
+    return {"url": url, "updated": True}
+
+
+@api_router.post("/documents/source/{source_id}/download-update")
+def documents_download_update(source_id: str):
+    """Download the new version for this source and backup the old one. Requires update_available."""
+    try:
+        import ingestion
+        success, message = ingestion.download_update_for_source(source_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    return {"ok": True, "message": message}
+
+
+@api_router.post("/documents/build-from-local")
+def documents_build_from_local():
+    """Discover local PDFs, extract versions, optionally confirm URLs, write document_sources.yaml. Returns new sources list."""
+    try:
+        from build_document_sources import build_sources, write_document_sources_yaml
+
+        sources = build_sources(confirm_urls=True)
+        if not sources:
+            return {"sources": [], "message": "No documents discovered in documents/IAEA, IAEA_other, or Bekendtgørelse."}
+        write_document_sources_yaml(sources)
+        from document_updates import check_updates
+        updated = check_updates()
+        return {"sources": updated, "message": f"Wrote {len(sources)} source(s) to document_sources.yaml."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+_MAX_PDF_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+_ALLOWED_ADD_PDF_FOLDERS = frozenset({"IAEA", "IAEA_other"})
+
+
+@api_router.post("/documents/add-pdf")
+async def documents_add_pdf(
+    file: UploadFile = File(...),
+    folder: str = Form("IAEA_other"),
+):
+    """Upload a PDF from retsinformation.dk or IAEA: add to collection, extract title/version, look up URL, append to registry."""
+    if folder not in _ALLOWED_ADD_PDF_FOLDERS:
+        raise HTTPException(status_code=400, detail=f"folder must be one of: {', '.join(sorted(_ALLOWED_ADD_PDF_FOLDERS))}")
+    if not (file.filename and file.filename.lower().endswith(".pdf")):
+        raise HTTPException(status_code=400, detail="Please upload a PDF file.")
+    content = await file.read()
+    if len(content) > _MAX_PDF_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"PDF must be at most {_MAX_PDF_UPLOAD_BYTES // (1024*1024)} MB.",
+        )
+    safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._- ").strip() or "uploaded.pdf"
+    if not safe_name.lower().endswith(".pdf"):
+        safe_name += ".pdf"
+    docs_dir = _PROJECT_ROOT / "documents" / folder
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    dest = docs_dir / safe_name
+    try:
+        dest.write_bytes(content)
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Could not save file: {e}")
+    try:
+        from pathlib import Path
+        from build_document_sources import _extract_iaea_search_terms, _extract_pdf_title_and_version, _slug
+        from document_updates import _lookup_iaea_publication_url_multi, append_source_to_registry
+        import ingestion
+
+        title, version = _extract_pdf_title_and_version(dest)
+        display_name = (title or safe_name).strip() or safe_name
+        search_terms = _extract_iaea_search_terms(Path(dest))
+        url = _lookup_iaea_publication_url_multi(search_terms)
+        source_id = f"iaea-{_slug(display_name)}" if folder == "IAEA" else f"iaea-other-{_slug(display_name)}"
+        append_source_to_registry(
+            source_id=source_id,
+            name=display_name,
+            url=url,
+            folder=folder,
+            filename_hint=safe_name,
+            version=version,
+        )
+        chunks = ingestion.add_single_pdf_to_collection(
+            dest, folder=folder, source_label=display_name
+        )
+        ingestion.clear_retrievers_cache()
+        msg = f"Added PDF to collection ({chunks} chunks)."
+        if url:
+            msg += f" URL: {url}"
+        else:
+            msg += " No publication URL found (try Build list from local PDFs to refresh)."
+        return {"message": msg, "chunks_added": chunks, "url_found": bool(url), "url": url or None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.post("/ingest")
+def ingest_trigger(background_tasks: BackgroundTasks):
+    """Start ingestion in the background. Returns immediately."""
+    if app_state["ingest_status"] == "running":
+        raise HTTPException(status_code=409, detail="Ingestion already running.")
+    background_tasks.add_task(_run_ingest)
+    return JSONResponse(
+        status_code=202,
+        content={"status": "accepted", "message": "Ingestion started; this may take several minutes."},
+    )
+
+
+@api_router.get("/ingest/status")
+def ingest_status():
+    """Return current ingestion status: idle or running."""
+    return {"status": app_state["ingest_status"]}
 
 
 def _to_tuples(history: list[list[str]] | None) -> list[tuple[str, str]]:

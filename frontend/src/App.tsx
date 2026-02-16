@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { DocumentsPanel } from './components/DocumentsPanel'
 import { ModelSelector } from './components/ModelSelector'
 import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
@@ -24,6 +25,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [model, setModel] = useState<Model>(loadStoredModel)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [documentsOpen, setDocumentsOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -94,25 +96,41 @@ export default function App() {
 
   return (
     <div className="app">
-      <header>
-        <div className="header-title">
-          <h1>Radiation Safety RAG</h1>
-          <p>Query IAEA and Danish legislation documents</p>
-        </div>
-        <div className="header-controls">
-          <ModelSelector value={model} onChange={setModel} />
-          <button
-            type="button"
-            className="settings-btn"
-            onClick={() => setSettingsOpen(true)}
-            title="Settings"
-            aria-label="Settings"
-          >
-            ⚙ Settings
-          </button>
-        </div>
-      </header>
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      {documentsOpen && (
+        <DocumentsPanel onClose={() => setDocumentsOpen(false)} />
+      )}
+      <div className="app-body">
+        <header className="app-header">
+          <div className="header-left">
+            <button
+              type="button"
+              className="header-btn"
+              onClick={() => setDocumentsOpen((open) => !open)}
+              title="Documents and updates"
+              aria-label="Documents and updates"
+              aria-expanded={documentsOpen}
+            >
+              Documents
+            </button>
+          </div>
+          <div className="header-center">
+            <h1>Radiation Safety RAG</h1>
+            <p>Query IAEA and Danish legislation documents</p>
+          </div>
+          <div className="header-right">
+            <ModelSelector value={model} onChange={setModel} />
+            <button
+              type="button"
+              className="header-btn"
+              onClick={() => setSettingsOpen(true)}
+              title="Settings"
+              aria-label="Settings"
+            >
+              ⚙ Settings
+            </button>
+          </div>
+        </header>
+        <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <div className="conversation-area">
         <ResponseDisplay messages={messages} />
       </div>
@@ -151,6 +169,7 @@ export default function App() {
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

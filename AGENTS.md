@@ -40,7 +40,8 @@ Radiationsafety/
 │           ├── ResponseDisplay.tsx
 │           ├── ModelSelector.tsx
 │           └── SettingsModal.tsx
-├── ingestion.py            # PDF load, chunk, embed; Chroma collections
+├── ingestion.py            # PDF load (local + from URLs), chunk, embed; Chroma collections
+├── ingestion_fetch.py      # Fetch PDFs from URLs (Retsinformation, IAEA, direct)
 ├── main.py                 # CLI entry (optional)
 ├── tests/
 │   ├── conftest.py         # pytest fixtures, mock graph, env
@@ -81,6 +82,11 @@ Radiationsafety/
 - `radiation-dk-law`: Danish legislation PDFs (Bekendtgørelse)
 
 Embeddings use `LLM_PROVIDER` (Mistral or Gemini) in `ingestion.py` and `graph/llm_factory.py` (get_embeddings). Chat LLM is independent and can be overridden per request from the frontend.
+
+## Document updates
+
+- **Danish (retsinformation.dk)**: No API. URLs are resolved via Brave Search (`site:retsinformation.dk`) and/or probing `eli/lta/YEAR/nr`; then the document page is fetched and "Senere ændringer til forskriften" is parsed to get the newest consolidated version (e.g. BEK 670 → 1385). **SST (sst.dk)**: Two Danish sources (e.g. "Brug af åbne radioaktive kilder", "Udarbejdelse af en sikkerhedsvurdering") are vejledninger on sst.dk; URLs are resolved via Brave Search `site:sst.dk` and downloaded as PDF (not XML).
+- **IAEA (iaea.org)**: Publication pages can show **"Superseded by: …"**. GET the page, parse for "Superseded by"; if present, use the superseding title and link as the newer version and download target.
 
 ## Credits
 
