@@ -3,16 +3,14 @@
 import os
 from typing import Any, Dict
 
-from dotenv import load_dotenv
 from langgraph.graph import END, StateGraph
 
 from graph.chains.answer_grader import get_answer_grader
 from graph.chains.hallucinations_grader import get_hallucination_grader
 from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, WEB_SEARCH
+from graph.llm_factory import get_llm
 from graph.nodes import generate, grade_documents, retrieve, web_search
 from graph.state import GraphState
-
-load_dotenv()
 
 FINALIZE = "finalize"
 
@@ -30,8 +28,6 @@ def decide_to_generate(state: GraphState) -> str:
 
 def grade_generation_grounded(state: GraphState) -> str:
     """Check grounding and answer quality; return outcome for routing."""
-    from graph.llm_factory import get_llm
-
     question = state["question"]
     documents = state["documents"]
     generation = state["generation"]

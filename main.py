@@ -25,6 +25,7 @@ def main():
                 "web_search": False,
                 "documents": [],
                 "web_search_attempted": False,
+                "chat_history": [],
             }
         )
         print("\nAnswer:", result.get("generation", "(no answer)"))

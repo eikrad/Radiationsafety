@@ -1,0 +1,24 @@
+---
+description: Before committing, keep code fast and clean; follow this cleanup workflow
+alwaysApply: true
+---
+
+# Cleanup routine
+
+We want the codebase to be **fast and clean**. Before committing changes, run this workflow.
+
+## Workflow
+
+1. **Review recent code** and look for opportunities.
+
+2. **Apply cleanup by:**
+   - Looking for redundant or dead code.
+   - Straightening logic and control flow.
+   - Simplifying excessive or repetitive code.
+   - Considering performance (unnecessary work, parallelization, caching).
+
+3. **Run the test suite.** Fix any failures before finishing.
+   - Backend: `uv run pytest tests/ -v`
+   - Frontend: `cd frontend && npm run test -- --run`
+
+4. **Identify reusable patterns and optional abstractions;** suggest them briefly to the user and keep suggestions non-blocking.

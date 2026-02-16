@@ -46,16 +46,12 @@ def web_search(state: GraphState) -> Dict[str, Any]:
     """Run Brave Search restricted to IAEA and Danish legislation domains."""
     question = state["question"]
     existing_docs = list(state.get("documents") or [])
-
-    chat_history = state.get("chat_history") or []
     api_key = os.getenv("BRAVE_SEARCH_API_KEY")
     if not api_key:
         return {
             "documents": existing_docs,
-            "question": question,
             "web_search": False,
-            "web_search_attempted": state.get("web_search_attempted", False),
-            "chat_history": chat_history,
+            "web_search_attempted": True,  # prevent infinite retry when key missing
         }
 
     domain_filter = f" ({IAEA_DOMAIN} OR {' OR '.join(DK_DOMAINS)})"
@@ -67,10 +63,8 @@ def web_search(state: GraphState) -> Dict[str, Any]:
     except Exception:
         return {
             "documents": existing_docs,
-            "question": question,
             "web_search": False,
-            "web_search_attempted": state.get("web_search_attempted", False),
-            "chat_history": chat_history,
+            "web_search_attempted": True,  # prevent infinite retry on failure
         }
 
     contents = _extract_contents(results)
@@ -83,8 +77,6 @@ def web_search(state: GraphState) -> Dict[str, Any]:
 
     return {
         "documents": existing_docs,
-        "question": question,
         "web_search": False,
         "web_search_attempted": True,
-        "chat_history": chat_history,
     }
