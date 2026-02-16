@@ -1,0 +1,30 @@
+# Document sources for "Check for updates" and ingestion. Copy to document_sources.yaml and fill in your URLs.
+# Danish: retsinformation.dk (BEK) resolved via Brave search + probe + "Senere ændringer"; sst.dk vejledninger via Brave site:sst.dk.
+# On ingest, Danish retsinformation.dk uses XML; sst.dk uses PDF. Older Danish versions in documents/backup/Bekendtgørelse (max 2 per source).
+
+sources:
+  # Danish legislation (Bekendtgørelse) from retsinformation.dk. Use any ELI URL for the series.
+  - id: dk-radioaktivitet
+    name: Radioaktivitetsbekendtgørelsen
+    url: "https://www.retsinformation.dk/eli/lta/2019/670"
+    folder: Bekendtgørelse
+    filename_hint: null
+    version: null   # filled automatically after ingestion (e.g. "BEK nr 1385 af 18/11/2025")
+
+  # Danish vejledning from sst.dk (URL found via Brave search site:sst.dk).
+  - id: dk-brug-af-aabne-radioaktive-kilder
+    name: Brug af åbne radioaktive kilder
+    url: "https://www.sst.dk/media/gtqpr5bg/vejledning-om-aabne-radioaktive-kilder-december-2021.pdf"
+    folder: Bekendtgørelse
+    filename_hint: null
+    version: null
+
+  # IAEA publication. Use the publication page URL.
+  - id: iaea-safety-assessment-research-reactors
+    name: Safety Assessment for Research Reactors (Safety Analysis Report)
+    url: "https://www.iaea.org/publications/8639/safety-assessment-for-research-reactors-and-preparation-of-the-safety-analysis-report"
+    folder: IAEA
+    filename_hint: null
+    version: null   # filled automatically after ingestion (e.g. publication title or "Current")
+
+  # Add more entries as needed. folder is one of: IAEA, IAEA_other, Bekendtgørelse

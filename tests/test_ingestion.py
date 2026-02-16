@@ -45,6 +45,22 @@ def test_load_dk_law_docs_returns_empty_for_empty_dir(tmp_path, monkeypatch):
     assert docs == []
 
 
+def test_rotate_backups_keeps_only_keep_newest(tmp_path):
+    """rotate_backups deletes older files so only `keep` most recent remain."""
+    import time
+    from ingestion import rotate_backups
+
+    (tmp_path / "a_1.xml").write_text("1")
+    time.sleep(0.02)
+    (tmp_path / "a_2.xml").write_text("2")
+    time.sleep(0.02)
+    (tmp_path / "a_3.xml").write_text("3")
+    rotate_backups(tmp_path, "a", keep=2)
+    remaining = sorted(tmp_path.glob("a_*.xml"), key=lambda p: p.stat().st_mtime)
+    assert len(remaining) == 2
+    assert (tmp_path / "a_1.xml").exists() is False
+
+
 def test_collection_names():
     """Collection names match expected constants."""
     assert IAEA_COLLECTION == "radiation-iaea"

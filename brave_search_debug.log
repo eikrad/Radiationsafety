@@ -1,0 +1,433 @@
+{"ts": "2026-02-16T22:23:48.257481", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:23:48.258302", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:23:53.017405", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:23:53.019546", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:23:53.020333", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.020926", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.021469", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:23:53.022043", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.022617", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.023158", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.023683", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.024212", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:23:53.024816", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:23:53.025515", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:23:57.327815", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:23:57.328158", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:23:57.328374", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.328568", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:23:57.328733", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.328856", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.329488", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.329701", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.329938", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.330138", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:23:57.330368", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:23:57.330741", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:23:57.881815", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": 1384, "has_api_key": true}
+{"ts": "2026-02-16T22:24:04.997507", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:04.998321", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2022/1384", "title": "BEK nr 1384 af 03/10/2022, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:04.999059", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2020/1384", "title": "BEK nr 1384 af 22/09/2020, Social- og Boligministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:04.999696", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2013/1384", "title": "BEK nr 1384 af 09/12/2013, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.000305", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.000940", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2016/1384", "title": "BEK nr 1384 af 28/11/2016, Klima-, Energi- og Forsyningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.001512", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2006/1384", "title": "BEK nr 1384 af 12/12/2006, Beskæftigelsesministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.002082", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2024/1384", "title": "BEK nr 1384 af 27/11/2024, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.002591", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2023/1384", "title": "BEK nr 1384 af 29/11/2023, Ministeriet for Fødevarer, Landbrug og Fiskeri", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.003189", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/1384", "title": "BEK nr 1384 af 29/11/2018, Klima-, Energi- og Forsyningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.003836", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2014/1384", "title": "BEK nr 1384 af 15/12/2014, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.004536", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2021/1384", "title": "BEK nr 1384 af 24/06/2021, Børne- og Undervisningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.005071", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2000/1384", "title": "BEK nr 1384 af 28/12/2000, Ministeriet for Fødevarer, Landbrug og Fiskeri", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.005678", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2011/1384", "title": "LOV nr 1384 af 28/12/2011, Skatteministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:05.006213", "msg": "brave_return", "returned": null, "reason": "no_candidates_after_title_filter"}
+{"ts": "2026-02-16T22:24:05.299126", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:24:05.303715", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:24:08.650869", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:24:08.957780", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:08.959354", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:24:08.960639", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.961883", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.963162", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:24:08.964417", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.965163", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.965953", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.966596", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.968264", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:24:08.970005", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:24:08.971892", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:24:20.944682", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:20.947875", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:24:20.950786", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.951664", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:24:20.952861", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.953672", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.955269", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.956232", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.957619", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.962241", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:24:20.963385", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:24:20.964271", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:24:21.773792", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": 1384, "has_api_key": true}
+{"ts": "2026-02-16T22:24:25.082722", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:25.084294", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:24:25.085879", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.086701", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.087426", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:24:25.088145", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.091157", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.093140", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.094970", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.096852", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:24:25.098676", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:24:25.100803", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:24:29.019638", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:29.019924", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2022/1384", "title": "BEK nr 1384 af 03/10/2022, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.020175", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2020/1384", "title": "BEK nr 1384 af 22/09/2020, Social- og Boligministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.020436", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2013/1384", "title": "BEK nr 1384 af 09/12/2013, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.020660", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.020917", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2016/1384", "title": "BEK nr 1384 af 28/11/2016, Klima-, Energi- og Forsyningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.021244", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2006/1384", "title": "BEK nr 1384 af 12/12/2006, Beskæftigelsesministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.021444", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2024/1384", "title": "BEK nr 1384 af 27/11/2024, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.021651", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2023/1384", "title": "BEK nr 1384 af 29/11/2023, Ministeriet for Fødevarer, Landbrug og Fiskeri", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.021919", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/1384", "title": "BEK nr 1384 af 29/11/2018, Klima-, Energi- og Forsyningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.022629", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2014/1384", "title": "BEK nr 1384 af 15/12/2014, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.022787", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2021/1384", "title": "BEK nr 1384 af 24/06/2021, Børne- og Undervisningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.023023", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2000/1384", "title": "BEK nr 1384 af 28/12/2000, Ministeriet for Fødevarer, Landbrug og Fiskeri", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.023230", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2011/1384", "title": "LOV nr 1384 af 28/12/2011, Skatteministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:29.023471", "msg": "brave_return", "returned": null, "reason": "no_candidates_after_title_filter"}
+{"ts": "2026-02-16T22:24:29.186158", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:24:29.185650", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:24:32.896060", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:32.896270", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:24:32.896443", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.896592", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:24:32.896717", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.896847", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.896981", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.897104", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.897218", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.897333", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:24:32.897459", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:24:32.897608", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:24:33.542211", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": 1384, "has_api_key": true}
+{"ts": "2026-02-16T22:24:37.061437", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:37.063607", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:24:37.064853", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.065732", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.066419", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:24:37.067061", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.067624", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.068238", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.068845", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.069529", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:24:37.070081", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:24:37.070730", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:24:49.042746", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:24:49.045752", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2022/1384", "title": "BEK nr 1384 af 03/10/2022, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.046955", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2020/1384", "title": "BEK nr 1384 af 22/09/2020, Social- og Boligministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.048046", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2013/1384", "title": "BEK nr 1384 af 09/12/2013, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.049160", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.049948", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2016/1384", "title": "BEK nr 1384 af 28/11/2016, Klima-, Energi- og Forsyningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.050559", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2006/1384", "title": "BEK nr 1384 af 12/12/2006, Beskæftigelsesministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.051302", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2024/1384", "title": "BEK nr 1384 af 27/11/2024, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.051925", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2023/1384", "title": "BEK nr 1384 af 29/11/2023, Ministeriet for Fødevarer, Landbrug og Fiskeri", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.052608", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/1384", "title": "BEK nr 1384 af 29/11/2018, Klima-, Energi- og Forsyningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.053665", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2014/1384", "title": "BEK nr 1384 af 15/12/2014, Transportministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.054915", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2021/1384", "title": "BEK nr 1384 af 24/06/2021, Børne- og Undervisningsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.055900", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2000/1384", "title": "BEK nr 1384 af 28/12/2000, Ministeriet for Fødevarer, Landbrug og Fiskeri", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.059606", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2011/1384", "title": "LOV nr 1384 af 28/12/2011, Skatteministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:24:49.061678", "msg": "brave_return", "returned": null, "reason": "no_candidates_after_title_filter"}
+{"ts": "2026-02-16T22:31:03.174227", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:31:03.934006", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:31:03.934672", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:31:03.934979", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.935247", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.935419", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:31:03.935617", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.935868", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.936116", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.936557", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.936707", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:31:03.936853", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:31:03.937004", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:31:04.125658", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:31:04.125950", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:31:15.817828", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:31:15.818087", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:31:15.818342", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.818483", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.818959", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:31:15.819249", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.819387", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.819520", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.819645", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.819771", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:31:15.819896", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:31:15.820039", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:31:19.953292", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:31:19.953564", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:31:19.953720", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.953882", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:31:19.954018", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.954155", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.954286", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.954403", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.954518", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.954635", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:31:19.954743", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:31:19.954884", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:31:28.453287", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:31:29.124208", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:31:29.124850", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:31:29.125258", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.125429", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.125622", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:31:29.125769", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.125905", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.126041", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.126175", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.126312", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:31:29.126438", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:31:29.126613", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:31:29.327087", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:31:29.329003", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:31:33.099400", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:31:33.099784", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:31:33.100372", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.100962", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:31:33.101396", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.101797", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.102185", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.102572", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.102979", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.103421", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:31:33.103869", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:31:33.104340", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:31:37.205984", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:31:37.207145", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:31:37.207553", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.208361", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.209012", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:31:37.209600", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.210000", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.210372", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.210854", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.211302", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:31:37.211972", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:31:37.212588", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:32:37.817608", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:32:37.820111", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:32:38.504330", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:32:38.505453", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:32:38.506082", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.506451", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:32:38.506950", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.507228", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.507484", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.508850", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.509692", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.510089", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:32:38.510893", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:32:38.511603", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:32:50.859992", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:32:50.862015", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:32:50.863906", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.865256", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.866640", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:32:50.868134", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.869567", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.871072", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.871933", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.872770", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:32:50.873357", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:32:50.874015", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:32:51.403008", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:32:51.406818", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:32:54.488393", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:32:54.489852", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:32:54.490694", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.492051", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.492809", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:32:54.493796", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.494501", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.495357", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.496152", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.497016", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:32:54.497726", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:32:54.498529", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:33:02.670310", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:33:02.670728", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:33:02.697945", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.698205", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:33:02.698407", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.698604", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.698796", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.699011", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.699201", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.699389", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:33:02.699560", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:33:02.699779", "msg": "by_search_brave_first", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:44:17.279110", "msg": "onsite_no_candidates", "source_name": "Bekendtgørelse om radioaktive stoffer"}
+{"ts": "2026-02-16T22:44:17.348234", "msg": "onsite_no_candidates", "source_name": "Bekendtgørelse om radioaktive stoffer"}
+{"ts": "2026-02-16T22:44:17.349101", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": false}
+{"ts": "2026-02-16T22:44:17.349282", "msg": "brave_skip", "reason": "no_api_key"}
+{"ts": "2026-02-16T22:44:17.349418", "msg": "by_search_brave_fallback", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": false}
+{"ts": "2026-02-16T22:47:24.539599", "msg": "brave_called", "source_name": "Radioaktivitetsbekendtgørelsen", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:47:29.540370", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:47:29.541667", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "BEK nr 85 af 02/02/2018, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.541931", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2000/954", "title": "BEK nr 954 af 23/10/2000, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.542090", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2007/985", "title": "BEK nr 985 af 11/07/2007, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.542247", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "BEK nr 485 af 18/11/1985, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.542568", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.542711", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/671", "title": "BEK nr 671 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.542855", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1962/170", "title": "LOV nr 170 af 16/05/1962, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.543008", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.543142", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.543278", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "BEK nr 84 af 02/02/2018, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:47:29.543392", "msg": "brave_return", "returned": null, "reason": "no_candidates_after_title_filter"}
+{"ts": "2026-02-16T22:47:29.543546", "msg": "by_search_brave", "source_name": "Radioaktivitetsbekendtgørelsen", "got_url": false, "url": ""}
+{"ts": "2026-02-16T22:48:30.320927", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:48:30.323942", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:48:31.500110", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:48:31.500585", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:48:31.500743", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:31.500872", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:48:31.501003", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:48:31.501119", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:31.501237", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:31.501346", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:31.501469", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:48:31.501573", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:48:31.501761", "msg": "by_search_brave", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:48:39.387878", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:48:39.388631", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:48:39.389548", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.389954", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.390588", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:48:39.391059", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.391499", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.391964", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.392439", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.392900", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:48:39.393318", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:48:39.393818", "msg": "by_search_brave", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:48:43.671764", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:48:43.673917", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:48:46.140771", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:48:51.087355", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:48:51.088124", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:48:51.088896", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:51.089526", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:48:51.090475", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:48:51.091054", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:51.091590", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:51.092780", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:51.093320", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:48:51.094343", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:48:51.095165", "msg": "by_search_brave", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:48:59.024868", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:48:59.025557", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:48:59.025724", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.025868", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.025991", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:48:59.026134", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.026375", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.026583", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.026784", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.026962", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:48:59.027133", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:48:59.027342", "msg": "by_search_brave", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:49:03.201751", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:49:03.202686", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:49:03.203273", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.203841", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.204403", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:49:03.204913", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.206009", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.207121", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.207694", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.208228", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:49:03.208771", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:49:03.209456", "msg": "by_search_brave", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:49:03.444129", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:49:03.448398", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:49:07.025897", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:49:07.026418", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:49:07.026846", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.027393", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.027768", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:49:07.028122", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.028471", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.028853", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.029211", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.029600", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:49:07.029915", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:49:07.030301", "msg": "by_search_brave", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:49:19.144897", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:49:19.145508", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:49:19.145886", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:19.146250", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:49:19.146620", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:49:19.146986", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:19.147338", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:19.147604", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:49:19.147861", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:49:19.148085", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:49:19.148356", "msg": "by_search_brave", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:51:10.635360", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:51:10.640461", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:51:19.420230", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:51:19.420644", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "Bekendtgørelse om brug af radioaktive stoffer", "title_matched": true}
+{"ts": "2026-02-16T22:51:19.421032", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2001/993", "title": "Bekendtgørelse om transport af radioaktive stoffer", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.421568", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.422424", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": true}
+{"ts": "2026-02-16T22:51:19.422806", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.423167", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "Bekendtgørelse om anvendelse af åbne radioaktive kilder ...", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.423548", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/672", "title": "BEK nr 672 af 01/07/2019, Sundheds- og Ældreministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.423886", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/752/Pdf", "title": "Bekendtgørelse om sikkerhedskontrolforpligtelser for den fredelige udnyttelse", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.424205", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:51:19.424523", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2018/85", "candidates_count": 2}
+{"ts": "2026-02-16T22:51:19.424888", "msg": "by_search_brave", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2018/85"}
+{"ts": "2026-02-16T22:51:23.502674", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:51:23.502986", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:51:23.503155", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:51:23.503294", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:51:23.503422", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:51:23.503542", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:51:23.503668", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:51:23.503779", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:51:23.503894", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:51:23.503999", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:51:23.504142", "msg": "by_search_brave", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:54:20.345152", "msg": "brave_called", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:54:20.347759", "msg": "brave_called", "source_name": "Bekendtgørelse om radioaktive stoffer", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:54:34.244250", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:54:34.244745", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": true}
+{"ts": "2026-02-16T22:54:34.245136", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:54:34.245462", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "title_matched": true}
+{"ts": "2026-02-16T22:54:34.245803", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85/pdf", "title": "Bekendtgørelse om brug af radioaktive stoffer1)", "title_matched": false}
+{"ts": "2026-02-16T22:54:34.246140", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2025/1384", "title": "BEK nr 1384 af 18/11/2025, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:54:34.246463", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2015/1213", "title": "BEK nr 1213 af 26/10/2015, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:54:34.246826", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/670", "title": "BEK nr 670 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:54:34.247198", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1997/823/dan/pdf", "title": "Bekendtgørelse om dosisgrænser for ioniserende stråling", "title_matched": false}
+{"ts": "2026-02-16T22:54:34.247528", "msg": "brave_return", "returned": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf", "candidates_count": 2}
+{"ts": "2026-02-16T22:54:34.247950", "msg": "by_search_brave", "source_name": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse", "got_url": true, "url": "https://www.retsinformation.dk/eli/lta/2025/1384/pdf"}
+{"ts": "2026-02-16T22:54:34.444569", "msg": "brave_error", "error": "HTTP Error 429: Too Many Requests"}
+{"ts": "2026-02-16T22:54:34.457739", "msg": "by_search_brave", "source_name": "Bekendtgørelse om radioaktive stoffer", "got_url": false, "url": ""}
+{"ts": "2026-02-16T22:56:42.657681", "msg": "brave_called", "source_name": "Radioaktivitetsbekendtgørelsen", "bek_nr": null, "has_api_key": true}
+{"ts": "2026-02-16T22:56:47.282601", "msg": "brave_results_count", "count": 15}
+{"ts": "2026-02-16T22:56:47.283498", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/85", "title": "BEK nr 85 af 02/02/2018, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.284237", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2000/954", "title": "BEK nr 954 af 23/10/2000, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.284589", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2007/985", "title": "BEK nr 985 af 11/07/2007, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.284820", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1985/485", "title": "BEK nr 485 af 18/11/1985, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.285030", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669", "title": "BEK nr 669 af 01/07/2019, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.285227", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/671", "title": "BEK nr 671 af 01/07/2019, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.285539", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/1962/170", "title": "LOV nr 170 af 16/05/1962, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.285829", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/23", "title": "LOV nr 23 af 15/01/2018, Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.286100", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2019/669/pdf", "title": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.286346", "msg": "brave_result", "url": "https://www.retsinformation.dk/eli/lta/2018/84", "title": "BEK nr 84 af 02/02/2018, Indenrigs- og Sundhedsministeriet", "title_matched": false}
+{"ts": "2026-02-16T22:56:47.286596", "msg": "brave_return", "returned": null, "reason": "no_candidates_after_title_filter"}
+{"ts": "2026-02-16T22:56:47.288886", "msg": "by_search_brave", "source_name": "Radioaktivitetsbekendtgørelsen", "got_url": false, "url": ""}
+{"ts": "2026-02-16T22:57:25.339425", "msg": "brave_called", "source_name": "Radioaktivitetsbekendtgørelsen", "bek_nr": null, "has_api_key": false}
+{"ts": "2026-02-16T22:57:25.339801", "msg": "brave_skip", "reason": "no_api_key"}
+{"ts": "2026-02-16T22:57:25.340029", "msg": "by_search_brave", "source_name": "Radioaktivitetsbekendtgørelsen", "got_url": false, "url": ""}

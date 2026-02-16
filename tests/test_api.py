@@ -1,5 +1,8 @@
 """API endpoint tests."""
 
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -112,3 +115,114 @@ def test_query_returns_warning_when_set(client: TestClient):
     data = res.json()
     assert "warning" in data
     assert "Websuche" in data["warning"]
+
+
+def test_documents_check_updates(client: TestClient):
+    """Documents check-updates returns 200 and sources list."""
+    mock_sources = [
+        {
+            "id": "test-1",
+            "name": "Test Doc",
+            "url": "https://example.com/doc",
+            "folder": "IAEA",
+            "current_version": "1.0",
+            "remote_version": "2.0",
+            "update_available": True,
+            "local_date": None,
+            "remote_date": None,
+            "download_url": "https://example.com/doc2",
+            "error": None,
+        }
+    ]
+    with patch("document_updates.check_updates", return_value=mock_sources):
+        res = client.get("/api/documents/check-updates")
+    assert res.status_code == 200
+    data = res.json()
+    assert "sources" in data
+    assert "recent_iaea" in data
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["id"] == "test-1"
+    assert data["sources"][0]["update_available"] is True
+
+
+def test_ingest_status_idle(client: TestClient):
+    """Ingest status returns idle when not running."""
+    res = client.get("/api/ingest/status")
+    assert res.status_code == 200
+    assert res.json()["status"] == "idle"
+
+
+def test_ingest_returns_accepted(client: TestClient):
+    """POST ingest returns 202 and starts background task."""
+    with patch("api.main._run_ingest"):
+        res = client.post("/api/ingest")
+    assert res.status_code == 202
+    data = res.json()
+    assert data.get("status") == "accepted"
+
+
+def test_documents_set_source_url_rejects_disallowed_url(client: TestClient):
+    """PATCH source URL returns 400 when URL is not from iaea.org or retsinformation.dk."""
+    res = client.patch(
+        "/api/documents/source/iaea-1/url",
+        json={"url": "https://evil.com/doc"},
+    )
+    assert res.status_code == 400
+    detail = res.json().get("detail", "")
+    assert "retsinformation" in detail or "iaea" in detail.lower()
+
+
+def test_documents_set_source_url_not_found(client: TestClient):
+    """PATCH source URL returns 404 when source_id is not in registry."""
+    with patch("document_updates.load_registry_raw", return_value=[]):
+        res = client.patch(
+            "/api/documents/source/nonexistent/url",
+            json={"url": "https://www.iaea.org/publications/123/test"},
+        )
+    assert res.status_code == 404
+
+
+def test_documents_set_source_url_ok(client: TestClient):
+    """PATCH source URL updates registry when URL is allowlisted and source exists."""
+    with patch("document_updates.load_registry_raw", return_value=[{"id": "iaea-1", "name": "Doc"}]):
+        with patch("document_updates._allowed_url", return_value=True):
+            with patch("document_updates.update_registry_url") as upd:
+                res = client.patch(
+                    "/api/documents/source/iaea-1/url",
+                    json={"url": "https://www.iaea.org/publications/8639/safety-assessment"},
+                )
+    assert res.status_code == 200
+    assert res.json().get("ok") is True
+    upd.assert_called_once_with("iaea-1", "https://www.iaea.org/publications/8639/safety-assessment")
+
+
+def test_documents_get_source_file_not_found(client: TestClient):
+    """GET source file returns 404 when source_id is not in registry."""
+    with patch("document_updates._load_registry", return_value=[]):
+        res = client.get("/api/documents/source/nonexistent/file")
+    assert res.status_code == 404
+
+
+def test_documents_get_source_file_no_local_file(client: TestClient):
+    """GET source file returns 404 when source exists but has no local PDF."""
+    from document_updates import DocumentSource
+    with patch("document_updates._load_registry", return_value=[
+        DocumentSource(id="iaea-1", name="Doc", url="https://iaea.org/x", folder="IAEA", filename_hint=None),
+    ]):
+        with patch("document_updates.get_local_pdf_path", return_value=None):
+            res = client.get("/api/documents/source/iaea-1/file")
+    assert res.status_code == 404
+
+
+def test_documents_get_source_file_ok(client: TestClient, tmp_path: Path):
+    """GET source file returns 200 with PDF when local file exists."""
+    from document_updates import DocumentSource
+    pdf = tmp_path / "test.pdf"
+    pdf.write_bytes(b"%PDF-1.4 minimal")
+    source = DocumentSource(id="iaea-1", name="Doc", url="https://iaea.org/x", folder="IAEA", filename_hint=None)
+    with patch("document_updates._load_registry", return_value=[source]):
+        with patch("document_updates.get_local_pdf_path", return_value=pdf):
+            res = client.get("/api/documents/source/iaea-1/file")
+    assert res.status_code == 200
+    assert res.headers.get("content-type", "").startswith("application/pdf")
+    assert res.content == b"%PDF-1.4 minimal"

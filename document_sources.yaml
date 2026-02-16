@@ -1,0 +1,153 @@
+sources:
+- id: dk-bekendtgørelse-om-ioniserende-stråling-og-stråle
+  name: Bekendtgørelse om ioniserende stråling og strålebeskyttelse
+  url: https://www.retsinformation.dk/eli/lta/2025/1384
+  folder: Bekendtgørelse
+  filename_hint: B20250138405.pdf
+  version: Bekendtgørelse om ioniserende stråling og strålebeskyttelse
+- id: dk-bekendtgørelse-om-radioaktive-stoffer
+  name: Bekendtgørelse om radioaktive stoffer
+  url: https://www.retsinformation.dk/eli/lta/2025/1385
+  folder: Bekendtgørelse
+  filename_hint: B20250138505.pdf
+  version: Bekendtgørelse om radioaktive stoffer
+- id: dk-brug-af-åbne-radioaktive-kilder
+  name: Brug af åbne radioaktive kilder
+  url: https://www.sst.dk/media/gtqpr5bg/vejledning-om-aabne-radioaktive-kilder-december-2021.pdf
+  folder: Bekendtgørelse
+  filename_hint: Brug af aabne radioaktive kilder.pdf
+  version: Brug af åbne radioaktive kilder
+- id: dk-udarbejdelse-af-en-sikkerhedsvurderingaak
+  name: Udarbejdelse af en sikkerhedsvurderingAAK
+  url: https://www.sst.dk/media/ov3fxg1n/metodehaaandbogen-2018.pdf
+  folder: Bekendtgørelse
+  filename_hint: Udarbejdelse af en sikkerhedsvurderingAAK.pdf
+  version: Udarbejdelse af en sikkerhedsvurderingAAK
+- id: iaea-stipub1678
+  name: STI/PUB/1678
+  url: https://www.iaea.org/publications/10677/risk-informed-approach-for-nuclear-security-measures-for-nuclear-and-other-radioactive-material-out-of-regulatory-control
+  folder: IAEA
+  filename_hint: 24G - nuclear_safety_measures.pdf
+  version: STI/PUB/1678
+- id: iaea-stipub1467
+  name: STI/PUB/1467
+  url: https://www.iaea.org/publications/8506/criteria-for-use-in-preparedness-and-response-for-a-nuclear-or-radiological-emergency
+  folder: IAEA
+  filename_hint: GSG-2 - Criteria for Use in Preparedness and Response for a Nuclear
+    or Radiological Emergency.pdf
+  version: STI/PUB/1467
+- id: iaea-17-51861_pub1785_bookindb
+  name: 17-51861_PUB1785_Book.indb
+  url: https://www.iaea.org/publications/11113/occupational-radiation-protection
+  folder: IAEA
+  filename_hint: GSG-7 - Occupational Radiation Protection.pdf
+  version: 17-51861_PUB1785_Book.indb
+- id: iaea-governmental-legal-and-regulatory-framework-for-
+  name: Governmental, legal and regulatory framework for safety
+  url: https://www.iaea.org/publications/10883/governmental-legal-and-regulatory-framework-for-safety
+  folder: IAEA
+  filename_hint: GSR-1 - Governmental, legal and regulatory framework for safety.pdf
+  version: Governmental, legal and regulatory framework for safety
+- id: iaea-leadership-and-management-for-safety
+  name: Leadership and management for safety
+  url: https://www.iaea.org/publications/11070/leadership-and-management-for-safety
+  folder: IAEA
+  filename_hint: GSR-2 - Leadership and Management for Safety.pdf
+  version: Leadership and management for safety
+- id: iaea-radiation-protection-and-safety-of-radiation-sou
+  name: RADIATION PROTECTION AND SAFETY OF RADIATION SOURCES:INTERNATIONAL BASIC SAFETY
+    STANDARDS
+  url: https://www.iaea.org/publications/11183/radiation-protection-of-the-public-and-the-environment
+  folder: IAEA
+  filename_hint: GSR-3 - Radiation Protection and Safety of Radiation Sources International
+    Basic Safety Standards.pdf
+  version: RADIATION PROTECTION AND SAFETY OF RADIATION SOURCES:INTERNATIONAL BASIC
+    SAFETY STANDARDS
+- id: iaea-safety-assessment-for-facilities-and-activities
+  name: Safety assessment for facilities and activities
+  url: https://www.iaea.org/publications/10884/safety-assessment-for-facilities-and-activities
+  folder: IAEA
+  filename_hint: GSR-4 - Safety Assessment for Facilities and Activities.pdf
+  version: Safety assessment for facilities and activities
+- id: iaea-stipub1368
+  name: STI/PUB/1368
+  url: https://www.iaea.org/publications/8004/predisposal-management-of-radioactive-waste
+  folder: IAEA
+  filename_hint: GSR-5 - Predisposal Management of Radioactive Waste.pdf
+  version: STI/PUB/1368
+- id: iaea-decommissioning-of-facilities
+  name: DECOMMISSIONING OF FACILITIES
+  url: https://www.iaea.org/publications/12204/model-regulations-for-decommissioning-of-facilities
+  folder: IAEA
+  filename_hint: GSR-6 - DECOMMISSIONING OF FACILITIES.pdf
+  version: DECOMMISSIONING OF FACILITIES
+- id: iaea-safety-standards-series-no-gsr
+  name: Safety Standards Series No. GSR
+  url: https://www.iaea.org/publications/11183/radiation-protection-of-the-public-and-the-environment
+  folder: IAEA
+  filename_hint: GSR-7 - Preparedness and Response for a Nuclear or Radiological Emergency.pdf
+  version: Safety Standards Series No. GSR
+- id: iaea-tecdoc-1380
+  name: TECDOC 1380
+  url: https://www.iaea.org/publications/6932/derivation-of-activity-limits-for-the-disposal-of-radioactive-waste-in-near-surface-disposal-facilities
+  folder: IAEA
+  filename_hint: IAEA-TECDOC-1380_Derivation_of_activity_limits.pdf
+  version: IAEA-TECDOC-1380
+- id: iaea-stipub1466
+  name: STI/PUB/1466
+  url: https://www.iaea.org/publications/7518/safety-of-radiation-generators-and-sealed-radioactive-sources
+  folder: IAEA
+  filename_hint: SSG-11 - Radiation Safety in Industrial Radiography.pdf
+  version: Safety Standards Series No. SSG-11
+- id: iaea-predisposal-management-of-radioactive-waste-from
+  name: Predisposal management of radioactive waste from nuclear power plants and
+    research reactors
+  url: https://www.iaea.org/publications/8952/advisory-material-for-the-iaea-regulations-for-the-safe-transport-of-radioactive-material-2012-edition
+  folder: IAEA
+  filename_hint: SSG-40 Predisposal Management of Radioactive Waste from Nuclear Power
+    Plants and Research Reactors.pdf
+  version: Safety Standards Series No. SSG-40
+- id: iaea-17-50171_pub1773_bookindb
+  name: 17-50171_PUB1773_book.indb
+  url: https://www.iaea.org/publications/6148/building-competence-in-radiation-protection-and-the-safe-use-of-radiation-sources
+  folder: IAEA
+  filename_hint: SSG-44 - Establishing the infrastructure for radiation safety.pdf
+  version: Safety Standards Series No. SSG-44
+- id: iaea-17-24431_pub1775_bookindb
+  name: 17-24431_PUB1775_book.indb
+  url: https://www.iaea.org/publications/7115/applying-radiation-safety-standards-in-diagnostic-radiology-and-interventional-procedures-using-x-rays
+  folder: IAEA
+  filename_hint: SSG-46 - Radiation Protection and Safety in Medical Uses of Ionizing
+    Radiation.pdf
+  version: Safety Standards Series No. SSG-46
+- id: iaea-23-02757e_pub2052_071123_v2-print-pdfindd
+  name: 23-02757E_PUB2052_071123_V2-Print-PDF.indd
+  url: https://www.iaea.org/publications/6206/instrumentation-and-control-systems-important-to-safety-in-nuclear-power-plants
+  folder: IAEA
+  filename_hint: SSG-86 - Radiation Protection Programmes for the Transport of Radioactive
+    Material.pdf
+  version: 23-02757E_PUB2052_071123_V2-Print-PDF.indd
+- id: iaea-23-04975e_pub2059_050224-print-pdfindd
+  name: 23-04975E_PUB2059_05.02.24-Print-PDF.indd
+  url: https://www.iaea.org/publications/7518/safety-of-radiation-generators-and-sealed-radioactive-sources
+  folder: IAEA
+  filename_hint: SSG-87 - Radiation Safety in research.pdf
+  version: Safety Standards Series No. SSG-87
+- id: iaea-ssg-39
+  name: SSG-39
+  url: https://www.iaea.org/publications/10838/design-of-instrumentation-and-control-systems-for-nuclear-power-plants
+  folder: IAEA
+  filename_hint: SSG39.pdf
+  version: SSG-39
+- id: iaea-17-45271_pub1798_bodyindb
+  name: 17-45271_PUB1798_body.indb
+  url: https://www.iaea.org/publications/12288/regulations-for-the-safe-transport-of-radioactive-material
+  folder: IAEA
+  filename_hint: SSR-6 - Regulations for the safe transport of radioactive MAterial.pdf
+  version: Safety Standards Series No. SSR-6
+- id: iaea-other-iaea-tecdoc-1638
+  name: IAEA-TECDOC-1638
+  url: https://www.iaea.org/publications/8312/setting-authorized-limits-for-radioactive-discharges-practical-issues-to-consider
+  folder: IAEA_other
+  filename_hint: IAEA-TECDOC-1638.pdf
+  version: IAEA-TECDOC-1638
