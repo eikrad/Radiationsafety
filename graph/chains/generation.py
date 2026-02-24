@@ -7,7 +7,7 @@ from langchain_core.runnables import Runnable
 
 from graph.llm_factory import get_llm
 
-RAG_SYSTEM = """You are an assistant for IAEA and Danish radiation safety documents. Use the following retrieved context to answer the question. If you cannot find the answer in the context, say so. Be concise and cite the source when relevant."""
+RAG_SYSTEM = """You are an assistant for IAEA and Danish radiation safety documents. Use the following retrieved context to answer the question. Each context block is labeled with [Source: ...]; sources may be document names or web URLs. Use and cite web sources (URLs) when they are relevant to the question. If you cannot find the answer in the context, say so. Be concise and cite the source when relevant."""
 
 RAG_TEMPLATE = """{context}
 

@@ -19,6 +19,17 @@ def _format_chat_history(history: list[tuple[str, str]]) -> str:
     return "\n\n".join(lines) + "\n\n" if lines else ""
 
 
+def _format_document(doc: Any) -> str:
+    """Format one document with its source so the model can use and cite it (especially web results)."""
+    meta = getattr(doc, "metadata", {}) or {}
+    source = meta.get("source", "retrieved")
+    dtype = meta.get("document_type", "")
+    label = source
+    if dtype:
+        label = f"{source} ({dtype})"
+    return f"[Source: {label}]\n{doc.page_content}"
+
+
 def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """Generate answer from documents, question, and optional chat history."""
     question = state["question"]
@@ -30,7 +41,9 @@ def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
 
     context = ""
     if documents:
-        context = "\n\n".join(d.page_content for d in documents)
+        # Put web results first so the model sees them before long document chunks
+        ordered = sorted(documents, key=lambda d: (0 if (getattr(d, "metadata", {}) or {}).get("document_type") == "web" else 1,))
+        context = "\n\n---\n\n".join(_format_document(d) for d in ordered)
 
     chat_history_str = _format_chat_history(chat_history)
     generation = chain.invoke(
