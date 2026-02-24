@@ -21,7 +21,7 @@ def _env_no_api_calls(monkeypatch):
 @pytest.fixture
 def mock_graph():
     """Mock graph that returns a fixed result."""
-    def _invoke(inputs):
+    def _invoke(inputs, config=None):
         question = inputs.get("question", "")
         hist = inputs.get("chat_history") or []
         new_hist = list(hist) + [(question, "Test answer from mocked graph.")]

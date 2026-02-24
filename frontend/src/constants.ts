@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   model: 'radiation-safety-model',
   apiKeys: 'radiation-safety-api-keys',
   modelVariants: 'radiation-safety-model-variants',
+  /** When true, Documents panel shows "Search URL" (find document URL via web search). Beta. */
+  documentSearchEnabled: 'radiation-safety-document-search-enabled',
 } as const
 
 /** Per-provider model variants. Key = provider, value = specific model ID. */

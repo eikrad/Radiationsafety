@@ -96,7 +96,7 @@ def test_query_returns_warning_when_set(client: TestClient):
     from api.main import app, app_state
     mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
 
-    def _invoke(inputs):
+    def _invoke(inputs, config=None):
         return {
             "question": inputs.get("question", ""),
             "generation": "Answer with poor sources",
@@ -114,7 +114,8 @@ def test_query_returns_warning_when_set(client: TestClient):
     assert res.status_code == 200
     data = res.json()
     assert "warning" in data
-    assert "Websuche" in data["warning"]
+    assert data["warning"]  # warning text (language may match question)
+    assert "web" in data["warning"].lower() or "source" in data["warning"].lower() or "quelle" in data["warning"].lower()
 
 
 def test_documents_check_updates(client: TestClient):

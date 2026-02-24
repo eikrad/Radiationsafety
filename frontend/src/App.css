@@ -26,7 +26,8 @@
 
 /* Documents panel (left, when open) */
 .documents-panel {
-  width: 260px;
+  width: 420px;
+  min-width: 320px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -560,6 +561,70 @@
   margin-bottom: 1rem;
 }
 
+.api-keys-hint {
+  margin: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: #1e1e2a;
+  border: 1px solid #3a3a4a;
+  border-radius: 8px;
+  max-width: 520px;
+}
+
+.api-keys-hint h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #c4c4d4;
+}
+
+.api-keys-hint p {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #aaa;
+  line-height: 1.45;
+}
+
+.api-keys-hint ul {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+  padding: 0;
+  font-size: 0.875rem;
+  color: #aaa;
+  line-height: 1.5;
+}
+
+.api-keys-hint li {
+  margin-bottom: 0.35rem;
+}
+
+.api-keys-hint code {
+  font-size: 0.8em;
+  background: #2a2a35;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  color: #b4b4c4;
+}
+
+.api-keys-hint-storage {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.api-keys-hint-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background: #646cff;
+  border: 1px solid #646cff;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.api-keys-hint-btn:hover {
+  background: #535bf2;
+}
+
 .input-area {
   flex-shrink: 0;
   padding-top: 1rem;
@@ -643,6 +708,47 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.settings-beta-feature {
+  padding: 0 1.5rem;
+}
+
+.settings-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #aaa;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+}
+
+.settings-toggle-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #646cff;
+}
+
+.settings-beta-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15em 0.4em;
+  margin-left: 0.25rem;
+  background: #3a3a5c;
+  color: #a0a0ff;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.settings-field-desc {
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0.25rem 0 0 0;
+  line-height: 1.35;
 }
 
 .settings-model-variant select {
@@ -944,9 +1050,77 @@
   border-radius: 4px;
 }
 
+.message-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #888;
+}
+
 .message-text {
   white-space: pre-wrap;
   line-height: 1.6;
+}
+
+.message-text--markdown {
+  white-space: normal;
+}
+
+.message-text--markdown p {
+  margin: 0 0 0.75em;
+}
+
+.message-text--markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.message-text--markdown ul,
+.message-text--markdown ol {
+  margin: 0.5em 0 0.75em 1.25em;
+  padding: 0;
+}
+
+.message-text--markdown li {
+  margin-bottom: 0.25em;
+}
+
+.message-text--markdown code {
+  font-size: 0.9em;
+  background: #2a2a35;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+.message-text--markdown pre {
+  margin: 0.75em 0;
+  padding: 0.75rem 1rem;
+  background: #252530;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+
+.message-text--markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+.message-text--markdown strong {
+  font-weight: 600;
+}
+
+.message-text--markdown h1,
+.message-text--markdown h2,
+.message-text--markdown h3 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+}
+
+.message-text--markdown h1:first-child,
+.message-text--markdown h2:first-child,
+.message-text--markdown h3:first-child {
+  margin-top: 0;
 }
 
 .response-display .sources ul {
@@ -962,6 +1136,12 @@
 
 .response-display .source {
   color: #646cff;
+}
+
+.response-display .source-link {
+  color: #646cff;
+  text-decoration: underline;
+  word-break: break-all;
 }
 
 .response-display .doc-type {
@@ -980,6 +1160,24 @@
   .header-btn:hover,
   .model-selector:hover {
     border-color: #646cff;
+  }
+  .api-keys-hint {
+    background: #e8e8f0;
+    border-color: #c4c4d4;
+  }
+  .api-keys-hint h3 {
+    color: #333;
+  }
+  .api-keys-hint p,
+  .api-keys-hint ul {
+    color: #555;
+  }
+  .api-keys-hint code {
+    background: #d4d4e0;
+    color: #444;
+  }
+  .api-keys-hint-storage {
+    color: #666;
   }
   .documents-panel {
     background: #f0f0f0;
@@ -1059,6 +1257,12 @@
     background: #fef3c7;
     color: #b45309;
     border-left-color: #f59e0b;
+  }
+  .message-text--markdown code {
+    background: #e0e0e8;
+  }
+  .message-text--markdown pre {
+    background: #e4e4ec;
   }
   .followup-chip {
     background: #e8e8e8;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { MODELS, MODEL_VARIANTS, STORAGE_KEYS, type Model } from '../constants'
-import { loadApiKeys, loadModelVariants } from '../storage'
+import { loadApiKeys, loadDocumentSearchEnabled, loadModelVariants } from '../storage'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -21,11 +21,13 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     gemini: false,
     openai: false,
   })
+  const [documentSearchEnabled, setDocumentSearchEnabled] = useState(loadDocumentSearchEnabled)
 
   useEffect(() => {
     if (isOpen) {
       setKeys(loadApiKeys())
       setVariants(loadModelVariants())
+      setDocumentSearchEnabled(loadDocumentSearchEnabled())
     }
   }, [isOpen])
 
@@ -45,6 +47,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     try {
       localStorage.setItem(STORAGE_KEYS.apiKeys, JSON.stringify(keys))
       localStorage.setItem(STORAGE_KEYS.modelVariants, JSON.stringify(variants))
+      localStorage.setItem(STORAGE_KEYS.documentSearchEnabled, String(documentSearchEnabled))
       onClose()
     } catch (e) {
       console.error('Failed to save settings:', e)
@@ -64,8 +67,27 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
         <p className="settings-hint">
           Keys are stored only in your browser and are never sent to our servers except for LLM API
-          calls.
+          calls. They are cleared when you close the tab or leave the page.
         </p>
+        <div className="settings-field-block settings-beta-feature">
+          <div className="settings-field">
+            <label className="settings-toggle-label">
+              <input
+                type="checkbox"
+                checked={documentSearchEnabled}
+                onChange={(e) => setDocumentSearchEnabled(e.target.checked)}
+                aria-describedby="document-search-desc"
+              />
+              <span>
+                Search for new documents <span className="settings-beta-badge" aria-hidden>Beta</span>
+              </span>
+            </label>
+            <p id="document-search-desc" className="settings-field-desc">
+              When enabled, the Documents panel shows a “Search URL” action to find document URLs via
+              web search (IAEA or retsinformation.dk). This feature is experimental.
+            </p>
+          </div>
+        </div>
         <div className="settings-fields">
           {MODELS.map((model) => (
             <div key={model} className="settings-field-block">

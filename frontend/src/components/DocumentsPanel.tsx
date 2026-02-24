@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { loadDocumentSearchEnabled } from '../storage'
 
 const API_BASE = '/api'
 
@@ -41,6 +42,7 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
   const [downloadUpdateError, setDownloadUpdateError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const ingestPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const documentSearchEnabled = loadDocumentSearchEnabled()
 
   const fetchCheckUpdates = useCallback(async () => {
     setLoading(true)
@@ -334,18 +336,20 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
                   >
                     {hasUrl ? 'Edit' : 'Add URL'}
                   </button>
-                  <button
-                    type="button"
-                    className="documents-panel-item-search-url-link"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      runLookupUrl(s)
-                    }}
-                    disabled={lookupUrlSourceId === s.id}
-                    title={(s.folder || '') === 'Bekendtgørelse' ? 'Find URL from retsinformation.dk (API or page)' : 'Find URL from iaea.org search'}
-                  >
-                    {lookupUrlSourceId === s.id ? 'Searching…' : 'Search URL'}
-                  </button>
+                  {documentSearchEnabled && (
+                    <button
+                      type="button"
+                      className="documents-panel-item-search-url-link"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        runLookupUrl(s)
+                      }}
+                      disabled={lookupUrlSourceId === s.id}
+                      title={(s.folder || '') === 'Bekendtgørelse' ? 'Find URL from retsinformation.dk (API or page)' : 'Find URL from iaea.org search'}
+                    >
+                      {lookupUrlSourceId === s.id ? 'Searching…' : 'Search URL'}
+                    </button>
+                  )}
                 </div>
               </div>
               {isEditing && (

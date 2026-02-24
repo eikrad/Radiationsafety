@@ -1,6 +1,8 @@
 """Generate answer from retrieved context using RAG prompt."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from langchain_core.runnables import RunnableConfig
 
 from graph.chains.generation import get_generation_chain
 from graph.llm_factory import get_llm
@@ -17,11 +19,12 @@ def _format_chat_history(history: list[tuple[str, str]]) -> str:
     return "\n\n".join(lines) + "\n\n" if lines else ""
 
 
-def generate(state: GraphState) -> Dict[str, Any]:
+def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
     """Generate answer from documents, question, and optional chat history."""
     question = state["question"]
     documents = state["documents"]
     chat_history = state.get("chat_history") or []
+    cfg = config or {}
     llm = state.get("llm") or get_llm()
     chain = get_generation_chain(llm)
 
@@ -35,7 +38,8 @@ def generate(state: GraphState) -> Dict[str, Any]:
             "context": context,
             "chat_history": chat_history_str,
             "question": question,
-        }
+        },
+        config=cfg,
     )
 
     updated_history = list(chat_history) + [(question, generation)]
