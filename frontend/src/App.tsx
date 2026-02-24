@@ -5,7 +5,7 @@ import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
 import { MODELS, STORAGE_KEYS, type Model } from './constants'
-import { loadApiKeys, loadModelVariants } from './storage'
+import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage } from './storage'
 import type { Message, QueryResponse } from './types'
 import './App.css'
 
@@ -26,12 +26,41 @@ export default function App() {
   const [model, setModel] = useState<Model>(loadStoredModel)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
+  /** From GET /api/config: true = server has .env keys (hide hint), false = needs key from client or .env. null = not yet loaded. */
+  const [serverHasLlmKey, setServerHasLlmKey] = useState<boolean | null>(null)
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.model, model)
     } catch {}
   }, [model])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_BASE}/config`)
+      .then((res) => res.json())
+      .then((data: { server_has_llm_key?: boolean }) => {
+        if (!cancelled) setServerHasLlmKey(Boolean(data.server_has_llm_key))
+      })
+      .catch(() => {
+        if (!cancelled) setServerHasLlmKey(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
+    function clearApiKeysOnClose() {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.apiKeys)
+      } catch {}
+    }
+    window.addEventListener('beforeunload', clearApiKeysOnClose)
+    window.addEventListener('pagehide', clearApiKeysOnClose)
+    return () => {
+      window.removeEventListener('beforeunload', clearApiKeysOnClose)
+      window.removeEventListener('pagehide', clearApiKeysOnClose)
+    }
+  }, [])
 
   async function handleSubmit(question: string) {
     setLoading(true)
@@ -78,6 +107,8 @@ export default function App() {
           content: data.answer ?? '',
           sources: data.sources ?? [],
           warning: data.warning ?? null,
+          used_web_search: data.used_web_search ?? false,
+          used_web_search_label: data.used_web_search_label ?? null,
         },
       ]
       setMessages(newMessages)
@@ -132,6 +163,29 @@ export default function App() {
         </header>
         <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <div className="conversation-area">
+        {messages.length === 0 && serverHasLlmKey === false && !hasAnyApiKeyInStorage() && (
+          <div className="api-keys-hint" role="status">
+            <h3>API key needed</h3>
+            <p>
+              To send queries, provide at least one LLM API key. You can use:
+            </p>
+            <ul>
+              <li><strong>Mistral</strong> — <code>MISTRAL_API_KEY</code> in the server&apos;s <code>.env</code>, or add in Settings</li>
+              <li><strong>Gemini (Google)</strong> — <code>GOOGLE_API_KEY</code> in <code>.env</code>, or add in Settings</li>
+              <li><strong>OpenAI</strong> — <code>OPENAI_API_KEY</code> in <code>.env</code>, or add in Settings</li>
+            </ul>
+            <p className="api-keys-hint-storage">
+              Keys are stored only in your browser and are cleared when you close the tab or leave the page.
+            </p>
+            <button
+              type="button"
+              className="api-keys-hint-btn"
+              onClick={() => setSettingsOpen(true)}
+            >
+              Open Settings
+            </button>
+          </div>
+        )}
         <ResponseDisplay messages={messages} />
       </div>
       <div className="input-area">

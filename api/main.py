@@ -65,7 +65,9 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceInfo]
     chat_history: list[list[str]]  # [[q,a],[q,a],...] including new turn
-    warning: str | None = None  # When web search or retrieval didn't help
+    warning: str | None = None  # When web search or retrieval didn't help (in question's language)
+    used_web_search: bool = False  # True if Brave Search was invoked this turn
+    used_web_search_label: str | None = None  # Short label in question's language, e.g. "Sources incl. web search"
 
 
 class SetSourceUrlBody(BaseModel):
@@ -93,6 +95,17 @@ def _run_ingest() -> None:
 def health():
     """Health check."""
     return {"status": "ok", "graph_loaded": app_state["graph"] is not None}
+
+
+@api_router.get("/config")
+def config():
+    """Return client-relevant config; e.g. whether server has LLM keys so the client can hide the API-key hint."""
+    server_has_llm_key = bool(
+        (os.getenv("MISTRAL_API_KEY") or "").strip()
+        or (os.getenv("GOOGLE_API_KEY") or "").strip()
+        or (os.getenv("OPENAI_API_KEY") or "").strip()
+    )
+    return {"server_has_llm_key": server_has_llm_key}
 
 
 @api_router.get("/documents/check-updates")
@@ -221,7 +234,6 @@ async def documents_add_pdf(
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Could not save file: {e}")
     try:
-        from pathlib import Path
         from build_document_sources import _extract_iaea_search_terms, _extract_pdf_title_and_version, _slug
         from document_updates import _lookup_iaea_publication_url_multi, append_source_to_registry
         import ingestion
@@ -356,6 +368,8 @@ def query(req: QueryRequest):
             sources=[],
             chat_history=[],
             warning=None,
+            used_web_search=False,
+            used_web_search_label=None,
         )
     chat_history = _to_tuples(req.chat_history)
     if _is_non_question(req.question):
@@ -366,6 +380,8 @@ def query(req: QueryRequest):
             sources=[],
             chat_history=_to_lists(updated_history),
             warning=None,
+            used_web_search=False,
+            used_web_search_label=None,
         )
     model, api_key = _resolve_model_and_key(req.model, req.api_keys)
     model_variant = req.model_variant
@@ -388,13 +404,17 @@ def query(req: QueryRequest):
             "chat_history": chat_history,
             "llm": llm,
         }
+        run_config = {
+            "run_name": "RadiationSafetyRAG",
+            "tags": ["rag", "radiation-safety"],
+        }
         if req.api_keys:
             import langsmith as ls
 
             with ls.tracing_context(enabled=False):
-                result = graph.invoke(invoke_input)
+                result = graph.invoke(invoke_input, config=run_config)
         else:
-            result = graph.invoke(invoke_input)
+            result = graph.invoke(invoke_input, config=run_config)
     except Exception as e:
         err_msg = str(e)
         if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "quota" in err_msg.lower():
@@ -418,11 +438,18 @@ def query(req: QueryRequest):
             sources.append(SourceInfo(source=str(src), document_type=dtype))
     updated_history = result.get("chat_history") or chat_history
     warning = result.get("retrieval_warning")
+    used_web_search = result.get("web_search_attempted", False)
+    used_web_search_label = None
+    if used_web_search:
+        from graph.i18n import detect_language, get_label_sources_incl_web
+        used_web_search_label = get_label_sources_incl_web(detect_language(req.question))
     return QueryResponse(
         answer=answer,
         sources=sources,
         chat_history=_to_lists(updated_history),
         warning=warning,
+        used_web_search=used_web_search,
+        used_web_search_label=used_web_search_label,
     )
 
 

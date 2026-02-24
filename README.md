@@ -9,7 +9,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
 1. Copy `.env.example` to `.env` and configure:
    - `LLM_PROVIDER`: `gemini` or `mistral`
    - `GOOGLE_API_KEY` or `MISTRAL_API_KEY` (depending on provider)
-   - Optional: `WEB_SEARCH_ENABLED=true`, `BRAVE_SEARCH_API_KEY` for fallback
+   - Optional: `WEB_SEARCH_ENABLED=true`, `BRAVE_SEARCH_API_KEY` for fallback; `WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true` to restrict web search to iaea.org/retsinformation.dk/sst.dk (default is unrestricted; answers are still verified against trusted sources)
    - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing (tracing is auto-disabled when API keys are sent from the frontend to avoid leaking keys to LangSmith)
 
 2. Install dependencies:
@@ -30,9 +30,9 @@ RAG system for querying IAEA and Danish radiation safety documents.
    uv run uvicorn api.main:app --reload --port 8000
    ```
 
-6. Frontend – choose one:
-   - **Single server**: `cd frontend && npm run build` then open http://localhost:8000
-   - **Dev mode** (hot reload): `cd frontend && npm install && npm run dev` then open http://localhost:5173
+6. Frontend – from project root, choose one:
+   - **Single server**: `npm -C frontend run build` then open http://localhost:8000
+   - **Dev mode** (hot reload): `npm -C frontend install && npm -C frontend run dev` then open http://localhost:5173
 
 7. Optional CLI:
    ```bash

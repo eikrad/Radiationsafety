@@ -1,5 +1,15 @@
 import { STORAGE_KEYS, type Model } from './constants'
 
+export function loadDocumentSearchEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.documentSearchEnabled)
+    if (raw === null) return false
+    return raw === 'true'
+  } catch {
+    return false
+  }
+}
+
 const DEFAULT_VARIANTS: Record<Model, string> = {
   mistral: 'default',
   gemini: 'gemini-2.5-flash-lite',
@@ -19,6 +29,12 @@ export function loadApiKeys(): Record<Model, string> {
   } catch {
     return { mistral: '', gemini: '', openai: '' }
   }
+}
+
+/** True if at least one provider has a non-empty key in the UI (localStorage). */
+export function hasAnyApiKeyInStorage(): boolean {
+  const keys = loadApiKeys()
+  return keys.mistral !== '' || keys.gemini !== '' || keys.openai !== ''
 }
 
 export function loadModelVariants(): Record<Model, string> {

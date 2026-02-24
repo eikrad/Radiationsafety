@@ -645,12 +645,12 @@ def get_retrievers():
         collection_name=IAEA_COLLECTION,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": 5})
+    ).as_retriever(search_kwargs={"k": 3})
     dk = Chroma(
         collection_name=DK_LAW_COLLECTION,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": 5})
+    ).as_retriever(search_kwargs={"k": 3})
     _retrievers_cache = (iaea, dk)
     return _retrievers_cache
 

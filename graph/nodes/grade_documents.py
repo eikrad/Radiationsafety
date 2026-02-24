@@ -1,36 +1,39 @@
-"""Grade retrieved documents for relevance; set web_search flag if none relevant."""
+"""Check if retrieved context is sufficient to answer; set web_search flag if not (no per-doc grading to save tokens)."""
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
-from graph.chains.retrieval_grader import get_retrieval_grader
+from langchain_core.runnables import RunnableConfig
+
+from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader
+from graph.chains.truncate import truncate_docs_for_grader
 from graph.llm_factory import get_llm
 from graph.state import GraphState
 
 
-def grade_documents(state: GraphState) -> Dict[str, Any]:
-    """Filter irrelevant docs; set web_search=True if any doc is not relevant."""
+def grade_documents(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+    """Run one sufficiency check on truncated context; set web_search=True if insufficient or no docs. Keeps all docs for generation."""
     question = state["question"]
     documents = state["documents"]
+    cfg = config or {}
     llm = state.get("llm") or get_llm()
-    grader = get_retrieval_grader(llm)
 
-    def grade_one(doc):
-        score = grader.invoke({"question": question, "document": doc.page_content})
-        return doc, score.binary_score
+    if not documents:
+        return {
+            "documents": [],
+            "trusted_documents": [],
+            "web_search": True,
+        }
 
-    filtered = []
-    web_search = False
-    with ThreadPoolExecutor(max_workers=min(8, max(1, len(documents)))) as executor:
-        futures = {executor.submit(grade_one, d): d for d in documents}
-        for fut in as_completed(futures):
-            doc, relevant = fut.result()
-            if relevant:
-                filtered.append(doc)
-            else:
-                web_search = True
+    truncated = truncate_docs_for_grader(documents)
+    sufficiency = get_context_sufficiency_grader(llm)
+    sufficient = sufficiency.invoke(
+        {"question": question, "context": truncated},
+        config=cfg,
+    )
+    web_search = not sufficient.binary_score
 
     return {
-        "documents": filtered,
-        "web_search": web_search or len(filtered) == 0,
+        "documents": list(documents),
+        "trusted_documents": list(documents),
+        "web_search": web_search,
     }
