@@ -7,8 +7,12 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from langchain_core.documents import Document
+
 # Project root for default paths
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+_CACHE_FILENAME = "eval_cache.json"
 
 
 def _load_golden(path: Path) -> list[dict]:
@@ -44,11 +48,27 @@ def _invoke_graph(question: str, graph, llm) -> dict:
     }
 
 
+def _serialize_documents(documents: list) -> list[dict]:
+    """Serialize Document list to JSON-serializable list of dicts."""
+    out = []
+    for d in documents:
+        meta = getattr(d, "metadata", None) or {}
+        out.append({"page_content": getattr(d, "page_content", "") or "", "metadata": dict(meta)})
+    return out
+
+
+def _deserialize_documents(data: list[dict]) -> list[Document]:
+    """Deserialize list of dicts back to Document list."""
+    return [Document(page_content=x.get("page_content", ""), metadata=x.get("metadata", {})) for x in data]
+
+
 def _run_eval(
     golden_path: Path,
     limit: int | None,
     no_web_search: bool,
     output_dir: Path,
+    cache_dir: Path | None,
+    use_per_chunk_precision: bool,
 ) -> tuple[dict, list[dict]]:
     """Load golden, run graph and metrics, return summary and results for reporting."""
     golden = _load_golden(golden_path)
@@ -63,16 +83,47 @@ def _run_eval(
 
     from eval.metrics import compute_all_metrics
 
+    golden_mtime = golden_path.stat().st_mtime
+    cache: dict = {}
+    cache_path = None
+    if cache_dir:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir / _CACHE_FILENAME
+        if cache_path.exists():
+            try:
+                with open(cache_path, encoding="utf-8") as f:
+                    data = json.load(f)
+                if data.get("golden_path") == str(golden_path.resolve()) and data.get("golden_mtime") == golden_mtime:
+                    cache = data.get("entries", {})
+            except (json.JSONDecodeError, OSError):
+                pass
+
     llm = get_llm()
     results = []
     for item in golden:
         question = item["question"]
-        item_id = item.get("id", "")
+        item_id = item.get("id", "") or str(hash(question))
         expected_answer = item.get("expected_answer")
         key_facts = item.get("key_facts")
-        run = _invoke_graph(question, graph, llm)
-        generation = run["generation"]
-        documents = run["documents"]
+        if cache_dir and item_id in cache:
+            entry = cache[item_id]
+            generation = entry.get("generation", "")
+            documents = _deserialize_documents(entry.get("documents", []))
+            retrieval_warning = entry.get("retrieval_warning")
+            web_search_attempted = entry.get("web_search_attempted", False)
+        else:
+            run = _invoke_graph(question, graph, llm)
+            generation = run["generation"]
+            documents = run["documents"]
+            retrieval_warning = run["retrieval_warning"]
+            web_search_attempted = run["web_search_attempted"]
+            if cache_dir:
+                cache[item_id] = {
+                    "generation": generation,
+                    "documents": _serialize_documents(documents),
+                    "retrieval_warning": retrieval_warning,
+                    "web_search_attempted": web_search_attempted,
+                }
         metrics = compute_all_metrics(
             question=question,
             generation=generation,
@@ -80,18 +131,31 @@ def _run_eval(
             expected_answer=expected_answer,
             key_facts=key_facts,
             llm=llm,
+            use_per_chunk_precision=use_per_chunk_precision,
         )
         threshold = 0.5
         passed = all(m >= threshold for m in metrics.values())
         results.append({
-            "id": item_id,
+            "id": item.get("id", ""),
             "question": question,
             "pass": passed,
             "metrics": metrics,
             "generation_preview": (generation[:300] + "…") if len(generation) > 300 else generation,
-            "retrieval_warning": run["retrieval_warning"],
-            "web_search_attempted": run["web_search_attempted"],
+            "retrieval_warning": retrieval_warning,
+            "web_search_attempted": web_search_attempted,
         })
+
+    if cache_dir and cache_path is not None:
+        try:
+            payload = {
+                "golden_path": str(golden_path.resolve()),
+                "golden_mtime": golden_mtime,
+                "entries": cache,
+            }
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+        except OSError:
+            pass
 
     n = len(results)
     summary = {
@@ -172,7 +236,22 @@ def main() -> int:
         default=_PROJECT_ROOT / "eval" / "reports",
         help="Directory for report outputs",
     )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="Cache directory for graph outputs (env: EVAL_CACHE_DIR); re-run only metrics when cache hit",
+    )
+    parser.add_argument(
+        "--per-chunk-precision",
+        action="store_true",
+        help="Use per-chunk context precision (Option A) instead of sufficiency (Option B)",
+    )
     args = parser.parse_args()
+
+    cache_dir = args.cache_dir or (os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"]))
+    if cache_dir is not None and not isinstance(cache_dir, Path):
+        cache_dir = Path(cache_dir)
 
     if not args.golden.exists():
         print(f"Golden file not found: {args.golden}", file=sys.stderr)
@@ -182,6 +261,8 @@ def main() -> int:
         limit=args.limit,
         no_web_search=args.no_web_search,
         output_dir=args.output_dir,
+        cache_dir=cache_dir,
+        use_per_chunk_precision=args.per_chunk_precision,
     )
     json_path, md_path = _write_report(summary, results, args.output_dir)
     print(f"Report written: {json_path}")

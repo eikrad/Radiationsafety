@@ -20,6 +20,8 @@ The harness uses your `.env` for the LLM (no API keys in golden data). Ensure in
 | `--limit N` | Run only on the first N items (useful for development) |
 | `--no-web-search` | Disable web search for reproducible eval runs |
 | `--output-dir PATH` | Directory for report files (default: `eval/reports`) |
+| `--cache-dir PATH` | Cache graph outputs here (or set `EVAL_CACHE_DIR`); re-runs skip graph and only recompute metrics when cache is valid |
+| `--per-chunk-precision` | Use per-chunk context precision (one LLM call per question, precision@1/3/5) instead of single sufficiency call |
 
 Example:
 

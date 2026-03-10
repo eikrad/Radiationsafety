@@ -1,14 +1,20 @@
 """RAGAS-style evaluation metrics: faithfulness, answer relevance, context precision, context recall."""
 
+import re
 from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseChatModel
+from langchain_core.prompts import ChatPromptTemplate
 
 from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader
 from graph.chains.generation_grader import get_generation_grader
 from graph.chains.truncate import truncate_docs_for_grader
 from graph.llm_factory import get_llm
+
+# Max chunks to send to per-chunk precision grader (to stay within token limits)
+_MAX_CHUNKS_PRECISION = 10
+_CHARS_PER_CHUNK_PRECISION = 350
 
 
 def _docs_to_context(documents: list[Document]) -> str:
@@ -67,6 +73,44 @@ def context_precision(
     return 1.0 if getattr(result, "binary_score", False) else 0.0
 
 
+def context_precision_per_chunk(
+    question: str,
+    documents: list[Document],
+    llm: BaseChatModel | None = None,
+    **kwargs: Any,
+) -> float:
+    """Score 0–1: mean of precision@1, precision@3, precision@5 over chunk relevance (Option A)."""
+    if not documents:
+        return 0.0
+    docs = documents[:_MAX_CHUNKS_PRECISION]
+    chunks_str_parts = []
+    for i, d in enumerate(docs, 1):
+        text = (d.page_content or "")[:_CHARS_PER_CHUNK_PRECISION]
+        if len((d.page_content or "")) > _CHARS_PER_CHUNK_PRECISION:
+            text += "..."
+        chunks_str_parts.append(f"Chunk {i}:\n{text}")
+    chunks_str = "\n\n".join(chunks_str_parts)
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a grader. For each chunk below, output 1 if it is relevant to answering the question, 0 otherwise. Reply with a single line of comma-separated 0s and 1s, one per chunk in order (e.g. 1,0,1,0)."),
+        ("human", "Question: {question}\n\n{chunks}"),
+    ])
+    model = llm or get_llm()
+    chain = prompt | model
+    out = chain.invoke({"question": question, "chunks": chunks_str})
+    content = getattr(out, "content", None)
+    text = content if isinstance(content, str) else str(out)
+    numbers = [int(x.strip()) for x in re.split(r"[\s,]+", text) if x.strip().isdigit()]
+    if len(numbers) != len(docs):
+        numbers = numbers[:len(docs)] if len(numbers) > len(docs) else numbers + [0] * (len(docs) - len(numbers))
+    if not numbers:
+        return 0.0
+    k_vals = [k for k in (1, 3, 5) if k <= len(numbers)]
+    if not k_vals:
+        return float(numbers[0])
+    precisions = [sum(numbers[:k]) / k for k in k_vals]
+    return sum(precisions) / len(precisions)
+
+
 def context_recall(
     question: str,
     documents: list[Document],
@@ -97,14 +141,18 @@ def compute_all_metrics(
     expected_answer: str | None = None,
     key_facts: list[str] | None = None,
     llm: BaseChatModel | None = None,
+    use_per_chunk_precision: bool = False,
 ) -> dict[str, float]:
     """Compute faithfulness, answer_relevance, context_precision, context_recall (0–1 each)."""
+    precision_fn = (
+        context_precision_per_chunk if use_per_chunk_precision else context_precision
+    )
     return {
         "faithfulness": faithfulness(question, generation, documents, llm=llm),
         "answer_relevance": answer_relevance(
             question, generation, documents, llm=llm
         ),
-        "context_precision": context_precision(question, documents, llm=llm),
+        "context_precision": precision_fn(question, documents, llm=llm),
         "context_recall": context_recall(
             question, documents, key_facts=key_facts, llm=llm
         ),
