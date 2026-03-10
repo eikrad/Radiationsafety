@@ -1,5 +1,7 @@
 """LLM and embeddings factory tests."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from graph.llm_factory import APIKeyError, get_llm
@@ -38,7 +40,14 @@ def test_get_llm_raises_api_key_error_when_openai_key_missing(monkeypatch):
 def test_get_embeddings_returns_mistral_by_default(monkeypatch):
     """Default embeddings are MistralAI when LLM_PROVIDER not set."""
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
-    from graph.llm_factory import get_embeddings
+    # MistralAIEmbeddings downloads a HuggingFace tokenizer on init; mock to avoid network.
+    fake_emb = type("MistralAIEmbeddings", (), {"__module__": "langchain_mistralai.embeddings"})()
+    with patch("langchain_mistralai.MistralAIEmbeddings", MagicMock(return_value=fake_emb)):
+        from graph.llm_factory import get_embeddings
 
-    emb = get_embeddings()
-    assert "mistral" in type(emb).__module__.lower() or "Mistral" in type(emb).__name__
+        emb = get_embeddings()
+    cls = type(emb)
+    assert cls.__name__ == "MistralAIEmbeddings", f"expected MistralAIEmbeddings, got {cls.__name__}"
+    assert cls.__module__.startswith("langchain_mistralai"), (
+        f"expected langchain_mistralai.*, got {cls.__module__}"
+    )

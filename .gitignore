@@ -14,3 +14,6 @@ wheels/
 
 # Environment
 .env
+
+# Log files (runtime, debug – use 'git add -f' if you ever need to track one)
+*.log
