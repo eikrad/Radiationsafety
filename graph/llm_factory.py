@@ -38,9 +38,9 @@ def get_llm(
     Raises:
         APIKeyError: When provider requires an API key but none is available.
     """
-    prov = (provider or os.getenv("LLM_PROVIDER", "mistral")).lower()
+    prov = (provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
     if prov not in ALLOWED_PROVIDERS:
-        prov = "mistral"
+        prov = "gemini"
 
     if prov == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
@@ -48,11 +48,14 @@ def get_llm(
         key = api_key or os.getenv("GOOGLE_API_KEY")
         if not key:
             raise APIKeyError("Gemini")
-        model = (
-            model_variant
-            if model_variant and model_variant in _GEMINI_MODELS
-            else "gemini-2.5-flash-lite"
-        )
+        # Default: 2.5 Pro. Override via model_variant or GEMINI_MODEL (e.g. gemini-2.5-flash-lite for free tier).
+        env_model = (os.getenv("GEMINI_MODEL") or "").strip()
+        if model_variant and model_variant in _GEMINI_MODELS:
+            model = model_variant
+        elif env_model and env_model in _GEMINI_MODELS:
+            model = env_model
+        else:
+            model = "gemini-2.5-pro"
         return ChatGoogleGenerativeAI(
             model=model,
             temperature=0,
@@ -81,14 +84,28 @@ def get_llm(
         return ChatMistralAI(temperature=0, api_key=key)
 
 
-def get_embeddings():
-    """Return embeddings based on LLM_PROVIDER env."""
-    provider = os.getenv("LLM_PROVIDER", "mistral").lower()
-    if provider == "gemini":
+def get_embedding_provider(llm_provider: str | None = None) -> str:
+    """Return which embedding backend to use: 'gemini' (shared by Gemini and OpenAI) or 'mistral'.
+
+    When llm_provider is None, uses LLM_PROVIDER env. Gemini and OpenAI both use Gemini embeddings.
+    """
+    prov = (llm_provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    if prov not in ALLOWED_PROVIDERS:
+        prov = "gemini"
+    return "gemini" if prov in ("gemini", "openai") else "mistral"
+
+
+def get_embeddings(embedding_provider: str | None = None):
+    """Return embeddings. Uses Gemini for both Gemini and OpenAI; Mistral only when provider is mistral.
+
+    Args:
+        embedding_provider: 'gemini' | 'mistral'. If None, derived from LLM_PROVIDER (gemini/openai → gemini).
+    """
+    ep = embedding_provider if embedding_provider in ("gemini", "mistral") else get_embedding_provider()
+    if ep == "gemini":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
         return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
-    else:
-        from langchain_mistralai import MistralAIEmbeddings
+    from langchain_mistralai import MistralAIEmbeddings
 
-        return MistralAIEmbeddings(model="mistral-embed")
+    return MistralAIEmbeddings(model="mistral-embed")

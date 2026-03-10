@@ -9,9 +9,9 @@ from langchain_core.runnables import RunnableConfig
 from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader
 from graph.chains.missing_query_chain import invoke_missing_query_chain
 from graph.chains.truncate import truncate_docs_for_grader
-from graph.llm_factory import get_llm
+from graph.llm_factory import get_embedding_provider, get_llm
 from graph.state import GraphState
-from graph.utils import chat_context_prefix
+from graph.utils import chat_context_prefix, throttle_llm_if_needed
 from ingestion import get_retrievers
 
 
@@ -26,9 +26,11 @@ def retrieve_missing(state: GraphState, config: Optional[RunnableConfig] = None)
 
     doc_context = "\n\n".join(d.page_content for d in existing) if existing else "None."
     context_str = chat_context_prefix(chat_history) + "Document context:\n" + doc_context
+    throttle_llm_if_needed()
     missing_query = invoke_missing_query_chain(question, context_str, llm, config=cfg)
 
-    iaea_retriever, dk_retriever = get_retrievers()
+    ep = state.get("embedding_provider") or get_embedding_provider()
+    iaea_retriever, dk_retriever = get_retrievers(ep)
     def _invoke_iaea():
         return iaea_retriever.invoke(missing_query, config=cfg)
 
@@ -55,6 +57,7 @@ def retrieve_missing(state: GraphState, config: Optional[RunnableConfig] = None)
     sufficient = False
     if merged:
         truncated = truncate_docs_for_grader(merged)
+        throttle_llm_if_needed()
         sufficiency = get_context_sufficiency_grader(llm)
         result = sufficiency.invoke(
             {"question": question, "context": truncated},

@@ -18,10 +18,26 @@ _CACHE_FILENAME = "eval_cache.json"
 _MAX_RATE_LIMIT_RETRIES = 4
 _INITIAL_BACKOFF_SEC = 30
 
+# Default delays for eval to stay under LLM rate limits (Mistral free tier ~1 RPS, ~30 RPM)
+_DEFAULT_DELAY_AFTER_GRAPH_SEC = 5.0   # after graph.invoke, before metrics (4+ LLM calls)
+_DEFAULT_DELAY_BETWEEN_ITEMS_SEC = 20.0  # between items to stay under RPM
+
 
 def _is_rate_limit_error(e: BaseException) -> bool:
     msg = str(e).lower()
     return "429" in str(e) or "rate limit" in msg or "resource_exhausted" in msg or "quota" in msg
+
+
+def _delay_sec(env_name: str, default: float) -> float:
+    """Parse delay from env; return default if unset or invalid. Used for eval rate-limit spacing."""
+    raw = (os.getenv(env_name) or "").strip()
+    if not raw:
+        return default
+    try:
+        v = float(raw)
+        return max(0.0, v)
+    except ValueError:
+        return default
 
 
 def _load_golden(path: Path) -> list[dict]:
@@ -54,6 +70,7 @@ def _invoke_with_retry(fn, *args, **kwargs):
 
 def _invoke_graph(question: str, graph, llm) -> dict:
     """Run graph for one question; return state slice we need for metrics and report."""
+    from graph.llm_factory import get_embedding_provider
     invoke_input = {
         "question": question,
         "generation": "",
@@ -62,6 +79,7 @@ def _invoke_graph(question: str, graph, llm) -> dict:
         "web_search_attempted": False,
         "chat_history": [],
         "llm": llm,
+        "embedding_provider": get_embedding_provider(),
     }
     config = {"run_name": "eval-run", "tags": ["eval", "golden"]}
     result = graph.invoke(invoke_input, config=config)
@@ -95,6 +113,8 @@ def _run_eval(
     cache_dir: Path | None,
     use_per_chunk_precision: bool,
     pass_rule: str = "all",
+    delay_after_graph_sec: float = 0.0,
+    delay_between_items_sec: float = 0.0,
 ) -> tuple[dict, list[dict]]:
     """Load golden, run graph and metrics, return summary and results for reporting."""
     golden = _load_golden(golden_path)
@@ -124,7 +144,13 @@ def _run_eval(
             except (json.JSONDecodeError, OSError):
                 pass
 
-    llm = get_llm()
+    # Graph uses main provider; grading can use a different provider via EVAL_GRADER_PROVIDER
+    graph_llm = get_llm()
+    grader_provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
+    grader_llm = get_llm(provider=grader_provider) if grader_provider else graph_llm
+    graph_model = getattr(graph_llm, "model", None) or "n/a"
+    grader_model = getattr(grader_llm, "model", None) or "n/a"
+    print(f"Eval: graph model = {graph_model}, grader model = {grader_model}", file=sys.stderr)
     results = []
     for item in golden:
         question = item["question"]
@@ -138,7 +164,7 @@ def _run_eval(
             retrieval_warning = entry.get("retrieval_warning")
             web_search_attempted = entry.get("web_search_attempted", False)
         else:
-            run = _invoke_with_retry(_invoke_graph, question, graph, llm)
+            run = _invoke_with_retry(_invoke_graph, question, graph, graph_llm)
             generation = run["generation"]
             documents = run["documents"]
             retrieval_warning = run["retrieval_warning"]
@@ -150,6 +176,8 @@ def _run_eval(
                     "retrieval_warning": retrieval_warning,
                     "web_search_attempted": web_search_attempted,
                 }
+        if delay_after_graph_sec > 0:
+            time.sleep(delay_after_graph_sec)
         metrics = _invoke_with_retry(
             compute_all_metrics,
             question=question,
@@ -157,7 +185,7 @@ def _run_eval(
             documents=documents,
             expected_answer=expected_answer,
             key_facts=key_facts,
-            llm=llm,
+            llm=grader_llm,
             use_per_chunk_precision=use_per_chunk_precision,
         )
         threshold = 0.5
@@ -174,6 +202,8 @@ def _run_eval(
             "retrieval_warning": retrieval_warning,
             "web_search_attempted": web_search_attempted,
         })
+        if delay_between_items_sec > 0 and item is not golden[-1]:
+            time.sleep(delay_between_items_sec)
 
     if cache_dir and cache_path is not None:
         try:
@@ -284,6 +314,20 @@ def main() -> int:
         default="all",
         help="Pass when all metrics >= 0.5 (all) or mean of metrics >= 0.5 (mean); default: all",
     )
+    parser.add_argument(
+        "--delay-after-graph",
+        type=float,
+        default=None,
+        metavar="SEC",
+        help="Seconds to wait after graph invoke before running metrics (env: EVAL_DELAY_AFTER_GRAPH_SEC; default 5)",
+    )
+    parser.add_argument(
+        "--delay-between-items",
+        type=float,
+        default=None,
+        metavar="SEC",
+        help="Seconds to wait between processing each golden item (env: EVAL_DELAY_BETWEEN_ITEMS_SEC; default 20)",
+    )
     args = parser.parse_args()
 
     cache_dir = args.cache_dir or (os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"]))
@@ -293,6 +337,16 @@ def main() -> int:
     if not args.golden.exists():
         print(f"Golden file not found: {args.golden}", file=sys.stderr)
         return 1
+    delay_after_graph = (
+        args.delay_after_graph
+        if args.delay_after_graph is not None
+        else _delay_sec("EVAL_DELAY_AFTER_GRAPH_SEC", _DEFAULT_DELAY_AFTER_GRAPH_SEC)
+    )
+    delay_between_items = (
+        args.delay_between_items
+        if args.delay_between_items is not None
+        else _delay_sec("EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC)
+    )
     summary, results = _run_eval(
         golden_path=args.golden,
         limit=args.limit,
@@ -301,6 +355,8 @@ def main() -> int:
         cache_dir=cache_dir,
         use_per_chunk_precision=args.per_chunk_precision,
         pass_rule=args.pass_rule,
+        delay_after_graph_sec=delay_after_graph,
+        delay_between_items_sec=delay_between_items,
     )
     json_path, md_path = _write_report(summary, results, args.output_dir)
     print(f"Report written: {json_path}")

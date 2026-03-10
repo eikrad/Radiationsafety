@@ -149,7 +149,14 @@ export default function App() {
             <p>Query IAEA and Danish legislation documents</p>
           </div>
           <div className="header-right">
-            <ModelSelector value={model} onChange={setModel} />
+            <div className="model-selector-wrap">
+              <ModelSelector value={model} onChange={setModel} />
+              {model === 'mistral' && (
+                <p className="embedding-note" title="Mistral uses separate vector store; Gemini and OpenAI share one.">
+                  Mistral uses separate embeddings. If you see a warning, run ingestion with <code>LLM_PROVIDER=mistral</code>.
+                </p>
+              )}
+            </div>
             <button
               type="button"
               className="header-btn"

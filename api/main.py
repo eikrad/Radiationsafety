@@ -348,9 +348,9 @@ def _resolve_model_and_key(
     """Resolve model (whitelist) and api_key for the request. Returns (model, api_key)."""
     from graph.llm_factory import ALLOWED_PROVIDERS
 
-    prov = (model or os.getenv("LLM_PROVIDER", "mistral")).lower()
+    prov = (model or os.getenv("LLM_PROVIDER", "gemini")).lower()
     if prov not in ALLOWED_PROVIDERS:
-        prov = "mistral"
+        prov = "gemini"
     key = None
     if api_keys and isinstance(api_keys, dict):
         key = api_keys.get(prov) or api_keys.get(prov.strip())
@@ -394,6 +394,7 @@ def query(req: QueryRequest):
             status_code=400,
             detail=str(e),
         )
+    embedding_provider = "gemini" if model in ("gemini", "openai") else "mistral"
     try:
         invoke_input = {
             "question": req.question,
@@ -403,6 +404,7 @@ def query(req: QueryRequest):
             "web_search_attempted": False,
             "chat_history": chat_history,
             "llm": llm,
+            "embedding_provider": embedding_provider,
         }
         run_config = {
             "run_name": "RadiationSafetyRAG",

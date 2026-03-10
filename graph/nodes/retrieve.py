@@ -6,8 +6,10 @@ from typing import Any, Dict, Optional
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
+from graph.llm_factory import get_embedding_provider
 from graph.state import GraphState
-from ingestion import get_retrievers
+from graph.i18n import detect_language, get_warning_mistral_embeddings_not_built
+from ingestion import check_embedding_collections_ready, get_retrievers
 
 
 def _retrieval_query(question: str, chat_history: list[tuple[str, str]]) -> str:
@@ -26,13 +28,44 @@ def retrieve(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
     chat_history = state.get("chat_history") or []
     query = _retrieval_query(question, chat_history)
     cfg = config or {}
-    iaea_retriever, dk_retriever = get_retrievers()
+    ep = state.get("embedding_provider") or get_embedding_provider()
+    if ep == "mistral":
+        ready, _ = check_embedding_collections_ready(ep)
+        if not ready:
+            lang = detect_language(question)
+            return {
+                "documents": [],
+                "trusted_documents": [],
+                "web_search_attempted": False,
+                "retrieval_warning": get_warning_mistral_embeddings_not_built(lang),
+            }
+    iaea_retriever, dk_retriever = get_retrievers(ep)
 
     def _invoke_iaea():
-        return iaea_retriever.invoke(query, config=cfg)
+        try:
+            return iaea_retriever.invoke(query, config=cfg)
+        except Exception as e:
+            if "dimension" in str(e).lower() and "embedding" in str(e).lower():
+                raise RuntimeError(
+                    "Embedding dimension mismatch: the Chroma collection was built with a different "
+                    "embedding model (e.g. Mistral 1024 dim). Re-run full ingestion with the current "
+                    "LLM_PROVIDER (e.g. uv run python ingestion.py with LLM_PROVIDER=gemini in .env) "
+                    "so the vector store uses the same embeddings."
+                ) from e
+            raise
 
     def _invoke_dk():
-        return dk_retriever.invoke(query, config=cfg)
+        try:
+            return dk_retriever.invoke(query, config=cfg)
+        except Exception as e:
+            if "dimension" in str(e).lower() and "embedding" in str(e).lower():
+                raise RuntimeError(
+                    "Embedding dimension mismatch: the Chroma collection was built with a different "
+                    "embedding model (e.g. Mistral 1024 dim). Re-run full ingestion with the current "
+                    "LLM_PROVIDER (e.g. uv run python ingestion.py with LLM_PROVIDER=gemini in .env) "
+                    "so the vector store uses the same embeddings."
+                ) from e
+            raise
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         fut_iaea = executor.submit(_invoke_iaea)

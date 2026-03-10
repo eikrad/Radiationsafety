@@ -14,7 +14,8 @@ class GraphState(TypedDict):
     documents: List[Document]
     web_search_attempted: bool  # Prevent infinite web search loop
     chat_history: List[tuple[str, str]]  # (question, answer) pairs for follow-ups
-    retrieval_warning: NotRequired[str]  # Set when web search didn't yield good results
+    retrieval_warning: NotRequired[str]  # Set when web search didn't yield good results or Mistral embeddings missing
+    embedding_provider: NotRequired[str]  # "gemini" | "mistral"; from request model (gemini/openai → gemini)
     llm: NotRequired[Any]  # Chat model for generation/grading; uses env fallback if absent
     # Documents from vector DB only (IAEA + Danish); used to verify answer against trusted sources
     trusted_documents: NotRequired[List[Document]]

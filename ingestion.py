@@ -14,7 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from dotenv import load_dotenv
-from graph.llm_factory import get_embeddings
+from graph.llm_factory import get_embedding_provider, get_embeddings
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import DirectoryLoader, PyMuPDFLoader, PyPDFLoader
 from langchain_core.documents import Document
@@ -47,21 +47,30 @@ def rotate_backups(backup_dir: Path, prefix: str, *, keep: int = 2, extension: s
             pass
 
 
-# Collection names
+# Base collection names (Gemini/OpenAI share these; Mistral uses -mistral suffix)
 IAEA_COLLECTION = "radiation-iaea"
 DK_LAW_COLLECTION = "radiation-dk-law"
 
-# Google Gemini free tier: 100 embedding requests/min; batch + delay to avoid 429
+# Google Gemini free tier: 100 embedding requests/min; batch + delay to avoid 429. Paid tier can use smaller delay or skip.
 GEMINI_BATCH_SIZE = 80
 GEMINI_BATCH_DELAY_SEC = 65
 
 
-def _clear_chroma_collections() -> None:
-    """Delete both collections so the next from_documents recreates them (full re-ingest)."""
+def get_collection_names(embedding_provider: str) -> tuple[str, str]:
+    """Return (iaea_collection_name, dk_collection_name) for the given embedding provider."""
+    if embedding_provider == "mistral":
+        return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
+    return (IAEA_COLLECTION, DK_LAW_COLLECTION)
+
+
+def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
+    """Delete the two collections for the given embedding provider so the next from_documents recreates them."""
+    ep = embedding_provider or get_embedding_provider()
+    iaea_name, dk_name = get_collection_names(ep)
     try:
         import chromadb
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-        for name in (IAEA_COLLECTION, DK_LAW_COLLECTION):
+        for name in (iaea_name, dk_name):
             try:
                 client.delete_collection(name)
             except Exception:
@@ -502,9 +511,9 @@ def load_dk_law_docs():
 def _add_documents_rate_limited(
     documents, collection_name, embeddings, persist_directory
 ):
-    """Add docs. Gemini free tier: batches + delay. Mistral: all at once."""
-    provider = os.getenv("LLM_PROVIDER", "mistral").lower()
-    if provider == "gemini":
+    """Add docs. Gemini embeddings: batches + optional delay. Mistral: all at once."""
+    ep = get_embedding_provider()
+    if ep == "gemini":
         _add_documents_gemini_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
@@ -540,8 +549,14 @@ def _add_documents_gemini_rate_limited(
 
 
 def ingest():
-    """Run full ingestion: load PDFs (local + from document_sources URLs), split, embed, persist to Chroma."""
-    _clear_chroma_collections()
+    """Run full ingestion: load PDFs (local + from document_sources URLs), split, embed, persist to Chroma.
+
+    Uses current LLM_PROVIDER to choose embedding provider (gemini/openai → Gemini embeddings,
+    mistral → Mistral embeddings). Only the two collections for that provider are cleared and filled.
+    """
+    ep = get_embedding_provider()
+    iaea_name, dk_name = get_collection_names(ep)
+    _clear_chroma_collections(ep)
 
     text_splitter_iaea = RecursiveCharacterTextSplitter(
         chunk_size=800,
@@ -553,7 +568,7 @@ def ingest():
         chunk_overlap=200,
         separators=["\n\n", "§ ", "\n", ". ", " ", ""],
     )
-    embeddings = get_embeddings()
+    embeddings = get_embeddings(ep)
 
     # Load from document_sources.yaml URLs (Retsinformation, IAEA, direct PDFs)
     iaea_from_url, dk_from_url = _load_docs_from_registry()
@@ -569,11 +584,11 @@ def ingest():
         iaea_splits = text_splitter_iaea.split_documents(iaea_docs)
         _add_documents_rate_limited(
             iaea_splits,
-            IAEA_COLLECTION,
+            iaea_name,
             embeddings,
             str(_CHROMA_DIR),
         )
-        print(f"Ingested {len(iaea_splits)} chunks into {IAEA_COLLECTION}")
+        print(f"Ingested {len(iaea_splits)} chunks into {iaea_name}")
 
     # Danish law collection: local dirs + registry URLs
     dk_docs = load_dk_law_docs()
@@ -582,20 +597,49 @@ def ingest():
         dk_splits = text_splitter_dk.split_documents(dk_docs)
         _add_documents_rate_limited(
             dk_splits,
-            DK_LAW_COLLECTION,
+            dk_name,
             embeddings,
             str(_CHROMA_DIR),
         )
-        print(f"Ingested {len(dk_splits)} chunks into {DK_LAW_COLLECTION}")
+        print(f"Ingested {len(dk_splits)} chunks into {dk_name}")
 
 
-_retrievers_cache: tuple | None = None
+_retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
+
+
+def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, str]:
+    """Return (ready, message). If not ready (e.g. Mistral collections empty), message explains how to build them."""
+    if embedding_provider != "mistral":
+        return True, ""
+    iaea_name, dk_name = get_collection_names("mistral")
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
+        for name in (iaea_name, dk_name):
+            try:
+                coll = client.get_collection(name)
+                if coll.count() == 0:
+                    return False, (
+                        "Mistral embeddings are not built yet. Run full ingestion with Mistral: "
+                        "set LLM_PROVIDER=mistral in .env (or export it), then run: uv run python ingestion.py"
+                    )
+            except Exception:
+                return False, (
+                    "Mistral embeddings are not built yet. Run full ingestion with Mistral: "
+                    "set LLM_PROVIDER=mistral in .env (or export it), then run: uv run python ingestion.py"
+                )
+        return True, ""
+    except Exception:
+        return False, (
+            "Mistral embeddings are not built yet. Run full ingestion with Mistral: "
+            "set LLM_PROVIDER=mistral in .env (or export it), then run: uv run python ingestion.py"
+        )
 
 
 def add_single_pdf_to_collection(
     pdf_path: Path, *, folder: str = "IAEA_other", source_label: str | None = None
 ) -> int:
-    """Load one PDF, split, embed, and add to the IAEA Chroma collection (does not clear existing). Returns chunk count."""
+    """Load one PDF, split, embed, and add to the IAEA Chroma collection for current embedding provider. Returns chunk count."""
     if not pdf_path.exists() or pdf_path.suffix.lower() != ".pdf":
         raise ValueError("Not a PDF file or file missing")
     label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace("-", " ")
@@ -611,14 +655,15 @@ def add_single_pdf_to_collection(
         separators=["\n\n", "\n", ". ", " ", ""],
     )
     splits = text_splitter.split_documents(docs)
-    embeddings = get_embeddings()
+    ep = get_embedding_provider()
+    iaea_name, _ = get_collection_names(ep)
+    embeddings = get_embeddings(ep)
     vectorstore = Chroma(
-        collection_name=IAEA_COLLECTION,
+        collection_name=iaea_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
     )
-    provider = os.getenv("LLM_PROVIDER", "mistral").lower()
-    if provider == "gemini":
+    if ep == "gemini":
         for i in range(0, len(splits), GEMINI_BATCH_SIZE):
             batch = splits[i : i + GEMINI_BATCH_SIZE]
             vectorstore.add_documents(batch)
@@ -635,24 +680,32 @@ def clear_retrievers_cache() -> None:
     _retrievers_cache = None
 
 
-def get_retrievers():
-    """Return retriever instances for both collections (for use in graph). Cached per process."""
+def get_retrievers(embedding_provider: str | None = None):
+    """Return retriever instances for both collections (for use in graph). Cached per embedding_provider.
+
+    When embedding_provider is None, uses get_embedding_provider() (from LLM_PROVIDER).
+    Gemini and OpenAI share the same collections (Gemini embeddings); Mistral uses -mistral collections.
+    """
     global _retrievers_cache
-    if _retrievers_cache is not None:
-        return _retrievers_cache
-    embeddings = get_embeddings()
+    if _retrievers_cache is None:
+        _retrievers_cache = {}
+    ep = (embedding_provider if embedding_provider in ("gemini", "mistral") else None) or get_embedding_provider()
+    if ep in _retrievers_cache:
+        return _retrievers_cache[ep]
+    iaea_name, dk_name = get_collection_names(ep)
+    embeddings = get_embeddings(ep)
     iaea = Chroma(
-        collection_name=IAEA_COLLECTION,
+        collection_name=iaea_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
     ).as_retriever(search_kwargs={"k": 3})
     dk = Chroma(
-        collection_name=DK_LAW_COLLECTION,
+        collection_name=dk_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
     ).as_retriever(search_kwargs={"k": 3})
-    _retrievers_cache = (iaea, dk)
-    return _retrievers_cache
+    _retrievers_cache[ep] = (iaea, dk)
+    return _retrievers_cache[ep]
 
 
 if __name__ == "__main__":

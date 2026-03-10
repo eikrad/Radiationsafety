@@ -554,6 +554,29 @@
   min-width: 0;
 }
 
+.model-selector-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.embedding-note {
+  margin: 0;
+  font-size: 0.7rem;
+  color: #888;
+  max-width: 240px;
+  text-align: right;
+  line-height: 1.25;
+}
+
+.embedding-note code {
+  font-size: 0.9em;
+  background: #2a2a35;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+}
+
 .conversation-area {
   flex: 1;
   overflow-y: auto;
@@ -1173,6 +1196,13 @@
     color: #555;
   }
   .api-keys-hint code {
+    background: #d4d4e0;
+    color: #444;
+  }
+  .embedding-note {
+    color: #666;
+  }
+  .embedding-note code {
     background: #d4d4e0;
     color: #444;
   }

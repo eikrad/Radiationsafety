@@ -8,6 +8,7 @@ import ingestion
 from ingestion import (
     IAEA_COLLECTION,
     DK_LAW_COLLECTION,
+    get_collection_names,
     load_dk_law_docs,
     load_iaea_docs,
 )
@@ -65,3 +66,13 @@ def test_collection_names():
     """Collection names match expected constants."""
     assert IAEA_COLLECTION == "radiation-iaea"
     assert DK_LAW_COLLECTION == "radiation-dk-law"
+
+
+def test_get_collection_names_by_provider():
+    """get_collection_names returns base names for gemini, -mistral suffix for mistral."""
+    iaea_g, dk_g = get_collection_names("gemini")
+    assert iaea_g == "radiation-iaea"
+    assert dk_g == "radiation-dk-law"
+    iaea_m, dk_m = get_collection_names("mistral")
+    assert iaea_m == "radiation-iaea-mistral"
+    assert dk_m == "radiation-dk-law-mistral"
