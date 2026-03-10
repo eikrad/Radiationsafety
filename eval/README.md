@@ -22,6 +22,7 @@ The harness uses your `.env` for the LLM (no API keys in golden data). Ensure in
 | `--output-dir PATH` | Directory for report files (default: `eval/reports`) |
 | `--cache-dir PATH` | Cache graph outputs here (or set `EVAL_CACHE_DIR`); re-runs skip graph and only recompute metrics when cache is valid |
 | `--per-chunk-precision` | Use per-chunk context precision (one LLM call per question, precision@1/3/5) instead of single sufficiency call |
+| `--pass-rule all\|mean` | Pass when **all** metrics ≥ 0.5 (`all`, default) or when **mean** of metrics ≥ 0.5 (`mean`). Use `mean` if one strict metric (e.g. context precision) dominates. |
 
 Example:
 
@@ -45,7 +46,7 @@ Each run computes four metrics (0–1 per question, then averaged):
 | **Context precision** | The retrieved context is sufficient to answer the question (top-k sufficiency). |
 | **Context recall** | Key facts from the golden set appear in the retrieved context (or sufficiency as proxy if no key facts). |
 
-A question **passes** if all four metrics are ≥ 0.5. The report shows pass rate and per-metric means, plus per-question details.
+By default a question **passes** only if all four metrics are ≥ 0.5. With `--pass-rule mean`, it passes when the mean of the four metrics is ≥ 0.5 (useful when one metric, e.g. context precision, is often strict). The report shows pass rate and per-metric means, plus per-question details.
 
 ## Output
 

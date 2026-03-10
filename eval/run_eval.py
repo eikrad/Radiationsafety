@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -13,6 +14,14 @@ from langchain_core.documents import Document
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 _CACHE_FILENAME = "eval_cache.json"
+
+_MAX_RATE_LIMIT_RETRIES = 4
+_INITIAL_BACKOFF_SEC = 30
+
+
+def _is_rate_limit_error(e: BaseException) -> bool:
+    msg = str(e).lower()
+    return "429" in str(e) or "rate limit" in msg or "resource_exhausted" in msg or "quota" in msg
 
 
 def _load_golden(path: Path) -> list[dict]:
@@ -25,6 +34,22 @@ def _load_golden(path: Path) -> list[dict]:
         if not isinstance(item, dict) or "question" not in item:
             raise ValueError(f"Item {i}: must be an object with 'question'")
     return data
+
+
+def _invoke_with_retry(fn, *args, **kwargs):
+    """Call fn; on 429 / rate limit, back off and retry up to _MAX_RATE_LIMIT_RETRIES."""
+    last_error = None
+    for attempt in range(_MAX_RATE_LIMIT_RETRIES):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            last_error = e
+            if _is_rate_limit_error(e) and attempt < _MAX_RATE_LIMIT_RETRIES - 1:
+                wait = _INITIAL_BACKOFF_SEC * (2**attempt)
+                time.sleep(wait)
+                continue
+            raise
+    raise last_error
 
 
 def _invoke_graph(question: str, graph, llm) -> dict:
@@ -69,6 +94,7 @@ def _run_eval(
     output_dir: Path,
     cache_dir: Path | None,
     use_per_chunk_precision: bool,
+    pass_rule: str = "all",
 ) -> tuple[dict, list[dict]]:
     """Load golden, run graph and metrics, return summary and results for reporting."""
     golden = _load_golden(golden_path)
@@ -112,7 +138,7 @@ def _run_eval(
             retrieval_warning = entry.get("retrieval_warning")
             web_search_attempted = entry.get("web_search_attempted", False)
         else:
-            run = _invoke_graph(question, graph, llm)
+            run = _invoke_with_retry(_invoke_graph, question, graph, llm)
             generation = run["generation"]
             documents = run["documents"]
             retrieval_warning = run["retrieval_warning"]
@@ -124,7 +150,8 @@ def _run_eval(
                     "retrieval_warning": retrieval_warning,
                     "web_search_attempted": web_search_attempted,
                 }
-        metrics = compute_all_metrics(
+        metrics = _invoke_with_retry(
+            compute_all_metrics,
             question=question,
             generation=generation,
             documents=documents,
@@ -134,7 +161,10 @@ def _run_eval(
             use_per_chunk_precision=use_per_chunk_precision,
         )
         threshold = 0.5
-        passed = all(m >= threshold for m in metrics.values())
+        if pass_rule == "mean":
+            passed = (sum(metrics.values()) / len(metrics)) >= threshold
+        else:
+            passed = all(m >= threshold for m in metrics.values())
         results.append({
             "id": item.get("id", ""),
             "question": question,
@@ -160,6 +190,7 @@ def _run_eval(
     n = len(results)
     summary = {
         "pass_rate": sum(1 for r in results if r["pass"]) / n if n else 0.0,
+        "pass_rule": pass_rule,
         "faithfulness_mean": sum(r["metrics"]["faithfulness"] for r in results) / n if n else 0.0,
         "answer_relevance_mean": sum(r["metrics"]["answer_relevance"] for r in results) / n if n else 0.0,
         "context_precision_mean": sum(r["metrics"]["context_precision"] for r in results) / n if n else 0.0,
@@ -247,6 +278,12 @@ def main() -> int:
         action="store_true",
         help="Use per-chunk context precision (Option A) instead of sufficiency (Option B)",
     )
+    parser.add_argument(
+        "--pass-rule",
+        choices=("all", "mean"),
+        default="all",
+        help="Pass when all metrics >= 0.5 (all) or mean of metrics >= 0.5 (mean); default: all",
+    )
     args = parser.parse_args()
 
     cache_dir = args.cache_dir or (os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"]))
@@ -263,6 +300,7 @@ def main() -> int:
         output_dir=args.output_dir,
         cache_dir=cache_dir,
         use_per_chunk_precision=args.per_chunk_precision,
+        pass_rule=args.pass_rule,
     )
     json_path, md_path = _write_report(summary, results, args.output_dir)
     print(f"Report written: {json_path}")
