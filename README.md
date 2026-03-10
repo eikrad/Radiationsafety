@@ -39,6 +39,18 @@ RAG system for querying IAEA and Danish radiation safety documents.
    uv run python main.py
    ```
 
+## Evaluation
+
+The evaluation harness lives in **`eval/`**. It runs the RAG graph on a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall), writing markdown and JSON reports to `eval/reports/`.
+
+From the project root:
+
+```bash
+uv run python -m eval.run_eval
+```
+
+The harness uses your `.env` for the LLM (no API keys in the golden data). Run ingestion first so the graph has documents to retrieve. See `eval/README.md` for options (`--limit`, `--no-web-search`), metric definitions, and optional LangSmith tracing.
+
 ## Testing
 
 - **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`

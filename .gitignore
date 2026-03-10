@@ -17,3 +17,6 @@ wheels/
 
 # Log files (runtime, debug – use 'git add -f' if you ever need to track one)
 *.log
+
+# Eval report outputs (optional: remove this line to commit reports)
+eval/reports/
