@@ -1,0 +1,74 @@
+[
+  {
+    "id": "env1",
+    "question": "What are the documentation requirements for a lab that measures radioactive isotopes from environmental samples (e.g. fallout)?",
+    "expected_answer": "Documentation should cover record-keeping, retention of measurement results, and requirements for environmental monitoring under radiation protection legislation.",
+    "key_facts": ["record-keeping", "retention", "environmental monitoring", "documentation"]
+  },
+  {
+    "id": "env2",
+    "question": "What dose limits apply to workers who handle environmental samples containing low levels of radioactivity from nuclear fallout?",
+    "expected_answer": "Occupational dose limits from the regulations apply; workers must be classified and monitored as appropriate.",
+    "key_facts": ["dose", "limits", "occupational", "monitoring"]
+  },
+  {
+    "id": "env3",
+    "question": "Who is responsible for radiation protection in a small lab that analyses environmental samples for Cs-137 and Sr-90?",
+    "expected_answer": "A radiation protection officer (RPO) and possibly a medical physics expert or similar competent person, as required by national legislation.",
+    "key_facts": ["radiation protection officer", "responsibilities", "competent"]
+  },
+  {
+    "id": "env4",
+    "question": "Hvad skal der dokumenteres ved måling af radioaktive isotoper i miljøprøver fra nedfald?",
+    "expected_answer": "Dokumentation om målinger, prøver og resultater i henhold til gældende lov om ioniserende stråling.",
+    "key_facts": ["dokumentation", "måling", "miljø", "nedfald"]
+  },
+  {
+    "id": "env5",
+    "question": "What are the reporting obligations if a lab detects elevated levels of fallout isotopes in environmental samples?",
+    "expected_answer": "Reporting to the competent authority may be required under the regulations when certain levels or events are detected.",
+    "key_facts": ["reporting", "authority", "obligations"]
+  },
+  {
+    "id": "cyclotron1",
+    "question": "What are the main responsibilities of the radiation protection officer in a facility that produces radioactive isotopes for medical use with a cyclotron?",
+    "expected_answer": "The RPO is responsible for ensuring compliance with radiation protection rules, monitoring doses, and advising on safety in the facility.",
+    "key_facts": ["radiation protection officer", "cyclotron", "medical isotopes", "responsibilities", "dose"]
+  },
+  {
+    "id": "cyclotron2",
+    "question": "What regulatory requirements apply to the production of radioactive isotopes for medical use?",
+    "expected_answer": "Requirements include authorisation, compliance with radiation protection legislation, and often GMP or pharmaceutical regulations for medical use.",
+    "key_facts": ["authorisation", "regulatory", "medical", "production"]
+  },
+  {
+    "id": "cyclotron3",
+    "question": "How must short-lived medical isotopes produced in a cyclotron be handled and transported?",
+    "expected_answer": "Handling and transport must follow radiation protection and transport regulations; shielding and dose limits apply.",
+    "key_facts": ["transport", "handling", "short-lived", "shielding"]
+  },
+  {
+    "id": "cyclotron4",
+    "question": "What role does the medicinsk-fysisk ekspert play in a cyclotron facility producing radiopharmaceuticals?",
+    "expected_answer": "The medical physics expert advises on dosimetry, physical measurements, and radiation protection within their competence area.",
+    "key_facts": ["medicinsk-fysisk", "dosimetry", "advise", "competence"]
+  },
+  {
+    "id": "cyclotron5",
+    "question": "What dose monitoring is required for staff working in a cyclotron facility?",
+    "expected_answer": "Workers are subject to occupational dose limits and must be monitored (e.g. personal dosimetry) as required by the regulations.",
+    "key_facts": ["dose", "monitoring", "occupational", "dosimetry"]
+  },
+  {
+    "id": "mix1",
+    "question": "When must a safety assessment be evaluated by an independent third party?",
+    "expected_answer": "The competent authority may require the safety assessment to be evaluated by an independent expert.",
+    "key_facts": ["safety assessment", "independent", "evaluation"]
+  },
+  {
+    "id": "mix2",
+    "question": "What is required for validation of methods used in radiation protection measurements?",
+    "expected_answer": "Standardised test methods and method validation may be required when documenting releases or measurements above certain levels.",
+    "key_facts": ["validation", "standardised", "methods", "measurements"]
+  }
+]

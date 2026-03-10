@@ -1,0 +1,6 @@
+# Eval report outputs (optional: commit if desired)
+reports/
+# Local overrides to golden data
+data/local_*.json
+# Cache directory for graph outputs (Step 5)
+.cache/
