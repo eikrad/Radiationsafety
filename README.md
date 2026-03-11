@@ -1,6 +1,7 @@
 # Radiation Safety RAG
 
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
+[![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
 RAG system for querying IAEA and Danish radiation safety documents.
 
@@ -53,6 +54,8 @@ uv run python -m eval.run_eval
 The harness uses your `.env` for the LLM (no API keys in the golden data). Run ingestion first so the graph has documents to retrieve. See `eval/README.md` for options (`--limit`, `--no-web-search`), metric definitions, and optional LangSmith tracing.
 
 ## Testing
+
+CI runs the test suite on push and on pull requests (see status badge above).
 
 - **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
 - **Frontend**: `npm run test` or `npm run test:watch` (from project root), or `cd frontend && npm run test`
