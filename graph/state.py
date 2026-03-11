@@ -10,6 +10,8 @@ class GraphState(TypedDict):
 
     question: str
     generation: str
+    # Exact context string passed to the generator; grader uses this so it sees the same facts.
+    context_used_for_generation: NotRequired[str]
     web_search: bool
     documents: List[Document]
     web_search_attempted: bool  # Prevent infinite web search loop
@@ -23,3 +25,7 @@ class GraphState(TypedDict):
     trusted_verified: NotRequired[bool]
     # Set by retrieve_missing: True if after second retrieval the context was sufficient, so we skip web search
     sufficient_after_missing: NotRequired[bool]
+    # Number of vector-store retrievals so far (1 after RETRIEVE; 2–3 after RETRIEVE_MISSING). Used to allow up to 3 before WEB_SEARCH.
+    retrieval_count: NotRequired[int]
+    # Retry count after generation grader failed: 0 → 2 retrievals allowed before WEB_SEARCH.
+    retry_after_generation_count: NotRequired[int]

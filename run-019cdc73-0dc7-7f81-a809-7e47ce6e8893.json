@@ -1,0 +1,203 @@
+{
+  "inputs": {
+    "chat_history": [],
+    "documents": [],
+    "embedding_provider": "gemini",
+    "generation": "",
+    "llm": {
+      "convert_system_message_to_human": false,
+      "default_metadata": [],
+      "disable_streaming": false,
+      "google_api_key": "**********",
+      "max_retries": 6,
+      "model": "gemini-2.5-pro",
+      "model_kwargs": {},
+      "n": 1,
+      "temperature": 0
+    },
+    "question": "Hvad gælder strålebeskyttelsesbekendtgørelsen for?",
+    "web_search": false,
+    "web_search_attempted": false
+  },
+  "outputs": {
+    "question": "Hvad gælder strålebeskyttelsesbekendtgørelsen for?",
+    "generation": "Ifølge bekendtgørelsen om ioniserende stråling og strålebeskyttelse gælder den for brug af strålekilder og stråleudsættelse i planlagte, eksisterende og nødbestrålingssituationer.\n\nDer er dog flere undtagelser og specifikke betingelser:\n\n*   **Strålingsgeneratorer:** Bekendtgørelsen gælder kun for dem, der opererer med en spændingsforskel større end 5 kV.\n*   **Billedrør og lignende:** For visse strålingsgeneratorer, der producerer stråling som et biprodukt (under 30 kV og med en lav dosishastighed), gælder bekendtgørelsen kun for fremstilling eller indgreb, der kan påvirke strålebeskyttelsen.\n*   **Elektronmikroskoper:** Bekendtgørelsen gælder kun for fremstilling eller indgreb, der kan have indvirkning på strålebeskyttelsesmæssige forhold.\n*   **Radioaktive stoffer:** For faste radioaktive stoffer under en vis aktivitetskoncentration gælder bekendtgørelsen kun, hvis brugen kræver en særskilt tilladelse.\n*   **Geologiske prøver:** For prøver med naturligt forekommende radionuklider over en vis koncentration gælder bekendtgørelsen kun, hvis håndteringen er af strålebeskyttelsesmæssig betydning.\n\n[Source: Bekendtgørelse om ioniserende stråling og strålebeskyttelse (Danish law), § 1]",
+    "context_used_for_generation": "[Source: /home/eike_f/projects/Radiationsafety/documents/IAEA/GSR-7 - Preparedness and Response for a Nuclear or Radiological Emergency.pdf (IAEA)]\nor disposed of — or where radiation generators are installed — on such \na scale that consideration of protection and safety is required.\n\n---\n\n[Source: RADIATION PROTECTION AND SAFETY OF RADIATION SOURCES:INTERNATIONAL BASIC SAFETY STANDARDS (IAEA)]\nRADIATION PROTECTION \nOF THE PUBLIC AND  \nTHE ENVIRONMENT\n\n---\n\n[Source: Bekendtgørelse om ioniserende stråling og strålebeskyttelse (Danish law)]\n§ 1. Denne bekendtgørelse gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer, jf. dog stk. 2-6. Stk. 2. For strålingsgeneratorer gælder denne bekendtgørelse kun for brug af strålingsgeneratorer, der opererer med en spændingsforskel, der er større end 5 kV. Stk. 3. For strålingsgeneratorer i form af billedrør eller lignende, der 1) kun producerer ioniserende stråling som et biprodukt, 2) opererer med en spændingsforskel, der er mindre end eller lig med 30 kV, og 3) der giver anledning til en dosishastighed under normal drift, der er mindre end eller lig med 1 µSv/h 10 cm fra strålingsgeneratorens tilgængelige overflade, gælder denne bekendtgørelse kun for fremstilling af eller indgreb i de pågældende strålingsgeneratorer og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige forhold. Stk. 4. For elektronmikroskoper gælder denne bekendtgørelse kun for fremstilling af eller indgreb i elektronmikroskoper og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige forhold. Stk. 5. For radioaktive stoffer i fast form, for hvilke aktivitetskoncentrationen er mindre end eller lig med værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder denne bekendtgørelse kun for den brug af radioaktive stoffer, der kræver tilladelse i henhold til § 7 i bekendtgørelse om radioaktive stoffer. Stk. 6. For besiddelse, opbevaring, håndtering eller anvendelse af geologiske prøver, hvis aktivitetskoncentration af naturligt forekommende radionuklider er større end værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder bestemmelserne i denne bekendtgørelse og i bekendtgørelse om radioaktive stoffer kun, hvis besiddelsen, opbevaringen eller håndteringen af de geologiske prøver er af strålebeskyttelsesmæssig betydning. Kapitel 2 Dispensation m.v. § 2. Sundhedsstyrelsen kan dispensere fra bestemmelserne i denne bekendtgørelse, stille andre krav eller skærpe krav, hvis det vurderes strålebeskyttelsesmæssigt begrundet. Kapitel 3 Definitioner\n\n---\n\n[Source: /home/eike_f/projects/Radiationsafety/documents/Bekendtgørelse/B20250138405.pdf (Danish law)]\nBekendtgørelse om ioniserende stråling og strålebeskyttelse1)\nI medfør af § 1, stk. 4 og 5, § 2, stk. 2, § 4, stk. 2, § 5, stk. 2, § 6, stk. 2, § 7, stk. 2, § 8, stk. 2, § 9, stk.\n2, § 10, stk. 2, § 11, stk. 1 og 2, § 12, stk. 1, § 13, § 13 a, § 14, stk. 3, § 15, § 15 a, stk. 2, § 23 a, stk. 4,\n§ 23 b, stk. 4, og § 26, stk. 3, i lov nr. 23 af 15. januar 2018 om ioniserende stråling og strålebeskyttelse\n(strålebeskyttelsesloven), som ændret ved lov nr. 305 af 25. marts 2025, fastsættes:\nKapitel 1\nGyldighedsområde m.v.\n§ 1. Denne bekendtgørelse gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende\nbestrålingssituationer og i nødbestrålingssituationer, jf. dog stk. 2-6.\nStk. 2. For strålingsgeneratorer gælder denne bekendtgørelse kun for brug af strålingsgeneratorer, der\nopererer med en spændingsforskel, der er større end 5 kV.\nStk. 3. For strålingsgeneratorer i form af billedrør eller lignende, der\n1) kun producerer ioniserende stråling som et biprodukt,\n2) opererer med en spændingsforskel, der er mindre end eller lig med 30 kV, og\n3) der giver anledning til en dosishastighed under normal drift, der er mindre end eller lig med 1 µSv/h\n10 cm fra strålingsgeneratorens tilgængelige overflade,\ngælder denne bekendtgørelse kun for fremstilling af eller indgreb i de pågældende strålingsgeneratorer og\nkun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige\nforhold.\nStk. 4. For elektronmikroskoper gælder denne bekendtgørelse kun for fremstilling af eller indgreb i\nelektronmikroskoper og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på\nstrålebeskyttelsesmæssige forhold.\nStk. 5. For radioaktive stoffer i fast form, for hvilke aktivitetskoncentrationen er mindre end eller lig\nmed værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder denne bekendtgørelse kun for den\nbrug af radioaktive stoffer, der kræver tilladelse i henhold til § 7 i bekendtgørelse om radioaktive stoffer.\nStk. 6. For besiddelse, opbevaring, håndtering eller anvendelse af geologiske prøver, hvis aktivitetskon-\ncentration af naturligt forekommende radionuklider er større end værdien i bilag 4 i bekendtgørelse om\nradioaktive stoffer, gælder bestemmelserne i denne bekendtgørelse og i bekendtgørelse om radioaktive\nstoffer kun, hvis besiddelsen, opbevaringen eller håndteringen af de geologiske prøver er af strålebeskyt-\ntelsesmæssig betydning.\nKapitel 2\nDispensation m.v.\n\n---\n\n[Source: Bekendtgørelse om ioniserende stråling og strålebeskyttelse (Danish law)]\n§ 27, stk. 3, har virkning fra den 1. januar 2027. Stk. 3. Bekendtgørelse nr. 669 af 1. juli 2019 om ioniserende stråling og strålebeskyttelse ophæves. Territorialbestemmelse § 102. Bekendtgørelsen gælder ikke for Færøerne og Grønland. Bilag 1 Bestemmelse af effektive og ækvivalente doser Bilaget relaterer sig til § 3, stk. 1, nr. 16 og 70, og",
+    "web_search": false,
+    "documents": [
+      {
+        "id": "4aa77f8a-85b8-4527-807f-ae3637207335",
+        "metadata": {
+          "document_type": "IAEA",
+          "trapped": "/False",
+          "creator": "Adobe InDesign CC 2015 (Windows)",
+          "author": "IAEA",
+          "page": 113,
+          "moddate": "2015-11-12T16:48:10+01:00",
+          "producer": "Adobe PDF Library 15.0",
+          "total_pages": 136,
+          "creationdate": "2015-11-12T13:17:04+01:00",
+          "page_label": "84",
+          "source": "/home/eike_f/projects/Radiationsafety/documents/IAEA/GSR-7 - Preparedness and Response for a Nuclear or Radiological Emergency.pdf"
+        },
+        "page_content": "or disposed of — or where radiation generators are installed — on such \na scale that consideration of protection and safety is required.",
+        "type": "Document"
+      },
+      {
+        "id": "6391f1e5-8fc7-4228-bac4-721d4732c047",
+        "metadata": {
+          "trapped": "/False",
+          "page": 2,
+          "creator": "Adobe InDesign CC 2017 (Windows)",
+          "creationdate": "2018-05-04T07:51:57+02:00",
+          "gts_pdfxversion": "PDF/X-4",
+          "document_type": "IAEA",
+          "producer": "Adobe PDF Library 15.0",
+          "title": "17-11351_PUB1781_book.indb",
+          "source": "RADIATION PROTECTION AND SAFETY OF RADIATION SOURCES:INTERNATIONAL BASIC SAFETY STANDARDS",
+          "page_label": "i",
+          "total_pages": 76,
+          "moddate": "2018-09-20T11:08:03+02:00"
+        },
+        "page_content": "RADIATION PROTECTION \nOF THE PUBLIC AND  \nTHE ENVIRONMENT",
+        "type": "Document"
+      },
+      {
+        "id": "43b8d831-7a3d-4779-a18e-1bee77bbc115",
+        "metadata": {
+          "document_type": "Danish law",
+          "source": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse"
+        },
+        "page_content": "§ 1. Denne bekendtgørelse gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer, jf. dog stk. 2-6. Stk. 2. For strålingsgeneratorer gælder denne bekendtgørelse kun for brug af strålingsgeneratorer, der opererer med en spændingsforskel, der er større end 5 kV. Stk. 3. For strålingsgeneratorer i form af billedrør eller lignende, der 1) kun producerer ioniserende stråling som et biprodukt, 2) opererer med en spændingsforskel, der er mindre end eller lig med 30 kV, og 3) der giver anledning til en dosishastighed under normal drift, der er mindre end eller lig med 1 µSv/h 10 cm fra strålingsgeneratorens tilgængelige overflade, gælder denne bekendtgørelse kun for fremstilling af eller indgreb i de pågældende strålingsgeneratorer og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige forhold. Stk. 4. For elektronmikroskoper gælder denne bekendtgørelse kun for fremstilling af eller indgreb i elektronmikroskoper og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige forhold. Stk. 5. For radioaktive stoffer i fast form, for hvilke aktivitetskoncentrationen er mindre end eller lig med værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder denne bekendtgørelse kun for den brug af radioaktive stoffer, der kræver tilladelse i henhold til § 7 i bekendtgørelse om radioaktive stoffer. Stk. 6. For besiddelse, opbevaring, håndtering eller anvendelse af geologiske prøver, hvis aktivitetskoncentration af naturligt forekommende radionuklider er større end værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder bestemmelserne i denne bekendtgørelse og i bekendtgørelse om radioaktive stoffer kun, hvis besiddelsen, opbevaringen eller håndteringen af de geologiske prøver er af strålebeskyttelsesmæssig betydning. Kapitel 2 Dispensation m.v. § 2. Sundhedsstyrelsen kan dispensere fra bestemmelserne i denne bekendtgørelse, stille andre krav eller skærpe krav, hvis det vurderes strålebeskyttelsesmæssigt begrundet. Kapitel 3 Definitioner",
+        "type": "Document"
+      },
+      {
+        "id": "d12d906c-c370-4527-95f4-c2195ec09a31",
+        "metadata": {
+          "document_type": "Danish law",
+          "total_pages": 37,
+          "page": 1,
+          "source": "/home/eike_f/projects/Radiationsafety/documents/Bekendtgørelse/B20250138405.pdf"
+        },
+        "page_content": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)\nI medfør af § 1, stk. 4 og 5, § 2, stk. 2, § 4, stk. 2, § 5, stk. 2, § 6, stk. 2, § 7, stk. 2, § 8, stk. 2, § 9, stk.\n2, § 10, stk. 2, § 11, stk. 1 og 2, § 12, stk. 1, § 13, § 13 a, § 14, stk. 3, § 15, § 15 a, stk. 2, § 23 a, stk. 4,\n§ 23 b, stk. 4, og § 26, stk. 3, i lov nr. 23 af 15. januar 2018 om ioniserende stråling og strålebeskyttelse\n(strålebeskyttelsesloven), som ændret ved lov nr. 305 af 25. marts 2025, fastsættes:\nKapitel 1\nGyldighedsområde m.v.\n§ 1. Denne bekendtgørelse gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende\nbestrålingssituationer og i nødbestrålingssituationer, jf. dog stk. 2-6.\nStk. 2. For strålingsgeneratorer gælder denne bekendtgørelse kun for brug af strålingsgeneratorer, der\nopererer med en spændingsforskel, der er større end 5 kV.\nStk. 3. For strålingsgeneratorer i form af billedrør eller lignende, der\n1) kun producerer ioniserende stråling som et biprodukt,\n2) opererer med en spændingsforskel, der er mindre end eller lig med 30 kV, og\n3) der giver anledning til en dosishastighed under normal drift, der er mindre end eller lig med 1 µSv/h\n10 cm fra strålingsgeneratorens tilgængelige overflade,\ngælder denne bekendtgørelse kun for fremstilling af eller indgreb i de pågældende strålingsgeneratorer og\nkun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige\nforhold.\nStk. 4. For elektronmikroskoper gælder denne bekendtgørelse kun for fremstilling af eller indgreb i\nelektronmikroskoper og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på\nstrålebeskyttelsesmæssige forhold.\nStk. 5. For radioaktive stoffer i fast form, for hvilke aktivitetskoncentrationen er mindre end eller lig\nmed værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder denne bekendtgørelse kun for den\nbrug af radioaktive stoffer, der kræver tilladelse i henhold til § 7 i bekendtgørelse om radioaktive stoffer.\nStk. 6. For besiddelse, opbevaring, håndtering eller anvendelse af geologiske prøver, hvis aktivitetskon-\ncentration af naturligt forekommende radionuklider er større end værdien i bilag 4 i bekendtgørelse om\nradioaktive stoffer, gælder bestemmelserne i denne bekendtgørelse og i bekendtgørelse om radioaktive\nstoffer kun, hvis besiddelsen, opbevaringen eller håndteringen af de geologiske prøver er af strålebeskyt-\ntelsesmæssig betydning.\nKapitel 2\nDispensation m.v.",
+        "type": "Document"
+      },
+      {
+        "id": "7c42de13-0f8b-428d-a4fa-b8300f342351",
+        "metadata": {
+          "document_type": "Danish law",
+          "source": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse"
+        },
+        "page_content": "§ 27, stk. 3, har virkning fra den 1. januar 2027. Stk. 3. Bekendtgørelse nr. 669 af 1. juli 2019 om ioniserende stråling og strålebeskyttelse ophæves. Territorialbestemmelse § 102. Bekendtgørelsen gælder ikke for Færøerne og Grønland. Bilag 1 Bestemmelse af effektive og ækvivalente doser Bilaget relaterer sig til § 3, stk. 1, nr. 16 og 70, og",
+        "type": "Document"
+      }
+    ],
+    "web_search_attempted": false,
+    "chat_history": [
+      [
+        "Hvad gælder strålebeskyttelsesbekendtgørelsen for?",
+        "Ifølge bekendtgørelsen om ioniserende stråling og strålebeskyttelse gælder den for brug af strålekilder og stråleudsættelse i planlagte, eksisterende og nødbestrålingssituationer.\n\nDer er dog flere undtagelser og specifikke betingelser:\n\n*   **Strålingsgeneratorer:** Bekendtgørelsen gælder kun for dem, der opererer med en spændingsforskel større end 5 kV.\n*   **Billedrør og lignende:** For visse strålingsgeneratorer, der producerer stråling som et biprodukt (under 30 kV og med en lav dosishastighed), gælder bekendtgørelsen kun for fremstilling eller indgreb, der kan påvirke strålebeskyttelsen.\n*   **Elektronmikroskoper:** Bekendtgørelsen gælder kun for fremstilling eller indgreb, der kan have indvirkning på strålebeskyttelsesmæssige forhold.\n*   **Radioaktive stoffer:** For faste radioaktive stoffer under en vis aktivitetskoncentration gælder bekendtgørelsen kun, hvis brugen kræver en særskilt tilladelse.\n*   **Geologiske prøver:** For prøver med naturligt forekommende radionuklider over en vis koncentration gælder bekendtgørelsen kun, hvis håndteringen er af strålebeskyttelsesmæssig betydning.\n\n[Source: Bekendtgørelse om ioniserende stråling og strålebeskyttelse (Danish law), § 1]"
+      ]
+    ],
+    "retrieval_warning": "Svaret kunne ikke fuldt ud verificeres mod de angivne pålidelige kilder.",
+    "embedding_provider": "gemini",
+    "llm": {
+      "disable_streaming": false,
+      "google_api_key": "**********",
+      "model": "gemini-2.5-pro",
+      "temperature": 0,
+      "n": 1,
+      "max_retries": 6,
+      "default_metadata": [],
+      "model_kwargs": {},
+      "convert_system_message_to_human": false
+    },
+    "trusted_documents": [
+      {
+        "id": "4aa77f8a-85b8-4527-807f-ae3637207335",
+        "metadata": {
+          "document_type": "IAEA",
+          "trapped": "/False",
+          "creator": "Adobe InDesign CC 2015 (Windows)",
+          "author": "IAEA",
+          "page": 113,
+          "moddate": "2015-11-12T16:48:10+01:00",
+          "producer": "Adobe PDF Library 15.0",
+          "total_pages": 136,
+          "creationdate": "2015-11-12T13:17:04+01:00",
+          "page_label": "84",
+          "source": "/home/eike_f/projects/Radiationsafety/documents/IAEA/GSR-7 - Preparedness and Response for a Nuclear or Radiological Emergency.pdf"
+        },
+        "page_content": "or disposed of — or where radiation generators are installed — on such \na scale that consideration of protection and safety is required.",
+        "type": "Document"
+      },
+      {
+        "id": "6391f1e5-8fc7-4228-bac4-721d4732c047",
+        "metadata": {
+          "trapped": "/False",
+          "page": 2,
+          "creator": "Adobe InDesign CC 2017 (Windows)",
+          "creationdate": "2018-05-04T07:51:57+02:00",
+          "gts_pdfxversion": "PDF/X-4",
+          "document_type": "IAEA",
+          "producer": "Adobe PDF Library 15.0",
+          "title": "17-11351_PUB1781_book.indb",
+          "source": "RADIATION PROTECTION AND SAFETY OF RADIATION SOURCES:INTERNATIONAL BASIC SAFETY STANDARDS",
+          "page_label": "i",
+          "total_pages": 76,
+          "moddate": "2018-09-20T11:08:03+02:00"
+        },
+        "page_content": "RADIATION PROTECTION \nOF THE PUBLIC AND  \nTHE ENVIRONMENT",
+        "type": "Document"
+      },
+      {
+        "id": "43b8d831-7a3d-4779-a18e-1bee77bbc115",
+        "metadata": {
+          "document_type": "Danish law",
+          "source": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse"
+        },
+        "page_content": "§ 1. Denne bekendtgørelse gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer, jf. dog stk. 2-6. Stk. 2. For strålingsgeneratorer gælder denne bekendtgørelse kun for brug af strålingsgeneratorer, der opererer med en spændingsforskel, der er større end 5 kV. Stk. 3. For strålingsgeneratorer i form af billedrør eller lignende, der 1) kun producerer ioniserende stråling som et biprodukt, 2) opererer med en spændingsforskel, der er mindre end eller lig med 30 kV, og 3) der giver anledning til en dosishastighed under normal drift, der er mindre end eller lig med 1 µSv/h 10 cm fra strålingsgeneratorens tilgængelige overflade, gælder denne bekendtgørelse kun for fremstilling af eller indgreb i de pågældende strålingsgeneratorer og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige forhold. Stk. 4. For elektronmikroskoper gælder denne bekendtgørelse kun for fremstilling af eller indgreb i elektronmikroskoper og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige forhold. Stk. 5. For radioaktive stoffer i fast form, for hvilke aktivitetskoncentrationen er mindre end eller lig med værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder denne bekendtgørelse kun for den brug af radioaktive stoffer, der kræver tilladelse i henhold til § 7 i bekendtgørelse om radioaktive stoffer. Stk. 6. For besiddelse, opbevaring, håndtering eller anvendelse af geologiske prøver, hvis aktivitetskoncentration af naturligt forekommende radionuklider er større end værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder bestemmelserne i denne bekendtgørelse og i bekendtgørelse om radioaktive stoffer kun, hvis besiddelsen, opbevaringen eller håndteringen af de geologiske prøver er af strålebeskyttelsesmæssig betydning. Kapitel 2 Dispensation m.v. § 2. Sundhedsstyrelsen kan dispensere fra bestemmelserne i denne bekendtgørelse, stille andre krav eller skærpe krav, hvis det vurderes strålebeskyttelsesmæssigt begrundet. Kapitel 3 Definitioner",
+        "type": "Document"
+      },
+      {
+        "id": "d12d906c-c370-4527-95f4-c2195ec09a31",
+        "metadata": {
+          "document_type": "Danish law",
+          "total_pages": 37,
+          "page": 1,
+          "source": "/home/eike_f/projects/Radiationsafety/documents/Bekendtgørelse/B20250138405.pdf"
+        },
+        "page_content": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse1)\nI medfør af § 1, stk. 4 og 5, § 2, stk. 2, § 4, stk. 2, § 5, stk. 2, § 6, stk. 2, § 7, stk. 2, § 8, stk. 2, § 9, stk.\n2, § 10, stk. 2, § 11, stk. 1 og 2, § 12, stk. 1, § 13, § 13 a, § 14, stk. 3, § 15, § 15 a, stk. 2, § 23 a, stk. 4,\n§ 23 b, stk. 4, og § 26, stk. 3, i lov nr. 23 af 15. januar 2018 om ioniserende stråling og strålebeskyttelse\n(strålebeskyttelsesloven), som ændret ved lov nr. 305 af 25. marts 2025, fastsættes:\nKapitel 1\nGyldighedsområde m.v.\n§ 1. Denne bekendtgørelse gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende\nbestrålingssituationer og i nødbestrålingssituationer, jf. dog stk. 2-6.\nStk. 2. For strålingsgeneratorer gælder denne bekendtgørelse kun for brug af strålingsgeneratorer, der\nopererer med en spændingsforskel, der er større end 5 kV.\nStk. 3. For strålingsgeneratorer i form af billedrør eller lignende, der\n1) kun producerer ioniserende stråling som et biprodukt,\n2) opererer med en spændingsforskel, der er mindre end eller lig med 30 kV, og\n3) der giver anledning til en dosishastighed under normal drift, der er mindre end eller lig med 1 µSv/h\n10 cm fra strålingsgeneratorens tilgængelige overflade,\ngælder denne bekendtgørelse kun for fremstilling af eller indgreb i de pågældende strålingsgeneratorer og\nkun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på strålebeskyttelsesmæssige\nforhold.\nStk. 4. For elektronmikroskoper gælder denne bekendtgørelse kun for fremstilling af eller indgreb i\nelektronmikroskoper og kun i de tilfælde, hvor fremstillingen eller indgrebet kan have indvirkning på\nstrålebeskyttelsesmæssige forhold.\nStk. 5. For radioaktive stoffer i fast form, for hvilke aktivitetskoncentrationen er mindre end eller lig\nmed værdien i bilag 4 i bekendtgørelse om radioaktive stoffer, gælder denne bekendtgørelse kun for den\nbrug af radioaktive stoffer, der kræver tilladelse i henhold til § 7 i bekendtgørelse om radioaktive stoffer.\nStk. 6. For besiddelse, opbevaring, håndtering eller anvendelse af geologiske prøver, hvis aktivitetskon-\ncentration af naturligt forekommende radionuklider er større end værdien i bilag 4 i bekendtgørelse om\nradioaktive stoffer, gælder bestemmelserne i denne bekendtgørelse og i bekendtgørelse om radioaktive\nstoffer kun, hvis besiddelsen, opbevaringen eller håndteringen af de geologiske prøver er af strålebeskyt-\ntelsesmæssig betydning.\nKapitel 2\nDispensation m.v.",
+        "type": "Document"
+      },
+      {
+        "id": "7c42de13-0f8b-428d-a4fa-b8300f342351",
+        "metadata": {
+          "document_type": "Danish law",
+          "source": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse"
+        },
+        "page_content": "§ 27, stk. 3, har virkning fra den 1. januar 2027. Stk. 3. Bekendtgørelse nr. 669 af 1. juli 2019 om ioniserende stråling og strålebeskyttelse ophæves. Territorialbestemmelse § 102. Bekendtgørelsen gælder ikke for Færøerne og Grønland. Bilag 1 Bestemmelse af effektive og ækvivalente doser Bilaget relaterer sig til § 3, stk. 1, nr. 16 og 70, og",
+        "type": "Document"
+      }
+    ],
+    "retrieval_count": 1
+  },
+  "metadata": {
+    "ls_run_depth": 0,
+    "revision_id": "022a36f-dirty"
+  },
+  "langsmith": {
+    "organization": {
+      "name": "Personal",
+      "id": "0f76e507-b3d6-4f0f-a35c-4a06c290680c"
+    },
+    "workspace": {
+      "name": "Workspace 1",
+      "id": "76055247-f5dd-4610-971b-7339e643709b"
+    },
+    "tracing_project": {
+      "id": "ff7f7e37-bd80-4899-9fac-7ea80cda581d",
+      "name": "radiationsafetyrag"
+    }
+  }
+}

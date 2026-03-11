@@ -61,8 +61,13 @@ WARNING_NOT_VERIFIED_TRUSTED_ONLY: Dict[str, str] = {
     "da": "Svaret kunne ikke fuldt ud verificeres mod de angivne pålidelige kilder.",
 }
 
-# Mistral embeddings not built yet; hint to run ingestion with LLM_PROVIDER=mistral.
-WARNING_MISTRAL_EMBEDDINGS_NOT_BUILT: Dict[str, str] = {
+# Embeddings not built yet (generic); hint includes provider (gemini or mistral).
+WARNING_EMBEDDINGS_NOT_BUILT_GEMINI: Dict[str, str] = {
+    "en": "Gemini embeddings are not built yet. Run full ingestion: set LLM_PROVIDER=gemini in .env, then run: uv run python ingestion.py",
+    "de": "Gemini-Embeddings sind noch nicht erstellt. Führen Sie eine vollständige Ingestion aus: LLM_PROVIDER=gemini in .env setzen, dann: uv run python ingestion.py",
+    "da": "Gemini-embeddings er endnu ikke bygget. Kør fuld ingestion: sæt LLM_PROVIDER=gemini i .env, derefter: uv run python ingestion.py",
+}
+WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL: Dict[str, str] = {
     "en": "Mistral embeddings are not built yet. Run full ingestion with Mistral: set LLM_PROVIDER=mistral in .env, then run: uv run python ingestion.py",
     "de": "Mistral-Embeddings sind noch nicht erstellt. Führen Sie eine vollständige Ingestion mit Mistral aus: LLM_PROVIDER=mistral in .env setzen, dann: uv run python ingestion.py",
     "da": "Mistral-embeddings er endnu ikke bygget. Kør fuld ingestion med Mistral: sæt LLM_PROVIDER=mistral i .env, derefter: uv run python ingestion.py",
@@ -89,5 +94,8 @@ def get_warning_not_verified_trusted_only(lang: str) -> str:
     return WARNING_NOT_VERIFIED_TRUSTED_ONLY.get(lang) or WARNING_NOT_VERIFIED_TRUSTED_ONLY["en"]
 
 
-def get_warning_mistral_embeddings_not_built(lang: str) -> str:
-    return WARNING_MISTRAL_EMBEDDINGS_NOT_BUILT.get(lang) or WARNING_MISTRAL_EMBEDDINGS_NOT_BUILT["en"]
+def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:
+    """Return localized message for missing embeddings (gemini or mistral)."""
+    if embedding_provider == "mistral":
+        return WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL.get(lang) or WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL["en"]
+    return WARNING_EMBEDDINGS_NOT_BUILT_GEMINI.get(lang) or WARNING_EMBEDDINGS_NOT_BUILT_GEMINI["en"]

@@ -8,6 +8,7 @@ from graph.chains.context_sufficiency_grader import get_context_sufficiency_grad
 from graph.chains.truncate import truncate_docs_for_grader
 from graph.llm_factory import get_llm
 from graph.state import GraphState
+from graph.utils import throttle_llm_if_needed
 
 
 def grade_documents(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
@@ -25,6 +26,7 @@ def grade_documents(state: GraphState, config: Optional[RunnableConfig] = None) 
         }
 
     truncated = truncate_docs_for_grader(documents)
+    throttle_llm_if_needed()
     sufficiency = get_context_sufficiency_grader(llm)
     sufficient = sufficiency.invoke(
         {"question": question, "context": truncated},

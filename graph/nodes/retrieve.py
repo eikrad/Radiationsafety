@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 
 from graph.llm_factory import get_embedding_provider
 from graph.state import GraphState
-from graph.i18n import detect_language, get_warning_mistral_embeddings_not_built
+from graph.i18n import detect_language, get_warning_embeddings_not_built
 from ingestion import check_embedding_collections_ready, get_retrievers
 
 
@@ -29,16 +29,16 @@ def retrieve(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
     query = _retrieval_query(question, chat_history)
     cfg = config or {}
     ep = state.get("embedding_provider") or get_embedding_provider()
-    if ep == "mistral":
-        ready, _ = check_embedding_collections_ready(ep)
-        if not ready:
-            lang = detect_language(question)
-            return {
-                "documents": [],
-                "trusted_documents": [],
-                "web_search_attempted": False,
-                "retrieval_warning": get_warning_mistral_embeddings_not_built(lang),
-            }
+    ready, _ = check_embedding_collections_ready(ep)
+    if not ready:
+        lang = detect_language(question)
+        return {
+            "documents": [],
+            "trusted_documents": [],
+            "web_search_attempted": False,
+            "retrieval_warning": get_warning_embeddings_not_built(ep, lang),
+            "retrieval_count": 1,
+        }
     iaea_retriever, dk_retriever = get_retrievers(ep)
 
     def _invoke_iaea():
@@ -85,4 +85,5 @@ def retrieve(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
         "documents": merged,
         "trusted_documents": list(merged),
         "web_search_attempted": False,
+        "retrieval_count": 1,
     }

@@ -1,46 +1,86 @@
 {
   "dk-bekendtg\u00f8relse-om-ioniserende-str\u00e5ling-og-str\u00e5le": {
     "version": "Bekendtg\u00f8relse om ioniserende str\u00e5ling og str\u00e5lebeskyttelse",
-    "updated_at": "2026-02-16T21:54:34Z"
+    "updated_at": "2026-03-10T20:35:04Z"
   },
   "dk-bekendtg\u00f8relse-om-radioaktive-stoffer": {
     "version": "Bekendtg\u00f8relse om radioaktive stoffer",
-    "updated_at": "2026-02-16T21:54:35Z"
+    "updated_at": "2026-03-10T20:35:06Z"
   },
   "iaea-stipub1678": {
     "version": "STI/PUB/1678",
-    "updated_at": "2026-02-16T21:54:36Z"
+    "updated_at": "2026-03-10T20:35:08Z"
   },
   "iaea-stipub1467": {
     "version": "STI/PUB/1467",
-    "updated_at": "2026-02-16T21:54:39Z"
+    "updated_at": "2026-03-10T20:35:11Z"
   },
   "iaea-17-51861_pub1785_bookindb": {
     "version": "17-51861_PUB1785_Book.indb",
-    "updated_at": "2026-02-16T21:54:46Z"
+    "updated_at": "2026-03-10T20:35:17Z"
   },
   "iaea-governmental-legal-and-regulatory-framework-for-": {
     "version": "Governmental, legal and regulatory framework for safety",
-    "updated_at": "2026-02-16T21:54:47Z"
+    "updated_at": "2026-03-10T20:35:18Z"
   },
   "iaea-leadership-and-management-for-safety": {
     "version": "Leadership and management for safety",
-    "updated_at": "2026-02-16T21:54:48Z"
+    "updated_at": "2026-03-10T20:35:20Z"
   },
   "iaea-radiation-protection-and-safety-of-radiation-sou": {
     "version": "RADIATION PROTECTION AND SAFETY OF RADIATION SOURCES:INTERNATIONAL BASIC SAFETY STANDARDS",
-    "updated_at": "2026-02-16T21:54:49Z"
+    "updated_at": "2026-03-10T20:35:21Z"
   },
   "iaea-safety-assessment-for-facilities-and-activities": {
     "version": "Safety assessment for facilities and activities",
-    "updated_at": "2026-02-16T21:54:50Z"
+    "updated_at": "2026-03-10T20:35:23Z"
   },
   "iaea-safety-standards-series-no-gsr": {
     "version": "Safety Standards Series No. GSR",
-    "updated_at": "2026-02-16T21:54:52Z"
+    "updated_at": "2026-03-10T20:35:31Z"
   },
   "iaea-23-02757e_pub2052_071123_v2-print-pdfindd": {
     "version": "23-02757E_PUB2052_071123_V2-Print-PDF.indd",
     "updated_at": "2026-02-16T21:54:54Z"
+  },
+  "iaea-stipub1368": {
+    "version": "STI/PUB/1368",
+    "updated_at": "2026-03-10T20:35:25Z"
+  },
+  "iaea-stipub1466": {
+    "version": "STI/PUB/1466",
+    "updated_at": "2026-03-10T20:35:36Z"
+  },
+  "iaea-23-04975e_pub2059_050224-print-pdfindd": {
+    "version": "23-04975E_PUB2059_05.02.24-Print-PDF.indd",
+    "updated_at": "2026-03-10T20:35:51Z"
+  },
+  "iaea-ssg-39": {
+    "version": "SSG-39",
+    "updated_at": "2026-03-10T20:35:54Z"
+  },
+  "iaea-17-45271_pub1798_bodyindb": {
+    "version": "17-45271_PUB1798_body.indb",
+    "updated_at": "2026-03-10T20:35:57Z"
+  },
+  "iaea-decommissioning-of-facilities": {
+    "version": "DECOMMISSIONING OF FACILITIES",
+    "updated_at": "2026-03-10T20:35:29Z"
+  },
+  "iaea-tecdoc-1380": {
+    "version": "TECDOC 1380",
+    "updated_at": "2026-03-10T20:35:34Z"
+  },
+  "iaea-predisposal-management-of-radioactive-waste-from": {
+    "version": "Predisposal management of radioactive waste from nuclear power plants and research reactors",
+    "updated_at": "2026-03-10T20:35:44Z"
+  },
+  "iaea-17-50171_pub1773_bookindb": {
+    "version": "17-50171_PUB1773_book.indb",
+    "updated_at": "2026-03-10T20:35:46Z"
+  },
+  "iaea-17-24431_pub1775_bookindb": {
+    "version": "17-24431_PUB1775_book.indb",
+    "updated_at": "2026-03-10T20:35:49Z"
   }
 }

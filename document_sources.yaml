@@ -92,13 +92,13 @@ sources:
   url: https://www.iaea.org/publications/6932/derivation-of-activity-limits-for-the-disposal-of-radioactive-waste-in-near-surface-disposal-facilities
   folder: IAEA
   filename_hint: IAEA-TECDOC-1380_Derivation_of_activity_limits.pdf
-  version: IAEA-TECDOC-1380
+  version: TECDOC 1380
 - id: iaea-stipub1466
   name: STI/PUB/1466
   url: https://www.iaea.org/publications/7518/safety-of-radiation-generators-and-sealed-radioactive-sources
   folder: IAEA
   filename_hint: SSG-11 - Radiation Safety in Industrial Radiography.pdf
-  version: Safety Standards Series No. SSG-11
+  version: STI/PUB/1466
 - id: iaea-predisposal-management-of-radioactive-waste-from
   name: Predisposal management of radioactive waste from nuclear power plants and
     research reactors
@@ -106,20 +106,21 @@ sources:
   folder: IAEA
   filename_hint: SSG-40 Predisposal Management of Radioactive Waste from Nuclear Power
     Plants and Research Reactors.pdf
-  version: Safety Standards Series No. SSG-40
+  version: Predisposal management of radioactive waste from nuclear power plants and
+    research reactors
 - id: iaea-17-50171_pub1773_bookindb
   name: 17-50171_PUB1773_book.indb
   url: https://www.iaea.org/publications/6148/building-competence-in-radiation-protection-and-the-safe-use-of-radiation-sources
   folder: IAEA
   filename_hint: SSG-44 - Establishing the infrastructure for radiation safety.pdf
-  version: Safety Standards Series No. SSG-44
+  version: 17-50171_PUB1773_book.indb
 - id: iaea-17-24431_pub1775_bookindb
   name: 17-24431_PUB1775_book.indb
   url: https://www.iaea.org/publications/7115/applying-radiation-safety-standards-in-diagnostic-radiology-and-interventional-procedures-using-x-rays
   folder: IAEA
   filename_hint: SSG-46 - Radiation Protection and Safety in Medical Uses of Ionizing
     Radiation.pdf
-  version: Safety Standards Series No. SSG-46
+  version: 17-24431_PUB1775_book.indb
 - id: iaea-23-02757e_pub2052_071123_v2-print-pdfindd
   name: 23-02757E_PUB2052_071123_V2-Print-PDF.indd
   url: https://www.iaea.org/publications/6206/instrumentation-and-control-systems-important-to-safety-in-nuclear-power-plants
@@ -132,7 +133,7 @@ sources:
   url: https://www.iaea.org/publications/7518/safety-of-radiation-generators-and-sealed-radioactive-sources
   folder: IAEA
   filename_hint: SSG-87 - Radiation Safety in research.pdf
-  version: Safety Standards Series No. SSG-87
+  version: 23-04975E_PUB2059_05.02.24-Print-PDF.indd
 - id: iaea-ssg-39
   name: SSG-39
   url: https://www.iaea.org/publications/10838/design-of-instrumentation-and-control-systems-for-nuclear-power-plants
@@ -144,7 +145,7 @@ sources:
   url: https://www.iaea.org/publications/12288/regulations-for-the-safe-transport-of-radioactive-material
   folder: IAEA
   filename_hint: SSR-6 - Regulations for the safe transport of radioactive MAterial.pdf
-  version: Safety Standards Series No. SSR-6
+  version: 17-45271_PUB1798_body.indb
 - id: iaea-other-iaea-tecdoc-1638
   name: IAEA-TECDOC-1638
   url: https://www.iaea.org/publications/8312/setting-authorized-limits-for-radioactive-discharges-practical-issues-to-consider

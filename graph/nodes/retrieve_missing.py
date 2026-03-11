@@ -65,8 +65,12 @@ def retrieve_missing(state: GraphState, config: Optional[RunnableConfig] = None)
         )
         sufficient = bool(result.binary_score)
 
-    return {
+    out: Dict[str, Any] = {
         "documents": merged,
         "trusted_documents": trusted_merged,
         "sufficient_after_missing": sufficient,
     }
+    # Only increment retrieval_count when in the initial flow (not retry-after-generation).
+    if (state.get("retry_after_generation_count") or 0) == 0:
+        out["retrieval_count"] = (state.get("retrieval_count") or 1) + 1
+    return out

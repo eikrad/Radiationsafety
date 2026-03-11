@@ -6,7 +6,11 @@ from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
 from graph.chains.hallucinations_grader import get_hallucination_grader
-from graph.chains.truncate import truncate_docs_for_grader
+from graph.chains.truncate import (
+    MAX_CHARS_PER_DOC_GENERATION_GRADER,
+    MAX_CONTEXT_CHARS_GENERATION_GRADER,
+    truncate_docs_for_grader,
+)
 from graph.i18n import (
     detect_language,
     get_warning_no_trusted_sources,
@@ -16,6 +20,7 @@ from graph.i18n import (
 from graph.llm_factory import get_llm
 from graph.nodes.web_search import run_trusted_only_search
 from graph.state import GraphState
+from graph.utils import throttle_llm_if_needed
 
 
 def verify_trusted(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
@@ -35,9 +40,14 @@ def verify_trusted(state: GraphState, config: Optional[RunnableConfig] = None) -
     def is_supported(docs) -> bool:
         if not docs:
             return False
-        ctx = truncate_docs_for_grader(docs)
+        ctx = truncate_docs_for_grader(
+            docs,
+            max_chars_per_doc=MAX_CHARS_PER_DOC_GENERATION_GRADER,
+            max_context_chars=MAX_CONTEXT_CHARS_GENERATION_GRADER,
+        )
         if not ctx.strip():
             return False
+        throttle_llm_if_needed()
         score = grader.invoke(
             {"documents": ctx, "generation": generation},
             config=cfg,

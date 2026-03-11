@@ -23,6 +23,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
    ```bash
    uv run python ingestion.py
    ```
+   **If you switch `LLM_PROVIDER`** (e.g. from mistral to gemini), re-run full ingestion so the vector store is rebuilt with the new embedding model (Mistral and Gemini use different embedding dimensions).
    Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to "Check for updates" and “Re-run ingestion”.
 
 5. Start backend:

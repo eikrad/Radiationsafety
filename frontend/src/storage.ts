@@ -12,7 +12,7 @@ export function loadDocumentSearchEnabled(): boolean {
 
 const DEFAULT_VARIANTS: Record<Model, string> = {
   mistral: 'default',
-  gemini: 'gemini-2.5-flash-lite',
+  gemini: 'gemini-2.5-pro',
   openai: 'gpt-4o-mini',
 }
 

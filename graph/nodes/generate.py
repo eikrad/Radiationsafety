@@ -7,6 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from graph.chains.generation import get_generation_chain
 from graph.llm_factory import get_llm
 from graph.state import GraphState
+from graph.utils import throttle_llm_if_needed
 
 
 def _format_chat_history(history: list[tuple[str, str]]) -> str:
@@ -37,6 +38,7 @@ def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
     chat_history = state.get("chat_history") or []
     cfg = config or {}
     llm = state.get("llm") or get_llm()
+    throttle_llm_if_needed()
     chain = get_generation_chain(llm)
 
     context = ""
@@ -59,5 +61,6 @@ def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
 
     return {
         "generation": generation,
+        "context_used_for_generation": context,
         "chat_history": updated_history,
     }

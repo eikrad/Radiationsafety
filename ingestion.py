@@ -51,9 +51,19 @@ def rotate_backups(backup_dir: Path, prefix: str, *, keep: int = 2, extension: s
 IAEA_COLLECTION = "radiation-iaea"
 DK_LAW_COLLECTION = "radiation-dk-law"
 
-# Google Gemini free tier: 100 embedding requests/min; batch + delay to avoid 429. Paid tier can use smaller delay or skip.
-GEMINI_BATCH_SIZE = 80
-GEMINI_BATCH_DELAY_SEC = 65
+# Google Gemini: batch size for embeddings. Delay between batches is from GEMINI_BATCH_DELAY_SEC env (0 or unset = no delay, e.g. 65 for free tier).
+GEMINI_BATCH_SIZE = 200
+
+
+def _gemini_batch_delay_sec() -> float:
+    """Seconds to wait between Gemini embedding batches. 0 or unset = no delay (paid tier). Set to 65 for free tier."""
+    raw = (os.getenv("GEMINI_BATCH_DELAY_SEC") or "").strip()
+    if not raw:
+        return 0.0
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 0.0
 
 
 def get_collection_names(embedding_provider: str) -> tuple[str, str]:
@@ -529,7 +539,8 @@ def _add_documents_rate_limited(
 def _add_documents_gemini_rate_limited(
     documents, collection_name, embeddings, persist_directory
 ):
-    """Gemini free tier: 100 req/min → batch + 65s delay between batches."""
+    """Add documents in batches. Delay between batches from GEMINI_BATCH_DELAY_SEC (0 = no delay)."""
+    delay_sec = _gemini_batch_delay_sec()
     vectorstore = None
     for i in range(0, len(documents), GEMINI_BATCH_SIZE):
         batch = documents[i : i + GEMINI_BATCH_SIZE]
@@ -543,9 +554,9 @@ def _add_documents_gemini_rate_limited(
         else:
             vectorstore.add_documents(batch)
         print(f"  Added batch {i // GEMINI_BATCH_SIZE + 1} ({len(batch)} chunks)")
-        if i + GEMINI_BATCH_SIZE < len(documents):
-            print(f"  Waiting {GEMINI_BATCH_DELAY_SEC}s for rate limit...")
-            time.sleep(GEMINI_BATCH_DELAY_SEC)
+        if i + GEMINI_BATCH_SIZE < len(documents) and delay_sec > 0:
+            print(f"  Waiting {delay_sec}s for rate limit...")
+            time.sleep(delay_sec)
 
 
 def ingest():
@@ -608,10 +619,18 @@ _retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
 
 
 def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, str]:
-    """Return (ready, message). If not ready (e.g. Mistral collections empty), message explains how to build them."""
-    if embedding_provider != "mistral":
+    """Return (ready, message). If not ready (collections missing or empty), message explains how to build them.
+
+    Applies to both gemini (Gemini/OpenAI) and mistral embedding providers.
+    """
+    if embedding_provider not in ("gemini", "mistral"):
         return True, ""
-    iaea_name, dk_name = get_collection_names("mistral")
+    iaea_name, dk_name = get_collection_names(embedding_provider)
+    env_hint = "LLM_PROVIDER=mistral" if embedding_provider == "mistral" else "LLM_PROVIDER=gemini"
+    default_msg = (
+        f"Embeddings for this provider are not built yet. Run full ingestion: "
+        f"set {env_hint} in .env (or export it), then run: uv run python ingestion.py"
+    )
     try:
         import chromadb
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
@@ -619,21 +638,12 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
             try:
                 coll = client.get_collection(name)
                 if coll.count() == 0:
-                    return False, (
-                        "Mistral embeddings are not built yet. Run full ingestion with Mistral: "
-                        "set LLM_PROVIDER=mistral in .env (or export it), then run: uv run python ingestion.py"
-                    )
+                    return False, default_msg
             except Exception:
-                return False, (
-                    "Mistral embeddings are not built yet. Run full ingestion with Mistral: "
-                    "set LLM_PROVIDER=mistral in .env (or export it), then run: uv run python ingestion.py"
-                )
+                return False, default_msg
         return True, ""
     except Exception:
-        return False, (
-            "Mistral embeddings are not built yet. Run full ingestion with Mistral: "
-            "set LLM_PROVIDER=mistral in .env (or export it), then run: uv run python ingestion.py"
-        )
+        return False, default_msg
 
 
 def add_single_pdf_to_collection(
@@ -664,11 +674,12 @@ def add_single_pdf_to_collection(
         persist_directory=str(_CHROMA_DIR),
     )
     if ep == "gemini":
+        delay_sec = _gemini_batch_delay_sec()
         for i in range(0, len(splits), GEMINI_BATCH_SIZE):
             batch = splits[i : i + GEMINI_BATCH_SIZE]
             vectorstore.add_documents(batch)
-            if i + GEMINI_BATCH_SIZE < len(splits):
-                time.sleep(GEMINI_BATCH_DELAY_SEC)
+            if i + GEMINI_BATCH_SIZE < len(splits) and delay_sec > 0:
+                time.sleep(delay_sec)
     else:
         vectorstore.add_documents(splits)
     return len(splits)

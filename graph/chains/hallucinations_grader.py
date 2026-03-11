@@ -3,7 +3,7 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from graph.llm_factory import get_llm
 
@@ -11,6 +11,7 @@ from graph.llm_factory import get_llm
 class GradeHallucinations(BaseModel):
     """Binary score: generation grounded in facts."""
 
+    model_config = ConfigDict(title="IsGrounded")
     binary_score: bool = Field(
         description="Answer is grounded in the facts, 'yes' or 'no'"
     )

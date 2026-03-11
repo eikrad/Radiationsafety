@@ -48,16 +48,44 @@ def test_decide_after_retrieve_missing_routes_to_generate_when_sufficient():
     assert decide_after_retrieve_missing(state) == "generate"
 
 
-def test_decide_after_retrieve_missing_routes_to_web_search_when_not_sufficient():
-    """When sufficient_after_missing is False, route to WEB_SEARCH."""
+def test_decide_after_retrieve_missing_routes_to_retrieve_missing_again_when_not_sufficient_and_count_under_3():
+    """When sufficient_after_missing is False and retrieval_count < 3, route to RETRIEVE_MISSING (third try)."""
     from graph.graph import decide_after_retrieve_missing
 
     state: GraphState = {
         "question": "test",
         "documents": [],
         "sufficient_after_missing": False,
+        "retrieval_count": 2,
+    }
+    assert decide_after_retrieve_missing(state) == "retrieve_missing"
+
+
+def test_decide_after_retrieve_missing_routes_to_web_search_when_not_sufficient_and_count_3():
+    """When sufficient_after_missing is False and retrieval_count >= 3, route to WEB_SEARCH."""
+    from graph.graph import decide_after_retrieve_missing
+
+    state: GraphState = {
+        "question": "test",
+        "documents": [],
+        "sufficient_after_missing": False,
+        "retrieval_count": 3,
     }
     assert decide_after_retrieve_missing(state) == "web_search"
+
+
+def test_decide_after_retrieve_missing_routes_to_generate_when_retry_after_generation():
+    """When retry_after_generation_count > 0 (retry path), route to GENERATE."""
+    from graph.graph import decide_after_retrieve_missing
+
+    state: GraphState = {
+        "question": "test",
+        "documents": [],
+        "sufficient_after_missing": False,
+        "retrieval_count": 3,
+        "retry_after_generation_count": 1,
+    }
+    assert decide_after_retrieve_missing(state) == "generate"
 
 
 def test_grade_generation_grounded_useful_when_grounded_and_answers(monkeypatch):
@@ -84,7 +112,7 @@ def test_grade_generation_grounded_useful_when_grounded_and_answers(monkeypatch)
 
 
 def test_grade_generation_grounded_end_when_hallucination(monkeypatch):
-    """When generation grader says not grounded, return 'end' (or 'web_search' if enabled)."""
+    """When generation grader says not grounded and web search disabled, return 'end'."""
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
     from graph.graph import grade_generation_grounded
 
@@ -104,3 +132,32 @@ def test_grade_generation_grounded_end_when_hallucination(monkeypatch):
         }
         result = grade_generation_grounded(state)
     assert result == "end"
+
+
+def test_grade_generation_grounded_retry_retrieve_then_web_search(monkeypatch):
+    """When not grounded and web search enabled: retry_retrieve if retry_count < 2, else web_search."""
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    from graph.graph import grade_generation_grounded
+
+    mock_grader = MagicMock()
+    mock_grader.invoke.return_value = MagicMock(grounded=False, answers_question=False)
+
+    def make_grader(_llm=None):
+        return mock_grader
+
+    with patch("graph.graph.get_generation_grader", make_grader):
+        state0: GraphState = {
+            "question": "What is radiation?",
+            "generation": "Random stuff",
+            "web_search": False,
+            "documents": [MagicMock(page_content="doc1")],
+            "web_search_attempted": False,
+            "retry_after_generation_count": 0,
+        }
+        assert grade_generation_grounded(state0) == "retry_retrieve"
+
+        state1: GraphState = {**state0, "retry_after_generation_count": 1}
+        assert grade_generation_grounded(state1) == "retry_retrieve"
+
+        state2: GraphState = {**state0, "retry_after_generation_count": 2}
+        assert grade_generation_grounded(state2) == "web_search"

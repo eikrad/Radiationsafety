@@ -13,9 +13,9 @@ export const STORAGE_KEYS = {
 export const MODEL_VARIANTS: Record<Model, { id: string; label: string }[]> = {
   mistral: [{ id: 'default', label: 'Mistral (default)' }],
   gemini: [
-    { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (15 RPM, recommended)' },
+    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (default)' },
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (10 RPM)' },
-    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (5 RPM)' },
+    { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (15 RPM, free tier)' },
   ],
   openai: [
     { id: 'gpt-4o-mini', label: 'GPT-4o mini (recommended)' },

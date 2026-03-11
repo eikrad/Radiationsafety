@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 from graph.chains.search_query_chain import invoke_search_query_chain
 from graph.consts import env_bool
 from graph.state import GraphState
-from graph.utils import chat_context_prefix
+from graph.utils import chat_context_prefix, throttle_llm_if_needed
 
 # Trusted domains (IAEA + Danish); used when WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true or for verification
 DK_DOMAINS = [
@@ -81,6 +81,7 @@ def web_search(state: GraphState, config: Optional[RunnableConfig] = None) -> Di
     )
     context = chat_context_prefix(chat_history, max_answer_chars=300) + doc_context
     llm = state.get("llm")
+    throttle_llm_if_needed()
     base_query = invoke_search_query_chain(question, context, llm, config=cfg)
     query = _build_search_query(base_query, _trusted_domains_only())
 
