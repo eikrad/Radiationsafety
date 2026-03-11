@@ -9,9 +9,6 @@ wheels/
 # Virtual environments
 .venv
 
-# Chroma vector DB
-.chroma/
-
 # Environment
 .env
 

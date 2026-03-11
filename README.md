@@ -38,6 +38,19 @@ flowchart TB
     FINALIZE --> EndNode([End])
 ```
 
+## Running with Docker
+
+The repo includes a pre-built vector DB (`.chroma`) in the image, so you can run the app without running ingestion yourself.
+
+1. Copy `.env.example` to `.env` and set at least `LLM_PROVIDER` and the matching API key (`GOOGLE_API_KEY` or `MISTRAL_API_KEY`) for queries.
+2. From the project root:
+   ```bash
+   docker compose up --build
+   ```
+3. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend; no ingestion step is required.
+
+If the backend build fails with a missing `.chroma` directory, the repo does not yet include the pre-built DB. Run ingestion once locally (see Setup, step 4), then `git add .chroma` and commit, and rebuild. To refresh the document base later (e.g. after changing `LLM_PROVIDER`), see CONTRIBUTING or run ingestion in a one-off container.
+
 ## Setup
 
 1. Copy `.env.example` to `.env` and configure:

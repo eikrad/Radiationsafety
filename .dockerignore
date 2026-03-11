@@ -1,0 +1,22 @@
+# Git and env (do not copy secrets)
+.git
+.env
+.venv
+
+# Python
+__pycache__
+*.py[cod]
+.pytest_cache
+*.egg-info
+
+# Node (backend build context; frontend has its own context)
+node_modules
+frontend/node_modules
+frontend/dist
+
+# Eval and docs (not needed in images)
+eval/reports
+*.md
+!README.md
+
+# Do NOT ignore .chroma – the backend image includes the pre-built vector DB
