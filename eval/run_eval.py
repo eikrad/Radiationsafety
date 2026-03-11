@@ -86,6 +86,7 @@ def _invoke_graph(question: str, graph, llm) -> dict:
     return {
         "generation": result.get("generation", ""),
         "documents": result.get("documents", []),
+        "context_used_for_generation": result.get("context_used_for_generation") or "",
         "retrieval_warning": result.get("retrieval_warning"),
         "web_search_attempted": result.get("web_search_attempted", False),
     }
@@ -161,18 +162,21 @@ def _run_eval(
             entry = cache[item_id]
             generation = entry.get("generation", "")
             documents = _deserialize_documents(entry.get("documents", []))
+            context_used_for_generation = entry.get("context_used_for_generation") or ""
             retrieval_warning = entry.get("retrieval_warning")
             web_search_attempted = entry.get("web_search_attempted", False)
         else:
             run = _invoke_with_retry(_invoke_graph, question, graph, graph_llm)
             generation = run["generation"]
             documents = run["documents"]
+            context_used_for_generation = run.get("context_used_for_generation") or ""
             retrieval_warning = run["retrieval_warning"]
             web_search_attempted = run["web_search_attempted"]
             if cache_dir:
                 cache[item_id] = {
                     "generation": generation,
                     "documents": _serialize_documents(documents),
+                    "context_used_for_generation": context_used_for_generation,
                     "retrieval_warning": retrieval_warning,
                     "web_search_attempted": web_search_attempted,
                 }
@@ -183,6 +187,7 @@ def _run_eval(
             question=question,
             generation=generation,
             documents=documents,
+            context_used_for_generation=context_used_for_generation,
             expected_answer=expected_answer,
             key_facts=key_facts,
             llm=grader_llm,

@@ -15,11 +15,12 @@ class GradeGeneration(BaseModel):
     answers_question: bool = Field(description="The answer addresses the question, 'yes' or 'no'")
 
 
-system = """You are a grader. Assess the LLM generation on two criteria:
-1) Is it grounded in / supported by the set of facts (no hallucination)?
-2) Does it address / resolve the user question?
-Reply with two binary scores: grounded (yes/no) and answers_question (yes/no)."""
+system = """You are a grader. The "Facts" below are the retrieved context that was given to the model. The "Generation" is the model's answer.
 
+1) grounded: Answer YES if the generation's factual content is supported by the Facts (paraphrases, summaries, and citing the given sources are fine). Answer NO only for clear unsupported claims or fabrication.
+2) answers_question: Answer YES if the generation addresses or resolves the user question.
+
+Reply with two binary scores: grounded (yes/no) and answers_question (yes/no)."""
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
