@@ -601,8 +601,8 @@ def _add_documents_gemini_rate_limited(
 def ingest():
     """Run full ingestion: load PDFs (local + from document_sources URLs), split, embed, persist to Chroma.
 
-    Uses current LLM_PROVIDER to choose embedding provider (gemini/openai → Gemini embeddings,
-    mistral → Mistral embeddings). Only the two collections for that provider are cleared and filled.
+    Uses Gemini embeddings only (GOOGLE_API_KEY required). The same vector store is used for
+    retrieval regardless of LLM_PROVIDER (generation can be Gemini, OpenAI, or Mistral).
     """
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
@@ -665,14 +665,9 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
     if embedding_provider not in ("gemini", "mistral"):
         return True, ""
     iaea_name, dk_name = get_collection_names(embedding_provider)
-    env_hint = (
-        "LLM_PROVIDER=mistral"
-        if embedding_provider == "mistral"
-        else "LLM_PROVIDER=gemini"
-    )
     default_msg = (
-        f"Embeddings for this provider are not built yet. Run full ingestion: "
-        f"set {env_hint} in .env (or export it), then run: uv run python ingestion.py"
+        "Embeddings are not built yet. Set GOOGLE_API_KEY in .env (or export it), "
+        "then run: uv run python ingestion.py"
     )
     try:
         import chromadb
@@ -740,8 +735,8 @@ def clear_retrievers_cache() -> None:
 def get_retrievers(embedding_provider: str | None = None):
     """Return retriever instances for both collections (for use in graph). Cached per embedding_provider.
 
-    When embedding_provider is None, uses get_embedding_provider() (from LLM_PROVIDER).
-    Gemini and OpenAI share the same collections (Gemini embeddings); Mistral uses -mistral collections.
+    When embedding_provider is None, uses get_embedding_provider() (currently always 'gemini').
+    Retrieval always uses Gemini embeddings; the same collections are used regardless of LLM for generation.
     """
     global _retrievers_cache
     if _retrievers_cache is None:

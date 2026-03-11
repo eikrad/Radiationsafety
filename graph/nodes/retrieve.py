@@ -48,9 +48,8 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
             if "dimension" in str(e).lower() and "embedding" in str(e).lower():
                 raise RuntimeError(
                     "Embedding dimension mismatch: the Chroma collection was built with a different "
-                    "embedding model (e.g. Mistral 1024 dim). Re-run full ingestion with the current "
-                    "LLM_PROVIDER (e.g. uv run python ingestion.py with LLM_PROVIDER=gemini in .env) "
-                    "so the vector store uses the same embeddings."
+                    "embedding model. Re-run full ingestion (set GOOGLE_API_KEY in .env, then "
+                    "uv run python ingestion.py) so the vector store uses Gemini embeddings."
                 ) from e
             raise
 
@@ -61,9 +60,8 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
             if "dimension" in str(e).lower() and "embedding" in str(e).lower():
                 raise RuntimeError(
                     "Embedding dimension mismatch: the Chroma collection was built with a different "
-                    "embedding model (e.g. Mistral 1024 dim). Re-run full ingestion with the current "
-                    "LLM_PROVIDER (e.g. uv run python ingestion.py with LLM_PROVIDER=gemini in .env) "
-                    "so the vector store uses the same embeddings."
+                    "embedding model. Re-run full ingestion (set GOOGLE_API_KEY in .env, then "
+                    "uv run python ingestion.py) so the vector store uses Gemini embeddings."
                 ) from e
             raise
 

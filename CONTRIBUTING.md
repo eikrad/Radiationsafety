@@ -9,7 +9,7 @@ Thanks for your interest in contributing to Radiation Safety RAG.
    - `npm ci` in `frontend/` for the UI.
 
 2. **Environment**
-   - Copy `.env.example` to `.env` and set at least one LLM key (e.g. `GOOGLE_API_KEY`) if you run the app or eval.
+   - Copy `.env.example` to `.env`. Set **`GOOGLE_API_KEY`** for ingestion and retrieval (required). Set `LLM_PROVIDER` and the matching key (e.g. `OPENAI_API_KEY`) if you run the app or eval with a specific model for generation.
 
 3. **Document registry**
    - `document_sources.yaml` holds source URLs for ingestion and “Check for updates”. Prefer **generating** it (see [Building document_sources.yaml](README.md#building-document_sourcesyaml-from-local-pdfs)) or copying from `document_sources.example.yaml` rather than committing repo-specific URLs. It is listed in `.gitignore` by default; remove that line if you want to commit a shared registry.

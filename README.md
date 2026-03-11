@@ -17,7 +17,7 @@ Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scri
 
 The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
 
-1. Copy `.env.example` to `.env` and set `LLM_PROVIDER` and the matching API key (`GOOGLE_API_KEY` or `MISTRAL_API_KEY`); the same keys are used for ingestion.
+1. Copy `.env.example` to `.env`. Set **`GOOGLE_API_KEY`** (required for ingestion and retrieval). Optionally set `LLM_PROVIDER` and the matching key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
 2. From the project root:
    ```bash
    docker compose up --build
@@ -29,13 +29,13 @@ The image does not ship the vector DB (`.chroma` is too large for the repo). Run
    Wait for it to finish, then stop the stack (`Ctrl+C`) and start again with `docker compose up` so the backend loads the new DB.
 4. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend.
 
-The backend uses a named volume `chroma_data` for `.chroma`, so you only need to run ingestion once per environment. To refresh the document base (e.g. after changing `LLM_PROVIDER`), run the ingestion command again.
+The backend uses a named volume `chroma_data` for `.chroma`, so you only need to run ingestion once per environment. To refresh the document base (e.g. after adding new sources), run the ingestion command again. Changing `LLM_PROVIDER` does not require re-running ingestion.
 
 ## Setup
 
 1. Copy `.env.example` to `.env` and configure:
-   - `LLM_PROVIDER`: `gemini` or `mistral`
-   - `GOOGLE_API_KEY` or `MISTRAL_API_KEY` (depending on provider)
+   - **Embeddings (for ingestion and retrieval):** The vector store uses **Gemini embeddings** only. You need **`GOOGLE_API_KEY`** to run ingestion and to run queries (retrieval). Set this even if you later choose OpenAI or Mistral as the LLM for answers.
+   - **LLM for generation:** `LLM_PROVIDER` = `gemini`, `mistral`, or `openai`. Set the matching key: `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`. The same vector store (Gemini embeddings) is used for retrieval regardless of which LLM you use for generation.
    - Optional: `WEB_SEARCH_ENABLED=true`, `BRAVE_SEARCH_API_KEY` for fallback; `WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true` to restrict web search to iaea.org/retsinformation.dk/sst.dk (default is unrestricted; answers are still verified against trusted sources)
    - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing (tracing is auto-disabled when API keys are sent from the frontend to avoid leaking keys to LangSmith)
 
@@ -46,11 +46,11 @@ The backend uses a named volume `chroma_data` for `.chroma`, so you only need to
 
 3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see “Building document_sources.yaml from local PDFs” below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk “Senere ændringer”, IAEA “Superseded by”) When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
 
-4. Run ingestion (requires API key for embeddings):
+4. Run ingestion (requires **`GOOGLE_API_KEY`**; embeddings are always Gemini):
    ```bash
    uv run python ingestion.py
    ```
-   **If you switch `LLM_PROVIDER`** (e.g. from mistral to gemini), re-run full ingestion so the vector store is rebuilt with the new embedding model (Mistral and Gemini use different embedding dimensions).
+   You only need to run ingestion once per document set. Changing `LLM_PROVIDER` (e.g. to OpenAI or Mistral for generation) does **not** require re-running ingestion—the same vector store is used.
    Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to "Check for updates" and “Re-run ingestion”.
 
 5. Start backend:
@@ -96,10 +96,12 @@ uv run python build_document_sources.py
 
 This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata and first-page text (and from Danish `*_version.txt` files), optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries (to keep URLs), and writes the full list to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print the list without writing.
 
-## Collections
+## Collections and embeddings
 
-- `radiation-iaea`: IAEA and IAEA_other PDFs
-- `radiation-dk-law`: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
+- **`radiation-iaea`**: IAEA and IAEA_other PDFs  
+- **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
+
+Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
 
 ## Credits and references
 

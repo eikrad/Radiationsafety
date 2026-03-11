@@ -59,16 +59,17 @@ WARNING_NOT_VERIFIED_TRUSTED_ONLY: dict[str, str] = {
     "da": "Svaret kunne ikke fuldt ud verificeres mod de angivne pålidelige kilder.",
 }
 
-# Embeddings not built yet (generic); hint includes provider (gemini or mistral).
+# Embeddings not built yet. Retrieval always uses Gemini; hint tells user to run ingestion with GOOGLE_API_KEY.
 WARNING_EMBEDDINGS_NOT_BUILT_GEMINI: dict[str, str] = {
-    "en": "Gemini embeddings are not built yet. Run full ingestion: set LLM_PROVIDER=gemini in .env, then run: uv run python ingestion.py",
-    "de": "Gemini-Embeddings sind noch nicht erstellt. Führen Sie eine vollständige Ingestion aus: LLM_PROVIDER=gemini in .env setzen, dann: uv run python ingestion.py",
-    "da": "Gemini-embeddings er endnu ikke bygget. Kør fuld ingestion: sæt LLM_PROVIDER=gemini i .env, derefter: uv run python ingestion.py",
+    "en": "Gemini embeddings are not built yet. Set GOOGLE_API_KEY in .env, then run: uv run python ingestion.py",
+    "de": "Gemini-Embeddings sind noch nicht erstellt. GOOGLE_API_KEY in .env setzen, dann: uv run python ingestion.py",
+    "da": "Gemini-embeddings er endnu ikke bygget. Sæt GOOGLE_API_KEY i .env, derefter: uv run python ingestion.py",
 }
+# Legacy: embedding_provider "mistral" is not used in practice (get_embedding_provider() returns gemini).
 WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL: dict[str, str] = {
-    "en": "Mistral embeddings are not built yet. Run full ingestion with Mistral: set LLM_PROVIDER=mistral in .env, then run: uv run python ingestion.py",
-    "de": "Mistral-Embeddings sind noch nicht erstellt. Führen Sie eine vollständige Ingestion mit Mistral aus: LLM_PROVIDER=mistral in .env setzen, dann: uv run python ingestion.py",
-    "da": "Mistral-embeddings er endnu ikke bygget. Kør fuld ingestion med Mistral: sæt LLM_PROVIDER=mistral i .env, derefter: uv run python ingestion.py",
+    "en": "Vector store not built yet. Set GOOGLE_API_KEY in .env, then run: uv run python ingestion.py",
+    "de": "Vektor-Store noch nicht erstellt. GOOGLE_API_KEY in .env setzen, dann: uv run python ingestion.py",
+    "da": "Vektorstore er endnu ikke bygget. Sæt GOOGLE_API_KEY i .env, derefter: uv run python ingestion.py",
 }
 
 
@@ -98,7 +99,7 @@ def get_warning_not_verified_trusted_only(lang: str) -> str:
 
 
 def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:
-    """Return localized message for missing embeddings (gemini or mistral)."""
+    """Return localized message for missing embeddings. In practice only gemini is used (retrieval always uses Gemini)."""
     if embedding_provider == "mistral":
         return (
             WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL.get(lang)

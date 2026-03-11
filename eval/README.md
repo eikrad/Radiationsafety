@@ -36,8 +36,9 @@ uv run python -m eval.run_eval --limit 3 --no-web-search
 
 ## Environment
 
-- **LLM**: The **graph** (retrieval + answer generation) uses `LLM_PROVIDER` and the corresponding API key in `.env` (e.g. `mistral` + `MISTRAL_API_KEY`).
-- **Grading LLM** (optional): Set `EVAL_GRADER_PROVIDER=gemini` (or `openai` / `mistral`) to use a different model only for computing metrics (faithfulness, answer relevance, context precision, context recall). Example: use Mistral for answering and Gemini for grading by setting `LLM_PROVIDER=mistral` and `EVAL_GRADER_PROVIDER=gemini`; ensure both `MISTRAL_API_KEY` and `GOOGLE_API_KEY` are in `.env`.
+- **Retrieval**: The graph uses **Gemini embeddings** for retrieval; set **`GOOGLE_API_KEY`** in `.env`. Run ingestion once so the vector store is populated.
+- **Generation**: The graph uses `LLM_PROVIDER` and the corresponding API key for answer generation (e.g. `mistral` + `MISTRAL_API_KEY`, or `openai` + `OPENAI_API_KEY`, or `gemini` + `GOOGLE_API_KEY`).
+- **Grading LLM** (optional): Set `EVAL_GRADER_PROVIDER=gemini` (or `openai` / `mistral`) to use a different model only for computing metrics (faithfulness, answer relevance, context precision, context recall). Example: use Mistral for answering and Gemini for grading by setting `LLM_PROVIDER=mistral` and `EVAL_GRADER_PROVIDER=gemini`; ensure `MISTRAL_API_KEY` and `GOOGLE_API_KEY` are in `.env` (Gemini is required for retrieval in any case).
 - **Eval delays** (optional): `EVAL_DELAY_AFTER_GRAPH_SEC` and `EVAL_DELAY_BETWEEN_ITEMS_SEC` override the default 5 s and 20 s delays used to avoid LLM rate limits. Set to `0` to disable.
 - **Optional – LangSmith**: If `LANGCHAIN_TRACING_V2=true` and `LANGCHAIN_API_KEY` is set, eval runs are traced; use tags `eval` and `golden` in the LangSmith UI to filter. See [LangSmith](#langsmith) below.
 
