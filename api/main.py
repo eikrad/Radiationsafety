@@ -386,7 +386,7 @@ def query(req: QueryRequest):
     model, api_key = _resolve_model_and_key(req.model, req.api_keys)
     model_variant = req.model_variant
     try:
-        from graph.llm_factory import APIKeyError, get_llm
+        from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
         llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
     except APIKeyError as e:
@@ -394,7 +394,7 @@ def query(req: QueryRequest):
             status_code=400,
             detail=str(e),
         )
-    embedding_provider = "gemini" if model in ("gemini", "openai") else "mistral"
+    embedding_provider = get_embedding_provider(model)
     try:
         invoke_input = {
             "question": req.question,

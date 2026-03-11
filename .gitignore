@@ -20,3 +20,6 @@ wheels/
 
 # Eval report outputs (optional: remove this line to commit reports)
 eval/reports/
+
+# LibreOffice lock files (do not commit)
+.~lock.*

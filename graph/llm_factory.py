@@ -85,21 +85,19 @@ def get_llm(
 
 
 def get_embedding_provider(llm_provider: str | None = None) -> str:
-    """Return which embedding backend to use: 'gemini' (shared by Gemini and OpenAI) or 'mistral'.
+    """Return which embedding backend to use for retrieval.
 
-    When llm_provider is None, uses LLM_PROVIDER env. Gemini and OpenAI both use Gemini embeddings.
+    All providers (gemini, openai, mistral) use Gemini embeddings and the same Chroma collections,
+    so the single vector store can be used regardless of which LLM is chosen for generation.
     """
-    prov = (llm_provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
-    if prov not in ALLOWED_PROVIDERS:
-        prov = "gemini"
-    return "gemini" if prov in ("gemini", "openai") else "mistral"
+    return "gemini"
 
 
 def get_embeddings(embedding_provider: str | None = None):
-    """Return embeddings. Uses Gemini for both Gemini and OpenAI; Mistral only when provider is mistral.
+    """Return embeddings. All LLM providers use Gemini embeddings for retrieval (shared vector store).
 
     Args:
-        embedding_provider: 'gemini' | 'mistral'. If None, derived from LLM_PROVIDER (gemini/openai → gemini).
+        embedding_provider: 'gemini' | 'mistral'. If None, uses get_embedding_provider() (currently always 'gemini').
     """
     ep = embedding_provider if embedding_provider in ("gemini", "mistral") else get_embedding_provider()
     if ep == "gemini":

@@ -58,9 +58,9 @@ def test_get_embedding_provider_gemini_and_openai_use_gemini(monkeypatch):
     assert get_embedding_provider("gemini") == "gemini"
 
 
-def test_get_embedding_provider_mistral_uses_mistral(monkeypatch):
-    """Mistral LLM provider uses 'mistral' embedding provider."""
-    assert get_embedding_provider("mistral") == "mistral"
+def test_get_embedding_provider_mistral_uses_gemini_embeddings(monkeypatch):
+    """Mistral LLM uses 'gemini' embedding provider so it can use the shared vector store."""
+    assert get_embedding_provider("mistral") == "gemini"
 
 
 def test_get_embeddings_returns_gemini_by_default(monkeypatch):
