@@ -32,6 +32,7 @@ def _brave_throttle() -> None:
             time.sleep(BRAVE_REQUEST_DELAY_SECONDS - elapsed)
         _brave_last_request_time[0] = time.monotonic()
 
+
 # Paths (aligned with ingestion)
 PROJECT_ROOT = Path(__file__).resolve().parent
 DOCS_DIR = PROJECT_ROOT / "documents"
@@ -40,14 +41,16 @@ REGISTRY_EXAMPLE = PROJECT_ROOT / "document_sources.example.yaml"
 VERSIONS_PATH = PROJECT_ROOT / "document_versions.json"
 
 # HTTP
-ALLOWED_HOSTS = frozenset({
-    "www.retsinformation.dk",
-    "retsinformation.dk",
-    "www.iaea.org",
-    "iaea.org",
-    "sst.dk",
-    "www.sst.dk",
-})
+ALLOWED_HOSTS = frozenset(
+    {
+        "www.retsinformation.dk",
+        "retsinformation.dk",
+        "www.iaea.org",
+        "iaea.org",
+        "sst.dk",
+        "www.sst.dk",
+    }
+)
 REQUEST_TIMEOUT = 15
 MAX_BODY_SIZE = 2 * 1024 * 1024  # 2 MB
 
@@ -70,7 +73,9 @@ class DocumentSource:
     url: str
     folder: str
     filename_hint: str | None
-    version: str | None = None  # current version from document_sources.yaml (written after ingest)
+    version: str | None = (
+        None  # current version from document_sources.yaml (written after ingest)
+    )
 
 
 @dataclass
@@ -170,19 +175,34 @@ def _is_sst_source(source: DocumentSource) -> bool:
             return True
     # Known SST document names (vejledninger)
     name_lower = (source.name or "").lower()
-    if "åbne radioaktive" in name_lower or "aabne radioaktive" in name_lower or "radioaktive kilder" in name_lower:
+    if (
+        "åbne radioaktive" in name_lower
+        or "aabne radioaktive" in name_lower
+        or "radioaktive kilder" in name_lower
+    ):
         return True
     if "sikkerhedsvurdering" in name_lower:
         return True
     return False
 
 
-def _resolve_danish_url_by_search(source_name: str, bek_nr: int | None = None) -> tuple[str | None, str | None]:
+def _resolve_danish_url_by_search(
+    source_name: str, bek_nr: int | None = None
+) -> tuple[str | None, str | None]:
     """Find retsinformation.dk eli/lta URL via Brave (per-result titles allow title matching). Returns (label, url) or (None, None)."""
-    if bek_nr is None and (not (source_name or "").strip() or not _danish_to_ascii_search(source_name or "")):
+    if bek_nr is None and (
+        not (source_name or "").strip()
+        or not _danish_to_ascii_search(source_name or "")
+    ):
         return None, None
     url = _resolve_danish_url_via_brave(source_name, bek_nr=bek_nr)
-    _brave_debug_log("by_search_brave", source_name=(source_name or "")[:60], bek_nr=bek_nr, got_url=bool(url), url=(url or "")[:80])
+    _brave_debug_log(
+        "by_search_brave",
+        source_name=(source_name or "")[:60],
+        bek_nr=bek_nr,
+        got_url=bool(url),
+        url=(url or "")[:80],
+    )
     if url:
         m = _ELI_LTA_RE.search(url)
         return f"BEK nr {m.group(2) if m else '?'} (search)", url
@@ -191,7 +211,8 @@ def _resolve_danish_url_by_search(source_name: str, bek_nr: int | None = None) -
 
 def _resolve_danish_url_to_newest(candidate_url: str) -> tuple[str | None, str | None]:
     """Given a retsinformation.dk eli/lta URL (e.g. 2019/670), fetch the page and parse 'Senere ændringer til forskriften'.
-    Returns (newest_label, newest_url) — often a newer BEK number (e.g. 1385) that consolidates the original. If no amendments or parse fails, returns (None, None)."""
+    Returns (newest_label, newest_url) — often a newer BEK number (e.g. 1385) that consolidates the original. If no amendments or parse fails, returns (None, None).
+    """
     if not _is_retsinformation_url(candidate_url):
         return None, None
     if not _allowed_url(candidate_url):
@@ -205,16 +226,21 @@ def _resolve_danish_url_to_newest(candidate_url: str) -> tuple[str | None, str |
 
 def _resolve_danish_url_by_probing(bek_nr: int) -> tuple[str | None, str | None]:
     """Resolve Danish BEK URL by probing eli/lta/YEAR/nr for recent years. Returns (label, url) when page exists. No API needed.
-    After finding a live URL, fetches that page and follows 'Senere ændringer' to return the newest consolidated version (e.g. 670 → 1385)."""
+    After finding a live URL, fetches that page and follows 'Senere ændringer' to return the newest consolidated version (e.g. 670 → 1385).
+    """
     base = "https://www.retsinformation.dk/eli/lta"
     current_year = date.today().year
     for year in range(current_year, current_year - 6, -1):
         url = f"{base}/{year}/{bek_nr}"
         if not _allowed_url(url):
             continue
-        req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "RadiationSafetyRAG/1.0"})
+        req = urllib.request.Request(
+            url, method="HEAD", headers={"User-Agent": "RadiationSafetyRAG/1.0"}
+        )
         try:
-            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT, context=ssl.create_default_context()) as resp:
+            with urllib.request.urlopen(
+                req, timeout=REQUEST_TIMEOUT, context=ssl.create_default_context()
+            ) as resp:
                 if 200 <= resp.getcode() < 400:
                     # Page exists; follow "Senere ændringer" to get newest consolidated version (e.g. 670 → 1385)
                     newest_label, newest_url = _resolve_danish_url_to_newest(url)
@@ -284,7 +310,9 @@ def _version_string_to_year_nr(version_str: str) -> tuple[int, int] | None:
     if not (version_str or "").strip():
         return None
     # "BEK nr 1385 af 18/11/2025" or "BEK nr 1385 af 18/11/25"
-    m = re.search(r"BEK\s+nr\s+(\d+)\s+af\s+\d+/\d+/(\d{2,4})", version_str, re.IGNORECASE)
+    m = re.search(
+        r"BEK\s+nr\s+(\d+)\s+af\s+\d+/\d+/(\d{2,4})", version_str, re.IGNORECASE
+    )
     if m:
         nr = int(m.group(1))
         year = int(m.group(2))
@@ -301,7 +329,9 @@ def _version_string_to_year_nr(version_str: str) -> tuple[int, int] | None:
     return None
 
 
-def _current_year_nr(source: DocumentSource, current_version: str | None) -> tuple[int, int] | None:
+def _current_year_nr(
+    source: DocumentSource, current_version: str | None
+) -> tuple[int, int] | None:
     """Our document's (year, nr): use the newer of URL and version history so a stale registry URL doesn't override version file."""
     from_url = _eli_lta_year_nr(source.url or "")
     from_version = _version_string_to_year_nr(current_version or "")
@@ -412,7 +442,9 @@ def _resolve_danish_source(
             else:
                 bek_nr_from_url = _eli_lta_nr(url)
                 if bek_nr_from_url is not None:
-                    probe_label, probe_url = _resolve_danish_url_by_probing(bek_nr_from_url)
+                    probe_label, probe_url = _resolve_danish_url_by_probing(
+                        bek_nr_from_url
+                    )
                     if probe_url:
                         label, url = probe_label, probe_url
         resolved = _apply_current_rejection(
@@ -439,7 +471,7 @@ def _resolve_danish_source(
 def _allowed_url(url: str) -> bool:
     try:
         parsed = urllib.parse.urlparse(url)
-        host = (parsed.netloc or "").lower().lstrip("www.")
+        host = (parsed.netloc or "").lower().removeprefix("www.")
         if host in ALLOWED_HOSTS:
             return True
         if host.endswith(".dk") and "retsinformation" in url:
@@ -461,7 +493,10 @@ def _fetch_url(url: str) -> str:
     ctx = ssl.create_default_context()
     try:
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT, context=ctx) as resp:
-            if resp.headers.get("Content-Length") and int(resp.headers.get("Content-Length", 0)) > MAX_BODY_SIZE:
+            if (
+                resp.headers.get("Content-Length")
+                and int(resp.headers.get("Content-Length", 0)) > MAX_BODY_SIZE
+            ):
                 raise ValueError("Response too large")
             data = resp.read(MAX_BODY_SIZE + 1)
             if len(data) > MAX_BODY_SIZE:
@@ -471,14 +506,18 @@ def _fetch_url(url: str) -> str:
                 _fetch_cache[url] = decoded
             return decoded
     except urllib.error.HTTPError as e:
-        raise ValueError(f"HTTP {e.code}: {url}")
+        raise ValueError(f"HTTP {e.code}: {url}") from e
     except urllib.error.URLError as e:
-        raise ValueError(f"Request failed: {e.reason}")
+        raise ValueError(f"Request failed: {e.reason}") from e
 
 
 def _parse_retsinformation(html: str, base_url: str) -> tuple[str | None, str | None]:
     """Parse 'Senere ændringer til forskriften' and return (newest_version_label, newest_url)."""
-    base = base_url.split("/eli/")[0] if "/eli/" in base_url else "https://www.retsinformation.dk"
+    base = (
+        base_url.split("/eli/")[0]
+        if "/eli/" in base_url
+        else "https://www.retsinformation.dk"
+    )
     # Normalize: single-quoted attributes to double-quoted so regex matches
     html = re.sub(r"\s+href='([^']+)'", r' href="\1"', html)
     matches = []
@@ -527,7 +566,7 @@ def _parse_retsinformation(html: str, base_url: str) -> tuple[str | None, str | 
             full_url = base + path if path.startswith("/") else base + "/" + path
             link_nrs[nr] = full_url
         for bek_m in re.finditer(
-            r'BEK\s+nr\s+(\d+)\s+af\s+(\d{1,2})/(\d{1,2})/(\d{4})',
+            r"BEK\s+nr\s+(\d+)\s+af\s+(\d{1,2})/(\d{1,2})/(\d{4})",
             html,
             re.IGNORECASE,
         ):
@@ -588,7 +627,14 @@ def _danish_to_ascii_search(s: str) -> str:
     if not s:
         return s
     s = s.strip()[:80]
-    for old, new in (("å", "a"), ("ø", "o"), ("æ", "ae"), ("Å", "A"), ("Ø", "O"), ("Æ", "Ae")):
+    for old, new in (
+        ("å", "a"),
+        ("ø", "o"),
+        ("æ", "ae"),
+        ("Å", "A"),
+        ("Ø", "O"),
+        ("Æ", "Ae"),
+    ):
         s = s.replace(old, new)
     return s
 
@@ -606,11 +652,17 @@ def _brave_search(query: str, count: int = 10) -> list[dict[str, Any]]:
     api_url = f"https://api.search.brave.com/res/v1/web/search?q={urllib.parse.quote(query)}&count={count}"
     req = urllib.request.Request(
         api_url,
-        headers={"Accept": "application/json", "X-Subscription-Token": api_key, "User-Agent": "RadiationSafetyRAG/1.0"},
+        headers={
+            "Accept": "application/json",
+            "X-Subscription-Token": api_key,
+            "User-Agent": "RadiationSafetyRAG/1.0",
+        },
     )
     _brave_throttle()
     try:
-        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT, context=ssl.create_default_context()) as resp:
+        with urllib.request.urlopen(
+            req, timeout=REQUEST_TIMEOUT, context=ssl.create_default_context()
+        ) as resp:
             data = json.load(resp)
     except Exception:
         return []
@@ -630,14 +682,22 @@ def _brave_debug_log(msg: str, **kwargs: object) -> None:
     if os.getenv("BRAVE_DEBUG", "").strip().lower() not in ("1", "true", "yes"):
         return
     try:
-        line = json.dumps({"ts": datetime.now().isoformat(), "msg": msg, **kwargs}, ensure_ascii=False) + "\n"
+        line = (
+            json.dumps(
+                {"ts": datetime.now().isoformat(), "msg": msg, **kwargs},
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
         with (PROJECT_ROOT / "brave_search_debug.log").open("a", encoding="utf-8") as f:
             f.write(line)
     except Exception:
         pass
 
 
-def _resolve_danish_url_via_brave(source_name: str, bek_nr: int | None = None) -> str | None:
+def _resolve_danish_url_via_brave(
+    source_name: str, bek_nr: int | None = None
+) -> str | None:
     """Use Brave Search to find retsinformation.dk eli/lta URL. Filter by title, exclude Historisk. Returns newest match or None."""
     if bek_nr is not None:
         q = f"site:retsinformation.dk BEK {bek_nr}"
@@ -647,7 +707,12 @@ def _resolve_danish_url_via_brave(source_name: str, bek_nr: int | None = None) -
             _brave_debug_log("brave_skip", reason="empty_name_part")
             return None
         q = f"site:retsinformation.dk {name_part}"
-    _brave_debug_log("brave_called", source_name=(source_name or "")[:80], bek_nr=bek_nr, has_api_key=bool(os.getenv("BRAVE_SEARCH_API_KEY")))
+    _brave_debug_log(
+        "brave_called",
+        source_name=(source_name or "")[:80],
+        bek_nr=bek_nr,
+        has_api_key=bool(os.getenv("BRAVE_SEARCH_API_KEY")),
+    )
     results = _brave_search(q, count=15)
     _brave_debug_log("brave_results_count", count=len(results))
     title_norm = (_danish_to_ascii_search(source_name or "")).lower().strip()
@@ -671,10 +736,18 @@ def _resolve_danish_url_via_brave(source_name: str, bek_nr: int | None = None) -
             if len(suffix) >= 15 and suffix in t:
                 return True
         # Same decree under a variant name: e.g. "Bekendtgørelse om radioaktive stoffer" vs "Bekendtgørelse om brug af radioaktive stoffer"
-        if "radioaktive stoffer" in title_norm and "radioaktive stoffer" in t and "transport" not in t:
+        if (
+            "radioaktive stoffer" in title_norm
+            and "radioaktive stoffer" in t
+            and "transport" not in t
+        ):
             return True
         # "Brug af åbne radioaktive kilder" vs "Bekendtgørelse om anvendelse af åbne radioaktive kilder" (same decree)
-        if "abne radioaktive kilder" in title_norm and "abne radioaktive kilder" in t and "lukkede" not in t:
+        if (
+            "abne radioaktive kilder" in title_norm
+            and "abne radioaktive kilder" in t
+            and "lukkede" not in t
+        ):
             return True
         return False
 
@@ -690,21 +763,36 @@ def _resolve_danish_url_via_brave(source_name: str, bek_nr: int | None = None) -
             continue
         result_title = (r.get("title") or r.get("name") or "").strip()
         if _is_historisk(result_title, url):
-            _brave_debug_log("brave_result", url=url[:90], title=(result_title or "")[:100], title_matched=False, skipped="historisk")
+            _brave_debug_log(
+                "brave_result",
+                url=url[:90],
+                title=(result_title or "")[:100],
+                title_matched=False,
+                skipped="historisk",
+            )
             continue
         matched = _title_matches(result_title)
-        _brave_debug_log("brave_result", url=url[:90], title=(result_title or "")[:100], title_matched=matched)
+        _brave_debug_log(
+            "brave_result",
+            url=url[:90],
+            title=(result_title or "")[:100],
+            title_matched=matched,
+        )
         if not matched:
             continue
         year, nr = int(m.group(1)), int(m.group(2))
         full_url = url if url.startswith("http") else f"https://{url}"
         candidates.append((year, nr, full_url))
     if not candidates:
-        _brave_debug_log("brave_return", returned=None, reason="no_candidates_after_title_filter")
+        _brave_debug_log(
+            "brave_return", returned=None, reason="no_candidates_after_title_filter"
+        )
         return None
     candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
     chosen = candidates[0][2]
-    _brave_debug_log("brave_return", returned=chosen[:90], candidates_count=len(candidates))
+    _brave_debug_log(
+        "brave_return", returned=chosen[:90], candidates_count=len(candidates)
+    )
     return chosen
 
 
@@ -753,7 +841,7 @@ def _parse_iaea_superseded(html: str) -> tuple[str | None, str | None]:
             url = "https://www.iaea.org" + url
         return title, url
     # Fallback: Superseded by: Some text (maybe without link)
-    m = re.search(r'Superseded\s+by\s*:\s*([^\n<]+)', html, re.IGNORECASE)
+    m = re.search(r"Superseded\s+by\s*:\s*([^\n<]+)", html, re.IGNORECASE)
     if m:
         return m.group(1).strip(), None
     return None, None
@@ -841,7 +929,9 @@ def check_one_source(
     # Danish (Bekendtgørelse): sst.dk (Brave search) or retsinformation.dk (probe + Brave search + "Senere ændringer")
     is_danish = (source.folder or "").strip() == "Bekendtgørelse"
     if is_danish:
-        resolved = _resolve_danish_source(source, current_version=current, reject_older=True)
+        resolved = _resolve_danish_source(
+            source, current_version=current, reject_older=True
+        )
         remote_label, download_url = resolved.label, resolved.url
         if remote_label and download_url:
             result["remote_version"] = remote_label
@@ -852,15 +942,20 @@ def check_one_source(
                 result["update_available"] = remote_yn > current_yn
             else:
                 # SST or other: compare years from version/URL so we notice "our 2020" vs "remote 2021"
-                our_year = _extract_year_from_string(current or "") or _extract_year_from_string(source.url or "")
+                our_year = _extract_year_from_string(
+                    current or ""
+                ) or _extract_year_from_string(source.url or "")
                 remote_year = _extract_year_from_string(download_url or "")
                 if our_year and remote_year:
                     result["update_available"] = remote_year > our_year
                 else:
-                    result["update_available"] = (download_url or "").strip() != (source.url or "").strip()
+                    result["update_available"] = (download_url or "").strip() != (
+                        source.url or ""
+                    ).strip()
         else:
             result["remote_version"] = (
-                "Local only (no URL)" if not source.url
+                "Local only (no URL)"
+                if not source.url
                 else "Cannot detect newest (amendments may be JS-rendered). Check Senere aendringer."
             )
             result["download_url"] = source.url or ""
@@ -883,7 +978,9 @@ def check_one_source(
                 result["remote_version"] = remote_label
                 result["download_url"] = download_url
                 # Only show update when remote URL is different from what we have
-                result["update_available"] = (download_url or "").strip() != (source.url or "").strip()
+                result["update_available"] = (download_url or "").strip() != (
+                    source.url or ""
+                ).strip()
             else:
                 # Amendments list missing (often because the site loads it via JavaScript)
                 result["remote_version"] = (
@@ -898,7 +995,9 @@ def check_one_source(
             if superseded_title and superseded_url:
                 result["remote_version"] = superseded_title
                 result["download_url"] = superseded_url
-                result["update_available"] = (current != superseded_title) if current else True
+                result["update_available"] = (
+                    (current != superseded_title) if current else True
+                )
             else:
                 # Publication is current (no superseding edition)
                 result["remote_version"] = "Current"
@@ -907,8 +1006,14 @@ def check_one_source(
 
         else:
             # Generic: HEAD request for direct PDF or last-modified
-            req = urllib.request.Request(source.url, method="HEAD", headers={"User-Agent": "RadiationSafetyRAG/1.0"})
-            with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT, context=ssl.create_default_context()) as resp:
+            req = urllib.request.Request(
+                source.url,
+                method="HEAD",
+                headers={"User-Agent": "RadiationSafetyRAG/1.0"},
+            )
+            with urllib.request.urlopen(
+                req, timeout=REQUEST_TIMEOUT, context=ssl.create_default_context()
+            ) as resp:
                 lm = resp.headers.get("Last-Modified")
                 if lm:
                     result["remote_version"] = lm
@@ -917,7 +1022,9 @@ def check_one_source(
                 if not current:
                     result["update_available"] = True
                 elif lm:
-                    result["update_available"] = True  # Conservative: assume update if we have a date
+                    result["update_available"] = (
+                        True  # Conservative: assume update if we have a date
+                    )
 
     except Exception as e:
         result["error"] = str(e)
@@ -936,7 +1043,10 @@ def check_updates() -> list[dict[str, Any]]:
     max_workers = min(4, max(1, len(registry)))
     results_by_index: dict[int, dict[str, Any]] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_index = {executor.submit(check_one_source, s, versions): i for i, s in enumerate(registry)}
+        future_to_index = {
+            executor.submit(check_one_source, s, versions): i
+            for i, s in enumerate(registry)
+        }
         for future in as_completed(future_to_index):
             i = future_to_index[future]
             try:
@@ -973,7 +1083,9 @@ def _update_registry_field(source_id: str, field: str, value: str) -> None:
             s[field] = value.strip()
             break
     with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        yaml.dump(
+            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )
 
 
 def update_registry_version(source_id: str, version: str) -> None:
@@ -985,7 +1097,9 @@ def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
     """Try to find the document URL for a source (Danish: sst.dk or retsinformation.dk via Brave/probe; IAEA: search). Returns (url, error_message)."""
     _reset_runtime_caches()
     registry = _load_registry()
-    source = next((s for s in registry if (s.id or "").strip() == source_id.strip()), None)
+    source = next(
+        (s for s in registry if (s.id or "").strip() == source_id.strip()), None
+    )
     if not source:
         return None, "Source not found"
 
@@ -993,7 +1107,9 @@ def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
     name = (source.name or source.id or "").strip()
 
     if folder == "Bekendtgørelse":
-        resolved = _resolve_danish_source(source, current_version=None, reject_older=False)
+        resolved = _resolve_danish_source(
+            source, current_version=None, reject_older=False
+        )
         if resolved.url:
             return resolved.url, None
         return None, "Could not find URL from retsinformation.dk (probe or search)."
@@ -1005,7 +1121,10 @@ def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
             return url, None
         return None, "Could not find URL on iaea.org."
 
-    return None, "Unknown folder; only Bekendtgørelse and IAEA/IAEA_other are supported."
+    return (
+        None,
+        "Unknown folder; only Bekendtgørelse and IAEA/IAEA_other are supported.",
+    )
 
 
 def update_registry_url(source_id: str, new_url: str) -> None:
@@ -1047,4 +1166,6 @@ def append_source_to_registry(
     data["sources"] = sources
     REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        yaml.dump(
+            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )

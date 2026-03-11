@@ -26,14 +26,18 @@ def _mock_grade_suff(binary_score: bool):
 @pytest.fixture
 def sample_docs():
     return [
-        Document(page_content="Dose limits for workers are defined in the regulations."),
+        Document(
+            page_content="Dose limits for workers are defined in the regulations."
+        ),
     ]
 
 
 def test_faithfulness_returns_1_when_grounded(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(grounded=True, answers_question=True)
+        grader.invoke.return_value = _mock_grade_gen(
+            grounded=True, answers_question=True
+        )
         m.return_value = grader
         assert faithfulness("Q?", "Answer.", sample_docs) == 1.0
 
@@ -41,7 +45,9 @@ def test_faithfulness_returns_1_when_grounded(sample_docs):
 def test_faithfulness_returns_0_when_not_grounded(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(grounded=False, answers_question=True)
+        grader.invoke.return_value = _mock_grade_gen(
+            grounded=False, answers_question=True
+        )
         m.return_value = grader
         assert faithfulness("Q?", "Answer.", sample_docs) == 0.0
 
@@ -53,7 +59,9 @@ def test_faithfulness_returns_0_for_empty_generation(sample_docs):
 def test_answer_relevance_returns_1_when_answers(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(grounded=True, answers_question=True)
+        grader.invoke.return_value = _mock_grade_gen(
+            grounded=True, answers_question=True
+        )
         m.return_value = grader
         assert answer_relevance("Q?", "Answer.", sample_docs) == 1.0
 
@@ -61,7 +69,9 @@ def test_answer_relevance_returns_1_when_answers(sample_docs):
 def test_answer_relevance_returns_0_when_not_answers(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(grounded=True, answers_question=False)
+        grader.invoke.return_value = _mock_grade_gen(
+            grounded=True, answers_question=False
+        )
         m.return_value = grader
         assert answer_relevance("Q?", "Answer.", sample_docs) == 0.0
 
@@ -89,13 +99,19 @@ def test_context_precision_returns_0_for_no_documents():
 def test_context_recall_with_key_facts():
     docs = [Document(page_content="We have record-keeping and retention rules.")]
     # "record-keeping" and "retention" in context, "xylophone" not
-    score = context_recall("Q?", docs, key_facts=["record-keeping", "retention", "xylophone"])
+    score = context_recall(
+        "Q?", docs, key_facts=["record-keeping", "retention", "xylophone"]
+    )
     assert 0 < score < 1.0
     assert abs(score - 2 / 3) < 0.01
 
 
 def test_context_recall_with_key_facts_all_found():
-    docs = [Document(page_content="record-keeping and retention for environmental monitoring.")]
+    docs = [
+        Document(
+            page_content="record-keeping and retention for environmental monitoring."
+        )
+    ]
     score = context_recall("Q?", docs, key_facts=["record-keeping", "retention"])
     assert score == 1.0
 
@@ -151,7 +167,7 @@ def test_context_precision_per_chunk_returns_mean_precision_at_k(sample_docs):
         score = context_precision_per_chunk("Q?", docs)
     assert 0 <= score <= 1
     # precision@1 = 1, precision@3 = 2/3; k_vals = [1, 3]; mean = (1 + 2/3) / 2
-    assert abs(score - (1 + 2/3) / 2) < 0.01
+    assert abs(score - (1 + 2 / 3) / 2) < 0.01
 
 
 def test_compute_all_metrics_with_per_chunk_precision_uses_per_chunk(sample_docs):
@@ -171,7 +187,9 @@ def test_compute_all_metrics_with_per_chunk_precision_uses_per_chunk(sample_docs
                 mock_llm.return_value = AIMessage(content="1")
                 lm.return_value = mock_llm
                 out = compute_all_metrics(
-                    "Q?", "Answer.", sample_docs,
+                    "Q?",
+                    "Answer.",
+                    sample_docs,
                     use_per_chunk_precision=True,
                 )
                 assert "context_precision" in out

@@ -1,19 +1,33 @@
-"""FastAPI backend: /query, /health, document updates, ingest, and optional frontend serving."""
+"""FastAPI backend: /query, /health, /metrics, document updates, ingest, and optional frontend serving."""
 
 import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import APIRouter, BackgroundTasks, File, Form, FastAPI, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 load_dotenv()
 
-app_state = {"graph": None, "ingest_status": "idle"}
+app_state: dict = {"graph": None, "ingest_status": "idle", "started_at": time.time()}
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
@@ -21,6 +35,7 @@ _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load graph on startup (skipped when TESTING=true)."""
+    app_state["started_at"] = time.time()
     if os.getenv("TESTING", "").lower() not in ("true", "1"):
         from graph.graph import app as graph_app
 
@@ -49,7 +64,9 @@ class QueryRequest(BaseModel):
     chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
     model: str | None = None  # "mistral" | "gemini" | "openai"
     model_variant: str | None = None  # e.g. "gemini-2.5-flash-lite", "gpt-4o-mini"
-    api_keys: dict[str, str] | None = None  # {"mistral": "...", "gemini": "...", "openai": "..."}
+    api_keys: dict[str, str] | None = (
+        None  # {"mistral": "...", "gemini": "...", "openai": "..."}
+    )
 
 
 class SourceInfo(BaseModel):
@@ -65,9 +82,13 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[SourceInfo]
     chat_history: list[list[str]]  # [[q,a],[q,a],...] including new turn
-    warning: str | None = None  # When web search or retrieval didn't help (in question's language)
+    warning: str | None = (
+        None  # When web search or retrieval didn't help (in question's language)
+    )
     used_web_search: bool = False  # True if Brave Search was invoked this turn
-    used_web_search_label: str | None = None  # Short label in question's language, e.g. "Sources incl. web search"
+    used_web_search_label: str | None = (
+        None  # Short label in question's language, e.g. "Sources incl. web search"
+    )
 
 
 class SetSourceUrlBody(BaseModel):
@@ -92,9 +113,26 @@ def _run_ingest() -> None:
 
 
 @api_router.get("/health")
-def health():
+def health() -> dict:
     """Health check."""
     return {"status": "ok", "graph_loaded": app_state["graph"] is not None}
+
+
+@api_router.get("/metrics", response_class=PlainTextResponse)
+def metrics() -> str:
+    """Prometheus-style metrics for observability."""
+    graph_loaded = 1 if app_state.get("graph") is not None else 0
+    started_at = app_state.get("started_at") or 0
+    uptime_seconds = max(0.0, time.time() - started_at)
+    lines = [
+        "# HELP radiationsafety_graph_loaded 1 if the RAG graph is loaded, 0 otherwise.",
+        "# TYPE radiationsafety_graph_loaded gauge",
+        f"radiationsafety_graph_loaded {graph_loaded}",
+        "# HELP radiationsafety_uptime_seconds Process uptime in seconds.",
+        "# TYPE radiationsafety_uptime_seconds gauge",
+        f"radiationsafety_uptime_seconds {uptime_seconds:.2f}",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 @api_router.get("/config")
@@ -117,7 +155,7 @@ def documents_check_updates():
         sources = check_updates()
         return {"sources": sources, "recent_iaea": []}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @api_router.patch("/documents/source/{source_id}/url")
@@ -127,9 +165,15 @@ def documents_set_source_url(source_id: str, body: SetSourceUrlBody):
     if not url:
         raise HTTPException(status_code=400, detail="url is required")
     try:
-        from document_updates import _allowed_url, update_registry_url, load_registry_raw
+        from document_updates import (
+            _allowed_url,
+            load_registry_raw,
+            update_registry_url,
+        )
     except ImportError:
-        raise HTTPException(status_code=500, detail="document_updates not available")
+        raise HTTPException(
+            status_code=500, detail="document_updates not available"
+        ) from None
     if not _allowed_url(url):
         raise HTTPException(
             status_code=400,
@@ -148,9 +192,13 @@ def documents_get_source_file(source_id: str):
     try:
         from document_updates import _load_registry, get_local_pdf_path
     except ImportError:
-        raise HTTPException(status_code=500, detail="document_updates not available")
+        raise HTTPException(
+            status_code=500, detail="document_updates not available"
+        ) from None
     registry = _load_registry()
-    source = next((s for s in registry if (s.id or "").strip() == source_id.strip()), None)
+    source = next(
+        (s for s in registry if (s.id or "").strip() == source_id.strip()), None
+    )
     if not source:
         raise HTTPException(status_code=404, detail=f"Source '{source_id}' not found")
     path = get_local_pdf_path(source)
@@ -165,7 +213,9 @@ def documents_lookup_source_url(source_id: str):
     try:
         from document_updates import lookup_source_url, update_registry_url
     except ImportError:
-        raise HTTPException(status_code=500, detail="document_updates not available")
+        raise HTTPException(
+            status_code=500, detail="document_updates not available"
+        ) from None
     url, error = lookup_source_url(source_id)
     if not url:
         raise HTTPException(status_code=404, detail=error or "URL not found")
@@ -178,9 +228,10 @@ def documents_download_update(source_id: str):
     """Download the new version for this source and backup the old one. Requires update_available."""
     try:
         import ingestion
+
         success, message = ingestion.download_update_for_source(source_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     if not success:
         raise HTTPException(status_code=400, detail=message)
     return {"ok": True, "message": message}
@@ -194,13 +245,20 @@ def documents_build_from_local():
 
         sources = build_sources(confirm_urls=True)
         if not sources:
-            return {"sources": [], "message": "No documents discovered in documents/IAEA, IAEA_other, or Bekendtgørelse."}
+            return {
+                "sources": [],
+                "message": "No documents discovered in documents/IAEA, IAEA_other, or Bekendtgørelse.",
+            }
         write_document_sources_yaml(sources)
         from document_updates import check_updates
+
         updated = check_updates()
-        return {"sources": updated, "message": f"Wrote {len(sources)} source(s) to document_sources.yaml."}
+        return {
+            "sources": updated,
+            "message": f"Wrote {len(sources)} source(s) to document_sources.yaml.",
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 _MAX_PDF_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
@@ -209,12 +267,15 @@ _ALLOWED_ADD_PDF_FOLDERS = frozenset({"IAEA", "IAEA_other"})
 
 @api_router.post("/documents/add-pdf")
 async def documents_add_pdf(
-    file: UploadFile = File(...),
+    file: UploadFile = File(...),  # noqa: B008
     folder: str = Form("IAEA_other"),
 ):
     """Upload a PDF from retsinformation.dk or IAEA: add to collection, extract title/version, look up URL, append to registry."""
     if folder not in _ALLOWED_ADD_PDF_FOLDERS:
-        raise HTTPException(status_code=400, detail=f"folder must be one of: {', '.join(sorted(_ALLOWED_ADD_PDF_FOLDERS))}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"folder must be one of: {', '.join(sorted(_ALLOWED_ADD_PDF_FOLDERS))}",
+        )
     if not (file.filename and file.filename.lower().endswith(".pdf")):
         raise HTTPException(status_code=400, detail="Please upload a PDF file.")
     content = await file.read()
@@ -223,7 +284,10 @@ async def documents_add_pdf(
             status_code=400,
             detail=f"PDF must be at most {_MAX_PDF_UPLOAD_BYTES // (1024*1024)} MB.",
         )
-    safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._- ").strip() or "uploaded.pdf"
+    safe_name = (
+        "".join(c for c in file.filename if c.isalnum() or c in "._- ").strip()
+        or "uploaded.pdf"
+    )
     if not safe_name.lower().endswith(".pdf"):
         safe_name += ".pdf"
     docs_dir = _PROJECT_ROOT / "documents" / folder
@@ -232,17 +296,28 @@ async def documents_add_pdf(
     try:
         dest.write_bytes(content)
     except OSError as e:
-        raise HTTPException(status_code=500, detail=f"Could not save file: {e}")
+        raise HTTPException(status_code=500, detail=f"Could not save file: {e}") from e
     try:
-        from build_document_sources import _extract_iaea_search_terms, _extract_pdf_title_and_version, _slug
-        from document_updates import _lookup_iaea_publication_url_multi, append_source_to_registry
         import ingestion
+        from build_document_sources import (
+            _extract_iaea_search_terms,
+            _extract_pdf_title_and_version,
+            _slug,
+        )
+        from document_updates import (
+            _lookup_iaea_publication_url_multi,
+            append_source_to_registry,
+        )
 
         title, version = _extract_pdf_title_and_version(dest)
         display_name = (title or safe_name).strip() or safe_name
         search_terms = _extract_iaea_search_terms(Path(dest))
         url = _lookup_iaea_publication_url_multi(search_terms)
-        source_id = f"iaea-{_slug(display_name)}" if folder == "IAEA" else f"iaea-other-{_slug(display_name)}"
+        source_id = (
+            f"iaea-{_slug(display_name)}"
+            if folder == "IAEA"
+            else f"iaea-other-{_slug(display_name)}"
+        )
         append_source_to_registry(
             source_id=source_id,
             name=display_name,
@@ -259,10 +334,17 @@ async def documents_add_pdf(
         if url:
             msg += f" URL: {url}"
         else:
-            msg += " No publication URL found (try Build list from local PDFs to refresh)."
-        return {"message": msg, "chunks_added": chunks, "url_found": bool(url), "url": url or None}
+            msg += (
+                " No publication URL found (try Build list from local PDFs to refresh)."
+            )
+        return {
+            "message": msg,
+            "chunks_added": chunks,
+            "url_found": bool(url),
+            "url": url or None,
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @api_router.post("/ingest")
@@ -273,7 +355,10 @@ def ingest_trigger(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_ingest)
     return JSONResponse(
         status_code=202,
-        content={"status": "accepted", "message": "Ingestion started; this may take several minutes."},
+        content={
+            "status": "accepted",
+            "message": "Ingestion started; this may take several minutes.",
+        },
     )
 
 
@@ -301,11 +386,26 @@ _MAX_CHAT_HISTORY_LEN = 20
 _MAX_API_KEY_LEN = 256
 
 # Phrases that do not require RAG retrieval (cost savings, no DB/LLM calls)
-_NON_QUESTION_PATTERNS = frozenset({
-    "thank you", "thanks", "danke", "merci", "thx",
-    "ok", "okay", "bye", "goodbye", "tschüss", "ciao",
-    "yes", "no", "all right", "alright", "got it",
-})
+_NON_QUESTION_PATTERNS = frozenset(
+    {
+        "thank you",
+        "thanks",
+        "danke",
+        "merci",
+        "thx",
+        "ok",
+        "okay",
+        "bye",
+        "goodbye",
+        "tschüss",
+        "ciao",
+        "yes",
+        "no",
+        "all right",
+        "alright",
+        "got it",
+    }
+)
 
 
 def _is_non_question(text: str) -> bool:
@@ -393,7 +493,7 @@ def query(req: QueryRequest):
         raise HTTPException(
             status_code=400,
             detail=str(e),
-        )
+        ) from e
     embedding_provider = get_embedding_provider(model)
     try:
         invoke_input = {
@@ -419,11 +519,15 @@ def query(req: QueryRequest):
             result = graph.invoke(invoke_input, config=run_config)
     except Exception as e:
         err_msg = str(e)
-        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "quota" in err_msg.lower():
+        if (
+            "429" in err_msg
+            or "RESOURCE_EXHAUSTED" in err_msg
+            or "quota" in err_msg.lower()
+        ):
             raise HTTPException(
                 status_code=429,
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
-            )
+            ) from e
         raise
 
     answer = result.get("generation", "")
@@ -444,7 +548,10 @@ def query(req: QueryRequest):
     used_web_search_label = None
     if used_web_search:
         from graph.i18n import detect_language, get_label_sources_incl_web
-        used_web_search_label = get_label_sources_incl_web(detect_language(req.question))
+
+        used_web_search_label = get_label_sources_incl_web(
+            detect_language(req.question)
+        )
     return QueryResponse(
         answer=answer,
         sources=sources,

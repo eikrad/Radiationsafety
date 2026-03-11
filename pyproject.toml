@@ -44,6 +44,8 @@ dev = [
     "pytest>=8.0.0",
     "httpx>=0.28.0",
     "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
 ]
 
 [tool.black]
@@ -59,3 +61,17 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-s -v"
 asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true

@@ -1,5 +1,5 @@
 import ReactMarkdown from 'react-markdown'
-import type { Message, SourceInfo } from '../types'
+import type { Message } from '../types'
 
 interface ResponseDisplayProps {
   messages: Message[]

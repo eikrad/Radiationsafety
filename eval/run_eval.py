@@ -5,7 +5,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from langchain_core.documents import Document
@@ -19,13 +19,20 @@ _MAX_RATE_LIMIT_RETRIES = 4
 _INITIAL_BACKOFF_SEC = 30
 
 # Default delays for eval to stay under LLM rate limits (Mistral free tier ~1 RPS, ~30 RPM)
-_DEFAULT_DELAY_AFTER_GRAPH_SEC = 5.0   # after graph.invoke, before metrics (4+ LLM calls)
+_DEFAULT_DELAY_AFTER_GRAPH_SEC = (
+    5.0  # after graph.invoke, before metrics (4+ LLM calls)
+)
 _DEFAULT_DELAY_BETWEEN_ITEMS_SEC = 20.0  # between items to stay under RPM
 
 
 def _is_rate_limit_error(e: BaseException) -> bool:
     msg = str(e).lower()
-    return "429" in str(e) or "rate limit" in msg or "resource_exhausted" in msg or "quota" in msg
+    return (
+        "429" in str(e)
+        or "rate limit" in msg
+        or "resource_exhausted" in msg
+        or "quota" in msg
+    )
 
 
 def _delay_sec(env_name: str, default: float) -> float:
@@ -71,6 +78,7 @@ def _invoke_with_retry(fn, *args, **kwargs):
 def _invoke_graph(question: str, graph, llm) -> dict:
     """Run graph for one question; return state slice we need for metrics and report."""
     from graph.llm_factory import get_embedding_provider
+
     invoke_input = {
         "question": question,
         "generation": "",
@@ -97,13 +105,21 @@ def _serialize_documents(documents: list) -> list[dict]:
     out = []
     for d in documents:
         meta = getattr(d, "metadata", None) or {}
-        out.append({"page_content": getattr(d, "page_content", "") or "", "metadata": dict(meta)})
+        out.append(
+            {
+                "page_content": getattr(d, "page_content", "") or "",
+                "metadata": dict(meta),
+            }
+        )
     return out
 
 
 def _deserialize_documents(data: list[dict]) -> list[Document]:
     """Deserialize list of dicts back to Document list."""
-    return [Document(page_content=x.get("page_content", ""), metadata=x.get("metadata", {})) for x in data]
+    return [
+        Document(page_content=x.get("page_content", ""), metadata=x.get("metadata", {}))
+        for x in data
+    ]
 
 
 def _run_eval(
@@ -125,10 +141,9 @@ def _run_eval(
     if no_web_search:
         os.environ["WEB_SEARCH_ENABLED"] = "false"
 
+    from eval.metrics import compute_all_metrics
     from graph.graph import app as graph
     from graph.llm_factory import get_llm
-
-    from eval.metrics import compute_all_metrics
 
     golden_mtime = golden_path.stat().st_mtime
     cache: dict = {}
@@ -140,7 +155,10 @@ def _run_eval(
             try:
                 with open(cache_path, encoding="utf-8") as f:
                     data = json.load(f)
-                if data.get("golden_path") == str(golden_path.resolve()) and data.get("golden_mtime") == golden_mtime:
+                if (
+                    data.get("golden_path") == str(golden_path.resolve())
+                    and data.get("golden_mtime") == golden_mtime
+                ):
                     cache = data.get("entries", {})
             except (json.JSONDecodeError, OSError):
                 pass
@@ -151,7 +169,10 @@ def _run_eval(
     grader_llm = get_llm(provider=grader_provider) if grader_provider else graph_llm
     graph_model = getattr(graph_llm, "model", None) or "n/a"
     grader_model = getattr(grader_llm, "model", None) or "n/a"
-    print(f"Eval: graph model = {graph_model}, grader model = {grader_model}", file=sys.stderr)
+    print(
+        f"Eval: graph model = {graph_model}, grader model = {grader_model}",
+        file=sys.stderr,
+    )
     results = []
     for item in golden:
         question = item["question"]
@@ -198,15 +219,19 @@ def _run_eval(
             passed = (sum(metrics.values()) / len(metrics)) >= threshold
         else:
             passed = all(m >= threshold for m in metrics.values())
-        results.append({
-            "id": item.get("id", ""),
-            "question": question,
-            "pass": passed,
-            "metrics": metrics,
-            "generation_preview": (generation[:300] + "…") if len(generation) > 300 else generation,
-            "retrieval_warning": retrieval_warning,
-            "web_search_attempted": web_search_attempted,
-        })
+        results.append(
+            {
+                "id": item.get("id", ""),
+                "question": question,
+                "pass": passed,
+                "metrics": metrics,
+                "generation_preview": (
+                    (generation[:300] + "…") if len(generation) > 300 else generation
+                ),
+                "retrieval_warning": retrieval_warning,
+                "web_search_attempted": web_search_attempted,
+            }
+        )
         if delay_between_items_sec > 0 and item is not golden[-1]:
             time.sleep(delay_between_items_sec)
 
@@ -226,18 +251,28 @@ def _run_eval(
     summary = {
         "pass_rate": sum(1 for r in results if r["pass"]) / n if n else 0.0,
         "pass_rule": pass_rule,
-        "faithfulness_mean": sum(r["metrics"]["faithfulness"] for r in results) / n if n else 0.0,
-        "answer_relevance_mean": sum(r["metrics"]["answer_relevance"] for r in results) / n if n else 0.0,
-        "context_precision_mean": sum(r["metrics"]["context_precision"] for r in results) / n if n else 0.0,
-        "context_recall_mean": sum(r["metrics"]["context_recall"] for r in results) / n if n else 0.0,
+        "faithfulness_mean": (
+            sum(r["metrics"]["faithfulness"] for r in results) / n if n else 0.0
+        ),
+        "answer_relevance_mean": (
+            sum(r["metrics"]["answer_relevance"] for r in results) / n if n else 0.0
+        ),
+        "context_precision_mean": (
+            sum(r["metrics"]["context_precision"] for r in results) / n if n else 0.0
+        ),
+        "context_recall_mean": (
+            sum(r["metrics"]["context_recall"] for r in results) / n if n else 0.0
+        ),
     }
     return summary, results
 
 
-def _write_report(summary: dict, results: list[dict], output_dir: Path) -> tuple[Path, Path]:
+def _write_report(
+    summary: dict, results: list[dict], output_dir: Path
+) -> tuple[Path, Path]:
     """Write report_<timestamp>.json and report_<timestamp>.md; return both paths."""
     output_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     json_path = output_dir / f"report_{ts}.json"
     md_path = output_dir / f"report_{ts}.md"
 
@@ -265,8 +300,12 @@ def _write_report(summary: dict, results: list[dict], output_dir: Path) -> tuple
         status = "PASS" if r["pass"] else "FAIL"
         lines.append(f"### {r['id'] or '(no id)'} — {status}")
         lines.append("")
-        lines.append(f"- **Question:** {r['question'][:200]}{'…' if len(r['question']) > 200 else ''}")
-        lines.append(f"- **Metrics:** faithfulness={r['metrics']['faithfulness']:.2f}, answer_relevance={r['metrics']['answer_relevance']:.2f}, context_precision={r['metrics']['context_precision']:.2f}, context_recall={r['metrics']['context_recall']:.2f}")
+        lines.append(
+            f"- **Question:** {r['question'][:200]}{'…' if len(r['question']) > 200 else ''}"
+        )
+        lines.append(
+            f"- **Metrics:** faithfulness={r['metrics']['faithfulness']:.2f}, answer_relevance={r['metrics']['answer_relevance']:.2f}, context_precision={r['metrics']['context_precision']:.2f}, context_recall={r['metrics']['context_recall']:.2f}"
+        )
         lines.append(f"- **Generation (preview):** {r['generation_preview'][:150]}…")
         if r.get("retrieval_warning"):
             lines.append(f"- **Warning:** {r['retrieval_warning']}")
@@ -278,7 +317,9 @@ def _write_report(summary: dict, results: list[dict], output_dir: Path) -> tuple
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run RAG evaluation against golden dataset.")
+    parser = argparse.ArgumentParser(
+        description="Run RAG evaluation against golden dataset."
+    )
     parser.add_argument(
         "--golden",
         type=Path,
@@ -335,7 +376,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    cache_dir = args.cache_dir or (os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"]))
+    cache_dir = args.cache_dir or (
+        os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"])
+    )
     if cache_dir is not None and not isinstance(cache_dir, Path):
         cache_dir = Path(cache_dir)
 
@@ -350,7 +393,9 @@ def main() -> int:
     delay_between_items = (
         args.delay_between_items
         if args.delay_between_items is not None
-        else _delay_sec("EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC)
+        else _delay_sec(
+            "EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC
+        )
     )
     summary, results = _run_eval(
         golden_path=args.golden,

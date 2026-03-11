@@ -3,7 +3,40 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-RAG system for querying IAEA and Danish radiation safety documents.
+RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## Architecture
+
+The query flow is implemented as a [LangGraph](https://langchain-ai.github.io/langgraph/) state graph: retrieval from the vector store, optional document grading and extra retrieval, optional web-search fallback, generation, grounding check with retries, and trusted-source verification.
+
+```mermaid
+flowchart TB
+    subgraph main [RAG flow]
+        RETRIEVE[Retrieve]
+        GRADE[Grade documents]
+        RETRIEVE_MISSING[Retrieve missing]
+        WEB_SEARCH[Web search]
+        GENERATE[Generate]
+        PREPARE_RETRY[Prepare retry]
+        VERIFY[Verify trusted]
+        FINALIZE[Finalize]
+    end
+
+    RETRIEVE --> GRADE
+    GRADE -->|"docs OK or web search off"| GENERATE
+    GRADE -->|"docs insufficient, web search on"| RETRIEVE_MISSING
+    RETRIEVE_MISSING -->|"sufficient or retry path"| GENERATE
+    RETRIEVE_MISSING -->|"still insufficient, count < 3"| RETRIEVE_MISSING
+    RETRIEVE_MISSING -->|"max retrievals reached"| WEB_SEARCH
+    WEB_SEARCH --> GENERATE
+    GENERATE -->|"grounded and useful"| VERIFY
+    GENERATE -->|"not grounded, retries left"| PREPARE_RETRY
+    GENERATE -->|"not grounded, no retries"| WEB_SEARCH
+    GENERATE -->|"not useful, end"| VERIFY
+    PREPARE_RETRY --> RETRIEVE_MISSING
+    VERIFY --> FINALIZE
+    FINALIZE --> EndNode([End])
+```
 
 ## Setup
 
@@ -18,7 +51,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
    uv sync
    ```
 
-3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see “Building document_sources.yaml from local PDFs” below). The **Documents** button in the UI checks for updates (e.g. retsinformation.dk “Senere ændringer”, IAEA “Superseded by”) When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
+3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see “Building document_sources.yaml from local PDFs” below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk “Senere ændringer”, IAEA “Superseded by”) When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
 
 4. Run ingestion (requires API key for embeddings):
    ```bash
@@ -58,7 +91,7 @@ The harness uses your `.env` for the LLM (no API keys in the golden data). Run i
 CI runs the test suite on push and on pull requests (see status badge above).
 
 - **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
-- **Frontend**: `npm run test` or `npm run test:watch` (from project root), or `cd frontend && npm run test`
+- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
 
 ## Building document_sources.yaml from local PDFs
 
@@ -81,3 +114,5 @@ This project was inspired by and draws on patterns from the **LangChain / LangGr
 
 - **Eden Marco** – [LangChain course](https://github.com/emarco177/langchain-course) (GitHub)
 - Repository: [github.com/emarco177/langchain-course](https://github.com/emarco177/langchain-course) (Apache-2.0)
+
+We thank [Roman Kuznetsov (@kuznero)](https://github.com/kuznero) for valuable comments on the project.

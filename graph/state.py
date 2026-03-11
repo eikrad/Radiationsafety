@@ -1,6 +1,6 @@
 """Graph state for RAG pipeline."""
 
-from typing import Any, List, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from langchain_core.documents import Document
 
@@ -13,14 +13,20 @@ class GraphState(TypedDict):
     # Exact context string passed to the generator; grader uses this so it sees the same facts.
     context_used_for_generation: NotRequired[str]
     web_search: bool
-    documents: List[Document]
+    documents: list[Document]
     web_search_attempted: bool  # Prevent infinite web search loop
-    chat_history: List[tuple[str, str]]  # (question, answer) pairs for follow-ups
-    retrieval_warning: NotRequired[str]  # Set when web search didn't yield good results or Mistral embeddings missing
-    embedding_provider: NotRequired[str]  # "gemini" | "mistral"; from request model (gemini/openai → gemini)
-    llm: NotRequired[Any]  # Chat model for generation/grading; uses env fallback if absent
+    chat_history: list[tuple[str, str]]  # (question, answer) pairs for follow-ups
+    retrieval_warning: NotRequired[
+        str
+    ]  # Set when web search didn't yield good results or Mistral embeddings missing
+    embedding_provider: NotRequired[
+        str
+    ]  # "gemini" | "mistral"; from request model (gemini/openai → gemini)
+    llm: NotRequired[
+        Any
+    ]  # Chat model for generation/grading; uses env fallback if absent
     # Documents from vector DB only (IAEA + Danish); used to verify answer against trusted sources
-    trusted_documents: NotRequired[List[Document]]
+    trusted_documents: NotRequired[list[Document]]
     # Set by verify_trusted when answer was confirmed against trusted sources; finalize then skips generic web-search warning
     trusted_verified: NotRequired[bool]
     # Set by retrieve_missing: True if after second retrieval the context was sufficient, so we skip web search

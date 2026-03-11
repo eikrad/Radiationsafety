@@ -1,6 +1,6 @@
 """LangGraph RAG workflow with optional Brave Search fallback and trusted-source verification."""
 
-from typing import Any, Dict
+from typing import Any
 
 from langgraph.graph import END, StateGraph
 
@@ -10,7 +10,6 @@ from graph.chains.truncate import (
     MAX_CONTEXT_CHARS_GENERATION_GRADER,
     truncate_docs_for_grader,
 )
-from graph.i18n import detect_language, get_warning_web_search_poor
 from graph.consts import (
     FINALIZE,
     GENERATE,
@@ -22,6 +21,7 @@ from graph.consts import (
     WEB_SEARCH,
     env_bool,
 )
+from graph.i18n import detect_language, get_warning_web_search_poor
 from graph.llm_factory import get_llm
 from graph.nodes import (
     generate,
@@ -78,8 +78,10 @@ def grade_generation_grounded(state: GraphState) -> str:
     score = grader.invoke(
         {"documents": docs_str, "question": question, "generation": generation}
     )
+
     def _would_use_web_search() -> bool:
         return bool(env_bool("WEB_SEARCH_ENABLED") and not web_search_attempted)
+
     if not score.grounded:
         if _would_use_web_search():
             return "retry_retrieve" if retry_count < 2 else "web_search"
@@ -91,16 +93,20 @@ def grade_generation_grounded(state: GraphState) -> str:
     return "end"
 
 
-def prepare_retry_retrieve(state: GraphState) -> Dict[str, Any]:
+def prepare_retry_retrieve(state: GraphState) -> dict[str, Any]:
     """Increment retry_after_generation_count before another RETRIEVE_MISSING (max 2 before web search)."""
     count = (state.get("retry_after_generation_count") or 0) + 1
     return {"retry_after_generation_count": count}
 
 
-def finalize(state: GraphState) -> Dict[str, Any]:
+def finalize(state: GraphState) -> dict[str, Any]:
     """Set retrieval_warning if not already set by verify_trusted. Message in the language of the question."""
     warning = state.get("retrieval_warning")
-    if warning is None and state.get("web_search_attempted") and not state.get("trusted_verified"):
+    if (
+        warning is None
+        and state.get("web_search_attempted")
+        and not state.get("trusted_verified")
+    ):
         lang = detect_language(state.get("question") or "")
         warning = get_warning_web_search_poor(lang)
     return {"retrieval_warning": warning}

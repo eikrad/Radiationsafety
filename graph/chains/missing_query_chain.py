@@ -6,7 +6,6 @@ from langchain_core.runnables import Runnable
 
 from graph.llm_factory import get_llm
 
-
 system = """You are helping to search a document database for radiation safety (IAEA and Danish legislation). The user asked a question but the current context does not fully answer it. Output a short search query (a few keywords or one short phrase) that would find the MISSING information in such a database.
 - Focus on the specific fact or entity that is missing (e.g. "designated facility radioactive waste Denmark", "Danish company authorized disposal").
 - Include location or scope if the question asks for it (e.g. Denmark, Danish).
@@ -38,7 +37,9 @@ def invoke_missing_query_chain(
     """Return a short query to retrieve missing information. Falls back to question if empty."""
     chain = get_missing_query_chain(llm)
     cfg = config or {}
-    out = chain.invoke({"question": question, "context": context or "None."}, config=cfg)
+    out = chain.invoke(
+        {"question": question, "context": context or "None."}, config=cfg
+    )
     if hasattr(out, "content"):
         q = out.content
     else:

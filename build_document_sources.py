@@ -98,7 +98,9 @@ def _extract_iaea_search_terms(pdf_path: Path) -> list[str]:
     for m in re.finditer(r"IAEA-TECDOC-(\d+)", text, re.IGNORECASE):
         add("IAEA-TECDOC-" + m.group(1))
     # Series: SSG-20, SSR-3, SSG-20 (Rev. 1), No. SSG-20
-    for m in re.finditer(r"(SS[RGP][-\s]?\d+(?:\s*\(Rev\.\s*\d+\))?)", text, re.IGNORECASE):
+    for m in re.finditer(
+        r"(SS[RGP][-\s]?\d+(?:\s*\(Rev\.\s*\d+\))?)", text, re.IGNORECASE
+    ):
         add(m.group(1).strip())
     # ISBN (IAEA often 92-0-xxxxxx-x)
     for m in re.finditer(r"92-0-\d[\d-]{8,14}[Xx\d]", text):
@@ -124,19 +126,20 @@ def _discover_iaea_pdfs() -> list[dict[str, Any]]:
         if not base.exists():
             continue
         for pdf_path in sorted(base.rglob("*.pdf")):
-            rel = pdf_path.relative_to(base)
             title, version = _extract_pdf_title_and_version(pdf_path)
             slug = _slug(title or pdf_path.stem)
             source_id = f"iaea-{slug}" if folder == "IAEA" else f"iaea-other-{slug}"
-            out.append({
-                "id": source_id,
-                "name": title or pdf_path.stem,
-                "url": None,
-                "folder": folder,
-                "filename_hint": pdf_path.name,
-                "version": version or None,
-                "_path": str(pdf_path),
-            })
+            out.append(
+                {
+                    "id": source_id,
+                    "name": title or pdf_path.stem,
+                    "url": None,
+                    "folder": folder,
+                    "filename_hint": pdf_path.name,
+                    "version": version or None,
+                    "_path": str(pdf_path),
+                }
+            )
     return out
 
 
@@ -152,23 +155,33 @@ def _discover_danish_from_version_files() -> list[dict[str, Any]]:
             version = version_file.read_text(encoding="utf-8").strip()
         except OSError:
             version = None
-        name = "Radioaktivitetsbekendtgørelsen" if "radioaktiv" in source_id.lower() else source_id
+        name = (
+            "Radioaktivitetsbekendtgørelsen"
+            if "radioaktiv" in source_id.lower()
+            else source_id
+        )
         # Build ELI URL from version string "BEK nr NNN af DD/MM/YYYY" -> .../eli/lta/YYYY/NNN
         url = None
         if version:
-            m = re.search(r"BEK\s+nr\s+(\d+)\s+af\s+\d{1,2}/\d{1,2}/(\d{4})", version, re.IGNORECASE)
+            m = re.search(
+                r"BEK\s+nr\s+(\d+)\s+af\s+\d{1,2}/\d{1,2}/(\d{4})",
+                version,
+                re.IGNORECASE,
+            )
             if m:
                 nr, year = m.group(1), m.group(2)
                 url = f"https://www.retsinformation.dk/eli/lta/{year}/{nr}"
-        out.append({
-            "id": source_id,
-            "name": name,
-            "url": url,
-            "folder": "Bekendtgørelse",
-            "filename_hint": None,
-            "version": version,
-            "_path": str(version_file),
-        })
+        out.append(
+            {
+                "id": source_id,
+                "name": name,
+                "url": url,
+                "folder": "Bekendtgørelse",
+                "filename_hint": None,
+                "version": version,
+                "_path": str(version_file),
+            }
+        )
     return out
 
 
@@ -189,19 +202,25 @@ def _discover_danish_pdfs() -> list[dict[str, Any]]:
         # Try to get ELI from "BEK nr NNN af ..." in version
         url = None
         if version:
-            m = re.search(r"BEK\s+nr\s+(\d+)\s+af\s+\d{1,2}/\d{1,2}/(\d{4})", version, re.IGNORECASE)
+            m = re.search(
+                r"BEK\s+nr\s+(\d+)\s+af\s+\d{1,2}/\d{1,2}/(\d{4})",
+                version,
+                re.IGNORECASE,
+            )
             if m:
                 nr, year = m.group(1), m.group(2)
                 url = f"https://www.retsinformation.dk/eli/lta/{year}/{nr}"
-        out.append({
-            "id": source_id,
-            "name": title or pdf_path.stem,
-            "url": url,
-            "folder": "Bekendtgørelse",
-            "filename_hint": pdf_path.name,
-            "version": version,
-            "_path": str(pdf_path),
-        })
+        out.append(
+            {
+                "id": source_id,
+                "name": title or pdf_path.stem,
+                "url": url,
+                "folder": "Bekendtgørelse",
+                "filename_hint": pdf_path.name,
+                "version": version,
+                "_path": str(pdf_path),
+            }
+        )
     return out
 
 
@@ -211,12 +230,15 @@ def _load_existing_registry() -> list[dict[str, Any]]:
     if not path.exists():
         return []
     import yaml
+
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return data.get("sources") or []
 
 
-def _merge_url_and_version(discovered: dict[str, Any], existing: list[dict[str, Any]]) -> dict[str, Any]:
+def _merge_url_and_version(
+    discovered: dict[str, Any], existing: list[dict[str, Any]]
+) -> dict[str, Any]:
     """Fill url from existing registry if we find a match by id or name; keep version from discovery."""
     out = {k: v for k, v in discovered.items() if not k.startswith("_")}
     for ex in existing:
@@ -227,7 +249,11 @@ def _merge_url_and_version(discovered: dict[str, Any], existing: list[dict[str, 
             if not out.get("version") and ex.get("version"):
                 out["version"] = ex.get("version")
             break
-        if ex.get("name") and discovered.get("name") and ex.get("name").strip() == discovered.get("name", "").strip():
+        if (
+            ex.get("name")
+            and discovered.get("name")
+            and ex.get("name").strip() == discovered.get("name", "").strip()
+        ):
             out["url"] = ex.get("url") or out.get("url")
             break
     return out
@@ -239,6 +265,7 @@ def _confirm_danish_url(source: dict[str, Any]) -> None:
         return
     try:
         from document_updates import _fetch_url, _parse_retsinformation
+
         html = _fetch_url(source["url"])
         label, new_url = _parse_retsinformation(html, source["url"])
         if new_url and new_url != source["url"]:
@@ -255,6 +282,7 @@ def _confirm_iaea_url(source: dict[str, Any]) -> None:
         return
     try:
         from document_updates import _lookup_iaea_publication_url_multi
+
         terms = []
         path = source.get("_path")
         if path:
@@ -335,27 +363,46 @@ def build_sources(
     return result
 
 
-def write_document_sources_yaml(sources: list[dict[str, Any]], path: Path | None = None) -> None:
+def write_document_sources_yaml(
+    sources: list[dict[str, Any]], path: Path | None = None
+) -> None:
     """Write sources to document_sources.yaml (or given path)."""
     import yaml
+
     path = path or REGISTRY_PATH
     data = {
         "sources": sources,
     }
     with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        yaml.dump(
+            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+        )
 
 
 def main() -> None:
     import argparse
-    p = argparse.ArgumentParser(description="Extract versions from local PDFs and build document_sources.yaml")
-    p.add_argument("--no-confirm", action="store_true", help="Skip looking up URLs on websites")
-    p.add_argument("--dry-run", action="store_true", help="Print sources but do not write YAML")
-    p.add_argument("-o", "--output", default=None, help="Output YAML path (default: document_sources.yaml)")
+
+    p = argparse.ArgumentParser(
+        description="Extract versions from local PDFs and build document_sources.yaml"
+    )
+    p.add_argument(
+        "--no-confirm", action="store_true", help="Skip looking up URLs on websites"
+    )
+    p.add_argument(
+        "--dry-run", action="store_true", help="Print sources but do not write YAML"
+    )
+    p.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Output YAML path (default: document_sources.yaml)",
+    )
     args = p.parse_args()
     sources = build_sources(confirm_urls=not args.no_confirm)
     if not sources:
-        print("No documents discovered. Add PDFs to documents/IAEA, documents/IAEA_other, or documents/Bekendtgørelse.")
+        print(
+            "No documents discovered. Add PDFs to documents/IAEA, documents/IAEA_other, or documents/Bekendtgørelse."
+        )
         return
     print(f"Discovered {len(sources)} document source(s):")
     for s in sources:

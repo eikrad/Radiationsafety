@@ -6,7 +6,6 @@ from langchain_core.runnables import Runnable
 
 from graph.llm_factory import get_llm
 
-
 system = """You are helping to build a short, effective web search query. Given the user's question and the context we already have (if any), output a single search query that would find the missing or most relevant information on the web.
 - Include key terms: topic, location (e.g. Denmark, Danish), and what is being asked (e.g. designated facility, company name, regulation).
 - Keep it to one short sentence or a few keywords (under 15 words).
@@ -39,7 +38,9 @@ def invoke_search_query_chain(
     """Return a web search query string from question and context. Strips and truncates."""
     chain = get_search_query_chain(llm)
     cfg = config or {}
-    out = chain.invoke({"question": question, "context": context or "None."}, config=cfg)
+    out = chain.invoke(
+        {"question": question, "context": context or "None."}, config=cfg
+    )
     if hasattr(out, "content"):
         q = out.content
     else:

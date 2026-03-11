@@ -1,6 +1,6 @@
 """Generate answer from retrieved context using RAG prompt."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
@@ -31,7 +31,7 @@ def _format_document(doc: Any) -> str:
     return f"[Source: {label}]\n{doc.page_content}"
 
 
-def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+def generate(state: GraphState, config: RunnableConfig | None = None) -> dict[str, Any]:
     """Generate answer from documents, question, and optional chat history."""
     question = state["question"]
     documents = state["documents"]
@@ -44,7 +44,16 @@ def generate(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict
     context = ""
     if documents:
         # Put web results first so the model sees them before long document chunks
-        ordered = sorted(documents, key=lambda d: (0 if (getattr(d, "metadata", {}) or {}).get("document_type") == "web" else 1,))
+        ordered = sorted(
+            documents,
+            key=lambda d: (
+                (
+                    0
+                    if (getattr(d, "metadata", {}) or {}).get("document_type") == "web"
+                    else 1
+                ),
+            ),
+        )
         context = "\n\n---\n\n".join(_format_document(d) for d in ordered)
 
     chat_history_str = _format_chat_history(chat_history)

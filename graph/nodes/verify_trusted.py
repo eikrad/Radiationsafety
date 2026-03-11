@@ -1,6 +1,6 @@
 """Verify that the generated answer is supported by trusted sources (vector DB + optional trusted web)."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
@@ -23,7 +23,9 @@ from graph.state import GraphState
 from graph.utils import throttle_llm_if_needed
 
 
-def verify_trusted(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+def verify_trusted(
+    state: GraphState, config: RunnableConfig | None = None
+) -> dict[str, Any]:
     """Check if generation is supported by trusted_documents; optionally try trusted-only web search and re-check."""
     generation = state.get("generation") or ""
     trusted_docs = list(state.get("trusted_documents") or [])

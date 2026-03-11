@@ -9,16 +9,18 @@ from pathlib import Path
 from typing import Any
 
 # Allowlist for URLs (same as document_updates)
-_ALLOWED_HOSTS = frozenset({
-    "www.retsinformation.dk",
-    "retsinformation.dk",
-    "api.retsinformation.dk",
-    "www.iaea.org",
-    "iaea.org",
-    "www-pub.iaea.org",
-    "sst.dk",
-    "www.sst.dk",
-})
+_ALLOWED_HOSTS = frozenset(
+    {
+        "www.retsinformation.dk",
+        "retsinformation.dk",
+        "api.retsinformation.dk",
+        "www.iaea.org",
+        "iaea.org",
+        "www-pub.iaea.org",
+        "sst.dk",
+        "www.sst.dk",
+    }
+)
 _TIMEOUT = 30
 _MAX_SIZE = 50 * 1024 * 1024  # 50 MB per PDF
 _MAX_XML_SIZE = 5 * 1024 * 1024  # 5 MB per XML document
@@ -26,8 +28,9 @@ _MAX_XML_SIZE = 5 * 1024 * 1024  # 5 MB per XML document
 
 def _allowed(url: str) -> bool:
     from urllib.parse import urlparse
+
     try:
-        host = (urlparse(url).netloc or "").lower().lstrip("www.")
+        host = (urlparse(url).netloc or "").lower().removeprefix("www.")
         if host in _ALLOWED_HOSTS:
             return True
         if host.endswith(".dk") and "retsinformation" in url:
@@ -43,7 +46,9 @@ def _download_to_temp(url: str) -> Path | None:
         return None
     req = urllib.request.Request(url, headers={"User-Agent": "RadiationSafetyRAG/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT, context=ssl.create_default_context()) as resp:
+        with urllib.request.urlopen(
+            req, timeout=_TIMEOUT, context=ssl.create_default_context()
+        ) as resp:
             size = int(resp.headers.get("Content-Length") or 0)
             if size > _MAX_SIZE:
                 return None
@@ -89,9 +94,17 @@ def _download_xml(url: str) -> Path | None:
     """Download URL to a temporary XML file. Returns path or None on failure."""
     if not _allowed(url):
         return None
-    req = urllib.request.Request(url, headers={"User-Agent": "RadiationSafetyRAG/1.0", "Accept": "application/xml, text/xml, */*"})
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "RadiationSafetyRAG/1.0",
+            "Accept": "application/xml, text/xml, */*",
+        },
+    )
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT, context=ssl.create_default_context()) as resp:
+        with urllib.request.urlopen(
+            req, timeout=_TIMEOUT, context=ssl.create_default_context()
+        ) as resp:
             size = int(resp.headers.get("Content-Length") or 0)
             if size > _MAX_XML_SIZE:
                 return None
@@ -116,7 +129,9 @@ def get_pdf_url_iaea(publication_page_url: str, html: str | None = None) -> str 
             headers={"User-Agent": "RadiationSafetyRAG/1.0"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=_TIMEOUT, context=ssl.create_default_context()) as resp:
+            with urllib.request.urlopen(
+                req, timeout=_TIMEOUT, context=ssl.create_default_context()
+            ) as resp:
                 html = resp.read(50000).decode("utf-8", errors="replace")
         except (urllib.error.HTTPError, urllib.error.URLError):
             return None
@@ -138,7 +153,9 @@ def get_pdf_url_iaea(publication_page_url: str, html: str | None = None) -> str 
     if m:
         path = m.group(1).strip()
         if not path.startswith("http"):
-            path = "https://www-pub.iaea.org" + (path if path.startswith("/") else "/" + path)
+            path = "https://www-pub.iaea.org" + (
+                path if path.startswith("/") else "/" + path
+            )
         return path
     # Some pages use relative or same-origin PDF path
     m = re.search(
@@ -155,7 +172,8 @@ def get_pdf_url_iaea(publication_page_url: str, html: str | None = None) -> str 
 def _resolve_newest_dk_url(source_id: str, url: str, name: str) -> tuple[str, str]:
     """Resolve newest Danish document URL from registry/check. Returns (resolved_eli_url, label)."""
     try:
-        from document_updates import check_one_source, _load_registry, _load_versions
+        from document_updates import _load_registry, _load_versions, check_one_source
+
         registry = _load_registry()
         src = next((s for s in registry if s.id == source_id), None)
         if not src:
@@ -171,7 +189,8 @@ def _resolve_newest_dk_url(source_id: str, url: str, name: str) -> tuple[str, st
 def _get_current_version_label(source_id: str) -> str | None:
     """Return the stored version label for a source (from document_versions or registry), or None."""
     try:
-        from document_updates import _load_versions, _load_registry
+        from document_updates import _load_registry, _load_versions
+
         versions = _load_versions()
         v = versions.get(source_id, {}).get("version")
         if v:
@@ -189,7 +208,9 @@ def _label_from_danish_xml(xml_path: Path) -> str | None:
     """Try to extract a BEK version label from Danish XML content (first 2k chars)."""
     try:
         text = xml_path.read_text(encoding="utf-8", errors="ignore")[:2048]
-        m = re.search(r"BEK\s+nr\s+\d+\s+af\s+\d{1,2}/\d{1,2}/\d{4}", text, re.IGNORECASE)
+        m = re.search(
+            r"BEK\s+nr\s+\d+\s+af\s+\d{1,2}/\d{1,2}/\d{4}", text, re.IGNORECASE
+        )
         if m:
             return m.group(0).strip()
     except Exception:
@@ -209,6 +230,7 @@ def fetch_danish_xml_for_source(
     Returns (temp_xml_path, label, resolved_eli_url). resolved_eli_url equals url when we used current URL (no registry update).
     """
     from urllib.parse import urlparse
+
     host = (urlparse(url).netloc or "").lower()
     if "retsinformation.dk" not in host or "api." in host:
         return None, name, url
@@ -222,8 +244,14 @@ def fetch_danish_xml_for_source(
         if path is not None:
             try:
                 content = path.read_bytes()
-                if len(content) >= _MIN_DANISH_XML_BYTES and (b"<?xml" in content[:300] or b"<" in content[:500]):
-                    label = _get_current_version_label(source_id) or _label_from_danish_xml(path) or name
+                if len(content) >= _MIN_DANISH_XML_BYTES and (
+                    b"<?xml" in content[:300] or b"<" in content[:500]
+                ):
+                    label = (
+                        _get_current_version_label(source_id)
+                        or _label_from_danish_xml(path)
+                        or name
+                    )
                     return path, label, url
             except OSError:
                 pass
@@ -256,6 +284,7 @@ def fetch_pdf_for_source(
     If use_newest_dk and url is retsinformation, tries to get newest version first.
     """
     from urllib.parse import urlparse
+
     host = (urlparse(url).netloc or "").lower()
     label = name
 
@@ -280,6 +309,7 @@ def load_sources_registry() -> list[dict[str, Any]]:
     """Load document_sources.yaml (or .example). Returns list of source dicts with id, name, url, folder. Delegates to document_updates."""
     try:
         from document_updates import load_registry_raw
+
         return load_registry_raw()
     except ImportError:
         return []

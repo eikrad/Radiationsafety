@@ -1,7 +1,7 @@
 """Second retrieval targeting 'missing' information; re-check sufficiency before web search."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
@@ -15,7 +15,9 @@ from graph.utils import chat_context_prefix, throttle_llm_if_needed
 from ingestion import get_retrievers
 
 
-def retrieve_missing(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+def retrieve_missing(
+    state: GraphState, config: RunnableConfig | None = None
+) -> dict[str, Any]:
     """Retrieve again with an LLM-generated query for missing info; merge with existing docs; set sufficient_after_missing."""
     question = state["question"]
     existing = list(state.get("documents") or [])
@@ -25,12 +27,15 @@ def retrieve_missing(state: GraphState, config: Optional[RunnableConfig] = None)
     llm = state.get("llm") or get_llm()
 
     doc_context = "\n\n".join(d.page_content for d in existing) if existing else "None."
-    context_str = chat_context_prefix(chat_history) + "Document context:\n" + doc_context
+    context_str = (
+        chat_context_prefix(chat_history) + "Document context:\n" + doc_context
+    )
     throttle_llm_if_needed()
     missing_query = invoke_missing_query_chain(question, context_str, llm, config=cfg)
 
     ep = state.get("embedding_provider") or get_embedding_provider()
     iaea_retriever, dk_retriever = get_retrievers(ep)
+
     def _invoke_iaea():
         return iaea_retriever.invoke(missing_query, config=cfg)
 
@@ -65,7 +70,7 @@ def retrieve_missing(state: GraphState, config: Optional[RunnableConfig] = None)
         )
         sufficient = bool(result.binary_score)
 
-    out: Dict[str, Any] = {
+    out: dict[str, Any] = {
         "documents": merged,
         "trusted_documents": trusted_merged,
         "sufficient_after_missing": sufficient,

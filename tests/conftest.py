@@ -1,6 +1,5 @@
 """Pytest fixtures shared across tests."""
 
-import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -21,6 +20,7 @@ def _env_no_api_calls(monkeypatch):
 @pytest.fixture
 def mock_graph():
     """Mock graph that returns a fixed result."""
+
     def _invoke(inputs, config=None):
         question = inputs.get("question", "")
         hist = inputs.get("chat_history") or []
@@ -44,6 +44,7 @@ def mock_graph():
 def client(mock_graph):
     """FastAPI test client with mocked graph."""
     from api.main import app, app_state
+
     app_state["graph"] = mock_graph
     with TestClient(app) as c:
         yield c

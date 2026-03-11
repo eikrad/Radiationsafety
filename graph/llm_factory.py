@@ -16,7 +16,9 @@ class APIKeyError(Exception):
         )
 
 
-_GEMINI_MODELS = frozenset({"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"})
+_GEMINI_MODELS = frozenset(
+    {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"}
+)
 _OPENAI_MODELS = frozenset({"gpt-4o-mini", "gpt-4o"})
 
 
@@ -68,7 +70,9 @@ def get_llm(
         if not key:
             raise APIKeyError("OpenAI")
         model = (
-            model_variant if model_variant and model_variant in _OPENAI_MODELS else "gpt-4o-mini"
+            model_variant
+            if model_variant and model_variant in _OPENAI_MODELS
+            else "gpt-4o-mini"
         )
         return ChatOpenAI(
             model=model,
@@ -99,7 +103,11 @@ def get_embeddings(embedding_provider: str | None = None):
     Args:
         embedding_provider: 'gemini' | 'mistral'. If None, uses get_embedding_provider() (currently always 'gemini').
     """
-    ep = embedding_provider if embedding_provider in ("gemini", "mistral") else get_embedding_provider()
+    ep = (
+        embedding_provider
+        if embedding_provider in ("gemini", "mistral")
+        else get_embedding_provider()
+    )
     if ep == "gemini":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 

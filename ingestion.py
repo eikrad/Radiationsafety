@@ -14,12 +14,17 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from dotenv import load_dotenv
-from graph.llm_factory import get_embedding_provider, get_embeddings
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import DirectoryLoader, PyMuPDFLoader, PyPDFLoader
+from langchain_community.document_loaders import (
+    DirectoryLoader,
+    PyMuPDFLoader,
+    PyPDFLoader,
+)
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
+
+from graph.llm_factory import get_embedding_provider, get_embeddings
 
 load_dotenv()
 
@@ -31,7 +36,9 @@ _CHROMA_DIR = PROJECT_ROOT / ".chroma"
 _MAX_BACKUPS_PER_SOURCE = 2
 
 
-def rotate_backups(backup_dir: Path, prefix: str, *, keep: int = 2, extension: str = "xml") -> None:
+def rotate_backups(
+    backup_dir: Path, prefix: str, *, keep: int = 2, extension: str = "xml"
+) -> None:
     """Keep only the `keep` most recent files in backup_dir matching `{prefix}_*.{extension}`; delete older ones."""
     if not backup_dir.exists():
         return
@@ -79,6 +86,7 @@ def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
     iaea_name, dk_name = get_collection_names(ep)
     try:
         import chromadb
+
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
         for name in (iaea_name, dk_name):
             try:
@@ -121,6 +129,7 @@ def _load_retsinformation_xml(xml_path: Path, source_label: str) -> list[Documen
 def download_update_for_source(source_id: str) -> tuple[bool, str]:
     """Download the new version for a source and backup the old one. Returns (success, message)."""
     import time
+
     try:
         from document_updates import (
             _load_registry,
@@ -131,15 +140,17 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
             update_version_after_ingest,
         )
         from ingestion_fetch import (
-            get_pdf_url_iaea,
-            get_xml_url_retsinformation,
             _download_to_temp,
             _download_xml,
+            get_pdf_url_iaea,
+            get_xml_url_retsinformation,
         )
     except ImportError as e:
         return False, str(e)
     registry = _load_registry()
-    source = next((s for s in registry if (s.id or "").strip() == source_id.strip()), None)
+    source = next(
+        (s for s in registry if (s.id or "").strip() == source_id.strip()), None
+    )
     if not source:
         return False, "Source not found"
     versions = _load_versions()
@@ -169,15 +180,24 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                         shutil.copy2(str(current_path), str(backup_path))
                     except OSError:
                         pass
-                    rotate_backups(backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension="pdf")
-                dest = current_path if (current_path and current_path.exists()) else None
+                    rotate_backups(
+                        backup_dir,
+                        source_id,
+                        keep=_MAX_BACKUPS_PER_SOURCE,
+                        extension="pdf",
+                    )
+                dest = (
+                    current_path if (current_path and current_path.exists()) else None
+                )
                 if not dest:
                     safe_name = (source.filename_hint or f"{source_id}.pdf").strip()
                     if not safe_name.lower().endswith(".pdf"):
                         safe_name += ".pdf"
                     dest = folder_path / safe_name
                 shutil.copy2(str(path), str(dest))
-                (folder_path / f"{source_id}_version.txt").write_text(remote_label, encoding="utf-8")
+                (folder_path / f"{source_id}_version.txt").write_text(
+                    remote_label, encoding="utf-8"
+                )
                 update_registry_url(source_id, download_url)
                 update_version_after_ingest(source_id, remote_label)
                 return True, "Downloaded new version and backed up previous."
@@ -194,7 +214,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
         if path is None:
             return False, "Failed to download XML"
         try:
-            _save_danish_current_and_trim_backups(source_id, path, version_label=remote_label)
+            _save_danish_current_and_trim_backups(
+                source_id, path, version_label=remote_label
+            )
             update_registry_url(source_id, download_url)
             update_version_after_ingest(source_id, remote_label)
             return True, "Downloaded new version and backed up previous."
@@ -224,7 +246,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                     shutil.copy2(str(current_path), str(backup_path))
                 except OSError:
                     pass
-                rotate_backups(backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension="pdf")
+                rotate_backups(
+                    backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension="pdf"
+                )
             dest = current_path if (current_path and current_path.exists()) else None
             if not dest:
                 safe_name = (source.filename_hint or f"{source_id}.pdf").strip()
@@ -251,7 +275,8 @@ def _save_danish_current_and_trim_backups(
     source_id: str, xml_path: Path, *, version_label: str | None = None
 ) -> None:
     """Save fetched XML as current for source; move previous current to backup; keep max 2 backups.
-    If version_label is set, writes it to {source_id}_version.txt for current-version detection."""
+    If version_label is set, writes it to {source_id}_version.txt for current-version detection.
+    """
     current_dir = DOCS_DIR / "Bekendtgørelse"
     current_dir.mkdir(parents=True, exist_ok=True)
     _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
@@ -269,7 +294,9 @@ def _save_danish_current_and_trim_backups(
         pass
     if version_label:
         try:
-            (current_dir / f"{source_id}_version.txt").write_text(version_label, encoding="utf-8")
+            (current_dir / f"{source_id}_version.txt").write_text(
+                version_label, encoding="utf-8"
+            )
         except OSError:
             pass
     rotate_backups(_BACKUP_DIR, source_id, keep=_MAX_BACKUPS_PER_SOURCE)
@@ -278,12 +305,12 @@ def _save_danish_current_and_trim_backups(
 def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
     """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF. Returns (iaea_docs, dk_docs)."""
     try:
+        from document_updates import update_registry_url, update_version_after_ingest
         from ingestion_fetch import (
             fetch_danish_xml_for_source,
             fetch_pdf_for_source,
             load_sources_registry,
         )
-        from document_updates import update_registry_url, update_version_after_ingest
     except ImportError:
         return [], []
     sources = load_sources_registry()
@@ -299,7 +326,9 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
         if not url:
             continue
         if folder == "Bekendtgørelse":
-            path, label, resolved_url = fetch_danish_xml_for_source(source_id, name, url, use_newest_dk=True)
+            path, label, resolved_url = fetch_danish_xml_for_source(
+                source_id, name, url, use_newest_dk=True
+            )
             if path is None:
                 continue
             try:
@@ -312,7 +341,9 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
                         update_registry_url(source_id, resolved_url)
                     except Exception:
                         pass
-                _save_danish_current_and_trim_backups(source_id, path, version_label=label)
+                _save_danish_current_and_trim_backups(
+                    source_id, path, version_label=label
+                )
                 try:
                     update_version_after_ingest(source_id, label)
                 except Exception:
@@ -381,7 +412,9 @@ def _table_to_markdown(table: list[list[str | None]]) -> str:
     return "\n".join(lines)
 
 
-def _load_pdf_with_pdfplumber_tables(file_path: str | Path, source_label: str | None = None) -> list[Document]:
+def _load_pdf_with_pdfplumber_tables(
+    file_path: str | Path, source_label: str | None = None
+) -> list[Document]:
     """Load PDF with pdfplumber. Uses 'lines' strategy for tables with visible grid (e.g. Limits)."""
     import pdfplumber
 
@@ -411,13 +444,19 @@ def _load_pdf_with_pdfplumber_tables(file_path: str | Path, source_label: str | 
             if content:
                 doc = Document(
                     page_content=content,
-                    metadata={"source": label, "page": i, "total_pages": len(pdf.pages)},
+                    metadata={
+                        "source": label,
+                        "page": i,
+                        "total_pages": len(pdf.pages),
+                    },
                 )
                 docs.append(doc)
     return docs
 
 
-def _load_pdf_with_tables(file_path: str | Path, source_label: str | None = None) -> list[Document]:
+def _load_pdf_with_tables(
+    file_path: str | Path, source_label: str | None = None
+) -> list[Document]:
     """Load PDF with table extraction. Tries pdfplumber first (best for borderless tables), then PyMuPDF, then PyPDF."""
     label = source_label or str(file_path)
     try:
@@ -460,7 +499,7 @@ def _extract_and_load_attachments(parent_path: Path) -> list[Document]:
     if not hasattr(reader, "attachments") or not reader.attachments:
         return []
     for att_name, content_list in reader.attachments.items():
-        for i, content in enumerate(content_list):
+        for _i, content in enumerate(content_list):
             if not isinstance(content, (bytes, bytearray)):
                 continue
             suffix = ".pdf" if not str(att_name).lower().endswith(".pdf") else ""
@@ -626,13 +665,18 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
     if embedding_provider not in ("gemini", "mistral"):
         return True, ""
     iaea_name, dk_name = get_collection_names(embedding_provider)
-    env_hint = "LLM_PROVIDER=mistral" if embedding_provider == "mistral" else "LLM_PROVIDER=gemini"
+    env_hint = (
+        "LLM_PROVIDER=mistral"
+        if embedding_provider == "mistral"
+        else "LLM_PROVIDER=gemini"
+    )
     default_msg = (
         f"Embeddings for this provider are not built yet. Run full ingestion: "
         f"set {env_hint} in .env (or export it), then run: uv run python ingestion.py"
     )
     try:
         import chromadb
+
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
         for name in (iaea_name, dk_name):
             try:
@@ -652,7 +696,9 @@ def add_single_pdf_to_collection(
     """Load one PDF, split, embed, and add to the IAEA Chroma collection for current embedding provider. Returns chunk count."""
     if not pdf_path.exists() or pdf_path.suffix.lower() != ".pdf":
         raise ValueError("Not a PDF file or file missing")
-    label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace("-", " ")
+    label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace(
+        "-", " "
+    )
     docs = PyPDFLoader(str(pdf_path)).load()
     for d in docs:
         d.metadata["source"] = label
@@ -700,7 +746,9 @@ def get_retrievers(embedding_provider: str | None = None):
     global _retrievers_cache
     if _retrievers_cache is None:
         _retrievers_cache = {}
-    ep = (embedding_provider if embedding_provider in ("gemini", "mistral") else None) or get_embedding_provider()
+    ep = (
+        embedding_provider if embedding_provider in ("gemini", "mistral") else None
+    ) or get_embedding_provider()
     if ep in _retrievers_cache:
         return _retrievers_cache[ep]
     iaea_name, dk_name = get_collection_names(ep)

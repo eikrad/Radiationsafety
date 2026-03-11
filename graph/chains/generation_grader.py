@@ -11,8 +11,12 @@ from graph.llm_factory import get_llm
 class GradeGeneration(BaseModel):
     """Scores for grounding and for answering the question."""
 
-    grounded: bool = Field(description="The answer is grounded in the documents, 'yes' or 'no'")
-    answers_question: bool = Field(description="The answer addresses the question, 'yes' or 'no'")
+    grounded: bool = Field(
+        description="The answer is grounded in the documents, 'yes' or 'no'"
+    )
+    answers_question: bool = Field(
+        description="The answer addresses the question, 'yes' or 'no'"
+    )
 
 
 system = """You are a grader. The "Facts" below are the retrieved context that was given to the model. The "Generation" is the model's answer.

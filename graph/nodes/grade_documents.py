@@ -1,6 +1,6 @@
 """Check if retrieved context is sufficient to answer; set web_search flag if not (no per-doc grading to save tokens)."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
@@ -11,7 +11,9 @@ from graph.state import GraphState
 from graph.utils import throttle_llm_if_needed
 
 
-def grade_documents(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+def grade_documents(
+    state: GraphState, config: RunnableConfig | None = None
+) -> dict[str, Any]:
     """Run one sufficiency check on truncated context; set web_search=True if insufficient or no docs. Keeps all docs for generation."""
     question = state["question"]
     documents = state["documents"]

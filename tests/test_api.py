@@ -3,13 +3,13 @@
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 
 def test_health_without_graph():
     """Health returns graph_loaded=false when TESTING (no graph loaded)."""
     from api.main import app
+
     with TestClient(app) as c:
         res = c.get("/health")
     assert res.status_code == 200
@@ -23,6 +23,17 @@ def test_health(client: TestClient):
     data = res.json()
     assert data["status"] == "ok"
     assert data["graph_loaded"] is True
+
+
+def test_metrics_returns_prometheus_style(client: TestClient):
+    """Metrics endpoint returns Prometheus-style text with graph_loaded and uptime."""
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    assert res.headers["content-type"].startswith("text/plain")
+    text = res.text
+    assert "radiationsafety_graph_loaded" in text
+    assert "radiationsafety_uptime_seconds" in text
+    assert "# TYPE radiationsafety_graph_loaded gauge" in text
 
 
 def test_query_returns_answer(client: TestClient):
@@ -67,7 +78,9 @@ def test_query_accepts_model_and_api_keys(client: TestClient):
     assert "Test answer from mocked graph" in data["answer"]
 
 
-def test_query_api_key_error_when_openai_selected_no_key(client: TestClient, monkeypatch):
+def test_query_api_key_error_when_openai_selected_no_key(
+    client: TestClient, monkeypatch
+):
     """When model=openai and no API key in request or env, returns 400 with API key message."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     res = client.post(
@@ -94,6 +107,7 @@ def test_query_non_question_short_circuit(client: TestClient):
 def test_query_returns_warning_when_set(client: TestClient):
     """Query endpoint returns warning when retrieval_warning is set."""
     from api.main import app, app_state
+
     mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
 
     def _invoke(inputs, config=None):
@@ -115,7 +129,11 @@ def test_query_returns_warning_when_set(client: TestClient):
     data = res.json()
     assert "warning" in data
     assert data["warning"]  # warning text (language may match question)
-    assert "web" in data["warning"].lower() or "source" in data["warning"].lower() or "quelle" in data["warning"].lower()
+    assert (
+        "web" in data["warning"].lower()
+        or "source" in data["warning"].lower()
+        or "quelle" in data["warning"].lower()
+    )
 
 
 def test_documents_check_updates(client: TestClient):
@@ -185,16 +203,23 @@ def test_documents_set_source_url_not_found(client: TestClient):
 
 def test_documents_set_source_url_ok(client: TestClient):
     """PATCH source URL updates registry when URL is allowlisted and source exists."""
-    with patch("document_updates.load_registry_raw", return_value=[{"id": "iaea-1", "name": "Doc"}]):
+    with patch(
+        "document_updates.load_registry_raw",
+        return_value=[{"id": "iaea-1", "name": "Doc"}],
+    ):
         with patch("document_updates._allowed_url", return_value=True):
             with patch("document_updates.update_registry_url") as upd:
                 res = client.patch(
                     "/api/documents/source/iaea-1/url",
-                    json={"url": "https://www.iaea.org/publications/8639/safety-assessment"},
+                    json={
+                        "url": "https://www.iaea.org/publications/8639/safety-assessment"
+                    },
                 )
     assert res.status_code == 200
     assert res.json().get("ok") is True
-    upd.assert_called_once_with("iaea-1", "https://www.iaea.org/publications/8639/safety-assessment")
+    upd.assert_called_once_with(
+        "iaea-1", "https://www.iaea.org/publications/8639/safety-assessment"
+    )
 
 
 def test_documents_get_source_file_not_found(client: TestClient):
@@ -207,9 +232,19 @@ def test_documents_get_source_file_not_found(client: TestClient):
 def test_documents_get_source_file_no_local_file(client: TestClient):
     """GET source file returns 404 when source exists but has no local PDF."""
     from document_updates import DocumentSource
-    with patch("document_updates._load_registry", return_value=[
-        DocumentSource(id="iaea-1", name="Doc", url="https://iaea.org/x", folder="IAEA", filename_hint=None),
-    ]):
+
+    with patch(
+        "document_updates._load_registry",
+        return_value=[
+            DocumentSource(
+                id="iaea-1",
+                name="Doc",
+                url="https://iaea.org/x",
+                folder="IAEA",
+                filename_hint=None,
+            ),
+        ],
+    ):
         with patch("document_updates.get_local_pdf_path", return_value=None):
             res = client.get("/api/documents/source/iaea-1/file")
     assert res.status_code == 404
@@ -218,9 +253,16 @@ def test_documents_get_source_file_no_local_file(client: TestClient):
 def test_documents_get_source_file_ok(client: TestClient, tmp_path: Path):
     """GET source file returns 200 with PDF when local file exists."""
     from document_updates import DocumentSource
+
     pdf = tmp_path / "test.pdf"
     pdf.write_bytes(b"%PDF-1.4 minimal")
-    source = DocumentSource(id="iaea-1", name="Doc", url="https://iaea.org/x", folder="IAEA", filename_hint=None)
+    source = DocumentSource(
+        id="iaea-1",
+        name="Doc",
+        url="https://iaea.org/x",
+        folder="IAEA",
+        filename_hint=None,
+    )
     with patch("document_updates._load_registry", return_value=[source]):
         with patch("document_updates.get_local_pdf_path", return_value=pdf):
             res = client.get("/api/documents/source/iaea-1/file")

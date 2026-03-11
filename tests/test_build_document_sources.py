@@ -1,9 +1,6 @@
 """Tests for build_document_sources module."""
 
-from pathlib import Path
 from unittest.mock import patch
-
-import pytest
 
 import build_document_sources as bds
 
@@ -36,4 +33,6 @@ def test_extract_iaea_search_terms_nonexistent(tmp_path):
     terms = bds._extract_iaea_search_terms(path)
     assert isinstance(terms, list)
     assert len(terms) >= 1
-    assert any("1380" in t or "tecdoc" in t.lower() or "iaea" in t.lower() for t in terms) or "iaea tecdoc 1380" in [t.lower() for t in terms]
+    assert any(
+        "1380" in t or "tecdoc" in t.lower() or "iaea" in t.lower() for t in terms
+    ) or "iaea tecdoc 1380" in [t.lower() for t in terms]

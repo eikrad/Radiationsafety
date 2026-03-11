@@ -21,14 +21,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     gemini: false,
     openai: false,
   })
-  const [documentSearchEnabled, setDocumentSearchEnabled] = useState(loadDocumentSearchEnabled)
+  const [documentSearchEnabled, setDocumentSearchEnabled] = useState(loadDocumentSearchEnabled())
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return
+    queueMicrotask(() => {
       setKeys(loadApiKeys())
       setVariants(loadModelVariants())
       setDocumentSearchEnabled(loadDocumentSearchEnabled())
-    }
+    })
   }, [isOpen])
 
   function handleChange(model: Model, value: string) {

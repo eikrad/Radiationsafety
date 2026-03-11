@@ -22,7 +22,9 @@ def test_get_llm_returns_mistral_when_set(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "mistral")
     monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
     llm = get_llm()
-    assert "mistral" in type(llm).__module__.lower() or "MistralAI" in type(llm).__name__
+    assert (
+        "mistral" in type(llm).__module__.lower() or "MistralAI" in type(llm).__name__
+    )
 
 
 def test_get_llm_gemini_uses_GEMINI_MODEL_env(monkeypatch):
@@ -66,10 +68,17 @@ def test_get_embedding_provider_mistral_uses_gemini_embeddings(monkeypatch):
 def test_get_embeddings_returns_gemini_by_default(monkeypatch):
     """Default embeddings are Google when LLM_PROVIDER not set."""
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
-    fake_emb = type("GoogleGenerativeAIEmbeddings", (), {"__module__": "langchain_google_genai"})()
-    with patch("langchain_google_genai.GoogleGenerativeAIEmbeddings", MagicMock(return_value=fake_emb)):
+    fake_emb = type(
+        "GoogleGenerativeAIEmbeddings", (), {"__module__": "langchain_google_genai"}
+    )()
+    with patch(
+        "langchain_google_genai.GoogleGenerativeAIEmbeddings",
+        MagicMock(return_value=fake_emb),
+    ):
         from graph.llm_factory import get_embeddings
 
         emb = get_embeddings()
     cls = type(emb)
-    assert cls.__name__ == "GoogleGenerativeAIEmbeddings", f"expected GoogleGenerativeAIEmbeddings, got {cls.__name__}"
+    assert (
+        cls.__name__ == "GoogleGenerativeAIEmbeddings"
+    ), f"expected GoogleGenerativeAIEmbeddings, got {cls.__name__}"

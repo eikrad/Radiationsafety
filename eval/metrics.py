@@ -51,7 +51,12 @@ def _docs_to_context_for_generation_grader(documents: list[Document]) -> str:
         block = _format_doc_for_context(d)
         need = len(block) + (sep_len if parts else 0)
         if total + need > MAX_CONTEXT_CHARS_GENERATION_GRADER:
-            remaining = MAX_CONTEXT_CHARS_GENERATION_GRADER - total - (sep_len if parts else 0) - 20
+            remaining = (
+                MAX_CONTEXT_CHARS_GENERATION_GRADER
+                - total
+                - (sep_len if parts else 0)
+                - 20
+            )
             if remaining > 0 and block:
                 parts.append(block[:remaining] + "...")
             break
@@ -60,7 +65,9 @@ def _docs_to_context_for_generation_grader(documents: list[Document]) -> str:
     return sep.join(parts)
 
 
-def _grader_context(documents: list[Document], context_used_for_generation: str = "") -> str:
+def _grader_context(
+    documents: list[Document], context_used_for_generation: str = ""
+) -> str:
     """Context for generation grader: use exact generator context when available (so eval matches graph)."""
     if (context_used_for_generation or "").strip():
         return context_used_for_generation.strip()
@@ -138,10 +145,15 @@ def context_precision_per_chunk(
             text += "..."
         chunks_str_parts.append(f"Chunk {i}:\n{text}")
     chunks_str = "\n\n".join(chunks_str_parts)
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a grader. For each chunk below, output 1 if it is relevant to answering the question, 0 otherwise. Reply with a single line of comma-separated 0s and 1s, one per chunk in order (e.g. 1,0,1,0)."),
-        ("human", "Question: {question}\n\n{chunks}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "You are a grader. For each chunk below, output 1 if it is relevant to answering the question, 0 otherwise. Reply with a single line of comma-separated 0s and 1s, one per chunk in order (e.g. 1,0,1,0).",
+            ),
+            ("human", "Question: {question}\n\n{chunks}"),
+        ]
+    )
     model = llm or get_llm()
     chain = prompt | model
     out = chain.invoke({"question": question, "chunks": chunks_str})
@@ -149,7 +161,11 @@ def context_precision_per_chunk(
     text = content if isinstance(content, str) else str(out)
     numbers = [int(x.strip()) for x in re.split(r"[\s,]+", text) if x.strip().isdigit()]
     if len(numbers) != len(docs):
-        numbers = numbers[:len(docs)] if len(numbers) > len(docs) else numbers + [0] * (len(docs) - len(numbers))
+        numbers = (
+            numbers[: len(docs)]
+            if len(numbers) > len(docs)
+            else numbers + [0] * (len(docs) - len(numbers))
+        )
     if not numbers:
         return 0.0
     k_vals = [k for k in (1, 3, 5) if k <= len(numbers)]
@@ -199,12 +215,18 @@ def compute_all_metrics(
     )
     return {
         "faithfulness": faithfulness(
-            question, generation, documents,
-            llm=llm, context_used_for_generation=context_used_for_generation,
+            question,
+            generation,
+            documents,
+            llm=llm,
+            context_used_for_generation=context_used_for_generation,
         ),
         "answer_relevance": answer_relevance(
-            question, generation, documents,
-            llm=llm, context_used_for_generation=context_used_for_generation,
+            question,
+            generation,
+            documents,
+            llm=llm,
+            context_used_for_generation=context_used_for_generation,
         ),
         "context_precision": precision_fn(question, documents, llm=llm),
         "context_recall": context_recall(

@@ -23,3 +23,6 @@ eval/reports/
 
 # LibreOffice lock files (do not commit)
 .~lock.*
+
+# Document registry (generated or from example; remove this line to commit a shared registry)
+document_sources.yaml

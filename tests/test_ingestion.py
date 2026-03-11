@@ -1,13 +1,9 @@
 """Ingestion pipeline tests."""
 
-from pathlib import Path
-
-import pytest
-
 import ingestion
 from ingestion import (
-    IAEA_COLLECTION,
     DK_LAW_COLLECTION,
+    IAEA_COLLECTION,
     get_collection_names,
     load_dk_law_docs,
     load_iaea_docs,
@@ -49,6 +45,7 @@ def test_load_dk_law_docs_returns_empty_for_empty_dir(tmp_path, monkeypatch):
 def test_rotate_backups_keeps_only_keep_newest(tmp_path):
     """rotate_backups deletes older files so only `keep` most recent remain."""
     import time
+
     from ingestion import rotate_backups
 
     (tmp_path / "a_1.xml").write_text("1")

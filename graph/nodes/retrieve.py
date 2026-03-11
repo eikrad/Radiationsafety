@@ -1,14 +1,14 @@
 """Retrieve documents from both IAEA and Danish law collections."""
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, Optional
+from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
+from graph.i18n import detect_language, get_warning_embeddings_not_built
 from graph.llm_factory import get_embedding_provider
 from graph.state import GraphState
-from graph.i18n import detect_language, get_warning_embeddings_not_built
 from ingestion import check_embedding_collections_ready, get_retrievers
 
 
@@ -22,7 +22,7 @@ def _retrieval_query(question: str, chat_history: list[tuple[str, str]]) -> str:
     return f"Previous: {last_q}. Assistant: {a_snippet}. Current question: {question}"
 
 
-def retrieve(state: GraphState, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[str, Any]:
     """Query both collections in parallel, merge and deduplicate by content."""
     question = state["question"]
     chat_history = state.get("chat_history") or []
