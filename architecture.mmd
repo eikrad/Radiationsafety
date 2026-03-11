@@ -1,0 +1,26 @@
+flowchart TB
+    subgraph main [RAG flow]
+        RETRIEVE[Retrieve]
+        GRADE[Grade documents]
+        RETRIEVE_MISSING[Retrieve missing]
+        WEB_SEARCH[Web search]
+        GENERATE[Generate]
+        PREPARE_RETRY[Prepare retry]
+        VERIFY[Verify trusted]
+        FINALIZE[Finalize]
+    end
+
+    RETRIEVE --> GRADE
+    GRADE -->|"docs OK or web search off"| GENERATE
+    GRADE -->|"docs insufficient, web search on"| RETRIEVE_MISSING
+    RETRIEVE_MISSING -->|"sufficient or retry path"| GENERATE
+    RETRIEVE_MISSING -->|"still insufficient, count < 3"| RETRIEVE_MISSING
+    RETRIEVE_MISSING -->|"max retrievals reached"| WEB_SEARCH
+    WEB_SEARCH --> GENERATE
+    GENERATE -->|"grounded and useful"| VERIFY
+    GENERATE -->|"not grounded, retries left"| PREPARE_RETRY
+    GENERATE -->|"not grounded, no retries"| WEB_SEARCH
+    GENERATE -->|"not useful, end"| VERIFY
+    PREPARE_RETRY --> RETRIEVE_MISSING
+    VERIFY --> FINALIZE
+    FINALIZE --> EndNode([End])

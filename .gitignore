@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Chroma vector DB (too large for repo; use release asset or run ingestion)
+.chroma/
+
 # Environment
 .env
 

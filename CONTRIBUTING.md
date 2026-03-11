@@ -26,6 +26,10 @@ CI runs both on push and on pull requests.
 - **Formatting:** `black .` and `isort .` (config in `pyproject.toml`).
 - **Linting / type checking:** `uv run ruff check .` and `uv run mypy .` (see `pyproject.toml`). Fix any reported issues before submitting.
 
+## Documentation
+
+- **Architecture diagram:** The README shows `architecture.png`, generated from `architecture.mmd`. If you change the RAG graph (nodes or flow in `graph/`), update `architecture.mmd` and regenerate the image: `uv run python scripts/render_architecture.py`, then commit the updated PNG.
+
 ## Pull requests
 
 - Open a PR against the default branch. Ensure tests and lint pass (CI will run them).

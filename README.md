@@ -9,47 +9,27 @@ RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIB
 
 The query flow is implemented as a [LangGraph](https://langchain-ai.github.io/langgraph/) state graph: retrieval from the vector store, optional document grading and extra retrieval, optional web-search fallback, generation, grounding check with retries, and trusted-source verification.
 
-```mermaid
-flowchart TB
-    subgraph main [RAG flow]
-        RETRIEVE[Retrieve]
-        GRADE[Grade documents]
-        RETRIEVE_MISSING[Retrieve missing]
-        WEB_SEARCH[Web search]
-        GENERATE[Generate]
-        PREPARE_RETRY[Prepare retry]
-        VERIFY[Verify trusted]
-        FINALIZE[Finalize]
-    end
+![RAG flow](architecture.png)
 
-    RETRIEVE --> GRADE
-    GRADE -->|"docs OK or web search off"| GENERATE
-    GRADE -->|"docs insufficient, web search on"| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|"sufficient or retry path"| GENERATE
-    RETRIEVE_MISSING -->|"still insufficient, count < 3"| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|"max retrievals reached"| WEB_SEARCH
-    WEB_SEARCH --> GENERATE
-    GENERATE -->|"grounded and useful"| VERIFY
-    GENERATE -->|"not grounded, retries left"| PREPARE_RETRY
-    GENERATE -->|"not grounded, no retries"| WEB_SEARCH
-    GENERATE -->|"not useful, end"| VERIFY
-    PREPARE_RETRY --> RETRIEVE_MISSING
-    VERIFY --> FINALIZE
-    FINALIZE --> EndNode([End])
-```
+Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scripts/render_architecture.py`.
 
 ## Running with Docker
 
-The repo includes a pre-built vector DB (`.chroma`) in the image, so you can run the app without running ingestion yourself.
+The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
 
-1. Copy `.env.example` to `.env` and set at least `LLM_PROVIDER` and the matching API key (`GOOGLE_API_KEY` or `MISTRAL_API_KEY`) for queries.
+1. Copy `.env.example` to `.env` and set `LLM_PROVIDER` and the matching API key (`GOOGLE_API_KEY` or `MISTRAL_API_KEY`); the same keys are used for ingestion.
 2. From the project root:
    ```bash
    docker compose up --build
    ```
-3. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend; no ingestion step is required.
+3. In another terminal, run ingestion once (fills the persisted `chroma_data` volume):
+   ```bash
+   docker compose run --rm backend python ingestion.py
+   ```
+   Wait for it to finish, then stop the stack (`Ctrl+C`) and start again with `docker compose up` so the backend loads the new DB.
+4. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend.
 
-If the backend build fails with a missing `.chroma` directory, the repo does not yet include the pre-built DB. Run ingestion once locally (see Setup, step 4), then `git add .chroma` and commit, and rebuild. To refresh the document base later (e.g. after changing `LLM_PROVIDER`), see CONTRIBUTING or run ingestion in a one-off container.
+The backend uses a named volume `chroma_data` for `.chroma`, so you only need to run ingestion once per environment. To refresh the document base (e.g. after changing `LLM_PROVIDER`), run the ingestion command again.
 
 ## Setup
 

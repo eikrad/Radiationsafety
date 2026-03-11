@@ -6,6 +6,8 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    volumes:
+      - chroma_data:/app/.chroma
     restart: unless-stopped
 
   frontend:
@@ -17,3 +19,6 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  chroma_data:

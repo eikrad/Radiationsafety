@@ -19,4 +19,4 @@ eval/reports
 *.md
 !README.md
 
-# Do NOT ignore .chroma – the backend image includes the pre-built vector DB
+# .chroma is not in the image; backend uses an empty dir and a volume (run ingestion once)
