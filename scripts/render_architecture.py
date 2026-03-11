@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Regenerate architecture.png from architecture.mmd using mermaid.ink (no local Mermaid/Node required)."""
+
 import base64
 import urllib.request
 from pathlib import Path

@@ -1,6 +1,9 @@
 export const MODELS = ['mistral', 'gemini', 'openai'] as const
 export type Model = (typeof MODELS)[number]
 
+/** Base path for backend API (Vite dev proxy and production nginx use /api). */
+export const API_BASE = '/api'
+
 export const STORAGE_KEYS = {
   model: 'radiation-safety-model',
   apiKeys: 'radiation-safety-api-keys',

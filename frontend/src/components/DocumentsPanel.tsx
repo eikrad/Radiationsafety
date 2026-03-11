@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { API_BASE } from '../constants'
 import { loadDocumentSearchEnabled } from '../storage'
-
-const API_BASE = '/api'
 
 export interface DocumentSourceStatus {
   id: string

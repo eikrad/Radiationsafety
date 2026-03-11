@@ -4,12 +4,10 @@ import { ModelSelector } from './components/ModelSelector'
 import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
-import { MODELS, STORAGE_KEYS, type Model } from './constants'
+import { API_BASE, MODELS, STORAGE_KEYS, type Model } from './constants'
 import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage } from './storage'
 import type { Message, QueryResponse } from './types'
 import './App.css'
-
-const API_BASE = '/api'
 
 function loadStoredModel(): Model {
   try {

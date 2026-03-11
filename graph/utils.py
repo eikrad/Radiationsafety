@@ -6,6 +6,17 @@ import time
 from graph.consts import env_bool
 
 
+def _parse_delay_sec(env_var: str) -> float:
+    """Read env var, parse as float; return 0 if missing/invalid."""
+    raw = (os.getenv(env_var) or "").strip()
+    if not raw:
+        return 0.0
+    try:
+        return float(raw)
+    except ValueError:
+        return 0.0
+
+
 def chat_context_prefix(chat_history: list, max_answer_chars: int = 400) -> str:
     """Prefix for LLM context so follow-up hints (e.g. 'answer is in section 5') are used.
     Formats the last user/assistant exchange with the assistant reply truncated to max_answer_chars.
@@ -27,24 +38,12 @@ def throttle_llm_if_needed() -> None:
     """
     prov = (os.getenv("LLM_PROVIDER") or "gemini").lower()
     if prov == "gemini":
-        raw = (os.getenv("GEMINI_MIN_DELAY_SEC") or "").strip()
-        if raw:
-            try:
-                delay = float(raw)
-                if delay > 0:
-                    time.sleep(delay)
-            except ValueError:
-                pass
+        delay = _parse_delay_sec("GEMINI_MIN_DELAY_SEC")
+        if delay > 0:
+            time.sleep(delay)
         return
     if not env_bool("WEB_SEARCH_ENABLED"):
         return
-    raw = (os.getenv("MISTRAL_MIN_DELAY_SEC") or "").strip()
-    if not raw:
-        return
-    try:
-        delay = float(raw)
-    except ValueError:
-        return
-    if delay <= 0:
-        return
-    time.sleep(delay)
+    delay = _parse_delay_sec("MISTRAL_MIN_DELAY_SEC")
+    if delay > 0:
+        time.sleep(delay)

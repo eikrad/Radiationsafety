@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-const API_BASE = '/api'
+import { API_BASE } from '../constants'
 
 export interface DocumentSourceStatus {
   id: string
