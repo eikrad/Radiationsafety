@@ -62,6 +62,9 @@ GEMINI_BATCH_SIZE = 200
 IAEA_MAX_TOKENS = 256  # ~800 chars
 DK_MAX_TOKENS = 512  # ~2500 chars
 
+# Cached HybridChunker instances keyed by max_tokens — avoids reloading the tokeniser per file.
+_chunker_cache: dict[int, HybridChunker] = {}
+
 
 def _gemini_batch_delay_sec() -> float:
     """Seconds to wait between Gemini embedding batches. 0 or unset = no delay (paid tier). Set to 65 for free tier."""
@@ -415,16 +418,18 @@ def _load_pdf_with_docling(
     """
     label = source_label or str(file_path)
     try:
+        if max_tokens not in _chunker_cache:
+            _chunker_cache[max_tokens] = HybridChunker(max_tokens=max_tokens)
         loader = DoclingLoader(
             file_path=str(file_path),
-            chunker=HybridChunker(max_tokens=max_tokens),
+            chunker=_chunker_cache[max_tokens],
         )
         docs = loader.load()
         for d in docs:
             d.metadata["source"] = label
         return docs
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}")
     # Fallback: pypdf plain-text extraction
     reader = PdfReader(str(file_path))
     docs = []
@@ -440,13 +445,14 @@ def _load_pdf_with_docling(
     return docs
 
 
-def _extract_and_load_attachments(parent_path: Path) -> list[Document]:
-    """Extract embedded PDF attachments from a PDF and load them with table support."""
+def _extract_and_load_attachments(parent_path: Path, reader: PdfReader | None = None) -> list[Document]:
+    """Extract embedded PDF attachments from a PDF and load them."""
     all_docs = []
-    try:
-        reader = PdfReader(str(parent_path))
-    except Exception:
-        return []
+    if reader is None:
+        try:
+            reader = PdfReader(str(parent_path))
+        except Exception:
+            return []
     if not hasattr(reader, "attachments") or not reader.attachments:
         return []
     for att_name, content_list in reader.attachments.items():
@@ -454,15 +460,11 @@ def _extract_and_load_attachments(parent_path: Path) -> list[Document]:
             if not isinstance(content, (bytes, bytearray)):
                 continue
             suffix = ".pdf" if not str(att_name).lower().endswith(".pdf") else ""
-            fd, tmp_path = tempfile.mkstemp(suffix=suffix)
             try:
-                with os.fdopen(fd, "wb") as f:
+                with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+                    tmp_path = f.name
                     f.write(content)
             except Exception:
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
                 continue
             try:
                 label = f"{parent_path.name} (Anhang: {att_name})"
@@ -499,10 +501,15 @@ def load_dk_law_docs():
             for d in docs:
                 d.metadata["document_type"] = "Danish law"
             all_docs.extend(docs)
-            attach_docs = _extract_and_load_attachments(pdf_path)
-            if attach_docs:
-                print(f"    + {len(attach_docs)} pages from attachments")
-                all_docs.extend(attach_docs)
+            try:
+                reader = PdfReader(str(pdf_path))
+            except Exception:
+                reader = None
+            if reader is not None:
+                attach_docs = _extract_and_load_attachments(pdf_path, reader=reader)
+                if attach_docs:
+                    print(f"    + {len(attach_docs)} pages from attachments")
+                    all_docs.extend(attach_docs)
         except Exception as e:
             print(f"    Warning: skipped {pdf_path.name}: {e}")
     return all_docs
@@ -553,8 +560,8 @@ def ingest():
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
     PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
-    inside _load_docs_from_registry. Uses Gemini embeddings only (GOOGLE_API_KEY required).
-    The same vector store is used for retrieval regardless of LLM_PROVIDER.
+    inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
+    (gemini requires GOOGLE_API_KEY; mistral uses a separate collection suffix).
     """
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
