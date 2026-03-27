@@ -15,12 +15,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from langchain_community.document_loaders import (
-    DirectoryLoader,
-    PyMuPDFLoader,
-    PyPDFLoader,
-)
+from docling.chunking import HybridChunker
 from langchain_core.documents import Document
+from langchain_docling import DoclingLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 
@@ -60,6 +57,10 @@ DK_LAW_COLLECTION = "radiation-dk-law"
 
 # Google Gemini: batch size for embeddings. Delay between batches is from GEMINI_BATCH_DELAY_SEC env (0 or unset = no delay, e.g. 65 for free tier).
 GEMINI_BATCH_SIZE = 200
+
+# Docling HybridChunker token budgets (approximates previous character-based chunk sizes).
+IAEA_MAX_TOKENS = 256  # ~800 chars
+DK_MAX_TOKENS = 512  # ~2500 chars
 
 
 def _gemini_batch_delay_sec() -> float:
@@ -303,7 +304,11 @@ def _save_danish_current_and_trim_backups(
 
 
 def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
-    """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF. Returns (iaea_docs, dk_docs)."""
+    """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF.
+
+    Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
+    XML-sourced Danish docs are split here with RecursiveCharacterTextSplitter.
+    """
     try:
         from document_updates import update_registry_url, update_version_after_ingest
         from ingestion_fetch import (
@@ -316,6 +321,11 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
     sources = load_sources_registry()
     if not sources:
         return [], []
+    text_splitter_dk = RecursiveCharacterTextSplitter(
+        chunk_size=2500,
+        chunk_overlap=200,
+        separators=["\n\n", "§ ", "\n", ". ", " ", ""],
+    )
     iaea_docs: list[Document] = []
     dk_docs: list[Document] = []
     for s in sources:
@@ -335,7 +345,7 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
                 docs = _load_retsinformation_xml(path, label)
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
-                dk_docs.extend(docs)
+                dk_docs.extend(text_splitter_dk.split_documents(docs))
                 if resolved_url and resolved_url != url:
                     try:
                         update_registry_url(source_id, resolved_url)
@@ -354,14 +364,13 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
                 except OSError:
                     pass
             continue
-        # IAEA or other: PDF
+        # IAEA or other: PDF — docling returns pre-chunked docs
         path, label = fetch_pdf_for_source(source_id, name, url, folder)
         if path is None:
             continue
         try:
-            docs = PyPDFLoader(str(path)).load()
+            docs = _load_pdf_with_docling(path, source_label=label, max_tokens=IAEA_MAX_TOKENS)
             for d in docs:
-                d.metadata["source"] = label
                 d.metadata["document_type"] = "IAEA"
             iaea_docs.extend(docs)
             try:
@@ -376,105 +385,39 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
     return iaea_docs, dk_docs
 
 
-def load_iaea_docs():
+def load_iaea_docs() -> list[Document]:
     """Load PDFs from IAEA and IAEA_other directories."""
-    iaea_path = DOCS_DIR / "IAEA"
-    iaea_other_path = DOCS_DIR / "IAEA_other"
     all_docs = []
-    for base_path in [iaea_path, iaea_other_path]:
+    for base_path in [DOCS_DIR / "IAEA", DOCS_DIR / "IAEA_other"]:
         if not base_path.exists():
             continue
-        loader = DirectoryLoader(
-            str(base_path),
-            glob="**/*.pdf",
-            loader_cls=PyPDFLoader,
-            show_progress=True,
-        )
-        docs = loader.load()
-        for d in docs:
-            d.metadata["document_type"] = "IAEA"
-        all_docs.extend(docs)
+        for pdf_path in sorted(base_path.rglob("*.pdf")):
+            print(f"  {pdf_path.name}")
+            try:
+                docs = _load_pdf_with_docling(pdf_path, max_tokens=IAEA_MAX_TOKENS)
+                for d in docs:
+                    d.metadata["document_type"] = "IAEA"
+                all_docs.extend(docs)
+            except Exception as e:
+                print(f"    Warning: skipped {pdf_path.name}: {e}")
     return all_docs
 
 
-def _table_to_markdown(table: list[list[str | None]]) -> str:
-    """Convert pdfplumber table (list of rows) to markdown."""
-    if not table:
-        return ""
-    rows = [[str(cell or "") for cell in row] for row in table]
-    col_count = max(len(r) for r in rows)
-    for r in rows:
-        r.extend([""] * (col_count - len(r)))
-    lines = ["| " + " | ".join(rows[0]) + " |"]
-    lines.append("|" + "|".join(["---"] * col_count) + "|")
-    for row in rows[1:]:
-        lines.append("| " + " | ".join(row) + " |")
-    return "\n".join(lines)
-
-
-def _load_pdf_with_pdfplumber_tables(
-    file_path: str | Path, source_label: str | None = None
+def _load_pdf_with_docling(
+    file_path: str | Path,
+    source_label: str | None = None,
+    max_tokens: int = IAEA_MAX_TOKENS,
 ) -> list[Document]:
-    """Load PDF with pdfplumber. Uses 'lines' strategy for tables with visible grid (e.g. Limits)."""
-    import pdfplumber
+    """Load and chunk a PDF using docling's HybridChunker.
 
-    label = source_label or str(file_path)
-    docs = []
-    table_settings = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
-    header_row: list[str] | None = None
-    with pdfplumber.open(str(file_path)) as pdf:
-        for i, page in enumerate(pdf.pages):
-            parts = []
-            tables = page.extract_tables(table_settings=table_settings)
-            for t in tables:
-                md = _table_to_markdown(t)
-                if md:
-                    if header_row is None and t:
-                        header_row = [str(c or "") for c in t[0]]
-                    elif header_row and t and len(t[0]) == len(header_row) and i > 0:
-                        md = _table_to_markdown([header_row] + t)
-                    parts.append(md)
-            text = page.extract_text() or ""
-            if not parts:
-                if text:
-                    parts.append(text)
-            elif text:
-                parts.insert(0, text)
-            content = "\n\n".join(parts).strip()
-            if content:
-                doc = Document(
-                    page_content=content,
-                    metadata={
-                        "source": label,
-                        "page": i,
-                        "total_pages": len(pdf.pages),
-                    },
-                )
-                docs.append(doc)
-    return docs
-
-
-def _load_pdf_with_tables(
-    file_path: str | Path, source_label: str | None = None
-) -> list[Document]:
-    """Load PDF with table extraction. Tries pdfplumber first (best for borderless tables), then PyMuPDF, then PyPDF."""
+    Returns pre-chunked Documents with source metadata set. Falls back to
+    pypdf plain-text extraction if docling fails.
+    """
     label = source_label or str(file_path)
     try:
-        docs = _load_pdf_with_pdfplumber_tables(file_path, source_label=label)
-        if docs:
-            return docs
-    except Exception:
-        pass
-    table_settings = {
-        "vertical_strategy": "lines",
-        "horizontal_strategy": "lines",
-    }
-    try:
-        loader = PyMuPDFLoader(
-            str(file_path),
-            extract_tables="markdown",
-            mode="page",
-            extract_tables_settings=table_settings,
+        loader = DoclingLoader(
+            file_path=str(file_path),
+            chunker=HybridChunker(max_tokens=max_tokens),
         )
         docs = loader.load()
         for d in docs:
@@ -482,10 +425,18 @@ def _load_pdf_with_tables(
         return docs
     except Exception:
         pass
-    loader = PyPDFLoader(str(file_path))
-    docs = loader.load()
-    for d in docs:
-        d.metadata["source"] = label
+    # Fallback: pypdf plain-text extraction
+    reader = PdfReader(str(file_path))
+    docs = []
+    for i, page in enumerate(reader.pages):
+        text = page.extract_text() or ""
+        if text.strip():
+            docs.append(
+                Document(
+                    page_content=text,
+                    metadata={"source": label, "page": i},
+                )
+            )
     return docs
 
 
@@ -515,7 +466,7 @@ def _extract_and_load_attachments(parent_path: Path) -> list[Document]:
                 continue
             try:
                 label = f"{parent_path.name} (Anhang: {att_name})"
-                docs = _load_pdf_with_tables(tmp_path, source_label=label)
+                docs = _load_pdf_with_docling(tmp_path, source_label=label, max_tokens=DK_MAX_TOKENS)
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
                     d.metadata["parent_document"] = str(parent_path.name)
@@ -533,8 +484,8 @@ def _extract_and_load_attachments(parent_path: Path) -> list[Document]:
 def load_dk_law_docs():
     """Load PDFs from Bekendtgørelse (Danish legislation) directory.
 
-    Uses PyMuPDF with extract_tables='markdown' for proper table extraction,
-    and loads embedded PDF attachments (Anhänge) that often contain tables.
+    Uses docling HybridChunker for PDF parsing and loads embedded PDF
+    attachments (Anhänge) that often contain tables.
     """
     dk_path = DOCS_DIR / "Bekendtgørelse"
     if not dk_path.exists():
@@ -544,7 +495,7 @@ def load_dk_law_docs():
     for i, pdf_path in enumerate(pdf_files):
         print(f"  [{i + 1}/{len(pdf_files)}] {pdf_path.name}")
         try:
-            docs = _load_pdf_with_tables(pdf_path)
+            docs = _load_pdf_with_docling(pdf_path, max_tokens=DK_MAX_TOKENS)
             for d in docs:
                 d.metadata["document_type"] = "Danish law"
             all_docs.extend(docs)
@@ -599,59 +550,37 @@ def _add_documents_gemini_rate_limited(
 
 
 def ingest():
-    """Run full ingestion: load PDFs (local + from document_sources URLs), split, embed, persist to Chroma.
+    """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
-    Uses Gemini embeddings only (GOOGLE_API_KEY required). The same vector store is used for
-    retrieval regardless of LLM_PROVIDER (generation can be Gemini, OpenAI, or Mistral).
+    PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
+    inside _load_docs_from_registry. Uses Gemini embeddings only (GOOGLE_API_KEY required).
+    The same vector store is used for retrieval regardless of LLM_PROVIDER.
     """
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
     _clear_chroma_collections(ep)
-
-    text_splitter_iaea = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=100,
-        separators=["\n\n", "\n", ". ", " ", ""],
-    )
-    text_splitter_dk = RecursiveCharacterTextSplitter(
-        chunk_size=2500,
-        chunk_overlap=200,
-        separators=["\n\n", "§ ", "\n", ". ", " ", ""],
-    )
     embeddings = get_embeddings(ep)
 
-    # Load from document_sources.yaml URLs (Retsinformation, IAEA, direct PDFs)
+    # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
     iaea_from_url, dk_from_url = _load_docs_from_registry()
     if iaea_from_url:
-        print(f"  Loaded {len(iaea_from_url)} pages from registry URLs (IAEA)")
+        print(f"  Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
     if dk_from_url:
-        print(f"  Loaded {len(dk_from_url)} pages from registry URLs (Danish)")
+        print(f"  Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
 
-    # IAEA collection: local dirs + registry URLs
+    # IAEA collection: local dirs + registry URLs — all pre-chunked
     iaea_docs = load_iaea_docs()
     iaea_docs.extend(iaea_from_url)
     if iaea_docs:
-        iaea_splits = text_splitter_iaea.split_documents(iaea_docs)
-        _add_documents_rate_limited(
-            iaea_splits,
-            iaea_name,
-            embeddings,
-            str(_CHROMA_DIR),
-        )
-        print(f"Ingested {len(iaea_splits)} chunks into {iaea_name}")
+        _add_documents_rate_limited(iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR))
+        print(f"Ingested {len(iaea_docs)} chunks into {iaea_name}")
 
-    # Danish law collection: local dirs + registry URLs
+    # Danish law collection: local dirs + registry URLs — all pre-chunked
     dk_docs = load_dk_law_docs()
     dk_docs.extend(dk_from_url)
     if dk_docs:
-        dk_splits = text_splitter_dk.split_documents(dk_docs)
-        _add_documents_rate_limited(
-            dk_splits,
-            dk_name,
-            embeddings,
-            str(_CHROMA_DIR),
-        )
-        print(f"Ingested {len(dk_splits)} chunks into {dk_name}")
+        _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
+        print(f"Ingested {len(dk_docs)} chunks into {dk_name}")
 
 
 _retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
@@ -688,24 +617,17 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
 def add_single_pdf_to_collection(
     pdf_path: Path, *, folder: str = "IAEA_other", source_label: str | None = None
 ) -> int:
-    """Load one PDF, split, embed, and add to the IAEA Chroma collection for current embedding provider. Returns chunk count."""
+    """Load one PDF, chunk, embed, and add to the IAEA Chroma collection for current embedding provider. Returns chunk count."""
     if not pdf_path.exists() or pdf_path.suffix.lower() != ".pdf":
         raise ValueError("Not a PDF file or file missing")
     label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace(
         "-", " "
     )
-    docs = PyPDFLoader(str(pdf_path)).load()
-    for d in docs:
-        d.metadata["source"] = label
+    splits = _load_pdf_with_docling(pdf_path, source_label=label, max_tokens=IAEA_MAX_TOKENS)
+    for d in splits:
         d.metadata["document_type"] = "IAEA"
-    if not docs:
+    if not splits:
         return 0
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=800,
-        chunk_overlap=100,
-        separators=["\n\n", "\n", ". ", " ", ""],
-    )
-    splits = text_splitter.split_documents(docs)
     ep = get_embedding_provider()
     iaea_name, _ = get_collection_names(ep)
     embeddings = get_embeddings(ep)
