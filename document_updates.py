@@ -1015,11 +1015,24 @@ def check_one_source(
     # Danish (Bekendtgørelse): sst.dk (Brave search) or retsinformation.dk (probe + Brave search + "Senere ændringer")
     is_danish = (source.folder or "").strip() == "Bekendtgørelse"
     if is_danish:
+        if _is_sst_source(source):
+            # SST update detection is currently search-based and can produce
+            # false positives. Keep SST checks manual until we have a
+            # deterministic versioning signal.
+            result["remote_version"] = "Manual check required (SST auto-detection disabled)"
+            result["download_url"] = source.url or ""
+            result["update_available"] = False
+            result["resolver_source"] = "sst_manual_only"
+            result["resolution_evidence"] = {
+                "reason": "sst_auto_detection_disabled",
+                "note": "SST sources require manual verification of new versions.",
+            }
+            return result
         legacy_resolved = _resolve_danish_source(
             source, current_version=current, reject_older=True
         )
         eli_resolved, eli_evidence = _resolve_danish_source_via_eli(
-            source, current_version=current, reject_older=True
+            source, current_version=current, reject_older=False
         )
         resolved = legacy_resolved
         resolver_source = "legacy"
