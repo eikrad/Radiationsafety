@@ -1,26 +1,36 @@
+%%{init: {'theme': 'default', 'flowchart': {'curve': 'linear', 'nodeSpacing': 45, 'rankSpacing': 60}, 'themeVariables': {'fontSize': '18px'}}}%%
 flowchart TB
-    subgraph main [RAG flow]
+    USER([User question]) --> VALIDATE[Validate request\nlength/history/keys]
+    VALIDATE --> NONQ{Non-question\nshortcut?}
+    NONQ -->|yes| QUICK_REPLY[Return canned\nacknowledgement reply]
+    NONQ -->|no| MODEL[Resolve provider/API key\nbuild LLM + embeddings]
+
+    subgraph GRAPH [LangGraph execution]
+        direction TB
         RETRIEVE[Retrieve]
         GRADE[Grade documents]
         RETRIEVE_MISSING[Retrieve missing]
-        WEB_SEARCH[Web search]
-        GENERATE[Generate]
+        WEB_SEARCH[Web search fallback]
+        GENERATE[Generate answer]
         PREPARE_RETRY[Prepare retry]
-        VERIFY[Verify trusted]
-        FINALIZE[Finalize]
+        VERIFY[Verify trusted sources]
+        FINALIZE[Finalize warning/labels]
     end
 
+    MODEL --> RETRIEVE
     RETRIEVE --> GRADE
-    GRADE -->|"docs OK or web search off"| GENERATE
-    GRADE -->|"docs insufficient, web search on"| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|"sufficient or retry path"| GENERATE
-    RETRIEVE_MISSING -->|"still insufficient, count < 3"| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|"max retrievals reached"| WEB_SEARCH
+    GRADE -->|"docs OK / web off"| GENERATE
+    GRADE -->|"docs low + web on"| RETRIEVE_MISSING
+    RETRIEVE_MISSING -->|"enough docs or retry path"| GENERATE
+    RETRIEVE_MISSING -->|"still low,\nretrieval_count < 3"| RETRIEVE_MISSING
+    RETRIEVE_MISSING -->|"retrieval cap reached"| WEB_SEARCH
     WEB_SEARCH --> GENERATE
     GENERATE -->|"grounded and useful"| VERIFY
-    GENERATE -->|"not grounded, retries left"| PREPARE_RETRY
-    GENERATE -->|"not grounded, no retries"| WEB_SEARCH
-    GENERATE -->|"not useful, end"| VERIFY
+    GENERATE -->|"not grounded/useful,\nretries left"| PREPARE_RETRY
+    GENERATE -->|"not grounded/useful,\nno retries left"| WEB_SEARCH
+    GENERATE -->|"web off + poor grounding"| VERIFY
     PREPARE_RETRY --> RETRIEVE_MISSING
     VERIFY --> FINALIZE
-    FINALIZE --> EndNode([End])
+
+    QUICK_REPLY --> RESPONSE([API response])
+    FINALIZE --> RESPONSE

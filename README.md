@@ -7,9 +7,9 @@ RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIB
 
 ## Architecture
 
-The query flow is implemented as a [LangGraph](https://langchain-ai.github.io/langgraph/) state graph: retrieval from the vector store, optional document grading and extra retrieval, optional web-search fallback, generation, grounding check with retries, and trusted-source verification.
+The architecture includes an API pre-processing stage and a [LangGraph](https://langchain-ai.github.io/langgraph/) execution stage. The API validates inputs, short-circuits non-question acknowledgements, resolves provider/API-key settings, and then invokes the graph for retrieval, document grading, optional extra retrieval and web-search fallback, generation, grounding retries, and trusted-source verification.
 
-![RAG flow](architecture.png)
+![RAG flow](architecture.svg)
 
 Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scripts/render_architecture.py`.
 
