@@ -373,7 +373,9 @@ def test_sync_danish_legislation_apply_updates(monkeypatch):
     )
     updated: list[tuple[str, str]] = []
     versions: list[tuple[str, str]] = []
-    monkeypatch.setattr(du, "update_registry_url", lambda sid, url: updated.append((sid, url)))
+    monkeypatch.setattr(
+        du, "update_registry_url", lambda sid, url: updated.append((sid, url))
+    )
     monkeypatch.setattr(
         du, "update_version_after_ingest", lambda sid, ver: versions.append((sid, ver))
     )

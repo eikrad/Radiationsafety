@@ -9,7 +9,10 @@ from graph.services import retsinformation_harvest as harvest
 def test_normalize_harvest_items():
     """Harvest items are normalized to stable event shape."""
     items = [
-        {"documentId": "abc", "eli": "https://www.retsinformation.dk/eli/lta/2025/1385"},
+        {
+            "documentId": "abc",
+            "eli": "https://www.retsinformation.dk/eli/lta/2025/1385",
+        },
         {"id": "x", "url": "https://www.retsinformation.dk/eli/lta/2025/1384"},
     ]
     out = harvest._normalize_harvest_items(items)
@@ -53,7 +56,8 @@ def test_resolve_latest_document_prefers_forward_relations(monkeypatch):
         },
     }
     monkeypatch.setattr(eli, "_fetch_json", lambda url: payloads.get(url))
-    result = eli.resolve_latest_document("https://www.retsinformation.dk/eli/lta/2019/670")
+    result = eli.resolve_latest_document(
+        "https://www.retsinformation.dk/eli/lta/2019/670"
+    )
     assert result.chosen_url == "https://www.retsinformation.dk/eli/lta/2025/1385"
     assert result.confidence >= 0.8
-

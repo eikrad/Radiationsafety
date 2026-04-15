@@ -148,7 +148,12 @@ def fetch_harvest_documents_for_date(
         headers["Ocp-Apim-Subscription-Key"] = subscription_key.strip()
     payload = _json_get(url, headers=headers)
     if isinstance(payload, dict):
-        items = payload.get("documents") or payload.get("items") or payload.get("data") or []
+        items = (
+            payload.get("documents")
+            or payload.get("items")
+            or payload.get("data")
+            or []
+        )
     else:
         items = payload
     return _normalize_harvest_items(items)
@@ -160,7 +165,10 @@ def fetch_eli_update_feed_entries(
     """Fetch ELI atom feed entries as fallback/reconciliation events."""
     req = urllib.request.Request(
         feed_url,
-        headers={"Accept": "application/atom+xml", "User-Agent": "RadiationSafetyRAG/1.0"},
+        headers={
+            "Accept": "application/atom+xml",
+            "User-Agent": "RadiationSafetyRAG/1.0",
+        },
     )
     with urllib.request.urlopen(
         req, timeout=30, context=ssl.create_default_context()
@@ -170,8 +178,12 @@ def fetch_eli_update_feed_entries(
     atom_ns = {"atom": "http://www.w3.org/2005/Atom"}
     out: list[HarvestDocumentEvent] = []
     for entry in root.findall("atom:entry", atom_ns):
-        entry_id = (entry.findtext("atom:id", default="", namespaces=atom_ns) or "").strip()
-        updated = (entry.findtext("atom:updated", default="", namespaces=atom_ns) or "").strip()
+        entry_id = (
+            entry.findtext("atom:id", default="", namespaces=atom_ns) or ""
+        ).strip()
+        updated = (
+            entry.findtext("atom:updated", default="", namespaces=atom_ns) or ""
+        ).strip()
         link_el = entry.find("atom:link", atom_ns)
         href = ""
         if link_el is not None:
@@ -204,7 +216,9 @@ def run_incremental_harvest(
     start_date: date
     if state.last_successful_date:
         try:
-            start_date = date.fromisoformat(state.last_successful_date) + timedelta(days=1)
+            start_date = date.fromisoformat(state.last_successful_date) + timedelta(
+                days=1
+            )
         except ValueError:
             start_date = run_now.date() - timedelta(days=1)
     else:
@@ -247,4 +261,3 @@ def run_incremental_harvest(
         "errors": errors,
         "state": state.__dict__,
     }
-

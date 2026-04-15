@@ -18,7 +18,12 @@ RELATION_KEYS = (
     "is_changed_by",
     "is_consolidated_by",
 )
-PREFERRED_FORWARD_KEYS = ("changed_by", "consolidated_by", "is_changed_by", "is_consolidated_by")
+PREFERRED_FORWARD_KEYS = (
+    "changed_by",
+    "consolidated_by",
+    "is_changed_by",
+    "is_consolidated_by",
+)
 _ISSUE_DATE_RE = re.compile(
     r"BEK\s+nr\s+(\d+)\s+af\s+(\d{1,2})/(\d{1,2})/(\d{2,4})",
     re.IGNORECASE,
@@ -137,11 +142,15 @@ def _iter_relation_urls(payload: Any, relation_key: str) -> list[str]:
                 elif isinstance(v, dict):
                     for nested_key in ("@id", "id", "href", "url", "iri"):
                         nested_val = v.get(nested_key)
-                        if isinstance(nested_val, str) and nested_val.startswith("http"):
+                        if isinstance(nested_val, str) and nested_val.startswith(
+                            "http"
+                        ):
                             urls.append(nested_val.strip())
                 elif isinstance(v, list):
                     for item in v:
-                        urls.extend(_iter_relation_urls({relation_key: item}, relation_key))
+                        urls.extend(
+                            _iter_relation_urls({relation_key: item}, relation_key)
+                        )
             urls.extend(_iter_relation_urls(v, relation_key))
     elif isinstance(payload, list):
         for item in payload:
@@ -185,7 +194,15 @@ def resolve_latest_document(start_url: str, max_depth: int = 12) -> EliResolutio
     """Traverse ELI relations to resolve a latest known successor."""
     start = (start_url or "").strip()
     if not start:
-        return EliResolution(start_url=start_url, chosen_url=None, chosen_label=None, confidence=0.0, visited_urls=[], edges=[], reason="missing_start_url")
+        return EliResolution(
+            start_url=start_url,
+            chosen_url=None,
+            chosen_label=None,
+            confidence=0.0,
+            visited_urls=[],
+            edges=[],
+            reason="missing_start_url",
+        )
     queue: list[tuple[str, int]] = [(start, 0)]
     visited: set[str] = set()
     nodes: list[EliNode] = []
@@ -238,4 +255,3 @@ def resolve_latest_document(start_url: str, max_depth: int = 12) -> EliResolutio
         edges=edges,
         reason=None,
     )
-

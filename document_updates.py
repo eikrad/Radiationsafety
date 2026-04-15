@@ -512,9 +512,8 @@ def _resolve_danish_source(
 def _is_retsinformation_danish_source(source: DocumentSource) -> bool:
     """True when source is Danish and URL is on retsinformation.dk."""
     return (
-        (source.folder or "").strip() == "Bekendtgørelse"
-        and _is_retsinformation_url(source.url or "")
-    )
+        source.folder or ""
+    ).strip() == "Bekendtgørelse" and _is_retsinformation_url(source.url or "")
 
 
 def _resolve_danish_source_via_eli(
@@ -1019,7 +1018,9 @@ def check_one_source(
             # SST update detection is currently search-based and can produce
             # false positives. Keep SST checks manual until we have a
             # deterministic versioning signal.
-            result["remote_version"] = "Manual check required (SST auto-detection disabled)"
+            result["remote_version"] = (
+                "Manual check required (SST auto-detection disabled)"
+            )
             result["download_url"] = source.url or ""
             result["update_available"] = False
             result["resolver_source"] = "sst_manual_only"
@@ -1326,7 +1327,9 @@ def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
     name = (source.name or source.id or "").strip()
 
     if folder == "Bekendtgørelse":
-        resolved = _resolve_danish_source(source, current_version=None, reject_older=False)
+        resolved = _resolve_danish_source(
+            source, current_version=None, reject_older=False
+        )
         if RETSINFO_RESOLVER_MODE in {"guarded", "enforce"}:
             eli_resolved, _evidence = _resolve_danish_source_via_eli(
                 source, current_version=None, reject_older=False

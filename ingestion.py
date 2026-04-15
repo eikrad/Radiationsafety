@@ -372,7 +372,9 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
         if path is None:
             continue
         try:
-            docs = _load_pdf_with_docling(path, source_label=label, max_tokens=IAEA_MAX_TOKENS)
+            docs = _load_pdf_with_docling(
+                path, source_label=label, max_tokens=IAEA_MAX_TOKENS
+            )
             for d in docs:
                 d.metadata["document_type"] = "IAEA"
             iaea_docs.extend(docs)
@@ -429,7 +431,9 @@ def _load_pdf_with_docling(
             d.metadata["source"] = label
         return docs
     except Exception as e:
-        print(f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}")
+        print(
+            f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"
+        )
     # Fallback: pypdf plain-text extraction
     reader = PdfReader(str(file_path))
     docs = []
@@ -445,7 +449,9 @@ def _load_pdf_with_docling(
     return docs
 
 
-def _extract_and_load_attachments(parent_path: Path, reader: PdfReader | None = None) -> list[Document]:
+def _extract_and_load_attachments(
+    parent_path: Path, reader: PdfReader | None = None
+) -> list[Document]:
     """Extract embedded PDF attachments from a PDF and load them."""
     all_docs = []
     if reader is None:
@@ -468,7 +474,9 @@ def _extract_and_load_attachments(parent_path: Path, reader: PdfReader | None = 
                 continue
             try:
                 label = f"{parent_path.name} (Anhang: {att_name})"
-                docs = _load_pdf_with_docling(tmp_path, source_label=label, max_tokens=DK_MAX_TOKENS)
+                docs = _load_pdf_with_docling(
+                    tmp_path, source_label=label, max_tokens=DK_MAX_TOKENS
+                )
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
                     d.metadata["parent_document"] = str(parent_path.name)
@@ -630,7 +638,9 @@ def add_single_pdf_to_collection(
     label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace(
         "-", " "
     )
-    splits = _load_pdf_with_docling(pdf_path, source_label=label, max_tokens=IAEA_MAX_TOKENS)
+    splits = _load_pdf_with_docling(
+        pdf_path, source_label=label, max_tokens=IAEA_MAX_TOKENS
+    )
     for d in splits:
         d.metadata["document_type"] = "IAEA"
     if not splits:
