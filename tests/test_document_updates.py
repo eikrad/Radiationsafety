@@ -243,6 +243,35 @@ def test_extract_bek_number():
     )
 
 
+def test_version_string_to_date_nr_parses_issue_date():
+    """BEK version labels parse to (date, number) for robust recency checks."""
+    parsed = du._version_string_to_date_nr("BEK nr 1385 af 18/11/2025")
+    assert parsed is not None
+    d, nr = parsed
+    assert d.isoformat() == "2025-11-18"
+    assert nr == 1385
+
+
+def test_reject_if_older_than_current_uses_issue_date_not_url_number():
+    """Reject a remote candidate when issue date is older, even if URL year/number looks newer."""
+    source = du.DocumentSource(
+        id="dk-radio",
+        name="Radioaktivitetsbekendtgørelsen",
+        url="https://www.retsinformation.dk/eli/lta/2024/9999",
+        folder="Bekendtgørelse",
+        filename_hint=None,
+    )
+    label, url = du._reject_if_older_than_current(
+        remote_label="BEK nr 42 af 01/01/2025",
+        download_url="https://www.retsinformation.dk/eli/lta/2025/42",
+        current_url=source.url,
+        current_version="BEK nr 1385 af 18/11/2025",
+        source=source,
+    )
+    assert label is None
+    assert url is None
+
+
 def test_danish_source_gets_url_via_probe():
     """Danish source with BEK number gets URL via probe (no API)."""
     source = du.DocumentSource(
@@ -260,6 +289,99 @@ def test_danish_source_gets_url_via_probe():
         result = du.check_one_source(source, {})
     assert result["download_url"] == "https://www.retsinformation.dk/eli/lta/2024/670"
     assert result["remote_version"] == "BEK nr 670"
+
+
+def test_danish_search_follows_amendments_to_newest():
+    """Search-resolved Danish URL is upgraded via 'Senere ændringer' before return."""
+    with patch.object(
+        du,
+        "_resolve_danish_url_via_brave",
+        return_value="https://www.retsinformation.dk/eli/lta/2019/670",
+    ):
+        with patch.object(
+            du,
+            "_resolve_danish_url_to_newest",
+            return_value=(
+                "BEK nr 1385 af 18/11/2025",
+                "https://www.retsinformation.dk/eli/lta/2025/1385",
+            ),
+        ):
+            label, url = du._resolve_danish_url_by_search(
+                "Bekendtgørelse om ioniserende stråling"
+            )
+    assert label == "BEK nr 1385 af 18/11/2025"
+    assert url == "https://www.retsinformation.dk/eli/lta/2025/1385"
+
+
+def test_check_one_source_guarded_prefers_eli(monkeypatch):
+    """Guarded mode uses ELI resolver when available."""
+    source = du.DocumentSource(
+        id="dk-radio",
+        name="Radioaktivitetsbekendtgørelsen",
+        url="https://www.retsinformation.dk/eli/lta/2019/670",
+        folder="Bekendtgørelse",
+        filename_hint=None,
+    )
+    monkeypatch.setattr(du, "RETSINFO_RESOLVER_MODE", "guarded")
+    with patch.object(
+        du, "_resolve_danish_source", return_value=du.ResolvedUrl("legacy", source.url)
+    ):
+        with patch.object(
+            du,
+            "_resolve_danish_source_via_eli",
+            return_value=(
+                du.ResolvedUrl(
+                    "BEK nr 1385 af 18/11/2025",
+                    "https://www.retsinformation.dk/eli/lta/2025/1385",
+                ),
+                {"confidence": 0.9},
+            ),
+        ):
+            result = du.check_one_source(source, {})
+    assert result["download_url"] == "https://www.retsinformation.dk/eli/lta/2025/1385"
+    assert result["resolver_source"] == "eli"
+
+
+def test_sync_danish_legislation_apply_updates(monkeypatch):
+    """Incremental sync updates URL/version when apply_updates=true and URL changed."""
+    source = du.DocumentSource(
+        id="dk-radio",
+        name="Radioaktivitetsbekendtgørelsen",
+        url="https://www.retsinformation.dk/eli/lta/2019/670",
+        folder="Bekendtgørelse",
+        filename_hint=None,
+        version="BEK nr 670 af 01/01/2019",
+    )
+    monkeypatch.setattr(du, "_load_registry", lambda: [source])
+    monkeypatch.setattr(du, "_load_versions", lambda: {})
+    monkeypatch.setattr(du, "_reset_runtime_caches", lambda: None)
+    monkeypatch.setattr(
+        du,
+        "run_incremental_harvest",
+        lambda **kwargs: {"harvest_events": [], "eli_feed_events": [], "errors": []},
+    )
+    monkeypatch.setattr(
+        du,
+        "_resolve_danish_source_via_eli",
+        lambda *args, **kwargs: (
+            du.ResolvedUrl(
+                "BEK nr 1385 af 18/11/2025",
+                "https://www.retsinformation.dk/eli/lta/2025/1385",
+            ),
+            {"confidence": 0.92},
+        ),
+    )
+    updated: list[tuple[str, str]] = []
+    versions: list[tuple[str, str]] = []
+    monkeypatch.setattr(du, "update_registry_url", lambda sid, url: updated.append((sid, url)))
+    monkeypatch.setattr(
+        du, "update_version_after_ingest", lambda sid, ver: versions.append((sid, ver))
+    )
+    monkeypatch.setattr(du, "update_source_identity", lambda *args, **kwargs: None)
+    report = du.sync_danish_legislation(apply_updates=True)
+    assert report["updated_count"] == 1
+    assert updated == [("dk-radio", "https://www.retsinformation.dk/eli/lta/2025/1385")]
+    assert versions == [("dk-radio", "BEK nr 1385 af 18/11/2025")]
 
 
 def test_get_current_version_from_file_bekendtgoerelse(tmp_path):

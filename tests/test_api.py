@@ -269,3 +269,19 @@ def test_documents_get_source_file_ok(client: TestClient, tmp_path: Path):
     assert res.status_code == 200
     assert res.headers.get("content-type", "").startswith("application/pdf")
     assert res.content == b"%PDF-1.4 minimal"
+
+
+def test_documents_sync_danish(client: TestClient):
+    """Sync endpoint returns report from document_updates service."""
+    report = {
+        "mode": "shadow",
+        "apply_updates": False,
+        "updated_count": 0,
+        "checked_count": 1,
+        "items": [{"id": "dk-1", "status": "unchanged"}],
+    }
+    with patch("document_updates.sync_danish_legislation", return_value=report):
+        res = client.post("/api/documents/sync-danish")
+    assert res.status_code == 200
+    assert res.json()["mode"] == "shadow"
+    assert res.json()["checked_count"] == 1

@@ -17,6 +17,9 @@ from typing import Any
 
 import yaml
 
+from graph.services.retsinformation_eli import resolve_latest_document
+from graph.services.retsinformation_harvest import run_incremental_harvest
+
 # Brave Search API: min seconds between requests to avoid 429 Too Many Requests
 BRAVE_REQUEST_DELAY_SECONDS = 4
 _brave_throttle_lock = threading.Lock()
@@ -39,6 +42,10 @@ DOCS_DIR = PROJECT_ROOT / "documents"
 REGISTRY_PATH = PROJECT_ROOT / "document_sources.yaml"
 REGISTRY_EXAMPLE = PROJECT_ROOT / "document_sources.example.yaml"
 VERSIONS_PATH = PROJECT_ROOT / "document_versions.json"
+RETSINFO_SYNC_STATE_PATH = PROJECT_ROOT / "retsinformation_sync_state.json"
+RETSINFO_RESOLVER_MODE = (
+    os.getenv("RETSINFO_RESOLVER_MODE", "shadow").strip().lower() or "shadow"
+)
 
 # HTTP
 ALLOWED_HOSTS = frozenset(
@@ -204,6 +211,9 @@ def _resolve_danish_url_by_search(
         url=(url or "")[:80],
     )
     if url:
+        newest_label, newest_url = _resolve_danish_url_to_newest(url)
+        if newest_label and newest_url:
+            return newest_label, newest_url
         m = _ELI_LTA_RE.search(url)
         return f"BEK nr {m.group(2) if m else '?'} (search)", url
     return None, None
@@ -329,6 +339,29 @@ def _version_string_to_year_nr(version_str: str) -> tuple[int, int] | None:
     return None
 
 
+def _version_string_to_date_nr(version_str: str) -> tuple[date, int] | None:
+    """Parse version string to (issue_date, nr), e.g. 'BEK nr 1385 af 18/11/2025'."""
+    if not (version_str or "").strip():
+        return None
+    m = re.search(
+        r"BEK\s+nr\s+(\d+)\s+af\s+(\d{1,2})/(\d{1,2})/(\d{2,4})",
+        version_str,
+        re.IGNORECASE,
+    )
+    if not m:
+        return None
+    nr = int(m.group(1))
+    day = int(m.group(2))
+    month = int(m.group(3))
+    year = int(m.group(4))
+    if year < 100:
+        year += 2000 if year < 50 else 1900
+    try:
+        return date(year, month, day), nr
+    except ValueError:
+        return None
+
+
 def _current_year_nr(
     source: DocumentSource, current_version: str | None
 ) -> tuple[int, int] | None:
@@ -349,6 +382,14 @@ def _reject_if_older_than_current(
 ) -> tuple[str | None, str | None]:
     """If we already have a newer version (from URL or version history) than the resolved one, return (None, None) so caller keeps looking."""
     if not download_url:
+        return remote_label, download_url
+    # Prefer explicit issue dates when available; BEK numbers are not a stable
+    # recency signal across different years/categories.
+    remote_dn = _version_string_to_date_nr(remote_label or "")
+    current_dn = _version_string_to_date_nr(current_version or "")
+    if remote_dn and current_dn:
+        if remote_dn <= current_dn:
+            return None, None
         return remote_label, download_url
     remote_yn = _eli_lta_year_nr(download_url)
     if not remote_yn:
@@ -466,6 +507,43 @@ def _resolve_danish_source(
             pass
 
     return resolved
+
+
+def _is_retsinformation_danish_source(source: DocumentSource) -> bool:
+    """True when source is Danish and URL is on retsinformation.dk."""
+    return (
+        (source.folder or "").strip() == "Bekendtgørelse"
+        and _is_retsinformation_url(source.url or "")
+    )
+
+
+def _resolve_danish_source_via_eli(
+    source: DocumentSource,
+    *,
+    current_version: str | None = None,
+    reject_older: bool = False,
+) -> tuple[ResolvedUrl, dict[str, Any] | None]:
+    """Resolve newest URL using ELI relation graph; returns (resolved, evidence)."""
+    if not _is_retsinformation_danish_source(source):
+        return ResolvedUrl(), None
+    try:
+        resolution = resolve_latest_document(source.url or "")
+    except Exception as exc:
+        return ResolvedUrl(), {"resolver": "eli", "error": str(exc)}
+    resolved = ResolvedUrl(
+        label=resolution.chosen_label or source.name or "Retsinformation",
+        url=resolution.chosen_url,
+    )
+    resolved = _apply_current_rejection(
+        resolved,
+        current_url=source.url or "",
+        current_version=current_version,
+        source=source,
+        reject_older=reject_older,
+    )
+    evidence = resolution.to_dict()
+    evidence["resolver"] = "eli"
+    return resolved, evidence
 
 
 def _allowed_url(url: str) -> bool:
@@ -751,7 +829,7 @@ def _resolve_danish_url_via_brave(
             return True
         return False
 
-    candidates: list[tuple[int, int, str]] = []
+    candidates: list[tuple[date | None, int, int, str]] = []
     for r in results:
         if not isinstance(r, dict):
             continue
@@ -781,15 +859,21 @@ def _resolve_danish_url_via_brave(
         if not matched:
             continue
         year, nr = int(m.group(1)), int(m.group(2))
+        parsed_dn = _version_string_to_date_nr(result_title)
+        issue_date = parsed_dn[0] if parsed_dn else None
         full_url = url if url.startswith("http") else f"https://{url}"
-        candidates.append((year, nr, full_url))
+        candidates.append((issue_date, year, nr, full_url))
     if not candidates:
         _brave_debug_log(
             "brave_return", returned=None, reason="no_candidates_after_title_filter"
         )
         return None
-    candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
-    chosen = candidates[0][2]
+    # Prefer explicit issue dates from title; otherwise fall back to (year, nr).
+    candidates.sort(
+        key=lambda x: (x[0] is not None, x[0] or date.min, x[1], x[2]),
+        reverse=True,
+    )
+    chosen = candidates[0][3]
     _brave_debug_log(
         "brave_return", returned=chosen[:90], candidates_count=len(candidates)
     )
@@ -924,34 +1008,65 @@ def check_one_source(
         "download_url": source.url,
         "has_local_file": local_path is not None,
         "error": None,
+        "resolver_source": None,
+        "resolution_evidence": None,
     }
 
     # Danish (Bekendtgørelse): sst.dk (Brave search) or retsinformation.dk (probe + Brave search + "Senere ændringer")
     is_danish = (source.folder or "").strip() == "Bekendtgørelse"
     if is_danish:
-        resolved = _resolve_danish_source(
+        legacy_resolved = _resolve_danish_source(
             source, current_version=current, reject_older=True
         )
+        eli_resolved, eli_evidence = _resolve_danish_source_via_eli(
+            source, current_version=current, reject_older=True
+        )
+        resolved = legacy_resolved
+        resolver_source = "legacy"
+        mode = RETSINFO_RESOLVER_MODE
+        if mode in {"guarded", "enforce"} and eli_resolved.url:
+            resolved = eli_resolved
+            resolver_source = "eli"
+        elif mode == "shadow":
+            if eli_evidence:
+                result["resolution_evidence"] = {
+                    "mode": "shadow",
+                    "shadow_resolver": "eli",
+                    "shadow": eli_evidence,
+                    "active_resolver": "legacy",
+                    "active_url": legacy_resolved.url,
+                }
+        elif eli_resolved.url:
+            resolved = eli_resolved
+            resolver_source = "eli"
+        if resolver_source == "eli" and eli_evidence:
+            result["resolution_evidence"] = eli_evidence
+        result["resolver_source"] = resolver_source
         remote_label, download_url = resolved.label, resolved.url
         if remote_label and download_url:
             result["remote_version"] = remote_label
             result["download_url"] = download_url
-            current_yn = _eli_lta_year_nr(source.url or "")
-            remote_yn = _eli_lta_year_nr(download_url or "")
-            if current_yn and remote_yn:
-                result["update_available"] = remote_yn > current_yn
+            current_dn = _version_string_to_date_nr(current or "")
+            remote_dn = _version_string_to_date_nr(remote_label or "")
+            if current_dn and remote_dn:
+                result["update_available"] = remote_dn > current_dn
             else:
-                # SST or other: compare years from version/URL so we notice "our 2020" vs "remote 2021"
-                our_year = _extract_year_from_string(
-                    current or ""
-                ) or _extract_year_from_string(source.url or "")
-                remote_year = _extract_year_from_string(download_url or "")
-                if our_year and remote_year:
-                    result["update_available"] = remote_year > our_year
+                current_yn = _eli_lta_year_nr(source.url or "")
+                remote_yn = _eli_lta_year_nr(download_url or "")
+                if current_yn and remote_yn:
+                    result["update_available"] = remote_yn > current_yn
                 else:
-                    result["update_available"] = (download_url or "").strip() != (
-                        source.url or ""
-                    ).strip()
+                    # SST or other: compare years from version/URL so we notice "our 2020" vs "remote 2021"
+                    our_year = _extract_year_from_string(
+                        current or ""
+                    ) or _extract_year_from_string(source.url or "")
+                    remote_year = _extract_year_from_string(download_url or "")
+                    if our_year and remote_year:
+                        result["update_available"] = remote_year > our_year
+                    else:
+                        result["update_available"] = (download_url or "").strip() != (
+                            source.url or ""
+                        ).strip()
         else:
             result["remote_version"] = (
                 "Local only (no URL)"
@@ -1072,6 +1187,97 @@ def update_version_after_ingest(source_id: str, version: str) -> None:
     update_registry_version(source_id, version)
 
 
+def update_source_identity(
+    source_id: str,
+    *,
+    canonical_eli_url: str | None = None,
+    accession_id: str | None = None,
+    resolver_confidence: float | None = None,
+) -> None:
+    """Persist canonical identity metadata for a source in versions state."""
+    versions = _load_versions()
+    entry = versions.get(source_id, {})
+    if canonical_eli_url:
+        entry["canonical_eli_url"] = canonical_eli_url.strip()
+    if accession_id:
+        entry["accession_id"] = accession_id.strip()
+    if resolver_confidence is not None:
+        entry["resolver_confidence"] = f"{resolver_confidence:.3f}"
+    entry["identity_updated_at"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    versions[source_id] = entry
+    _save_versions(versions)
+
+
+def sync_danish_legislation(*, apply_updates: bool = False) -> dict[str, Any]:
+    """Run Harvest + ELI incremental sync for Danish retsinformation sources."""
+    _reset_runtime_caches()
+    registry = _load_registry()
+    versions = _load_versions()
+    subscription_key = (os.getenv("RETSINFO_API_KEY") or "").strip() or None
+    harvest_report = run_incremental_harvest(
+        state_path=RETSINFO_SYNC_STATE_PATH,
+        subscription_key=subscription_key,
+    )
+    items: list[dict[str, Any]] = []
+    updated_count = 0
+    for source in registry:
+        if not _is_retsinformation_danish_source(source):
+            continue
+        current_version = (
+            versions.get(source.id, {}).get("version")
+            or source.version
+            or _get_current_version_from_file(source)
+        )
+        resolved, evidence = _resolve_danish_source_via_eli(
+            source, current_version=current_version, reject_older=False
+        )
+        if not resolved.url:
+            items.append(
+                {
+                    "id": source.id,
+                    "name": source.name,
+                    "status": "unresolved",
+                    "current_url": source.url,
+                    "remote_url": None,
+                    "remote_version": None,
+                    "evidence": evidence,
+                }
+            )
+            continue
+        changed = (resolved.url or "").strip() != (source.url or "").strip()
+        if apply_updates and changed:
+            update_registry_url(source.id, resolved.url)
+            if resolved.label:
+                update_version_after_ingest(source.id, resolved.label)
+            updated_count += 1
+        if evidence:
+            update_source_identity(
+                source.id,
+                canonical_eli_url=resolved.url,
+                resolver_confidence=evidence.get("confidence"),
+            )
+        items.append(
+            {
+                "id": source.id,
+                "name": source.name,
+                "status": "changed" if changed else "unchanged",
+                "current_url": source.url,
+                "remote_url": resolved.url,
+                "remote_version": resolved.label,
+                "applied": bool(apply_updates and changed),
+                "evidence": evidence,
+            }
+        )
+    return {
+        "mode": RETSINFO_RESOLVER_MODE,
+        "apply_updates": apply_updates,
+        "harvest": harvest_report,
+        "updated_count": updated_count,
+        "checked_count": len(items),
+        "items": items,
+    }
+
+
 def _update_registry_field(source_id: str, field: str, value: str) -> None:
     """Update one field for a source in document_sources.yaml."""
     if not REGISTRY_PATH.exists():
@@ -1107,9 +1313,13 @@ def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
     name = (source.name or source.id or "").strip()
 
     if folder == "Bekendtgørelse":
-        resolved = _resolve_danish_source(
-            source, current_version=None, reject_older=False
-        )
+        resolved = _resolve_danish_source(source, current_version=None, reject_older=False)
+        if RETSINFO_RESOLVER_MODE in {"guarded", "enforce"}:
+            eli_resolved, _evidence = _resolve_danish_source_via_eli(
+                source, current_version=None, reject_older=False
+            )
+            if eli_resolved.url:
+                resolved = eli_resolved
         if resolved.url:
             return resolved.url, None
         return None, "Could not find URL from retsinformation.dk (probe or search)."

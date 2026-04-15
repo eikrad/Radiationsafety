@@ -242,6 +242,22 @@ def documents_download_update(source_id: str):
     return {"ok": True, "message": message}
 
 
+@api_router.post("/documents/sync-danish")
+def documents_sync_danish(apply_updates: bool = False):
+    """Run incremental Danish legislation sync via Harvest + ELI graph."""
+    try:
+        from document_updates import sync_danish_legislation
+    except ImportError:
+        raise HTTPException(
+            status_code=500, detail="document_updates not available"
+        ) from None
+    try:
+        report = sync_danish_legislation(apply_updates=apply_updates)
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
 @api_router.post("/documents/build-from-local")
 def documents_build_from_local():
     """Discover local PDFs, extract versions, optionally confirm URLs, write document_sources.yaml. Returns new sources list."""
