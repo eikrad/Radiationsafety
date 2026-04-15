@@ -13,9 +13,9 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from docling.chunking import HybridChunker
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from docling.chunking import HybridChunker
 from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
