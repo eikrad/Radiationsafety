@@ -25,6 +25,10 @@ CI runs both on push and on pull requests.
 
 - **Formatting:** `black .` and `isort .` (config in `pyproject.toml`).
 - **Linting / type checking:** `uv run ruff check .` and `uv run mypy .` (see `pyproject.toml`). Fix any reported issues before submitting.
+- **Pre-commit hook (recommended):**
+  - Install once per clone: `uv run pre-commit install`
+  - Run manually on all files: `uv run pre-commit run --all-files`
+  - Hook config lives in `.pre-commit-config.yaml` and currently enforces `black --check` and `isort --check-only`.
 
 ## Documentation
 

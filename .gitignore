@@ -8,6 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+.pre-commit-cache/
+.virtualenv-app-data/
 
 # Chroma vector DB (too large for repo; use release asset or run ingestion)
 .chroma/
