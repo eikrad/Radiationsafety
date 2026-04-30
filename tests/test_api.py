@@ -278,6 +278,35 @@ def test_admin_route_rate_limit_returns_429(client: TestClient, monkeypatch):
         assert second.headers.get("Retry-After")
 
 
+def test_query_rate_limit_redis_backend(client: TestClient, monkeypatch):
+    """Query rate limiting works with optional Redis backend."""
+    from api.main import app_state
+
+    class _FakeRedis:
+        def __init__(self):
+            self.counts: dict[str, int] = {}
+
+        def incr(self, key: str) -> int:
+            self.counts[key] = self.counts.get(key, 0) + 1
+            return self.counts[key]
+
+        def expire(self, key: str, _seconds: int) -> bool:
+            return True
+
+    monkeypatch.setenv("RATE_LIMIT_BACKEND", "redis")
+    monkeypatch.setenv("RATE_LIMIT_REDIS_URL", "redis://example.test:6379/0")
+    monkeypatch.setenv("RATE_LIMIT_QUERY_MAX_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_QUERY_WINDOW_SEC", "60")
+    app_state["rate_limit_store"] = {}
+    app_state["rate_limit_redis_client"] = _FakeRedis()
+
+    first = client.post("/query", json={"question": "What is radiation safety?"})
+    assert first.status_code == 200
+    second = client.post("/query", json={"question": "What is radiation safety?"})
+    assert second.status_code == 429
+    assert second.headers.get("Retry-After")
+
+
 def test_query_sets_request_id_header(client: TestClient):
     """Query responses include an X-Request-ID header for correlation."""
     res = client.get("/health")

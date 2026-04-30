@@ -91,7 +91,7 @@ CI runs the test suite on push and on pull requests (see status badge above).
 - Mutating routes (`/ingest` and mutating `/documents/*` endpoints) require `X-Admin-Token`.
 - If `ADMIN_TOKEN` is not configured, admin routes are fail-closed (`503`) unless `ADMIN_AUTH_BYPASS=true` is explicitly set for local-only use.
 - Query/admin rate limits are in-memory and per-client (`RATE_LIMIT_*`). This MVP is suitable for single-process deployments.
-- In multi-worker or multi-replica deployments, use a shared limiter backend (for example Redis) to enforce global limits.
+- For multi-worker or multi-replica deployments, set `RATE_LIMIT_BACKEND=redis` and `RATE_LIMIT_REDIS_URL` to enforce global limits.
 
 ### Runbook quick checks
 

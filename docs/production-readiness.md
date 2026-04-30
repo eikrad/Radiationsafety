@@ -11,12 +11,11 @@
 - Valid admin requests must send `X-Admin-Token` header matching `ADMIN_TOKEN`.
 - Optional local bypass: `ADMIN_AUTH_BYPASS=true` (intended for explicit local-only use).
 
-## Rate Limiting MVP
+## Rate Limiting
 
-- Initial MVP target: in-memory rate limiting for single-process deployments.
+- Default backend: in-memory rate limiting for single-process deployments.
+- Optional multi-replica backend: set `RATE_LIMIT_BACKEND=redis` and `RATE_LIMIT_REDIS_URL`.
 - Config knobs: `RATE_LIMIT_QUERY_MAX_REQUESTS`, `RATE_LIMIT_QUERY_WINDOW_SEC`, `RATE_LIMIT_ADMIN_MAX_REQUESTS`, `RATE_LIMIT_ADMIN_WINDOW_SEC`.
-- Known limitation: not globally consistent across multiple workers/replicas.
-- Future upgrade path: shared external store (for example Redis) if horizontal scaling is needed.
 
 ## Observability Baseline
 
