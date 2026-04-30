@@ -305,6 +305,18 @@ def test_metrics_include_http_counters(client: TestClient, monkeypatch):
     assert "radiationsafety_http_errors_total" in res.text
 
 
+def test_metrics_include_endpoint_level_counters(client: TestClient, monkeypatch):
+    """Metrics expose per-endpoint request/error counters."""
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    monkeypatch.setenv("ADMIN_AUTH_BYPASS", "false")
+    client.get("/health")
+    client.post("/api/ingest")
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    assert 'radiationsafety_http_requests_by_path_total{path="/health"}' in res.text
+    assert 'radiationsafety_http_errors_by_path_total{path="/api/ingest"}' in res.text
+
+
 def test_ingest_returns_accepted(client: TestClient):
     """POST ingest returns 202 and starts background task."""
     with patch("api.main._run_ingest"):

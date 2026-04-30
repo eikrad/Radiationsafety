@@ -43,6 +43,8 @@ app_state: dict = {
         "errors": 0,
         "duration_sum_seconds": 0.0,
         "query_web_search_attempts": 0,
+        "by_path_total": {},
+        "by_path_errors": {},
     },
 }
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -89,6 +91,8 @@ async def request_observability_middleware(request: Request, call_next):
             "errors": 0,
             "duration_sum_seconds": 0.0,
             "query_web_search_attempts": 0,
+            "by_path_total": {},
+            "by_path_errors": {},
         },
     )
     started = time.perf_counter()
@@ -101,12 +105,17 @@ async def request_observability_middleware(request: Request, call_next):
         return response
     finally:
         elapsed = max(0.0, time.perf_counter() - started)
+        path = request.url.path
         metrics["total"] = int(metrics.get("total", 0)) + 1
         metrics["duration_sum_seconds"] = (
             float(metrics.get("duration_sum_seconds", 0.0)) + elapsed
         )
+        by_path_total = metrics.setdefault("by_path_total", {})
+        by_path_total[path] = int(by_path_total.get(path, 0)) + 1
         if status_code >= 400:
             metrics["errors"] = int(metrics.get("errors", 0)) + 1
+            by_path_errors = metrics.setdefault("by_path_errors", {})
+            by_path_errors[path] = int(by_path_errors.get(path, 0)) + 1
         if response is not None:
             response.headers[_REQUEST_ID_HEADER] = request_id
 
@@ -216,6 +225,8 @@ def metrics() -> str:
     req_errors = int(req.get("errors", 0))
     duration_sum_seconds = float(req.get("duration_sum_seconds", 0.0))
     query_web_search_attempts = int(req.get("query_web_search_attempts", 0))
+    by_path_total = req.get("by_path_total") or {}
+    by_path_errors = req.get("by_path_errors") or {}
     lines = [
         "# HELP radiationsafety_graph_loaded 1 if the RAG graph is loaded, 0 otherwise.",
         "# TYPE radiationsafety_graph_loaded gauge",
@@ -236,6 +247,28 @@ def metrics() -> str:
         "# TYPE radiationsafety_query_web_search_attempts_total counter",
         f"radiationsafety_query_web_search_attempts_total {query_web_search_attempts}",
     ]
+    lines.extend(
+        [
+            "# HELP radiationsafety_http_requests_by_path_total Total HTTP requests by path.",
+            "# TYPE radiationsafety_http_requests_by_path_total counter",
+        ]
+    )
+    for path, count in sorted(by_path_total.items()):
+        escaped_path = str(path).replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(
+            f'radiationsafety_http_requests_by_path_total{{path="{escaped_path}"}} {int(count)}'
+        )
+    lines.extend(
+        [
+            "# HELP radiationsafety_http_errors_by_path_total Total HTTP errors by path.",
+            "# TYPE radiationsafety_http_errors_by_path_total counter",
+        ]
+    )
+    for path, count in sorted(by_path_errors.items()):
+        escaped_path = str(path).replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(
+            f'radiationsafety_http_errors_by_path_total{{path="{escaped_path}"}} {int(count)}'
+        )
     return "\n".join(lines) + "\n"
 
 
