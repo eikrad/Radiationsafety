@@ -3,6 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 
@@ -169,6 +170,114 @@ def test_ingest_status_idle(client: TestClient):
     res = client.get("/api/ingest/status")
     assert res.status_code == 200
     assert res.json()["status"] == "idle"
+
+
+def test_ingest_requires_admin_token(client: TestClient, monkeypatch):
+    """POST ingest returns 401 without admin token."""
+    monkeypatch.setenv("ADMIN_TOKEN", "test-admin-token")
+    res = client.post("/api/ingest", headers={"X-Admin-Token": "wrong-token"})
+    assert res.status_code == 401
+
+
+def test_ingest_fails_closed_when_admin_token_not_configured(
+    client: TestClient, monkeypatch
+):
+    """POST ingest returns 503 when ADMIN_TOKEN is not configured and bypass is off."""
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    monkeypatch.setenv("ADMIN_AUTH_BYPASS", "false")
+    res = client.post("/api/ingest")
+    assert res.status_code == 503
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "kwargs"),
+    [
+        ("post", "/api/ingest", {}),
+        ("post", "/api/documents/sync-danish", {}),
+        ("post", "/api/documents/build-from-local", {}),
+        ("post", "/api/documents/source/iaea-1/lookup-url", {}),
+        ("post", "/api/documents/source/iaea-1/download-update", {}),
+        (
+            "patch",
+            "/api/documents/source/iaea-1/url",
+            {"json": {"url": "https://www.iaea.org/publications/8639/safety-assessment"}},
+        ),
+    ],
+)
+def test_mutating_routes_require_valid_admin_token(
+    unauth_client: TestClient, method: str, path: str, kwargs: dict
+):
+    """Mutating API routes return 401 when admin token is missing/invalid."""
+    request_fn = getattr(unauth_client, method)
+    res = request_fn(path, headers={"X-Admin-Token": "wrong-token"}, **kwargs)
+    assert res.status_code == 401
+
+
+def test_public_routes_stay_accessible_without_admin_token(unauth_client: TestClient):
+    """Public routes must remain available without admin token."""
+    health = unauth_client.get("/health")
+    assert health.status_code == 200
+    query = unauth_client.post("/query", json={"question": "What is radiation safety?"})
+    assert query.status_code == 200
+
+
+def test_query_rate_limit_returns_429(client: TestClient, monkeypatch):
+    """Query endpoint returns 429 when in-memory rate limit is exceeded."""
+    from api.main import app_state
+
+    monkeypatch.setenv("RATE_LIMIT_QUERY_MAX_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_QUERY_WINDOW_SEC", "60")
+    app_state["rate_limit_store"] = {}
+    first = client.post("/query", json={"question": "What is radiation safety?"})
+    assert first.status_code == 200
+    second = client.post("/query", json={"question": "What is radiation safety?"})
+    assert second.status_code == 429
+    assert "retry" in second.json().get("detail", "").lower()
+
+
+def test_query_rate_limit_allows_requests_under_threshold(client: TestClient, monkeypatch):
+    """Query endpoint allows requests when remaining under configured threshold."""
+    from api.main import app_state
+
+    monkeypatch.setenv("RATE_LIMIT_QUERY_MAX_REQUESTS", "3")
+    monkeypatch.setenv("RATE_LIMIT_QUERY_WINDOW_SEC", "60")
+    app_state["rate_limit_store"] = {}
+    for _ in range(3):
+        res = client.post("/query", json={"question": "What is radiation safety?"})
+        assert res.status_code == 200
+
+
+def test_admin_route_rate_limit_returns_429(client: TestClient, monkeypatch):
+    """Admin route returns 429 when admin rate limit is exceeded."""
+    from api.main import app_state
+
+    monkeypatch.setenv("RATE_LIMIT_ADMIN_MAX_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_ADMIN_WINDOW_SEC", "60")
+    app_state["rate_limit_store"] = {}
+    with patch("api.main._run_ingest"):
+        first = client.post("/api/ingest")
+        assert first.status_code == 202
+        second = client.post("/api/ingest")
+        assert second.status_code == 429
+
+
+def test_query_sets_request_id_header(client: TestClient):
+    """Query responses include an X-Request-ID header for correlation."""
+    res = client.get("/health")
+    assert res.status_code == 200
+    assert res.headers.get("X-Request-ID")
+
+
+def test_metrics_include_http_counters(client: TestClient, monkeypatch):
+    """Metrics include request totals and error totals after traffic."""
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    monkeypatch.setenv("ADMIN_AUTH_BYPASS", "false")
+    client.get("/health")
+    client.post("/api/ingest")
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    assert "radiationsafety_http_requests_total" in res.text
+    assert "radiationsafety_http_errors_total" in res.text
 
 
 def test_ingest_returns_accepted(client: TestClient):

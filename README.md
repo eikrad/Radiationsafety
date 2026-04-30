@@ -86,6 +86,19 @@ CI runs the test suite on push and on pull requests (see status badge above).
 - **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
 - **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
 
+## Security and Operations
+
+- Mutating routes (`/ingest` and mutating `/documents/*` endpoints) require `X-Admin-Token`.
+- If `ADMIN_TOKEN` is not configured, admin routes are fail-closed (`503`) unless `ADMIN_AUTH_BYPASS=true` is explicitly set for local-only use.
+- Query/admin rate limits are in-memory and per-client (`RATE_LIMIT_*`). This MVP is suitable for single-process deployments.
+- In multi-worker or multi-replica deployments, use a shared limiter backend (for example Redis) to enforce global limits.
+
+### Runbook quick checks
+
+- **429 spike**: verify `RATE_LIMIT_*` values and recent traffic source patterns.
+- **Admin routes suddenly unavailable (503)**: check `ADMIN_TOKEN` presence and accidental bypass misconfiguration.
+- **Service health degraded**: inspect `/health` and `/metrics` plus container health status in Compose.
+
 ## Building document_sources.yaml from local PDFs
 
 To populate `document_sources.yaml` from the PDFs you already have in `documents/`:

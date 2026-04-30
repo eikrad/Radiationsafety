@@ -1,7 +1,9 @@
 """FastAPI backend: /query, /health, /metrics, document updates, ingest, and optional frontend serving."""
 
 import os
+import secrets
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -9,10 +11,12 @@ from dotenv import load_dotenv
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Depends,
     FastAPI,
     File,
     Form,
     HTTPException,
+    Request,
     UploadFile,
 )
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,9 +29,22 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from api.rate_limit import enforce_rate_limit, env_float, env_int
+
 load_dotenv()
 
-app_state: dict = {"graph": None, "ingest_status": "idle", "started_at": time.time()}
+app_state: dict = {
+    "graph": None,
+    "ingest_status": "idle",
+    "started_at": time.time(),
+    "rate_limit_store": {},
+    "request_metrics": {
+        "total": 0,
+        "errors": 0,
+        "duration_sum_seconds": 0.0,
+        "query_web_search_attempts": 0,
+    },
+}
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
@@ -60,6 +77,38 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def request_observability_middleware(request: Request, call_next):
+    """Attach request id and capture basic request/error/latency metrics."""
+    metrics = app_state.setdefault(
+        "request_metrics",
+        {
+            "total": 0,
+            "errors": 0,
+            "duration_sum_seconds": 0.0,
+            "query_web_search_attempts": 0,
+        },
+    )
+    started = time.perf_counter()
+    request_id = request.headers.get(_REQUEST_ID_HEADER) or str(uuid.uuid4())
+    response = None
+    status_code = 500
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        elapsed = max(0.0, time.perf_counter() - started)
+        metrics["total"] = int(metrics.get("total", 0)) + 1
+        metrics["duration_sum_seconds"] = float(
+            metrics.get("duration_sum_seconds", 0.0)
+        ) + elapsed
+        if status_code >= 400:
+            metrics["errors"] = int(metrics.get("errors", 0)) + 1
+        if response is not None:
+            response.headers[_REQUEST_ID_HEADER] = request_id
 
 
 class QueryRequest(BaseModel):
@@ -103,6 +152,39 @@ class SetSourceUrlBody(BaseModel):
 
 
 api_router = APIRouter()
+_ADMIN_TOKEN_HEADER = "X-Admin-Token"
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_REQUEST_ID_HEADER = "X-Request-ID"
+
+
+def _admin_bypass_enabled() -> bool:
+    return os.getenv("ADMIN_AUTH_BYPASS", "").strip().lower() in _TRUE_VALUES
+
+
+def require_admin(request: Request) -> None:
+    """Protect mutating routes with token-based admin auth (fail-closed by default)."""
+    enforce_rate_limit(
+        request,
+        bucket="admin",
+        max_requests=env_int("RATE_LIMIT_ADMIN_MAX_REQUESTS", 20),
+        window_seconds=env_float("RATE_LIMIT_ADMIN_WINDOW_SEC", 60.0),
+        app_state=app_state,
+    )
+    configured_token = (os.getenv("ADMIN_TOKEN") or "").strip()
+    if not configured_token:
+        if _admin_bypass_enabled():
+            return
+        raise HTTPException(
+            status_code=503,
+            detail="Admin routes are disabled: ADMIN_TOKEN is not configured.",
+        )
+
+    provided = (request.headers.get(_ADMIN_TOKEN_HEADER) or "").strip()
+    if not provided or not secrets.compare_digest(provided, configured_token):
+        raise HTTPException(
+            status_code=401,
+            detail=f"Missing or invalid admin token in '{_ADMIN_TOKEN_HEADER}' header.",
+        )
 
 
 def _run_ingest() -> None:
@@ -129,6 +211,11 @@ def metrics() -> str:
     graph_loaded = 1 if app_state.get("graph") is not None else 0
     started_at = app_state.get("started_at") or 0
     uptime_seconds = max(0.0, time.time() - started_at)
+    req = app_state.get("request_metrics") or {}
+    req_total = int(req.get("total", 0))
+    req_errors = int(req.get("errors", 0))
+    duration_sum_seconds = float(req.get("duration_sum_seconds", 0.0))
+    query_web_search_attempts = int(req.get("query_web_search_attempts", 0))
     lines = [
         "# HELP radiationsafety_graph_loaded 1 if the RAG graph is loaded, 0 otherwise.",
         "# TYPE radiationsafety_graph_loaded gauge",
@@ -136,6 +223,18 @@ def metrics() -> str:
         "# HELP radiationsafety_uptime_seconds Process uptime in seconds.",
         "# TYPE radiationsafety_uptime_seconds gauge",
         f"radiationsafety_uptime_seconds {uptime_seconds:.2f}",
+        "# HELP radiationsafety_http_requests_total Total HTTP requests served.",
+        "# TYPE radiationsafety_http_requests_total counter",
+        f"radiationsafety_http_requests_total {req_total}",
+        "# HELP radiationsafety_http_errors_total Total HTTP responses with status >= 400.",
+        "# TYPE radiationsafety_http_errors_total counter",
+        f"radiationsafety_http_errors_total {req_errors}",
+        "# HELP radiationsafety_http_request_duration_seconds_sum Sum of HTTP request durations in seconds.",
+        "# TYPE radiationsafety_http_request_duration_seconds_sum counter",
+        f"radiationsafety_http_request_duration_seconds_sum {duration_sum_seconds:.6f}",
+        "# HELP radiationsafety_query_web_search_attempts_total Query runs that attempted web search.",
+        "# TYPE radiationsafety_query_web_search_attempts_total counter",
+        f"radiationsafety_query_web_search_attempts_total {query_web_search_attempts}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -164,7 +263,9 @@ def documents_check_updates():
 
 
 @api_router.patch("/documents/source/{source_id}/url")
-def documents_set_source_url(source_id: str, body: SetSourceUrlBody):
+def documents_set_source_url(
+    source_id: str, body: SetSourceUrlBody, _admin: None = Depends(require_admin)
+):
     """Set or update a document source URL manually. URL must be from retsinformation.dk, sst.dk, or iaea.org."""
     url = (body.url or "").strip()
     if not url:
@@ -213,7 +314,9 @@ def documents_get_source_file(source_id: str):
 
 
 @api_router.post("/documents/source/{source_id}/lookup-url")
-def documents_lookup_source_url(source_id: str):
+def documents_lookup_source_url(
+    source_id: str, _admin: None = Depends(require_admin)
+):
     """Try to find the document URL (Danish: sst.dk or retsinformation.dk via Brave/probe; IAEA: search). If found, update registry and return URL."""
     try:
         from document_updates import lookup_source_url, update_registry_url
@@ -229,7 +332,7 @@ def documents_lookup_source_url(source_id: str):
 
 
 @api_router.post("/documents/source/{source_id}/download-update")
-def documents_download_update(source_id: str):
+def documents_download_update(source_id: str, _admin: None = Depends(require_admin)):
     """Download the new version for this source and backup the old one. Requires update_available."""
     try:
         import ingestion
@@ -243,7 +346,9 @@ def documents_download_update(source_id: str):
 
 
 @api_router.post("/documents/sync-danish")
-def documents_sync_danish(apply_updates: bool = False):
+def documents_sync_danish(
+    apply_updates: bool = False, _admin: None = Depends(require_admin)
+):
     """Run incremental Danish legislation sync via Harvest + ELI graph."""
     try:
         from document_updates import sync_danish_legislation
@@ -259,7 +364,7 @@ def documents_sync_danish(apply_updates: bool = False):
 
 
 @api_router.post("/documents/build-from-local")
-def documents_build_from_local():
+def documents_build_from_local(_admin: None = Depends(require_admin)):
     """Discover local PDFs, extract versions, optionally confirm URLs, write document_sources.yaml. Returns new sources list."""
     try:
         from build_document_sources import build_sources, write_document_sources_yaml
@@ -290,6 +395,7 @@ _ALLOWED_ADD_PDF_FOLDERS = frozenset({"IAEA", "IAEA_other"})
 async def documents_add_pdf(
     file: UploadFile = File(...),  # noqa: B008
     folder: str = Form("IAEA_other"),
+    _admin: None = Depends(require_admin),
 ):
     """Upload a PDF from retsinformation.dk or IAEA: add to collection, extract title/version, look up URL, append to registry."""
     if folder not in _ALLOWED_ADD_PDF_FOLDERS:
@@ -369,7 +475,7 @@ async def documents_add_pdf(
 
 
 @api_router.post("/ingest")
-def ingest_trigger(background_tasks: BackgroundTasks):
+def ingest_trigger(background_tasks: BackgroundTasks, _admin: None = Depends(require_admin)):
     """Start ingestion in the background. Returns immediately."""
     if app_state["ingest_status"] == "running":
         raise HTTPException(status_code=409, detail="Ingestion already running.")
@@ -469,7 +575,8 @@ def _resolve_model_and_key(
     """Resolve model (whitelist) and api_key for the request. Returns (model, api_key)."""
     from graph.llm_factory import ALLOWED_PROVIDERS
 
-    prov = (model or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    provider_from_env = (os.getenv("LLM_PROVIDER") or "gemini").strip()
+    prov = (model or provider_from_env).lower()
     if prov not in ALLOWED_PROVIDERS:
         prov = "gemini"
     key = None
@@ -479,8 +586,15 @@ def _resolve_model_and_key(
 
 
 @api_router.post("/query", response_model=QueryResponse)
-def query(req: QueryRequest):
+def query(req: QueryRequest, request: Request):
     """Run RAG pipeline and return answer with sources."""
+    enforce_rate_limit(
+        request,
+        bucket="query",
+        max_requests=env_int("RATE_LIMIT_QUERY_MAX_REQUESTS", 60),
+        window_seconds=env_float("RATE_LIMIT_QUERY_WINDOW_SEC", 60.0),
+        app_state=app_state,
+    )
     _validate_query_request(req)
     graph = app_state["graph"]
     if not graph:
@@ -566,6 +680,11 @@ def query(req: QueryRequest):
     updated_history = result.get("chat_history") or chat_history
     warning = result.get("retrieval_warning")
     used_web_search = result.get("web_search_attempted", False)
+    if used_web_search:
+        req_metrics = app_state.setdefault("request_metrics", {})
+        req_metrics["query_web_search_attempts"] = int(
+            req_metrics.get("query_web_search_attempts", 0)
+        ) + 1
     used_web_search_label = None
     if used_web_search:
         from graph.i18n import detect_language, get_label_sources_incl_web

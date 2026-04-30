@@ -15,6 +15,8 @@ def _env_no_api_calls(monkeypatch):
     monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ADMIN_TOKEN", "test-admin-token")
+    monkeypatch.delenv("ADMIN_AUTH_BYPASS", raising=False)
 
 
 @pytest.fixture
@@ -43,6 +45,18 @@ def mock_graph():
 @pytest.fixture
 def client(mock_graph):
     """FastAPI test client with mocked graph."""
+    from api.main import app, app_state
+
+    app_state["graph"] = mock_graph
+    with TestClient(app) as c:
+        c.headers.update({"X-Admin-Token": "test-admin-token"})
+        yield c
+    app_state["graph"] = None
+
+
+@pytest.fixture
+def unauth_client(mock_graph):
+    """FastAPI test client with mocked graph and no admin token."""
     from api.main import app, app_state
 
     app_state["graph"] = mock_graph

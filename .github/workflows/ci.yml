@@ -17,6 +17,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run black --check .
       - run: uv run isort --check .
+      - run: uv run mypy api/main.py tests/test_api.py --follow-imports=skip
       - run: uv run pytest tests/ -v
 
       # Frontend
@@ -28,6 +29,8 @@ jobs:
       - run: npm ci
         working-directory: frontend
       - run: npm run lint
+        working-directory: frontend
+      - run: npm run build
         working-directory: frontend
       - run: npm run test
         working-directory: frontend
