@@ -209,7 +209,11 @@ def test_ingest_fails_closed_when_admin_token_not_configured(
         (
             "patch",
             "/api/documents/source/iaea-1/url",
-            {"json": {"url": "https://www.iaea.org/publications/8639/safety-assessment"}},
+            {
+                "json": {
+                    "url": "https://www.iaea.org/publications/8639/safety-assessment"
+                }
+            },
         ),
     ],
 )
@@ -245,7 +249,9 @@ def test_query_rate_limit_returns_429(client: TestClient, monkeypatch):
     assert second.headers.get("Retry-After")
 
 
-def test_query_rate_limit_allows_requests_under_threshold(client: TestClient, monkeypatch):
+def test_query_rate_limit_allows_requests_under_threshold(
+    client: TestClient, monkeypatch
+):
     """Query endpoint allows requests when remaining under configured threshold."""
     from api.main import app_state
 
@@ -277,6 +283,14 @@ def test_query_sets_request_id_header(client: TestClient):
     res = client.get("/health")
     assert res.status_code == 200
     assert res.headers.get("X-Request-ID")
+
+
+def test_request_id_header_is_preserved_when_provided(client: TestClient):
+    """Server preserves inbound X-Request-ID for easier cross-service tracing."""
+    request_id = "req-test-1234"
+    res = client.get("/health", headers={"X-Request-ID": request_id})
+    assert res.status_code == 200
+    assert res.headers.get("X-Request-ID") == request_id
 
 
 def test_metrics_include_http_counters(client: TestClient, monkeypatch):

@@ -102,9 +102,9 @@ async def request_observability_middleware(request: Request, call_next):
     finally:
         elapsed = max(0.0, time.perf_counter() - started)
         metrics["total"] = int(metrics.get("total", 0)) + 1
-        metrics["duration_sum_seconds"] = float(
-            metrics.get("duration_sum_seconds", 0.0)
-        ) + elapsed
+        metrics["duration_sum_seconds"] = (
+            float(metrics.get("duration_sum_seconds", 0.0)) + elapsed
+        )
         if status_code >= 400:
             metrics["errors"] = int(metrics.get("errors", 0)) + 1
         if response is not None:
@@ -314,9 +314,7 @@ def documents_get_source_file(source_id: str):
 
 
 @api_router.post("/documents/source/{source_id}/lookup-url")
-def documents_lookup_source_url(
-    source_id: str, _admin: None = Depends(require_admin)
-):
+def documents_lookup_source_url(source_id: str, _admin: None = Depends(require_admin)):
     """Try to find the document URL (Danish: sst.dk or retsinformation.dk via Brave/probe; IAEA: search). If found, update registry and return URL."""
     try:
         from document_updates import lookup_source_url, update_registry_url
@@ -475,7 +473,9 @@ async def documents_add_pdf(
 
 
 @api_router.post("/ingest")
-def ingest_trigger(background_tasks: BackgroundTasks, _admin: None = Depends(require_admin)):
+def ingest_trigger(
+    background_tasks: BackgroundTasks, _admin: None = Depends(require_admin)
+):
     """Start ingestion in the background. Returns immediately."""
     if app_state["ingest_status"] == "running":
         raise HTTPException(status_code=409, detail="Ingestion already running.")
@@ -682,9 +682,9 @@ def query(req: QueryRequest, request: Request):
     used_web_search = result.get("web_search_attempted", False)
     if used_web_search:
         req_metrics = app_state.setdefault("request_metrics", {})
-        req_metrics["query_web_search_attempts"] = int(
-            req_metrics.get("query_web_search_attempts", 0)
-        ) + 1
+        req_metrics["query_web_search_attempts"] = (
+            int(req_metrics.get("query_web_search_attempts", 0)) + 1
+        )
     used_web_search_label = None
     if used_web_search:
         from graph.i18n import detect_language, get_label_sources_incl_web
