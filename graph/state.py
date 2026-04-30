@@ -1,8 +1,18 @@
 """Graph state for RAG pipeline."""
 
-from typing import Any, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from langchain_core.documents import Document
+from langchain_core.language_models.chat_models import BaseChatModel
+
+RouteAfterMissing = Literal["generate", "retrieve_missing", "web_search"]
+GenerationRoute = Literal["useful", "retry_retrieve", "web_search", "end"]
+QueryOutcome = Literal[
+    "trusted_only_verified",
+    "trusted_only_unverified",
+    "web_search_verified",
+    "web_search_unverified",
+]
 
 
 class GraphState(TypedDict):
@@ -23,7 +33,7 @@ class GraphState(TypedDict):
         str
     ]  # "gemini" | "mistral"; from request model (gemini/openai → gemini)
     llm: NotRequired[
-        Any
+        BaseChatModel
     ]  # Chat model for generation/grading; uses env fallback if absent
     # Documents from vector DB only (IAEA + Danish); used to verify answer against trusted sources
     trusted_documents: NotRequired[list[Document]]
@@ -35,3 +45,4 @@ class GraphState(TypedDict):
     retrieval_count: NotRequired[int]
     # Retry count after generation grader failed: 0 → 2 retrievals allowed before WEB_SEARCH.
     retry_after_generation_count: NotRequired[int]
+    routing_outcome: NotRequired[QueryOutcome]

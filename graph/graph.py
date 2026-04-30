@@ -31,7 +31,7 @@ from graph.nodes import (
     verify_trusted,
     web_search,
 )
-from graph.state import GraphState
+from graph.state import GenerationRoute, GraphState, RouteAfterMissing
 from graph.utils import throttle_llm_if_needed
 
 
@@ -42,7 +42,7 @@ def decide_to_generate(state: GraphState) -> str:
     return GENERATE
 
 
-def decide_after_retrieve_missing(state: GraphState) -> str:
+def decide_after_retrieve_missing(state: GraphState) -> RouteAfterMissing:
     """After retrieval: GENERATE if sufficient or in retry-after-generation path; else RETRIEVE_MISSING (up to 3 total) or WEB_SEARCH."""
     if (state.get("retry_after_generation_count") or 0) > 0:
         return GENERATE
@@ -53,7 +53,19 @@ def decide_after_retrieve_missing(state: GraphState) -> str:
     return WEB_SEARCH
 
 
-def grade_generation_grounded(state: GraphState) -> str:
+def _generation_retry_route(
+    *,
+    web_search_enabled: bool,
+    web_search_attempted: bool,
+    retry_count: int,
+) -> GenerationRoute:
+    """Centralize generation retry routing for clearer behavior contract."""
+    if not web_search_enabled or web_search_attempted:
+        return "end"
+    return "retry_retrieve" if retry_count < 2 else "web_search"
+
+
+def grade_generation_grounded(state: GraphState) -> GenerationRoute:
     """Check grounding and answer quality in one call; return outcome for routing. Up to 2 retry retrievals before web search."""
     question = state["question"]
     documents = state["documents"]
@@ -79,18 +91,21 @@ def grade_generation_grounded(state: GraphState) -> str:
         {"documents": docs_str, "question": question, "generation": generation}
     )
 
-    def _would_use_web_search() -> bool:
-        return bool(env_bool("WEB_SEARCH_ENABLED") and not web_search_attempted)
+    web_search_enabled = bool(env_bool("WEB_SEARCH_ENABLED"))
 
     if not score.grounded:
-        if _would_use_web_search():
-            return "retry_retrieve" if retry_count < 2 else "web_search"
-        return "end"
+        return _generation_retry_route(
+            web_search_enabled=web_search_enabled,
+            web_search_attempted=web_search_attempted,
+            retry_count=retry_count,
+        )
     if score.answers_question:
         return "useful"
-    if _would_use_web_search():
-        return "retry_retrieve" if retry_count < 2 else "web_search"
-    return "end"
+    return _generation_retry_route(
+        web_search_enabled=web_search_enabled,
+        web_search_attempted=web_search_attempted,
+        retry_count=retry_count,
+    )
 
 
 def prepare_retry_retrieve(state: GraphState) -> dict[str, Any]:
@@ -102,14 +117,22 @@ def prepare_retry_retrieve(state: GraphState) -> dict[str, Any]:
 def finalize(state: GraphState) -> dict[str, Any]:
     """Set retrieval_warning if not already set by verify_trusted. Message in the language of the question."""
     warning = state.get("retrieval_warning")
+    web_attempted = bool(state.get("web_search_attempted"))
+    trusted_verified = bool(state.get("trusted_verified"))
     if (
         warning is None
-        and state.get("web_search_attempted")
-        and not state.get("trusted_verified")
+        and web_attempted
+        and not trusted_verified
     ):
         lang = detect_language(state.get("question") or "")
         warning = get_warning_web_search_poor(lang)
-    return {"retrieval_warning": warning}
+    if web_attempted:
+        outcome = "web_search_verified" if trusted_verified else "web_search_unverified"
+    else:
+        outcome = (
+            "trusted_only_verified" if trusted_verified else "trusted_only_unverified"
+        )
+    return {"retrieval_warning": warning, "routing_outcome": outcome}
 
 
 workflow = StateGraph(GraphState)

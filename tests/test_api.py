@@ -400,6 +400,38 @@ def test_metrics_count_query_web_search_attempts(client: TestClient):
     assert value >= 1
 
 
+def test_metrics_include_query_outcome_labels(client: TestClient):
+    """Metrics expose query outcome labels from graph routing result."""
+    from api.main import app_state
+
+    app_state["request_metrics"]["query_outcomes_total"] = {}
+    mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
+
+    def _invoke(inputs, config=None):
+        question = inputs.get("question", "")
+        return {
+            "question": question,
+            "generation": "Answer",
+            "documents": [],
+            "web_search": False,
+            "web_search_attempted": False,
+            "chat_history": [(question, "Answer")],
+            "retrieval_warning": None,
+            "routing_outcome": "trusted_only_verified",
+            "trusted_verified": True,
+        }
+
+    mock.invoke.side_effect = _invoke
+    app_state["graph"] = mock
+    client.post("/query", json={"question": "Need guidance"})
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    assert (
+        'radiationsafety_query_outcomes_total{outcome="trusted_only_verified"} 1'
+        in res.text
+    )
+
+
 def test_ingest_returns_accepted(client: TestClient):
     """POST ingest returns 202 and starts background task."""
     with patch("api.main._run_ingest"):

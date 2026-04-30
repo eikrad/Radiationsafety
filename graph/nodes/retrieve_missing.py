@@ -1,6 +1,5 @@
 """Second retrieval targeting 'missing' information; re-check sufficiency before web search."""
 
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from langchain_core.documents import Document
@@ -10,9 +9,9 @@ from graph.chains.context_sufficiency_grader import get_context_sufficiency_grad
 from graph.chains.missing_query_chain import invoke_missing_query_chain
 from graph.chains.truncate import truncate_docs_for_grader
 from graph.llm_factory import get_embedding_provider, get_llm
+from graph.nodes.retrieval_common import invoke_dual_retrievers, merge_unique_documents
 from graph.state import GraphState
 from graph.utils import chat_context_prefix, throttle_llm_if_needed
-from ingestion import get_retrievers
 
 
 def retrieve_missing(
@@ -34,29 +33,12 @@ def retrieve_missing(
     missing_query = invoke_missing_query_chain(question, context_str, llm, config=cfg)
 
     ep = state.get("embedding_provider") or get_embedding_provider()
-    iaea_retriever, dk_retriever = get_retrievers(ep)
-
-    def _invoke_iaea():
-        return iaea_retriever.invoke(missing_query, config=cfg)
-
-    def _invoke_dk():
-        return dk_retriever.invoke(missing_query, config=cfg)
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        fut_iaea = executor.submit(_invoke_iaea)
-        fut_dk = executor.submit(_invoke_dk)
-        iaea_docs = fut_iaea.result()
-        dk_docs = fut_dk.result()
-
-    seen = {d.page_content[:200] for d in existing}
-    merged = list(existing)
-    new_docs: list[Document] = []
-    for d in iaea_docs + dk_docs:
-        key = d.page_content[:200]
-        if key not in seen:
-            seen.add(key)
-            merged.append(d)
-            new_docs.append(d)
+    iaea_docs, dk_docs = invoke_dual_retrievers(
+        embedding_provider=ep,
+        query=missing_query,
+        config=cfg,
+    )
+    merged, new_docs = merge_unique_documents(existing, iaea_docs + dk_docs)
     trusted_merged = list(trusted) + new_docs
 
     sufficient = False

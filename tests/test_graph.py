@@ -1,6 +1,9 @@
 """Graph routing and node tests."""
 
+import pytest
 from unittest.mock import MagicMock, patch
+
+from langchain_core.documents import Document
 
 from graph.state import GraphState
 
@@ -159,3 +162,90 @@ def test_grade_generation_grounded_retry_retrieve_then_web_search(monkeypatch):
 
         state2: GraphState = {**state0, "retry_after_generation_count": 2}
         assert grade_generation_grounded(state2) == "web_search"
+
+
+def test_merge_unique_documents_is_source_aware():
+    """Dedupe key should keep same snippet from different sources."""
+    from graph.nodes.retrieval_common import merge_unique_documents
+
+    existing = [
+        Document(
+            page_content="Same content block",
+            metadata={"source": "iaea-doc", "document_type": "trusted"},
+        )
+    ]
+    new = [
+        Document(
+            page_content="Same content block",
+            metadata={"source": "dk-law", "document_type": "trusted"},
+        ),
+        Document(
+            page_content="Same content block",
+            metadata={"source": "iaea-doc", "document_type": "trusted"},
+        ),
+    ]
+    merged, added = merge_unique_documents(existing, new)
+    assert len(merged) == 2
+    assert len(added) == 1
+    assert merged[1].metadata["source"] == "dk-law"
+
+
+def test_web_search_deduplicates_existing_results(monkeypatch):
+    """Web search should not append duplicate result documents."""
+    from graph.nodes.web_search import web_search
+
+    class _FakeTool:
+        def invoke(self, _query):
+            return [
+                {
+                    "title": "Existing",
+                    "link": "https://example.org/a",
+                    "snippet": "Duplicate snippet",
+                }
+            ]
+
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-key")
+    with (
+        patch("graph.nodes.web_search.invoke_search_query_chain", return_value="query"),
+        patch("graph.nodes.web_search.BraveSearch.from_api_key", return_value=_FakeTool()),
+    ):
+        state: GraphState = {
+            "question": "test",
+            "generation": "",
+            "web_search": True,
+            "documents": [
+                Document(
+                    page_content="Duplicate snippet",
+                    metadata={"source": "https://example.org/a", "document_type": "web"},
+                )
+            ],
+            "web_search_attempted": False,
+            "chat_history": [],
+        }
+        out = web_search(state)
+    docs = out["documents"]
+    assert len(docs) == 1
+
+
+@pytest.mark.parametrize(
+    ("enabled", "attempted", "retry_count", "expected"),
+    [
+        (False, False, 0, "end"),
+        (True, True, 0, "end"),
+        (True, False, 0, "retry_retrieve"),
+        (True, False, 1, "retry_retrieve"),
+        (True, False, 2, "web_search"),
+    ],
+)
+def test_generation_retry_route_matrix(enabled, attempted, retry_count, expected):
+    """Route matrix for retry-after-generation decisions."""
+    from graph.graph import _generation_retry_route
+
+    assert (
+        _generation_retry_route(
+            web_search_enabled=enabled,
+            web_search_attempted=attempted,
+            retry_count=retry_count,
+        )
+        == expected
+    )

@@ -43,6 +43,7 @@ app_state: dict = {
         "errors": 0,
         "duration_sum_seconds": 0.0,
         "query_web_search_attempts": 0,
+        "query_outcomes_total": {},
         "by_path_total": {},
         "by_path_errors": {},
         "by_status_class_total": {},
@@ -92,6 +93,7 @@ async def request_observability_middleware(request: Request, call_next):
             "errors": 0,
             "duration_sum_seconds": 0.0,
             "query_web_search_attempts": 0,
+            "query_outcomes_total": {},
             "by_path_total": {},
             "by_path_errors": {},
             "by_status_class_total": {},
@@ -232,9 +234,13 @@ def metrics() -> str:
     req_errors = int(req.get("errors", 0))
     duration_sum_seconds = float(req.get("duration_sum_seconds", 0.0))
     query_web_search_attempts = int(req.get("query_web_search_attempts", 0))
+    query_outcomes_total = req.get("query_outcomes_total", {})
     by_path_total = req.get("by_path_total") or {}
     by_path_errors = req.get("by_path_errors") or {}
     by_status_class_total = req.get("by_status_class_total") or {}
+
+    def _sanitize_label(value: str) -> str:
+        return value.replace("\\", "\\\\").replace('"', '\\"')
     lines = [
         "# HELP radiationsafety_graph_loaded 1 if the RAG graph is loaded, 0 otherwise.",
         "# TYPE radiationsafety_graph_loaded gauge",
@@ -254,7 +260,14 @@ def metrics() -> str:
         "# HELP radiationsafety_query_web_search_attempts_total Query runs that attempted web search.",
         "# TYPE radiationsafety_query_web_search_attempts_total counter",
         f"radiationsafety_query_web_search_attempts_total {query_web_search_attempts}",
+        "# HELP radiationsafety_query_outcomes_total Query outcomes by routing category.",
+        "# TYPE radiationsafety_query_outcomes_total counter",
     ]
+    if isinstance(query_outcomes_total, dict):
+        for outcome, count in sorted(query_outcomes_total.items()):
+            lines.append(
+                f'radiationsafety_query_outcomes_total{{outcome="{_sanitize_label(str(outcome))}"}} {int(count)}'
+            )
     lines.extend(
         [
             "# HELP radiationsafety_http_requests_by_path_total Total HTTP requests by path.",
@@ -745,6 +758,11 @@ def query(req: QueryRequest, request: Request):
         used_web_search_label = get_label_sources_incl_web(
             detect_language(req.question)
         )
+    outcome = str(result.get("routing_outcome") or "").strip()
+    if outcome:
+        req_metrics = app_state.setdefault("request_metrics", {})
+        by_outcome = req_metrics.setdefault("query_outcomes_total", {})
+        by_outcome[outcome] = int(by_outcome.get(outcome, 0)) + 1
     return QueryResponse(
         answer=answer,
         sources=sources,

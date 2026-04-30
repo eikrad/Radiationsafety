@@ -1,15 +1,14 @@
 """Retrieve documents from both IAEA and Danish law collections."""
 
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
-from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
 from graph.i18n import detect_language, get_warning_embeddings_not_built
 from graph.llm_factory import get_embedding_provider
+from graph.nodes.retrieval_common import invoke_dual_retrievers, merge_unique_documents
 from graph.state import GraphState
-from ingestion import check_embedding_collections_ready, get_retrievers
+from ingestion import check_embedding_collections_ready
 
 
 def _retrieval_query(question: str, chat_history: list[tuple[str, str]]) -> str:
@@ -27,7 +26,6 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
     question = state["question"]
     chat_history = state.get("chat_history") or []
     query = _retrieval_query(question, chat_history)
-    cfg = config or {}
     ep = state.get("embedding_provider") or get_embedding_provider()
     ready, _ = check_embedding_collections_ready(ep)
     if not ready:
@@ -39,45 +37,25 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
             "retrieval_warning": get_warning_embeddings_not_built(ep, lang),
             "retrieval_count": 1,
         }
-    iaea_retriever, dk_retriever = get_retrievers(ep)
-
-    def _invoke_iaea():
+    def _map_retrieval_error(e: Exception) -> Exception:
         try:
-            return iaea_retriever.invoke(query, config=cfg)
-        except Exception as e:
             if "dimension" in str(e).lower() and "embedding" in str(e).lower():
-                raise RuntimeError(
+                return RuntimeError(
                     "Embedding dimension mismatch: the Chroma collection was built with a different "
                     "embedding model. Re-run full ingestion (set GOOGLE_API_KEY in .env, then "
                     "uv run python ingestion.py) so the vector store uses Gemini embeddings."
-                ) from e
-            raise
+                )
+            return e
+        except Exception:
+            return e
 
-    def _invoke_dk():
-        try:
-            return dk_retriever.invoke(query, config=cfg)
-        except Exception as e:
-            if "dimension" in str(e).lower() and "embedding" in str(e).lower():
-                raise RuntimeError(
-                    "Embedding dimension mismatch: the Chroma collection was built with a different "
-                    "embedding model. Re-run full ingestion (set GOOGLE_API_KEY in .env, then "
-                    "uv run python ingestion.py) so the vector store uses Gemini embeddings."
-                ) from e
-            raise
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        fut_iaea = executor.submit(_invoke_iaea)
-        fut_dk = executor.submit(_invoke_dk)
-        iaea_docs = fut_iaea.result()
-        dk_docs = fut_dk.result()
-
-    seen = set()
-    merged: list[Document] = []
-    for d in iaea_docs + dk_docs:
-        key = d.page_content[:200]
-        if key not in seen:
-            seen.add(key)
-            merged.append(d)
+    iaea_docs, dk_docs = invoke_dual_retrievers(
+        embedding_provider=ep,
+        query=query,
+        config=config,
+        map_error=_map_retrieval_error,
+    )
+    merged, _ = merge_unique_documents([], iaea_docs + dk_docs)
 
     return {
         "documents": merged,

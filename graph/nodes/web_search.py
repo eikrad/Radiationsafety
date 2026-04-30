@@ -10,6 +10,7 @@ from langchain_core.runnables import RunnableConfig
 
 from graph.chains.search_query_chain import invoke_search_query_chain
 from graph.consts import env_bool
+from graph.nodes.retrieval_common import make_doc_key
 from graph.state import GraphState
 from graph.utils import chat_context_prefix, throttle_llm_if_needed
 
@@ -112,6 +113,7 @@ def web_search(
         }
 
     parsed = _parse_brave_results(results)
+    seen_keys = {make_doc_key(d) for d in existing_docs}
     for item in parsed:
         link = (item.get("link") or "").strip()
         snippet = item.get("snippet") or item.get("title") or ""
@@ -119,12 +121,15 @@ def web_search(
             continue
         # One document per result so sources list shows actual homepages
         source = link if link else "brave_search"
-        existing_docs.append(
-            Document(
-                page_content=snippet,
-                metadata={"source": source, "document_type": "web", "query": query},
-            )
+        doc = Document(
+            page_content=snippet,
+            metadata={"source": source, "document_type": "web", "query": query},
         )
+        key = make_doc_key(doc)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        existing_docs.append(doc)
 
     return {
         "documents": existing_docs,
