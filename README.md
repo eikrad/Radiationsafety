@@ -99,6 +99,13 @@ CI runs the test suite on push and on pull requests (see status badge above).
 - **Admin routes suddenly unavailable (503)**: check `ADMIN_TOKEN` presence and accidental bypass misconfiguration.
 - **Service health degraded**: inspect `/health` and `/metrics` plus container health status in Compose.
 
+### Container hardening notes
+
+- Backend container runs as non-root user (`appuser`) and sets `PYTHONDONTWRITEBYTECODE=1` plus `PYTHONUNBUFFERED=1`.
+- Compose applies `no-new-privileges` and drops Linux capabilities (`cap_drop: [ALL]`) for backend/frontend.
+- Backend uses `tmpfs: /tmp` and a persistent named volume only for `/app/.chroma`.
+- Healthchecks are active for backend, and frontend waits for backend healthy state before startup.
+
 ## Building document_sources.yaml from local PDFs
 
 To populate `document_sources.yaml` from the PDFs you already have in `documents/`:

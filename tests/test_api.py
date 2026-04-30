@@ -329,8 +329,14 @@ def test_metrics_include_status_class_counters(client: TestClient, monkeypatch):
     client.post("/query", json={"question": "What is radiation safety?"})
     res = client.get("/metrics")
     assert res.status_code == 200
-    assert 'radiationsafety_http_responses_by_status_class_total{status_class="2xx"}' in res.text
-    assert 'radiationsafety_http_responses_by_status_class_total{status_class="4xx"}' in res.text
+    assert (
+        'radiationsafety_http_responses_by_status_class_total{status_class="2xx"}'
+        in res.text
+    )
+    assert (
+        'radiationsafety_http_responses_by_status_class_total{status_class="4xx"}'
+        in res.text
+    )
 
 
 def test_metrics_count_query_web_search_attempts(client: TestClient):
