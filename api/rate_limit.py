@@ -62,4 +62,5 @@ def enforce_rate_limit(
                 "Rate limit exceeded for this endpoint. "
                 f"Please retry after about {retry_after} seconds."
             ),
+            headers={"Retry-After": str(retry_after)},
         )

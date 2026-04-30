@@ -242,6 +242,7 @@ def test_query_rate_limit_returns_429(client: TestClient, monkeypatch):
     second = client.post("/query", json={"question": "What is radiation safety?"})
     assert second.status_code == 429
     assert "retry" in second.json().get("detail", "").lower()
+    assert second.headers.get("Retry-After")
 
 
 def test_query_rate_limit_allows_requests_under_threshold(client: TestClient, monkeypatch):
@@ -268,6 +269,7 @@ def test_admin_route_rate_limit_returns_429(client: TestClient, monkeypatch):
         assert first.status_code == 202
         second = client.post("/api/ingest")
         assert second.status_code == 429
+        assert second.headers.get("Retry-After")
 
 
 def test_query_sets_request_id_header(client: TestClient):
