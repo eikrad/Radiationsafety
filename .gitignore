@@ -28,3 +28,6 @@ eval/reports/
 
 # Document registry (generated or from example; remove this line to commit a shared registry)
 document_sources.yaml
+
+# Local planning artifacts
+.cursor/plans/

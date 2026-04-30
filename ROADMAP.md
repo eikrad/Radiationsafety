@@ -5,6 +5,11 @@ offers as a managed platform, directly into this codebase. Each phase is
 self-contained and adds a concrete, usable capability. Phases are ordered from
 quickest win to most complex.
 
+## Related Plans
+
+- Playwright UI-E2E-Abdeckung (essentielle Interface-Flows, gemocktes API):
+  `.cursor/plans/playwright_essential_e2e_975e1548.plan.md`
+
 ---
 
 ## Phase 1 — Continuous Scoring
