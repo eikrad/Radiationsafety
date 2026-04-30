@@ -198,6 +198,15 @@ def test_ingest_fails_closed_when_admin_token_not_configured(
         ("post", "/api/documents/source/iaea-1/lookup-url", {}),
         ("post", "/api/documents/source/iaea-1/download-update", {}),
         (
+            "post",
+            "/api/documents/add-pdf",
+            {
+                "files": {
+                    "file": ("test.pdf", b"%PDF-1.4 test", "application/pdf"),
+                },
+            },
+        ),
+        (
             "patch",
             "/api/documents/source/iaea-1/url",
             {"json": {"url": "https://www.iaea.org/publications/8639/safety-assessment"}},
