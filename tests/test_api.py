@@ -317,6 +317,54 @@ def test_metrics_include_endpoint_level_counters(client: TestClient, monkeypatch
     assert 'radiationsafety_http_errors_by_path_total{path="/api/ingest"}' in res.text
 
 
+def test_metrics_include_status_class_counters(client: TestClient, monkeypatch):
+    """Metrics expose counters by HTTP status code class."""
+    monkeypatch.setenv("RATE_LIMIT_QUERY_MAX_REQUESTS", "1")
+    monkeypatch.setenv("RATE_LIMIT_QUERY_WINDOW_SEC", "60")
+    from api.main import app_state
+
+    app_state["rate_limit_store"] = {}
+    client.get("/health")
+    client.post("/query", json={"question": "What is radiation safety?"})
+    client.post("/query", json={"question": "What is radiation safety?"})
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    assert 'radiationsafety_http_responses_by_status_class_total{status_class="2xx"}' in res.text
+    assert 'radiationsafety_http_responses_by_status_class_total{status_class="4xx"}' in res.text
+
+
+def test_metrics_count_query_web_search_attempts(client: TestClient):
+    """Metrics increase web-search-attempts counter when query pipeline reports fallback."""
+    from api.main import app_state
+
+    app_state["request_metrics"]["query_web_search_attempts"] = 0
+    mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
+
+    def _invoke(inputs, config=None):
+        question = inputs.get("question", "")
+        return {
+            "question": question,
+            "generation": "Answer from web fallback",
+            "documents": [],
+            "web_search": False,
+            "web_search_attempted": True,
+            "chat_history": [(question, "Answer from web fallback")],
+            "retrieval_warning": None,
+        }
+
+    mock.invoke.side_effect = _invoke
+    app_state["graph"] = mock
+    client.post("/query", json={"question": "Need latest guidance"})
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    value = 0
+    for line in res.text.splitlines():
+        if line.startswith("radiationsafety_query_web_search_attempts_total "):
+            value = int(line.rsplit(" ", 1)[-1])
+            break
+    assert value >= 1
+
+
 def test_ingest_returns_accepted(client: TestClient):
     """POST ingest returns 202 and starts background task."""
     with patch("api.main._run_ingest"):

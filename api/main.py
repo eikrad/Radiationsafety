@@ -45,6 +45,7 @@ app_state: dict = {
         "query_web_search_attempts": 0,
         "by_path_total": {},
         "by_path_errors": {},
+        "by_status_class_total": {},
     },
 }
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -93,6 +94,7 @@ async def request_observability_middleware(request: Request, call_next):
             "query_web_search_attempts": 0,
             "by_path_total": {},
             "by_path_errors": {},
+            "by_status_class_total": {},
         },
     )
     started = time.perf_counter()
@@ -112,6 +114,11 @@ async def request_observability_middleware(request: Request, call_next):
         )
         by_path_total = metrics.setdefault("by_path_total", {})
         by_path_total[path] = int(by_path_total.get(path, 0)) + 1
+        status_class = f"{status_code // 100}xx"
+        by_status_class_total = metrics.setdefault("by_status_class_total", {})
+        by_status_class_total[status_class] = (
+            int(by_status_class_total.get(status_class, 0)) + 1
+        )
         if status_code >= 400:
             metrics["errors"] = int(metrics.get("errors", 0)) + 1
             by_path_errors = metrics.setdefault("by_path_errors", {})
@@ -227,6 +234,7 @@ def metrics() -> str:
     query_web_search_attempts = int(req.get("query_web_search_attempts", 0))
     by_path_total = req.get("by_path_total") or {}
     by_path_errors = req.get("by_path_errors") or {}
+    by_status_class_total = req.get("by_status_class_total") or {}
     lines = [
         "# HELP radiationsafety_graph_loaded 1 if the RAG graph is loaded, 0 otherwise.",
         "# TYPE radiationsafety_graph_loaded gauge",
@@ -268,6 +276,18 @@ def metrics() -> str:
         escaped_path = str(path).replace("\\", "\\\\").replace('"', '\\"')
         lines.append(
             f'radiationsafety_http_errors_by_path_total{{path="{escaped_path}"}} {int(count)}'
+        )
+    lines.extend(
+        [
+            "# HELP radiationsafety_http_responses_by_status_class_total Total HTTP responses by status class.",
+            "# TYPE radiationsafety_http_responses_by_status_class_total counter",
+        ]
+    )
+    for status_class, count in sorted(by_status_class_total.items()):
+        escaped_class = str(status_class).replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(
+            "radiationsafety_http_responses_by_status_class_total"
+            f'{{status_class="{escaped_class}"}} {int(count)}'
         )
     return "\n".join(lines) + "\n"
 
