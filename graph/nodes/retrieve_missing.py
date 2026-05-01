@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
 from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader

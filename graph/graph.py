@@ -119,11 +119,7 @@ def finalize(state: GraphState) -> dict[str, Any]:
     warning = state.get("retrieval_warning")
     web_attempted = bool(state.get("web_search_attempted"))
     trusted_verified = bool(state.get("trusted_verified"))
-    if (
-        warning is None
-        and web_attempted
-        and not trusted_verified
-    ):
+    if warning is None and web_attempted and not trusted_verified:
         lang = detect_language(state.get("question") or "")
         warning = get_warning_web_search_poor(lang)
     if web_attempted:

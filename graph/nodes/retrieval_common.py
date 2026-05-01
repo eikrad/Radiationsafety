@@ -1,7 +1,7 @@
 """Shared retrieval helpers for graph nodes."""
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
