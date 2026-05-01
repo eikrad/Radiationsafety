@@ -241,6 +241,7 @@ def metrics() -> str:
 
     def _sanitize_label(value: str) -> str:
         return value.replace("\\", "\\\\").replace('"', '\\"')
+
     lines = [
         "# HELP radiationsafety_graph_loaded 1 if the RAG graph is loaded, 0 otherwise.",
         "# TYPE radiationsafety_graph_loaded gauge",

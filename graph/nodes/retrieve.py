@@ -37,6 +37,7 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
             "retrieval_warning": get_warning_embeddings_not_built(ep, lang),
             "retrieval_count": 1,
         }
+
     def _map_retrieval_error(e: Exception) -> Exception:
         try:
             if "dimension" in str(e).lower() and "embedding" in str(e).lower():

@@ -1,8 +1,8 @@
 """Graph routing and node tests."""
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from langchain_core.documents import Document
 
 from graph.state import GraphState
@@ -207,7 +207,9 @@ def test_web_search_deduplicates_existing_results(monkeypatch):
     monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-key")
     with (
         patch("graph.nodes.web_search.invoke_search_query_chain", return_value="query"),
-        patch("graph.nodes.web_search.BraveSearch.from_api_key", return_value=_FakeTool()),
+        patch(
+            "graph.nodes.web_search.BraveSearch.from_api_key", return_value=_FakeTool()
+        ),
     ):
         state: GraphState = {
             "question": "test",
@@ -216,7 +218,10 @@ def test_web_search_deduplicates_existing_results(monkeypatch):
             "documents": [
                 Document(
                     page_content="Duplicate snippet",
-                    metadata={"source": "https://example.org/a", "document_type": "web"},
+                    metadata={
+                        "source": "https://example.org/a",
+                        "document_type": "web",
+                    },
                 )
             ],
             "web_search_attempted": False,
