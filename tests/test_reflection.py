@@ -1,12 +1,10 @@
 """Tests for the Reflexion retry loop: reflection hint flows from grader into retrieve_missing."""
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
-import pytest
 from langchain_core.documents import Document
 
 from graph.state import GraphState
-
 
 # ---------------------------------------------------------------------------
 # missing_query_chain: reflection parameter
@@ -47,7 +45,9 @@ def test_invoke_missing_query_chain_with_reflection_includes_hint():
     assert result == "Annex 2 occupational dose table"
     called_input = chain.invoke.call_args[0][0]
     # The reflection text is injected into the reflection_hint template variable
-    assert "occupational dose limits table Annex 2 GSR-3" in called_input.get("reflection_hint", "")
+    assert "occupational dose limits table Annex 2 GSR-3" in called_input.get(
+        "reflection_hint", ""
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +84,9 @@ def _patch_retrieve_missing_deps(missing_query: str = "query"):
         ),
         patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
-            return_value=MagicMock(invoke=MagicMock(return_value=MagicMock(binary_score=False))),
+            return_value=MagicMock(
+                invoke=MagicMock(return_value=MagicMock(binary_score=False))
+            ),
         ),
         patch("graph.nodes.retrieve_missing.throttle_llm_if_needed"),
         patch("graph.nodes.retrieve_missing.get_llm", return_value=MagicMock()),

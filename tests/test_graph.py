@@ -1,6 +1,6 @@
 """Graph routing and node tests."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from langchain_core.documents import Document
@@ -135,9 +135,18 @@ def test_route_after_grade_generation_retry_then_web_search(monkeypatch):
         "web_search_attempted": False,
         "generation_passed_grading": False,
     }
-    assert route_after_grade_generation({**base, "retry_after_generation_count": 0}) == "retry_retrieve"
-    assert route_after_grade_generation({**base, "retry_after_generation_count": 1}) == "retry_retrieve"
-    assert route_after_grade_generation({**base, "retry_after_generation_count": 2}) == "web_search"
+    assert (
+        route_after_grade_generation({**base, "retry_after_generation_count": 0})
+        == "retry_retrieve"
+    )
+    assert (
+        route_after_grade_generation({**base, "retry_after_generation_count": 1})
+        == "retry_retrieve"
+    )
+    assert (
+        route_after_grade_generation({**base, "retry_after_generation_count": 2})
+        == "web_search"
+    )
 
 
 def test_route_after_grade_generation_end_when_web_already_attempted(monkeypatch):

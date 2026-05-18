@@ -4,9 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.documents import Document
 
-from graph.chains.generation_grader import GradeGeneration, get_generation_grader
+from graph.chains.generation_grader import GradeGeneration
 from graph.state import GraphState
-
 
 # ---------------------------------------------------------------------------
 # GradeGeneration schema
@@ -22,7 +21,9 @@ def test_grade_generation_passed_true_has_empty_missing_info():
 
 def test_grade_generation_passed_false_carries_missing_info():
     """When passed=False, missing_info describes what was missing."""
-    score = GradeGeneration(passed=False, missing_info="dose limits table Annex 2 GSR-3")
+    score = GradeGeneration(
+        passed=False, missing_info="dose limits table Annex 2 GSR-3"
+    )
     assert score.passed is False
     assert score.missing_info == "dose limits table Annex 2 GSR-3"
 
@@ -81,7 +82,9 @@ def test_grade_generation_node_sets_missing_info_as_reflection_on_fail():
     """When grader fails with a hint, reflection carries that hint."""
     from graph.nodes.grade_generation import grade_generation
 
-    with _patch_grader(GradeGeneration(passed=False, missing_info="Annex 2 dose table")):
+    with _patch_grader(
+        GradeGeneration(passed=False, missing_info="Annex 2 dose table")
+    ):
         out = grade_generation(_make_state())
 
     assert out["reflection"] == "Annex 2 dose table"
