@@ -28,8 +28,11 @@ def retrieve_missing(
     context_str = (
         chat_context_prefix(chat_history) + "Document context:\n" + doc_context
     )
+    reflection = state.get("reflection") or ""
     throttle_llm_if_needed()
-    missing_query = invoke_missing_query_chain(question, context_str, llm, config=cfg)
+    missing_query = invoke_missing_query_chain(
+        question, context_str, llm, config=cfg, reflection=reflection
+    )
 
     ep = state.get("embedding_provider") or get_embedding_provider()
     iaea_docs, dk_docs = invoke_dual_retrievers(
