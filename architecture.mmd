@@ -9,9 +9,10 @@ flowchart TB
         direction TB
         RETRIEVE[Retrieve]
         GRADE[Grade documents]
-        RETRIEVE_MISSING[Retrieve missing]
+        RETRIEVE_MISSING[Retrieve missing\n+ reflection hint]
         WEB_SEARCH[Web search fallback]
-        GENERATE[Generate answer]
+        GENERATE[Generate answer\nresets reflection]
+        GRADE_GEN[Grade generation\nwrites reflection hint]
         PREPARE_RETRY[Prepare retry]
         VERIFY[Verify trusted sources]
         FINALIZE[Finalize warning/labels]
@@ -25,10 +26,11 @@ flowchart TB
     RETRIEVE_MISSING -->|"still low,\nretrieval_count < 3"| RETRIEVE_MISSING
     RETRIEVE_MISSING -->|"retrieval cap reached"| WEB_SEARCH
     WEB_SEARCH --> GENERATE
-    GENERATE -->|"grounded and useful"| VERIFY
-    GENERATE -->|"not grounded/useful,\nretries left"| PREPARE_RETRY
-    GENERATE -->|"not grounded/useful,\nno retries left"| WEB_SEARCH
-    GENERATE -->|"web off + poor grounding"| VERIFY
+    GENERATE --> GRADE_GEN
+    GRADE_GEN -->|"passed"| VERIFY
+    GRADE_GEN -->|"failed, retries left\nreflection → RETRIEVE_MISSING"| PREPARE_RETRY
+    GRADE_GEN -->|"failed, no retries"| WEB_SEARCH
+    GRADE_GEN -->|"web off + failed"| VERIFY
     PREPARE_RETRY --> RETRIEVE_MISSING
     VERIFY --> FINALIZE
 

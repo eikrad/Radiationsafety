@@ -22,19 +22,27 @@ same as a completely wrong one.
 threshold are invisible today. Continuous scores let you track slow drift and
 measure the real impact of prompt or retrieval changes.
 
+> **Note (v0.3.0):** `GradeGeneration` was refactored as part of the Reflexion
+> implementation. The schema now has `passed: bool` + `missing_info: str`
+> (replacing the old `grounded` + `answers_question` pair). Task 1 below should
+> add `score: float` to the simplified schema, not the old one.
+
 ### Tasks
 
 1. **Update grader prompts** (`graph/chains/generation_grader.py`,
    `graph/chains/context_sufficiency_grader.py`):
-   - Add a `score: float` field (0.0–1.0) alongside the existing boolean fields.
+   - Add a `score: float` field (0.0–1.0) alongside `passed` in `GradeGeneration`
+     and alongside `binary_score` in `GradeSufficiency`.
    - Update the prompt to instruct the LLM to assign a numeric confidence
      level, not just yes/no.
    - Example rubric for faithfulness: 1.0 = fully supported, 0.75 = mostly
      supported with minor gaps, 0.5 = borderline, 0.25 = mostly unsupported,
      0.0 = contradicted by context.
+   - Keep `passed: bool` for the Reflexion routing logic (it reads `passed`,
+     not the float score).
 
 2. **Update `eval/metrics.py`** to read the numeric `score` field instead of
-   casting booleans to 1.0/0.0. Keep the boolean fallback for backwards
+   casting `passed` to 1.0/0.0. Keep the boolean fallback for backwards
    compatibility when `score` is absent.
 
 3. **Update `eval/run_eval.py`**:

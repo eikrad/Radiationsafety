@@ -21,8 +21,10 @@ RAG system for querying IAEA and Danish radiation safety documents.
 ```
 api/main.py              — FastAPI routes, admin auth, rate limiting
 graph/graph.py           — LangGraph workflow (nodes, edges, routing)
-graph/nodes/             — retrieve, grade_documents, generate, web_search, verify_trusted
-graph/chains/            — LLM chains (generation, grading, search-query, truncate)
+graph/nodes/             — retrieve, grade_documents, grade_generation, generate,
+                           web_search, verify_trusted, retrieve_missing
+graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
+                           hallucinations_grader, missing_query_chain, search_query_chain, truncate)
 graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
@@ -30,11 +32,36 @@ ingestion.py             — PDF/XML loading, chunking, Chroma population
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
-eval/                    — RAGAS evaluation (run_eval.py, golden.json)
-tests/                   — pytest suite
+eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json)
+tests/                   — pytest suite (135 tests)
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
 ```
+
+### Graph topology
+
+```
+RETRIEVE → GRADE_DOCUMENTS
+               ↓ sufficient            ↓ insufficient + WEB_SEARCH_ENABLED
+           GENERATE ←── WEB_SEARCH  RETRIEVE_MISSING ──(loop up to 3×)──→ WEB_SEARCH
+               ↓
+        GRADE_GENERATION          ← Reflexion node: LLM grades, writes reflection hint
+               ↓ route_after_grade_generation (pure, no LLM)
+    useful → VERIFY_TRUSTED → FINALIZE → END
+    retry  → PREPARE_RETRY_RETRIEVE → RETRIEVE_MISSING (reads reflection hint)
+    web    → WEB_SEARCH
+    end    → VERIFY_TRUSTED → FINALIZE → END
+```
+
+### Key state fields
+
+| Field | Type | Set by | Used by |
+|---|---|---|---|
+| `reflection` | `str` | `grade_generation` node | `retrieve_missing` → `missing_query_chain` |
+| `generation_passed_grading` | `bool` | `grade_generation` node | `route_after_grade_generation` |
+| `retry_after_generation_count` | `int` | `prepare_retry_retrieve` | routing, `retrieve_missing` |
+| `retrieval_count` | `int` | `retrieve`, `retrieve_missing` | routing cap (max 3) |
+| `trusted_documents` | `list[Document]` | `retrieve`, `retrieve_missing` | `verify_trusted` |
 
 ### Adding a new node
 
