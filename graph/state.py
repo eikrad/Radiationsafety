@@ -46,3 +46,11 @@ class GraphState(TypedDict):
     # Retry count after generation grader failed: 0 → 2 retrievals allowed before WEB_SEARCH.
     retry_after_generation_count: NotRequired[int]
     routing_outcome: NotRequired[QueryOutcome]
+    # Reflexion: verbal hint from the grader about what was missing in the last failed generation.
+    # Passed to retrieve_missing to focus the next retrieval query.
+    # Empty string when generation passed grading; "retry" sentinel when LLM omits the hint.
+    # Reset to "" by the generate node on every new generation attempt.
+    reflection: NotRequired[str]
+    # Written by GRADE_GENERATION node; read by route_after_grade_generation.
+    # True = generation passed; False = needs retry/web-search/end.
+    generation_passed_grading: NotRequired[bool]
