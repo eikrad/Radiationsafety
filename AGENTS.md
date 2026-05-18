@@ -1,106 +1,121 @@
 # AGENTS.md — Radiation Safety RAG
 
-Dieses Dokument ist die zentrale Referenz für alle AI-Agenten (Claude Code, Codex, Cursor, Gemini CLI, etc.), die an diesem Projekt arbeiten oder die Logseq-Wissensbasis nutzen.
+Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc.) working on this codebase or querying the Logseq knowledge base.
 
 ---
 
-## 1. Projekt-Überblick
+## 1. Project Overview
 
-RAG-System zur Abfrage von IAEA- und dänischen Strahlenschutzdokumenten.
+RAG system for querying IAEA and Danish radiation safety documents.
 
-- **Backend**: FastAPI + LangGraph-Workflow (`graph/`) + Chroma-Vektordatenbank
-- **Embeddings**: immer Gemini (`GOOGLE_API_KEY` erforderlich für Ingestion und Retrieval)
-- **LLM für Generierung**: konfigurierbar — `gemini`, `openai`, oder `mistral` via `LLM_PROVIDER`
+- **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
+- **Embeddings**: always Gemini (`GOOGLE_API_KEY` required for ingestion and retrieval)
+- **LLM for generation**: configurable — `gemini`, `openai`, or `mistral` via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
-- **Dokumente**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
+- **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
 ---
 
-## 2. Codebasis-Karte
+## 2. Codebase Map
 
 ```
-api/main.py              — FastAPI-Routen, Admin-Auth, Rate-Limiting
-graph/graph.py           — LangGraph-Workflow (Knoten, Kanten, Routing)
+api/main.py              — FastAPI routes, admin auth, rate limiting
+graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, generate, web_search, verify_trusted
-graph/chains/            — LLM-Chains (generation, grading, search-query, truncate)
-graph/llm_factory.py     — LLM-Provider-Auswahl (Gemini/OpenAI/Mistral)
+graph/chains/            — LLM chains (generation, grading, search-query, truncate)
+graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral)
 graph/state.py           — GraphState TypedDict
-graph/consts.py          — Knotennamen, env_bool()
-ingestion.py             — PDF/XML-Laden, Chunking, Chroma-Befüllung
-ingestion_fetch.py       — URL-Fetch-Logik für retsinformation.dk und IAEA
-build_document_sources.py — Erstellt document_sources.yaml aus lokalen PDFs
-document_updates.py      — Prüft auf neuere Versionen (retsinformation.dk, IAEA)
-eval/                    — RAGAS-Evaluierung (run_eval.py, golden.json)
-tests/                   — pytest-Suite
-frontend/src/App.tsx     — Haupt-UI-Komponente
-frontend/src/constants.ts — API-URLs, Konfiguration
+graph/consts.py          — node name constants, env_bool()
+ingestion.py             — PDF/XML loading, chunking, Chroma population
+ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
+build_document_sources.py — builds document_sources.yaml from local PDFs
+document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
+eval/                    — RAGAS evaluation (run_eval.py, golden.json)
+tests/                   — pytest suite
+frontend/src/App.tsx     — main UI component
+frontend/src/constants.ts — API URLs, configuration
 ```
 
-### Neue Knoten hinzufügen
+### Adding a new node
 
-1. Datei in `graph/nodes/` erstellen, Funktion `(state: GraphState) -> dict` implementieren
-2. In `graph/nodes/__init__.py` exportieren
-3. In `graph/graph.py` mit `workflow.add_node(NAME, fn)` und Kanten registrieren
-4. Konstante in `graph/consts.py` ergänzen
+1. Create file in `graph/nodes/`, implement function `(state: GraphState) -> dict`
+2. Export from `graph/nodes/__init__.py`
+3. Register in `graph/graph.py` with `workflow.add_node(NAME, fn)` and edges
+4. Add constant in `graph/consts.py`
 
-### Neue Chains hinzufügen
+### Adding a new chain
 
-1. Datei in `graph/chains/` erstellen, `get_*`-Factory-Funktion implementieren
-2. In `graph/chains/__init__.py` exportieren
+1. Create file in `graph/chains/`, implement `get_*` factory function
+2. Export from `graph/chains/__init__.py`
 
 ---
 
-## 3. Entwicklungskonventionen
+## 3. Development Conventions
 
-- **Python**: `uv` für Abhängigkeiten, `uv run pytest tests/ -v` für Tests
+- **Python**: `uv` for dependencies, `uv run pytest tests/ -v` for tests
 - **Frontend**: `npm -C frontend run test`, `npm -C frontend run build`
 - **Linting**: pre-commit hooks (`.pre-commit-config.yaml`)
-- **Umgebungsvariablen**: Immer `.env.example` aktualisieren wenn neue Variablen hinzukommen
-- **Chroma-Collections**: `radiation-iaea` und `radiation-dk-law` — nicht umbenennen ohne Re-Ingestion
-- **Admin-Routen**: erfordern `X-Admin-Token`-Header; ohne `ADMIN_TOKEN` → 503
+- **Environment variables**: always update `.env.example` when adding new variables
+- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` — do not rename without re-ingestion
+- **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
 
 ---
 
-## 4. Logseq Second Brain — Schema und Workflows
+## 4. Logseq Second Brain
 
-Dieses Projekt nutzt **Logseq** (via `mcp-logseq`) als kompilierte Wissensbasis für Research zu Strahlenschutz. Das Konzept folgt Karpathys LLM-Wiki-Prinzip: Raw Sources bleiben unverändert, das LLM pflegt verlinkte Seiten in Logseq.
+This project uses **Logseq** (via `mcp-logseq`) as a compiled knowledge base for radiation safety research and RAG architecture. The concept follows Karpathy's LLM wiki principle: raw sources stay immutable, the LLM maintains linked pages in Logseq.
 
-### 4.1 Namespaces
+The second brain lives in a separate repo: `eikrad/second-brain`. Configure `mcp-logseq` to point at your local clone.
+
+### Rule: query before decide
+
+Before any architectural decision (new node, retrieval strategy, embedding change):
+1. `find_pages_by_property topic=rag-architecture` or `search` for the concept
+2. `get_page_content` of relevant pages
+3. Decide with cited sources from the graph — not from training data alone
+
+Before answering a complex radiation safety question:
+1. `find_pages_by_property topic=<topic>` or Datalog `query`
+2. `get_page_content` + `get_page_backlinks` for related concepts
+3. Answer with references to Logseq pages
+
+### Namespaces
 
 ```
-Sources/IAEA/          — IAEA-Standards und Safety Guides (GSR, SSG, SSG, TECDOC)
-Sources/Danish/        — Dänische Bekendtgørelser (retsinformation.dk)
-Sources/Research/      — Wissenschaftliche Paper, externe Studien
-Sources/Other/         — Podcasts, Blogs, sonstige Quellen
-Concepts/              — Schlüsselbegriffe (Dosimetry, ALARA, Contamination, ...)
-Regulations/           — Regulatorische Rahmenwerke und Vergleiche
-Index                  — Master-Index aller Seiten mit Kurzbeschreibungen
+Sources/IAEA/          — IAEA standards and safety guides (GSR, SSG, SSR, TECDOC)
+Sources/Danish/        — Danish Bekendtgørelser (retsinformation.dk)
+Sources/Architecture/  — RAG patterns, LangGraph, embedding strategies
+Sources/Research/      — Academic papers, external studies
+Sources/Other/         — Podcasts, blogs, misc
+Concepts/              — Key terms (Dosimetry, ALARA, Contamination, RAG, ...)
+Regulations/           — Regulatory frameworks and comparisons
+Index                  — Master index of all pages
 ```
 
-### 4.2 Standard-Properties pro Seite
+### Page properties
 
-Jede neue Seite soll diese Properties im Frontmatter haben:
+Every new page must have these properties:
 
 ```
 source-type::   iaea-standard | iaea-tecdoc | danish-law | paper | book | podcast | other
-document-id::   z.B. GSR-3, SSG-46, BEK-2025-138, TECDOC-1380
-topic::         dosimetry | transport | medical | research | waste | emergency | regulatory
+document-id::   e.g. GSR-3, SSG-46, BEK-2025-138405, TECDOC-1380
+topic::         dosimetry | transport | medical | research | waste | emergency | regulatory | rag-architecture
 language::      en | da | de
 status::        ingested | reviewed | needs-update | superseded
-date::          YYYY-MM-DD (Publikationsdatum wenn bekannt)
-url::           (optional, Quell-URL)
+date::          YYYY-MM-DD
+url::           (optional)
 ```
 
-### 4.3 Ingest-Workflow (neue Quelle)
+### Ingest workflow (new source)
 
-Wenn eine neue Quelle (PDF, Artikel, Podcast-Notiz) hinzukommt:
+When a new source arrives (PDF, article, podcast note):
 
-1. **`create_page`** — Neue Seite unter passendem Namespace anlegen
-   - Titel: `Sources/IAEA/GSR-3` oder `Concepts/ALARA`
-   - Properties gemäß 4.2 setzen
-   - Inhalt: Zusammenfassung, Schlüsselaussagen, relevante Paragraphen als Blöcke
+1. **`create_page`** — create page under the appropriate namespace
+   - Title: `Sources/IAEA/GSR-3` or `Concepts/ALARA`
+   - Set properties as above
+   - Content: summary, key points, relevant paragraphs as blocks
 
-2. **`query`** — Verwandte Seiten finden:
+2. **`query`** — find related pages:
    ```clojure
    [:find (pull ?p [:block/name])
     :where [?p :block/properties ?props]
@@ -108,59 +123,55 @@ Wenn eine neue Quelle (PDF, Artikel, Podcast-Notiz) hinzukommt:
            [(= ?t "dosimetry")]]
    ```
 
-3. **`update_page`** — 3–7 verwandte Seiten mit Back-Links und neuen Querverweisen aktualisieren (append-Modus)
+3. **`update_page`** — update 3–7 related pages with back-links and cross-references (append mode)
 
-4. **`update_page`** — `Index`-Seite mit Eintrag für die neue Seite ergänzen
+4. **`update_page`** — add entry to `Index` page
 
-### 4.4 Query-Workflow (Kontext für eine Frage)
+### Query workflow (fetching context)
 
-Bevor du eine komplexe Strahlenschutz-Frage beantwortest:
+1. **`find_pages_by_property`** — fast property filter by `topic` or `document-id`
+2. **`query`** — Datalog for precise combination search (e.g. topic=transport AND language=en)
+3. **`get_page_content`** — load only relevant pages (keep context small)
+4. **`get_page_backlinks`** — traverse related concepts via graph if needed
+5. **`search`** — full-text fallback when properties are insufficient
 
-1. **`find_pages_by_property`** — Nach `topic` oder `document-id` filtern
-2. **`query`** — Datalog für präzise Kombinationssuche (z.B. topic=transport AND language=en)
-3. **`get_page_content`** — Nur die relevanten Seiten laden (Kontext klein halten)
-4. **`get_page_backlinks`** — Verwandte Konzepte via Graph traversieren wenn nötig
-5. **`search`** — Fallback für Volltextsuche wenn Properties nicht ausreichen
+Goal: load as few pages as needed, then synthesize in the LLM.
 
-Ziel: so wenig Seiten wie nötig laden, dann im LLM synthetisieren.
+### Lint routine (periodic)
 
-### 4.5 Lint-Routine (periodisch)
+1. **`query`** — find pages missing `source-type` property
+2. **`query`** — review pages with `status: needs-update`
+3. **`get_page_backlinks`** — identify orphan pages (no incoming links)
+4. Mark outdated documents with `status: superseded` when a newer version exists
 
-Gelegentlich zur Qualitätssicherung:
+### Logseq MCP tools reference
 
-1. **`query`** — Seiten ohne `source-type`-Property finden (fehlende Metadaten)
-2. **`query`** — Seiten mit `status: needs-update` prüfen
-3. **`get_page_backlinks`** — Waisen-Seiten identifizieren (keine eingehenden Links)
-4. Veraltete Dokumente mit `status: superseded` markieren wenn neuere Version vorhanden
-
-### 4.6 Wichtige Logseq-MCP-Tools (Kurzreferenz)
-
-| Tool | Wann |
+| Tool | When |
 |---|---|
-| `create_page` | Neue Quelle ingestieren |
-| `update_page` | Cross-References ergänzen (append), Inhalt korrigieren (replace) |
-| `update_block` | Einzelnen Block via UUID anpassen |
-| `find_pages_by_property` | Schnelle Property-Filter (topic, status, document-id) |
-| `query` | Komplexe Datalog-Queries |
-| `get_page_backlinks` | Welche Seiten verlinken auf X? |
-| `get_pages_from_namespace` | Alle Seiten unter Sources/IAEA/ |
-| `search` | Volltextsuche als Fallback |
+| `create_page` | Ingest a new source |
+| `update_page` | Add cross-references (append) or correct content (replace) |
+| `update_block` | Edit a single block by UUID |
+| `find_pages_by_property` | Fast property filter (topic, status, document-id) |
+| `query` | Complex Datalog queries |
+| `get_page_backlinks` | Which pages link to X? |
+| `get_pages_from_namespace` | All pages under Sources/IAEA/ |
+| `search` | Full-text fallback |
 
-### 4.7 Beispiel-Queries
+### Example Datalog queries
 
 ```clojure
-;; Alle IAEA-Standards zum Thema Transport
+;; All IAEA standards on transport
 [:find (pull ?p [:block/name :block/properties])
  :where [?p :block/properties ?props]
         [(get ?props :source-type) "iaea-standard"]
         [(get ?props :topic) "transport"]]
 
-;; Alle Seiten die überprüft werden müssen
+;; All pages that need review
 [:find (pull ?p [:block/name])
  :where [?p :block/properties ?props]
         [(get ?props :status) "needs-update"]]
 
-;; Alle dänischsprachigen Quellen
+;; All Danish-language sources
 [:find (pull ?p [:block/name])
  :where [?p :block/properties ?props]
         [(get ?props :language) "da"]]
@@ -168,17 +179,17 @@ Gelegentlich zur Qualitätssicherung:
 
 ---
 
-## 5. Dokumente im Projekt (bereits vorhanden)
+## 5. Documents in this project (already ingested)
 
-Diese PDFs liegen lokal und sind bereits in Chroma ingested:
+These PDFs are stored locally and already ingested into Chroma:
 
 **IAEA Standards:**
 GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
 SSG-11, SSG-39, SSG-40, SSG-44, SSG-46, SSG-86, SSG-87,
 SSR-6, TECDOC-1380, TECDOC-1638, nuclear_safety_measures (24G)
 
-**Dänische Quellen (Bekendtgørelse):**
+**Danish sources (Bekendtgørelse):**
 BEK-2025-138405, BEK-2025-138505, Brug af åbne radioaktive kilder,
 Udarbejdelse af en sikkerhedsvurdering
 
-Diese sollten als erste Seiten in Logseq unter `Sources/IAEA/` bzw. `Sources/Danish/` angelegt werden.
+These should be the first pages created in Logseq under `Sources/IAEA/` and `Sources/Danish/`.
