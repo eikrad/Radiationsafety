@@ -15,8 +15,8 @@ from eval.metrics import (
 )
 
 
-def _mock_grade_gen(grounded: bool, answers_question: bool):
-    return MagicMock(grounded=grounded, answers_question=answers_question)
+def _mock_grade_gen(passed: bool):
+    return MagicMock(passed=passed, missing_info="" if passed else "some missing info")
 
 
 def _mock_grade_suff(binary_score: bool):
@@ -35,9 +35,7 @@ def sample_docs():
 def test_faithfulness_returns_1_when_grounded(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(
-            grounded=True, answers_question=True
-        )
+        grader.invoke.return_value = _mock_grade_gen(passed=True)
         m.return_value = grader
         assert faithfulness("Q?", "Answer.", sample_docs) == 1.0
 
@@ -45,9 +43,7 @@ def test_faithfulness_returns_1_when_grounded(sample_docs):
 def test_faithfulness_returns_0_when_not_grounded(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(
-            grounded=False, answers_question=True
-        )
+        grader.invoke.return_value = _mock_grade_gen(passed=False)
         m.return_value = grader
         assert faithfulness("Q?", "Answer.", sample_docs) == 0.0
 
@@ -59,9 +55,7 @@ def test_faithfulness_returns_0_for_empty_generation(sample_docs):
 def test_answer_relevance_returns_1_when_answers(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(
-            grounded=True, answers_question=True
-        )
+        grader.invoke.return_value = _mock_grade_gen(passed=True)
         m.return_value = grader
         assert answer_relevance("Q?", "Answer.", sample_docs) == 1.0
 
@@ -69,9 +63,7 @@ def test_answer_relevance_returns_1_when_answers(sample_docs):
 def test_answer_relevance_returns_0_when_not_answers(sample_docs):
     with patch("eval.metrics.get_generation_grader") as m:
         grader = MagicMock()
-        grader.invoke.return_value = _mock_grade_gen(
-            grounded=True, answers_question=False
-        )
+        grader.invoke.return_value = _mock_grade_gen(passed=False)
         m.return_value = grader
         assert answer_relevance("Q?", "Answer.", sample_docs) == 0.0
 
@@ -134,7 +126,7 @@ def test_compute_all_metrics_returns_four_scores(sample_docs):
     with patch("eval.metrics.get_generation_grader") as gm:
         with patch("eval.metrics.get_context_sufficiency_grader") as sm:
             gen_grader = MagicMock()
-            gen_grader.invoke.return_value = _mock_grade_gen(True, True)
+            gen_grader.invoke.return_value = _mock_grade_gen(passed=True)
             gm.return_value = gen_grader
             suff_grader = MagicMock()
             suff_grader.invoke.return_value = _mock_grade_suff(True)
@@ -177,7 +169,7 @@ def test_compute_all_metrics_with_per_chunk_precision_uses_per_chunk(sample_docs
         with patch("eval.metrics.get_context_sufficiency_grader") as sm:
             with patch("eval.metrics.get_llm") as lm:
                 gen_grader = MagicMock()
-                gen_grader.invoke.return_value = _mock_grade_gen(True, True)
+                gen_grader.invoke.return_value = _mock_grade_gen(passed=True)
                 gm.return_value = gen_grader
                 suff_grader = MagicMock()
                 suff_grader.invoke.return_value = _mock_grade_suff(True)

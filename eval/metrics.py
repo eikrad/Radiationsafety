@@ -90,7 +90,7 @@ def faithfulness(
     result = grader.invoke(
         {"documents": ctx, "question": question, "generation": generation}
     )
-    return 1.0 if getattr(result, "grounded", False) else 0.0
+    return 1.0 if getattr(result, "passed", False) else 0.0
 
 
 def answer_relevance(
@@ -109,7 +109,7 @@ def answer_relevance(
     result = grader.invoke(
         {"documents": ctx, "question": question, "generation": generation}
     )
-    return 1.0 if getattr(result, "answers_question", False) else 0.0
+    return 1.0 if getattr(result, "passed", False) else 0.0
 
 
 def context_precision(

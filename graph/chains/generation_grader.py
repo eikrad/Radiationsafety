@@ -1,4 +1,4 @@
-"""Single chain to grade both grounding and answer quality (saves one LLM call)."""
+"""Single chain to grade generation quality and extract a reflection hint on failure."""
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,22 +9,41 @@ from graph.llm_factory import get_llm
 
 
 class GradeGeneration(BaseModel):
-    """Scores for grounding and for answering the question."""
+    """Pass/fail verdict and optional reflection hint for the retry loop."""
 
-    grounded: bool = Field(
-        description="The answer is grounded in the documents, 'yes' or 'no'"
+    passed: bool = Field(
+        description=(
+            "True if the generation is grounded in the Facts AND fully addresses the question. "
+            "False otherwise."
+        )
     )
-    answers_question: bool = Field(
-        description="The answer addresses the question, 'yes' or 'no'"
+    missing_info: str = Field(
+        default="",
+        description=(
+            "Only when passed=False: one short phrase (max 15 words) naming the specific "
+            "fact, section, or document missing from the retrieved context that would fix the answer. "
+            "Examples: 'occupational dose limits table Annex 2 GSR-3', "
+            "'Danish designated radioactive waste disposal facility name', "
+            "'BEK-2025-138405 section 4 notification requirements'. "
+            "Leave as empty string when passed=True."
+        ),
     )
 
 
-system = """You are a grader. The "Facts" below are the retrieved context that was given to the model. The "Generation" is the model's answer.
+system = """You are a grader. The "Facts" below are the retrieved context given to the model. \
+The "Generation" is the model's answer.
 
-1) grounded: Answer YES if the generation's factual content is supported by the Facts (paraphrases, summaries, and citing the given sources are fine). Answer NO only for clear unsupported claims or fabrication.
-2) answers_question: Answer YES if the generation addresses or resolves the user question.
+1) passed: Answer YES if the generation's factual content is supported by the Facts \
+(paraphrases, summaries, and citing the given sources are fine) AND the generation \
+addresses or resolves the user question. Answer NO if there are unsupported claims, \
+fabrication, or the question is not answered.
 
-Reply with two binary scores: grounded (yes/no) and answers_question (yes/no)."""
+2) missing_info: Only when passed=NO — write one short phrase (max 15 words) naming \
+the specific fact, document section, or source missing from the Facts that would fix the answer. \
+Examples: 'occupational dose limits table Annex 2 GSR-3', \
+'Danish designated radioactive waste disposal facility name'. \
+Leave as empty string when passed=YES."""
+
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
@@ -37,6 +56,6 @@ prompt = ChatPromptTemplate.from_messages(
 
 
 def get_generation_grader(llm: BaseChatModel | None = None) -> Runnable:
-    """Return a single grader for grounded + answers_question. Uses get_llm() if llm is None."""
+    """Return a grader chain that produces GradeGeneration(passed, missing_info)."""
     model = llm or get_llm()
     return prompt | model.with_structured_output(GradeGeneration)
