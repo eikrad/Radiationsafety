@@ -15,7 +15,7 @@ cd "$TARGET"
 mkdir -p pages logseq journals assets
 
 # --- logseq/config.edn ---
-cat > logseq/config.edn << 'EOF'
+cat > logseq/config.edn << 'HEREDOC'
 {:meta/version 1
  :preferred-format :markdown
  :pages-directory "pages"
@@ -23,67 +23,66 @@ cat > logseq/config.edn << 'EOF'
  :feature/enable-journals? false
  :ui/enable-tooltip? true
  :graph/settings {:hidden-namespaces []}}
-EOF
+HEREDOC
 
 # --- .gitignore ---
-cat > .gitignore << 'EOF'
+cat > .gitignore << 'HEREDOC'
 logseq/bak/
 logseq/version-files/
 logseq/.recycle
 .DS_Store
-EOF
+HEREDOC
 
 # --- AGENTS.md ---
-cat > AGENTS.md << 'EOF'
+cat > AGENTS.md << 'HEREDOC'
 # AGENTS.md — Second Brain
 
-Dieses Repo ist eine Logseq-Wissensbasis für Strahlenschutz-Research und RAG/AI-Architektur.
-Es dient als persistente, kompilierte Wissensquelle für alle AI-Coding-Agenten.
+This repo is a Logseq knowledge base for radiation safety research and RAG/AI architecture. It serves as a persistent, compiled knowledge source for all AI coding agents.
 
 ---
 
-## Zweck
+## Purpose
 
-- **Domain-Wissen**: IAEA-Standards, dänische Regulierung — für fundierte Antworten ohne Halluzinationen
-- **Architektur-Research**: RAG-Pattern, LangGraph-Design — für informierte Coding-Entscheidungen
-- **Projekt-unabhängig**: wird von mehreren Projekten und Tools genutzt (Claude Code, Cursor, Codex, Gemini CLI)
+- **Domain knowledge**: IAEA standards, Danish regulations — grounded answers without hallucination
+- **Architecture research**: RAG patterns, LangGraph design — informed coding decisions
+- **Project-independent**: shared across multiple projects and tools (Claude Code, Cursor, Codex, Gemini CLI)
 
 ---
 
-## Regel: Query before decide
+## Rule: query before decide
 
-Vor jeder Architekturentscheidung (neuer Knoten, Retrieval-Strategie, Embedding-Änderung):
-1. `find_pages_by_property topic=rag-architecture` oder `search` nach dem Konzept
-2. `get_page_content` der relevanten Seite(n)
-3. Erst dann entscheiden — mit Quellenangabe aus dem Graph
+Before any architectural decision (new node, retrieval strategy, embedding change):
+1. `find_pages_by_property topic=rag-architecture` or `search` for the concept
+2. `get_page_content` of relevant pages
+3. Decide with cited sources from the graph — not from training data alone
 
-Vor Strahlenschutz-Fragen:
-1. `find_pages_by_property topic=<thema>` oder `query` mit Datalog
-2. `get_page_content` + `get_page_backlinks` für verwandte Konzepte
-3. Antwort mit Referenzen auf Logseq-Seiten
+Before answering a radiation safety question:
+1. `find_pages_by_property topic=<topic>` or Datalog `query`
+2. `get_page_content` + `get_page_backlinks` for related concepts
+3. Answer with references to Logseq pages
 
 ---
 
 ## Namespaces
 
 ```
-Sources/IAEA/          — IAEA-Standards (GSR, SSG, SSR, TECDOC)
-Sources/Danish/        — Dänische Bekendtgørelser
-Sources/Architecture/  — RAG-Pattern, LangGraph, Embedding-Strategien
-Sources/Research/      — Wissenschaftliche Paper
-Sources/Other/         — Podcasts, Blogs
-Concepts/              — Schlüsselbegriffe (ALARA, Dosimetry, RAG, ...)
-Regulations/           — Regulatorische Rahmenwerke
-Index                  — Master-Index (immer aktuell halten)
+Sources/IAEA/          — IAEA standards (GSR, SSG, SSR, TECDOC)
+Sources/Danish/        — Danish Bekendtgørelser
+Sources/Architecture/  — RAG patterns, LangGraph, embedding strategies
+Sources/Research/      — Academic papers
+Sources/Other/         — Podcasts, blogs
+Concepts/              — Key terms (ALARA, Dosimetry, RAG, ...)
+Regulations/           — Regulatory frameworks
+Index                  — Master index (keep up to date)
 ```
 
 ---
 
-## Properties (Pflicht für jede neue Seite)
+## Properties (required for every new page)
 
 ```
 source-type::   iaea-standard | iaea-tecdoc | danish-law | paper | book | podcast | other
-document-id::   z.B. GSR-3, SSG-46, BEK-2025-138405
+document-id::   e.g. GSR-3, SSG-46, BEK-2025-138405
 topic::         dosimetry | transport | medical | research | waste | emergency | regulatory | rag-architecture
 language::      en | da | de
 status::        ingested | reviewed | needs-update | superseded
@@ -93,26 +92,26 @@ url::           (optional)
 
 ---
 
-## Ingest-Workflow (neue Seite anlegen)
+## Ingest workflow (adding a new page)
 
-1. `create_page` — Namespace + Properties + Inhalt (Zusammenfassung, Kernaussagen, Links)
-2. `query` — verwandte Seiten finden (gleicher topic)
-3. `update_page` — 3–5 verwandte Seiten mit Back-Links ergänzen (append)
-4. `update_page` — [[Index]] aktualisieren
+1. `create_page` — namespace + properties + content (summary, key points, links)
+2. `query` — find related pages (same topic)
+3. `update_page` — add back-links to 3–5 related pages (append mode)
+4. `update_page` — update [[Index]]
 
-## Query-Workflow (Kontext holen)
+## Query workflow (fetching context)
 
-1. `find_pages_by_property` — schneller Property-Filter
-2. `query` — Datalog für Kombinationssuche
-3. `get_page_content` — nur relevante Seiten laden
-4. `get_page_backlinks` — Graph traversieren wenn nötig
-5. `search` — Volltextsuche als Fallback
+1. `find_pages_by_property` — fast property filter
+2. `query` — Datalog for combination search
+3. `get_page_content` — load only relevant pages
+4. `get_page_backlinks` — traverse graph if needed
+5. `search` — full-text fallback
 
 ---
 
-## Dateinamen-Konvention
+## Filename convention
 
-Logseq kodiert `/` im Seitentitel als `___` (drei Unterstriche) im Dateinamen:
+Logseq encodes `/` in page titles as `___` (triple underscore) in filenames:
 
 ```
 Sources/IAEA/GSR-3  →  pages/Sources___IAEA___GSR-3.md
@@ -121,7 +120,7 @@ Concepts/ALARA      →  pages/Concepts___ALARA.md
 
 ---
 
-## MCP-Konfiguration (lokal)
+## MCP configuration (local)
 
 ```json
 {
@@ -130,20 +129,20 @@ Concepts/ALARA      →  pages/Concepts___ALARA.md
       "command": "npx",
       "args": ["-y", "mcp-logseq"],
       "env": {
-        "LOGSEQ_GRAPH_PATH": "/absoluter/pfad/zu/second-brain"
+        "LOGSEQ_GRAPH_PATH": "/absolute/path/to/second-brain"
       }
     }
   }
 }
 ```
 
-Claude Code: `~/.claude/claude_desktop_config.json`
-Cursor: `.cursor/mcp.json` im Projektverzeichnis oder global
-Codex: `~/.codex/config.json`
-EOF
+- Claude Code: `~/.claude/claude_desktop_config.json`
+- Cursor: `.cursor/mcp.json` (project or global)
+- Codex: `~/.codex/config.json`
+HEREDOC
 
 # --- pages/Index.md ---
-cat > pages/Index.md << 'EOF'
+cat > pages/Index.md << 'HEREDOC'
 ## Second Brain — Master Index
 
 > Compiled knowledge base for radiation safety research and RAG/AI architecture.
@@ -199,10 +198,10 @@ cat > pages/Index.md << 'EOF'
 ## Regulations
 - [[Regulations/BSS-Framework]]
 - [[Regulations/Danish-Regulatory-Framework]]
-EOF
+HEREDOC
 
 # --- pages/Sources___IAEA___GSR-3.md ---
-cat > "pages/Sources___IAEA___GSR-3.md" << 'EOF'
+cat > "pages/Sources___IAEA___GSR-3.md" << 'HEREDOC'
 source-type:: iaea-standard
 document-id:: GSR-3
 topic:: dosimetry, regulatory
@@ -236,10 +235,10 @@ The central IAEA document establishing dose limits, ALARA requirements, and resp
 - Transport specifics in [[Sources/IAEA/SSR-6]]
 - Emergency response in [[Sources/IAEA/GSR-7]]
 - Occupational protection guide: [[Sources/IAEA/SSG-87]]
-EOF
+HEREDOC
 
 # --- pages/Sources___Architecture___RAG-Patterns.md ---
-cat > "pages/Sources___Architecture___RAG-Patterns.md" << 'EOF'
+cat > "pages/Sources___Architecture___RAG-Patterns.md" << 'HEREDOC'
 source-type:: other
 topic:: rag-architecture
 language:: en
@@ -278,10 +277,10 @@ Current state of retrieval-augmented generation patterns relevant to this projec
 - Sparse/hybrid retrieval would help with exact regulation ID lookups (e.g. "BEK-138405")
 - Contextual chunking worth testing given long, structured PDF documents
 - See [[Sources/Architecture/LangGraph-Patterns]] for workflow-level patterns
-EOF
+HEREDOC
 
 # --- pages/Sources___Architecture___LangGraph-Patterns.md ---
-cat > "pages/Sources___Architecture___LangGraph-Patterns.md" << 'EOF'
+cat > "pages/Sources___Architecture___LangGraph-Patterns.md" << 'HEREDOC'
 source-type:: other
 topic:: rag-architecture
 language:: en
@@ -329,10 +328,10 @@ Design patterns for LangGraph-based RAG workflows, relevant to `graph/graph.py`.
 ### See also
 - [[Sources/Architecture/RAG-Patterns]] for retrieval-level patterns
 - `graph/graph.py` in Radiationsafety repo for current implementation
-EOF
+HEREDOC
 
 # --- pages/Concepts___ALARA.md ---
-cat > "pages/Concepts___ALARA.md" << 'EOF'
+cat > "pages/Concepts___ALARA.md" << 'HEREDOC'
 source-type:: other
 topic:: dosimetry, regulatory
 language:: en
@@ -359,7 +358,7 @@ Not a dose limit — a process obligation to optimize protection.
 ### Related concepts
 - [[Concepts/Dosimetry]] — how doses are measured
 - [[Concepts/Contamination]] — ALARA applies to contamination control too
-EOF
+HEREDOC
 
 # Commit and push
 git add -A
