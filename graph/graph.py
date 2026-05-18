@@ -4,16 +4,11 @@ from typing import Any
 
 from langgraph.graph import END, StateGraph
 
-from graph.chains.generation_grader import get_generation_grader
-from graph.chains.truncate import (
-    MAX_CHARS_PER_DOC_GENERATION_GRADER,
-    MAX_CONTEXT_CHARS_GENERATION_GRADER,
-    truncate_docs_for_grader,
-)
 from graph.consts import (
     FINALIZE,
     GENERATE,
     GRADE_DOCUMENTS,
+    GRADE_GENERATION,
     PREPARE_RETRY_RETRIEVE,
     RETRIEVE,
     RETRIEVE_MISSING,
@@ -22,17 +17,16 @@ from graph.consts import (
     env_bool,
 )
 from graph.i18n import detect_language, get_warning_web_search_poor
-from graph.llm_factory import get_llm
 from graph.nodes import (
     generate,
     grade_documents,
+    grade_generation,
     retrieve,
     retrieve_missing,
     verify_trusted,
     web_search,
 )
 from graph.state import GenerationRoute, GraphState, RouteAfterMissing
-from graph.utils import throttle_llm_if_needed
 
 
 def decide_to_generate(state: GraphState) -> str:
@@ -65,46 +59,14 @@ def _generation_retry_route(
     return "retry_retrieve" if retry_count < 2 else "web_search"
 
 
-def grade_generation_grounded(state: GraphState) -> GenerationRoute:
-    """Check grounding and answer quality in one call; return outcome for routing. Up to 2 retry retrievals before web search."""
-    question = state["question"]
-    documents = state["documents"]
-    generation = state["generation"]
-    web_search_attempted = state.get("web_search_attempted", False)
-    retry_count = state.get("retry_after_generation_count") or 0
-    llm = state.get("llm") or get_llm()
-    throttle_llm_if_needed()
-    grader = get_generation_grader(llm)
-    # Use the exact context the generator saw, so the grader can verify all claims (e.g. geologiske prøver).
-    context_used = state.get("context_used_for_generation")
-    if context_used is not None and context_used.strip():
-        docs_str = context_used
-    elif documents:
-        docs_str = truncate_docs_for_grader(
-            documents,
-            max_chars_per_doc=MAX_CHARS_PER_DOC_GENERATION_GRADER,
-            max_context_chars=MAX_CONTEXT_CHARS_GENERATION_GRADER,
-        )
-    else:
-        docs_str = "No documents"
-    score = grader.invoke(
-        {"documents": docs_str, "question": question, "generation": generation}
-    )
-
-    web_search_enabled = bool(env_bool("WEB_SEARCH_ENABLED"))
-
-    if not score.grounded:
-        return _generation_retry_route(
-            web_search_enabled=web_search_enabled,
-            web_search_attempted=web_search_attempted,
-            retry_count=retry_count,
-        )
-    if score.answers_question:
+def route_after_grade_generation(state: GraphState) -> GenerationRoute:
+    """Pure routing — reads flags written by GRADE_GENERATION node. No LLM call."""
+    if state.get("generation_passed_grading"):
         return "useful"
     return _generation_retry_route(
-        web_search_enabled=web_search_enabled,
-        web_search_attempted=web_search_attempted,
-        retry_count=retry_count,
+        web_search_enabled=bool(env_bool("WEB_SEARCH_ENABLED")),
+        web_search_attempted=state.get("web_search_attempted", False),
+        retry_count=state.get("retry_after_generation_count") or 0,
     )
 
 
@@ -139,6 +101,7 @@ workflow.add_node(RETRIEVE_MISSING, retrieve_missing)
 workflow.add_node(PREPARE_RETRY_RETRIEVE, prepare_retry_retrieve)
 workflow.add_node(WEB_SEARCH, web_search)
 workflow.add_node(GENERATE, generate)
+workflow.add_node(GRADE_GENERATION, grade_generation)
 workflow.add_node(VERIFY_TRUSTED, verify_trusted)
 workflow.add_node(FINALIZE, finalize)
 
@@ -156,9 +119,10 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge(PREPARE_RETRY_RETRIEVE, RETRIEVE_MISSING)
 workflow.add_edge(WEB_SEARCH, GENERATE)
+workflow.add_edge(GENERATE, GRADE_GENERATION)
 workflow.add_conditional_edges(
-    GENERATE,
-    grade_generation_grounded,
+    GRADE_GENERATION,
+    route_after_grade_generation,
     {
         "useful": VERIFY_TRUSTED,
         "retry_retrieve": PREPARE_RETRY_RETRIEVE,

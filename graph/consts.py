@@ -4,6 +4,7 @@ import os
 
 RETRIEVE = "retrieve"
 GRADE_DOCUMENTS = "grade_documents"
+GRADE_GENERATION = "grade_generation"
 RETRIEVE_MISSING = "retrieve_missing"
 PREPARE_RETRY_RETRIEVE = "prepare_retry_retrieve"
 WEB_SEARCH = "web_search"

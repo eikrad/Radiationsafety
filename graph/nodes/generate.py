@@ -72,4 +72,5 @@ def generate(state: GraphState, config: RunnableConfig | None = None) -> dict[st
         "generation": generation,
         "context_used_for_generation": context,
         "chat_history": updated_history,
+        "reflection": "",  # clear stale Reflexion hint before GRADE_GENERATION runs
     }

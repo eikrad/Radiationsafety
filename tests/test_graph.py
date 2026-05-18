@@ -89,79 +89,72 @@ def test_decide_after_retrieve_missing_routes_to_generate_when_retry_after_gener
     assert decide_after_retrieve_missing(state) == "generate"
 
 
-def test_grade_generation_grounded_useful_when_grounded_and_answers(monkeypatch):
-    """When generation grader says grounded and answers_question, return 'useful'."""
+def test_route_after_grade_generation_useful_when_passed(monkeypatch):
+    """When generation_passed_grading=True, route to 'useful'."""
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
-    from graph.graph import grade_generation_grounded
+    from graph.graph import route_after_grade_generation
 
-    mock_grader = MagicMock()
-    mock_grader.invoke.return_value = MagicMock(grounded=True, answers_question=True)
-
-    def make_grader(_llm=None):
-        return mock_grader
-
-    with patch("graph.graph.get_generation_grader", make_grader):
-        state: GraphState = {
-            "question": "What is radiation?",
-            "generation": "Radiation is...",
-            "web_search": False,
-            "documents": [MagicMock(page_content="doc1")],
-            "web_search_attempted": False,
-        }
-        result = grade_generation_grounded(state)
-    assert result == "useful"
+    state: GraphState = {
+        "question": "Q",
+        "generation": "A",
+        "web_search": False,
+        "documents": [],
+        "web_search_attempted": False,
+        "generation_passed_grading": True,
+    }
+    assert route_after_grade_generation(state) == "useful"
 
 
-def test_grade_generation_grounded_end_when_hallucination(monkeypatch):
-    """When generation grader says not grounded and web search disabled, return 'end'."""
+def test_route_after_grade_generation_end_when_failed_no_web_search(monkeypatch):
+    """When grading failed and web search disabled, route to 'end'."""
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
-    from graph.graph import grade_generation_grounded
+    from graph.graph import route_after_grade_generation
 
-    mock_grader = MagicMock()
-    mock_grader.invoke.return_value = MagicMock(grounded=False, answers_question=False)
-
-    def make_grader(_llm=None):
-        return mock_grader
-
-    with patch("graph.graph.get_generation_grader", make_grader):
-        state: GraphState = {
-            "question": "What is radiation?",
-            "generation": "Random stuff",
-            "web_search": False,
-            "documents": [MagicMock(page_content="doc1")],
-            "web_search_attempted": False,
-        }
-        result = grade_generation_grounded(state)
-    assert result == "end"
+    state: GraphState = {
+        "question": "Q",
+        "generation": "A",
+        "web_search": False,
+        "documents": [],
+        "web_search_attempted": False,
+        "generation_passed_grading": False,
+        "retry_after_generation_count": 0,
+    }
+    assert route_after_grade_generation(state) == "end"
 
 
-def test_grade_generation_grounded_retry_retrieve_then_web_search(monkeypatch):
-    """When not grounded and web search enabled: retry_retrieve if retry_count < 2, else web_search."""
+def test_route_after_grade_generation_retry_then_web_search(monkeypatch):
+    """When grading failed and web search enabled: retry_retrieve up to 2 times, then web_search."""
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
-    from graph.graph import grade_generation_grounded
+    from graph.graph import route_after_grade_generation
 
-    mock_grader = MagicMock()
-    mock_grader.invoke.return_value = MagicMock(grounded=False, answers_question=False)
+    base: GraphState = {
+        "question": "Q",
+        "generation": "A",
+        "web_search": False,
+        "documents": [],
+        "web_search_attempted": False,
+        "generation_passed_grading": False,
+    }
+    assert route_after_grade_generation({**base, "retry_after_generation_count": 0}) == "retry_retrieve"
+    assert route_after_grade_generation({**base, "retry_after_generation_count": 1}) == "retry_retrieve"
+    assert route_after_grade_generation({**base, "retry_after_generation_count": 2}) == "web_search"
 
-    def make_grader(_llm=None):
-        return mock_grader
 
-    with patch("graph.graph.get_generation_grader", make_grader):
-        state0: GraphState = {
-            "question": "What is radiation?",
-            "generation": "Random stuff",
-            "web_search": False,
-            "documents": [MagicMock(page_content="doc1")],
-            "web_search_attempted": False,
-            "retry_after_generation_count": 0,
-        }
-        assert grade_generation_grounded(state0) == "retry_retrieve"
+def test_route_after_grade_generation_end_when_web_already_attempted(monkeypatch):
+    """When web search was already attempted and grading still fails, route to 'end'."""
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    from graph.graph import route_after_grade_generation
 
-        state1: GraphState = {**state0, "retry_after_generation_count": 1}
-        assert grade_generation_grounded(state1) == "retry_retrieve"
-
-        state2: GraphState = {**state0, "retry_after_generation_count": 2}
-        assert grade_generation_grounded(state2) == "web_search"
+    state: GraphState = {
+        "question": "Q",
+        "generation": "A",
+        "web_search": False,
+        "documents": [],
+        "web_search_attempted": True,
+        "generation_passed_grading": False,
+        "retry_after_generation_count": 0,
+    }
+    assert route_after_grade_generation(state) == "end"
 
 
 def test_merge_unique_documents_is_source_aware():
