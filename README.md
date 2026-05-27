@@ -44,14 +44,14 @@ The backend uses a named volume `chroma_data` for `.chroma`, so you only need to
    uv sync
    ```
 
-3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see “Building document_sources.yaml from local PDFs” below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk “Senere ændringer”, IAEA “Superseded by”) When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
+3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see "Building document_sources.yaml from local PDFs" below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk "Senere ændringer", IAEA "Superseded by") When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
 
 4. Run ingestion (requires **`GOOGLE_API_KEY`**; embeddings are always Gemini):
    ```bash
    uv run python ingestion.py
    ```
    You only need to run ingestion once per document set. Changing `LLM_PROVIDER` (e.g. to OpenAI or Mistral for generation) does **not** require re-running ingestion—the same vector store is used.
-   Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to "Check for updates" and “Re-run ingestion”.
+   Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to "Check for updates" and "Re-run ingestion".
 
 5. Start backend:
    ```bash
@@ -122,6 +122,27 @@ This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgøre
 - **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
 
 Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
+
+## Dependency notes
+
+**2026-05-27 — Weekly maintenance**
+
+### Fixes applied
+
+- **`black` and `isort` moved to dev-only** — they were incorrectly listed as runtime dependencies. They are code-formatting tools and belong in `[project.optional-dependencies] dev`. Production installs (`uv sync` without `--all-extras`) are now leaner.
+- **CI**: `actions/checkout` updated from `v5` to `v6` (current stable).
+
+### Major upgrades available (not auto-applied — require testing)
+
+These packages have new major versions that were not auto-applied because major bumps may contain breaking API or config changes:
+
+| Package | In use | Latest | Notes |
+|---|---|---|---|
+| `vite` (frontend) | `^7.3.1` | `8.x` | New config/plugin APIs; review migration guide |
+| `@vitejs/plugin-react` | `^5.1.1` | `6.x` | Follows Vite major |
+| `eslint` / `@eslint/js` | `^9.x` | `10.x` | Flat-config updates |
+| `typescript` | `~5.6` | `6.x` | New type-system features; some breaking changes |
+| `langchain-google-genai` | `>=2.0.0` | `4.x` | Two major versions ahead — review the LangChain changelog before upgrading |
 
 ## Credits and references
 
