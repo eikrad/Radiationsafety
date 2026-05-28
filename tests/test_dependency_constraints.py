@@ -37,3 +37,19 @@ def test_eslint_requires_v10():
     assert eslint_js_version.startswith("^10") or eslint_js_version.startswith("~10"), (
         f"@eslint/js in package.json should be ^10.x, got '{eslint_js_version}'"
     )
+
+
+def test_vite_requires_v8():
+    import json
+    pkg = json.loads(
+        (Path(__file__).parent.parent / "frontend" / "package.json").read_text()
+    )
+    dev = pkg.get("devDependencies", {})
+    vite_version = dev.get("vite", "")
+    assert vite_version.startswith("^8") or vite_version.startswith("~8"), (
+        f"vite should be ^8.x, got '{vite_version}'"
+    )
+    plugin_react = dev.get("@vitejs/plugin-react", "")
+    assert plugin_react.startswith("^6") or plugin_react.startswith("~6"), (
+        f"@vitejs/plugin-react should be ^6.x, got '{plugin_react}'"
+    )
