@@ -18,3 +18,22 @@ def test_langchain_google_genai_requires_v4():
     assert ">=4" in constraint or "^4" in constraint, (
         f"langchain-google-genai constraint '{constraint}' should pin to >=4.0.0"
     )
+
+
+def test_eslint_requires_v10():
+    text = _pyproject_text()
+    # ESLint version is tracked in frontend/package.json, not pyproject.toml
+    # This test checks the package.json instead
+    import json
+    pkg = json.loads(
+        (Path(__file__).parent.parent / "frontend" / "package.json").read_text()
+    )
+    dev = pkg.get("devDependencies", {})
+    eslint_version = dev.get("eslint", "")
+    assert eslint_version.startswith("^10") or eslint_version.startswith("~10"), (
+        f"eslint in package.json should be ^10.x, got '{eslint_version}'"
+    )
+    eslint_js_version = dev.get("@eslint/js", "")
+    assert eslint_js_version.startswith("^10") or eslint_js_version.startswith("~10"), (
+        f"@eslint/js in package.json should be ^10.x, got '{eslint_js_version}'"
+    )
