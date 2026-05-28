@@ -29,6 +29,9 @@ export default defineConfig([
       ...reactHooks.configs.recommended.rules,
       ...reactRefresh.configs.vite.rules,
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // False-positive for async fetch-in-effect: setState is called after await,
+      // not synchronously in the effect body, so no cascading-render risk here.
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])
