@@ -44,14 +44,14 @@ The backend uses a named volume `chroma_data` for `.chroma`, so you only need to
    uv sync
    ```
 
-3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see "Building document_sources.yaml from local PDFs" below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk "Senere ændringer", IAEA "Superseded by") When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
+3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see “Building document_sources.yaml from local PDFs” below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk “Senere ændringer”, IAEA “Superseded by”) When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bek endtgørelse` (at most 2 per source).
 
 4. Run ingestion (requires **`GOOGLE_API_KEY`**; embeddings are always Gemini):
    ```bash
    uv run python ingestion.py
    ```
    You only need to run ingestion once per document set. Changing `LLM_PROVIDER` (e.g. to OpenAI or Mistral for generation) does **not** require re-running ingestion—the same vector store is used.
-   Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to "Check for updates" and "Re-run ingestion".
+   Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bek endtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to “Check for updates” and “Re-run ingestion”.
 
 5. Start backend:
    ```bash
@@ -114,16 +114,29 @@ To populate `document_sources.yaml` from the PDFs you already have in `documents
 uv run python build_document_sources.py
 ```
 
-This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata and first-page text (and from Danish `*_version.txt` files), optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries (to keep URLs), and writes the full list to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print the list without writing.
+This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bek endtgørelse`, extracts titles and version info from PDF metadata and first-page text (and from Danish `*_version.txt` files), optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries (to keep URLs), and writes the full list to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print the list without writing.
 
 ## Collections and embeddings
 
 - **`radiation-iaea`**: IAEA and IAEA_other PDFs  
-- **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
+- **`radiation-dk-law`**: Bek endtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
 
 Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
 
 ## Dependency notes
+
+**2026-06-03 — Weekly maintenance**
+
+### Fixes applied
+
+- **Stray run artifact removed** — `run-019cdc73-0dc7-7f81-a809-7e47ce6e8893.json` (a Claude Code session artifact) was accidentally committed to the repository root. The file has been deleted and `run-*.json` added to `.gitignore` to prevent recurrence.
+- **Previously-flagged major upgrades confirmed live** — `vite` 8, `@vitejs/plugin-react` 6, `eslint`/`@eslint/js` 10, `typescript` 6, and `langchain-google-genai` 4 are all present in `frontend/package.json` and `pyproject.toml`. No remaining major upgrade flags for this cycle.
+
+### Status
+
+All CI checks pass. Frontend (React 19, Vite 8, TypeScript 6, ESLint 10, Vitest 4) and backend (`langchain` 1.x, `langgraph` 1.x, `fastapi` 0.115+, `chromadb` 1.4+) are at current versions.
+
+---
 
 **2026-05-27 — Weekly maintenance**
 

@@ -31,3 +31,6 @@ document_sources.yaml
 
 # Local planning artifacts
 .cursor/plans/
+
+# Claude Code session run artifacts
+run-*.json
