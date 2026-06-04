@@ -20,7 +20,14 @@
 ## Observability Baseline
 
 - Every HTTP response includes `X-Request-ID` for correlation.
-- `/metrics` exports request totals, error totals, request duration sum, and query web-search attempts.
+- `/metrics` exports Prometheus-style counters and sums:
+  - `req_total` — total HTTP requests
+  - `req_errors` — total HTTP errors
+  - `req_duration_sum` — cumulative request duration (seconds)
+  - `req_by_path[path]` — per-endpoint request counts
+  - `req_errors_by_path[path]` — per-endpoint error counts
+  - `req_status_class[2xx|4xx|5xx]` — response status-class breakdown
+  - `web_search_attempts` — number of Brave Search fallback invocations
 
 ## Test Priorities (TDD Order)
 
