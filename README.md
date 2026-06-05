@@ -3,7 +3,13 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+A retrieval-augmented generation (RAG) system for querying **IAEA safety standards** and **Danish radiation legislation**. Ask questions in plain language and get answers grounded in the authoritative source documents, with citations and a trusted-source verification step.
+
+**Document coverage:** IAEA General Safety Requirements (GSR 1–7), Safety Guides (SSG series), Safety Standards Reports (SSR-6), TECDOCs, and Danish Bekendtgørelser from retsinformation.dk.
+
+**Tech stack:** FastAPI backend · LangGraph multi-step retrieval workflow · Chroma vector database · React/TypeScript frontend · Gemini embeddings (always) · configurable LLM for generation (Gemini, OpenAI, or Mistral).
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## Architecture
 
@@ -122,27 +128,6 @@ This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgøre
 - **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
 
 Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
-
-## Dependency notes
-
-**2026-05-27 — Weekly maintenance**
-
-### Fixes applied
-
-- **`black` and `isort` moved to dev-only** — they were incorrectly listed as runtime dependencies. They are code-formatting tools and belong in `[project.optional-dependencies] dev`. Production installs (`uv sync` without `--all-extras`) are now leaner.
-- **CI**: `actions/checkout` updated from `v5` to `v6` (current stable).
-
-### Major upgrades available (not auto-applied — require testing)
-
-These packages have new major versions that were not auto-applied because major bumps may contain breaking API or config changes:
-
-| Package | In use | Latest | Notes |
-|---|---|---|---|
-| `vite` (frontend) | `^7.3.1` | `8.x` | New config/plugin APIs; review migration guide |
-| `@vitejs/plugin-react` | `^5.1.1` | `6.x` | Follows Vite major |
-| `eslint` / `@eslint/js` | `^9.x` | `10.x` | Flat-config updates |
-| `typescript` | `~5.6` | `6.x` | New type-system features; some breaking changes |
-| `langchain-google-genai` | `>=2.0.0` | `4.x` | Two major versions ahead — review the LangChain changelog before upgrading |
 
 ## Credits and references
 
