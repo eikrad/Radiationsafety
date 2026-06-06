@@ -15,6 +15,22 @@ A RAG (Retrieval-Augmented Generation) system for querying IAEA and Danish radia
 
 User questions flow through a [LangGraph](https://langchain-ai.github.io/langgraph/) pipeline that retrieves relevant document chunks, grades them for sufficiency, generates an answer, checks it for grounding, and optionally falls back to a web search — all before returning a response with cited sources.
 
+**Stack at a glance:**
+
+```mermaid
+graph LR
+    USER([Browser / CLI]) --> FE[React UI\nnginx :8080]
+    FE --> API[FastAPI\n:8000]
+    API --> LG[LangGraph\nPipeline]
+    LG --> CHROMA[(Chroma\nVector DB)]
+    LG --> LLM[LLM\nGemini / OpenAI / Mistral]
+    LG -.->|optional| BRAVE[Brave Search]
+    INGEST([ingestion.py]) --> CHROMA
+    DOCS[documents/] --> INGEST
+```
+
+**RAG pipeline:**
+
 ```mermaid
 flowchart TD
     Q([User question]) --> API[API validates input\nresolves LLM + keys]

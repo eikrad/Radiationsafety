@@ -14,6 +14,18 @@ The system has three main layers:
 
 The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API.
 
+```mermaid
+graph LR
+    USER([Browser / CLI]) --> FE[React UI\nnginx :8080]
+    FE --> API[FastAPI\n:8000]
+    API --> LG[LangGraph\nPipeline]
+    LG --> CHROMA[(Chroma\nVector DB)]
+    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral]
+    LG -.->|optional| BRAVE[Brave Search]
+    INGEST([ingestion.py]) --> CHROMA
+    DOCS[documents/\nIAEA + Danish law] --> INGEST
+```
+
 ---
 
 ## Query workflow
@@ -175,6 +187,22 @@ flowchart TD
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
 
+### Updating documents
+
+The Documents panel in the UI (or the admin API) handles the update lifecycle:
+
+```mermaid
+flowchart TD
+    CHECK[GET /documents/check-updates\npolls retsinformation.dk + IAEA] --> FOUND{newer version?}
+    FOUND -->|yes| DL[POST .../download-update\ndownload + register new file]
+    FOUND -->|no| DONE([up to date])
+    DL --> INGEST[POST /ingest\nre-ingest into Chroma]
+    INGEST --> READY([Chroma updated\nbackend ready])
+
+    LOCAL[Drop PDF into documents/] --> BUILD[POST /documents/build-from-local\nrebuild registry]
+    BUILD --> INGEST
+```
+
 ---
 
 ## LLM providers
@@ -184,9 +212,9 @@ flowchart TD
 ```mermaid
 flowchart LR
     ENV[LLM_PROVIDER env var\nor frontend override] --> FAC{llm_factory}
-    FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro/Flash/Flash-Lite]
-    FAC -->|openai| OAI[langchain-openai\nGPT-4o / o3-mini]
-    FAC -->|mistral| MIS[langchain-mistralai\nMistral Large / Small]
+    FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
+    FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
+    FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
@@ -208,6 +236,10 @@ The frontend can pass API keys directly (stored in `sessionStorage`, never persi
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
 | `PATCH` | `/documents/source/{id}/url` | Admin | Update a source URL manually |
+| `POST` | `/documents/source/{id}/lookup-url` | Admin | Auto-resolve newest URL for a source |
+| `POST` | `/documents/source/{id}/download-update` | Admin | Download and apply the newest version |
+| `POST` | `/documents/build-from-local` | Admin | Rebuild registry from local PDFs |
+| `POST` | `/documents/sync-danish` | Admin | Sync all Danish sources to newest versions |
 
 Admin routes require `X-Admin-Token` header. Without `ADMIN_TOKEN` configured, they return `503`.
 
@@ -227,4 +259,4 @@ Admin routes require `X-Admin-Token` header. Without `ADMIN_TOKEN` configured, t
 ## Adding a new chain
 
 1. Create `graph/chains/my_chain.py` — implement a `get_my_chain()` factory function.
-2. Export from `graph/chains/__init__.py`.
+2. Import directly from the chain file in the node(s) that use it: `from graph.chains.my_chain import get_my_chain`. Chains are **not** re-exported from `graph/chains/__init__.py` — that file is intentionally minimal.
