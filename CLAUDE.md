@@ -21,7 +21,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
 ```
 api/main.py              — FastAPI routes, admin auth, rate limiting
 graph/graph.py           — LangGraph workflow (nodes, edges, routing)
-graph/nodes/             — retrieve, grade_documents, generate, web_search, verify_trusted
+graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, grading, search-query, truncate)
 graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral)
 graph/state.py           — GraphState TypedDict
@@ -46,7 +46,7 @@ frontend/src/constants.ts — API URLs, configuration
 ### Adding a new chain
 
 1. Create file in `graph/chains/`, implement `get_*` factory function
-2. Export from `graph/chains/__init__.py`
+2. Import directly from the chain file in the node(s) that use it (e.g. `from graph.chains.my_chain import get_my_chain`). Note: `graph/chains/__init__.py` is intentionally minimal; chains are not re-exported there.
 
 ---
 
