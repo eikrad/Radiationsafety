@@ -131,33 +131,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and code quality gu
 
 ---
 
-## Security and Operations
-
-- Mutating routes (`/ingest` and mutating `/documents/*` endpoints) require an `X-Admin-Token` header.
-- If `ADMIN_TOKEN` is not configured, admin routes are fail-closed (`503`) unless `ADMIN_AUTH_BYPASS=true` is explicitly set for local-only use.
-- Query/admin rate limits are in-memory and per-client (`RATE_LIMIT_*`). For multi-worker or multi-replica deployments, set `RATE_LIMIT_BACKEND=redis` and `RATE_LIMIT_REDIS_URL` to enforce global limits.
-- Every HTTP response includes `X-Request-ID` for correlation. Prometheus-style metrics are available at `/metrics`.
-
-See [docs/production-readiness.md](docs/production-readiness.md) for the full route exposure matrix, rate limit knobs, and observability baseline.
-
-### Container hardening
-
-- Backend runs as a non-root user (`appuser`) with `PYTHONDONTWRITEBYTECODE=1` and `PYTHONUNBUFFERED=1`.
-- Compose applies `no-new-privileges` and drops all Linux capabilities for backend and frontend containers.
-- Backend uses `tmpfs` for `/tmp` and a named volume only for `/app/.chroma`.
-- Healthchecks are active; the frontend waits for a healthy backend before starting.
-
-### Runbook quick checks
-
-| Symptom | Check |
-|---|---|
-| 429 spike | Verify `RATE_LIMIT_*` values and recent traffic patterns |
-| Admin routes return 503 | Check `ADMIN_TOKEN` is set and `ADMIN_AUTH_BYPASS` is not accidentally enabled |
-| Service health degraded | Inspect `/health`, `/metrics`, and container health in Compose |
-
----
-
-## Credits and References
+## Credits and references
 
 This project was inspired by and draws on patterns from the **LangChain / LangGraph course** by **Eden Marco**:
 
