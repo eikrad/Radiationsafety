@@ -3,13 +3,13 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-Ask questions in natural language about IAEA radiation safety standards and Danish radiation legislation. The system retrieves relevant document chunks from a vector database, grades their quality, generates a grounded answer, and verifies it against trusted sources — with an optional web search fallback when the local corpus does not cover the question.
+A retrieval-augmented generation (RAG) system for querying **IAEA safety standards** and **Danish radiation legislation**. Ask questions in plain language and get answers grounded in the authoritative source documents, with citations and a trusted-source verification step.
 
-Intended for radiation safety professionals, researchers, and regulators who need quick, cited answers from a curated set of authoritative documents.
+**Document coverage:** IAEA General Safety Requirements (GSR 1–7), Safety Guides (SSG series), Safety Standards Reports (SSR-6), TECDOCs, and Danish Bekendtgørelser from retsinformation.dk.
 
-**Document corpus:** IAEA General Safety Requirements (GSR 1–7), Safety Guides (SSG series), transport regulations (SSR-6), TECDOCs, and Danish Bekendtgørelser fetched live from retsinformation.dk. See [Collections and embeddings](#collections-and-embeddings) for the full list.
+**Tech stack:** FastAPI backend · LangGraph multi-step retrieval workflow · Chroma vector database · React/TypeScript frontend · Gemini embeddings (always) · configurable LLM for generation (Gemini, OpenAI, or Mistral).
 
----
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## Architecture
 
@@ -105,17 +105,14 @@ To populate `document_sources.yaml` from PDFs already in `documents/`:
 uv run python build_document_sources.py
 ```
 
-This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata, optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries, and writes the result to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to preview without writing.
+This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata and first-page text (and from Danish `*_version.txt` files), optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries (to keep URLs), and writes the full list to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print the list without writing.
 
----
+## Collections and embeddings
 
-## Evaluation
+- **`radiation-iaea`**: IAEA and IAEA_other PDFs  
+- **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
 
-The evaluation harness lives in **`eval/`**. It runs the RAG graph on a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall), writing markdown and JSON reports to `eval/reports/`.
-
-```bash
-uv run python -m eval.run_eval
-```
+Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
 
 ## Credits and references
 
