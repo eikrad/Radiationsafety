@@ -78,7 +78,8 @@ The backend uses a named volume `chroma_data` for `.chroma`, so you only need to
 
 ---
 
-## Collections and Embeddings
+- **Backend**: `uv sync --all-extras` then `uv run pytest tests/ -v`
+- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
 
 Two Chroma collections are maintained:
 
@@ -115,21 +116,6 @@ The evaluation harness lives in **`eval/`**. It runs the RAG graph on a golden Q
 ```bash
 uv run python -m eval.run_eval
 ```
-
-The harness uses your `.env` for the LLM (no API keys in the golden data). Run ingestion first so the graph has documents to retrieve. See `eval/README.md` for options (`--limit`, `--no-web-search`, `--pass-rule`), metric definitions, and optional LangSmith tracing.
-
----
-
-## Testing
-
-CI runs the full test suite on push and on pull requests (see status badge above).
-
-- **Backend:** `uv run pytest tests/ -v`
-- **Frontend:** `npm -C frontend run test` (or `npm -C frontend run test:watch` for watch mode)
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and code quality guidelines.
-
----
 
 ## Credits and references
 

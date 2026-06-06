@@ -111,7 +111,15 @@ The Docker setup applies defence-in-depth at the container level:
 
 ---
 
-## Test Priorities
+- Every HTTP response includes `X-Request-ID` for correlation.
+- `/metrics` exports Prometheus-style counters and sums:
+  - `req_total` — total HTTP requests
+  - `req_errors` — total HTTP errors
+  - `req_duration_sum` — cumulative request duration (seconds)
+  - `req_by_path[path]` — per-endpoint request counts
+  - `req_errors_by_path[path]` — per-endpoint error counts
+  - `req_status_class[2xx|4xx|5xx]` — response status-class breakdown
+  - `web_search_attempts` — number of Brave Search fallback invocations
 
 Ordered by risk and blast radius:
 
