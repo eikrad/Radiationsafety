@@ -3,121 +3,187 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-A retrieval-augmented generation (RAG) system for querying **IAEA safety standards** and **Danish radiation legislation**. Ask questions in plain language and get answers grounded in the authoritative source documents, with citations and a trusted-source verification step.
+A RAG (Retrieval-Augmented Generation) system for querying IAEA and Danish radiation safety documents. Ask questions in plain language and get cited answers sourced directly from official standards and legislation.
 
-**Document coverage:** IAEA General Safety Requirements (GSR 1–7), Safety Guides (SSG series), Safety Standards Reports (SSR-6), TECDOCs, and Danish Bekendtgørelser from retsinformation.dk.
-
-**Tech stack:** FastAPI backend · LangGraph multi-step retrieval workflow · Chroma vector database · React/TypeScript frontend · Gemini embeddings (always) · configurable LLM for generation (Gemini, OpenAI, or Mistral).
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
-
-## Architecture
-
-The pipeline has two stages: an API pre-processing stage and a [LangGraph](https://langchain-ai.github.io/langgraph/) execution stage. The API validates inputs, short-circuits non-question acknowledgements, resolves provider/API-key settings, and then invokes the graph for retrieval, document grading, optional extra retrieval and web-search fallback, generation, grounding retries, and trusted-source verification.
-
-![RAG flow](architecture.svg)
-
-Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scripts/render_architecture.py`.
+**Documents covered:**
+- IAEA standards and guidelines (GSR, SSG, SSR, TECDOC series)
+- Danish radiation legislation (*Bekendtgørelse*, fetched from retsinformation.dk)
 
 ---
 
-## Running with Docker
+## How it works
 
-The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
+User questions flow through a [LangGraph](https://langchain-ai.github.io/langgraph/) pipeline that retrieves relevant document chunks, grades them for sufficiency, generates an answer, checks it for grounding, and optionally falls back to a web search — all before returning a response with cited sources.
 
-1. Copy `.env.example` to `.env`. Set **`GOOGLE_API_KEY`** (required for ingestion and retrieval). Optionally set `LLM_PROVIDER` and the matching key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
-2. Build and start the stack:
-   ```bash
-   docker compose up --build
-   ```
-3. In another terminal, run ingestion once (fills the persisted `chroma_data` volume):
-   ```bash
-   docker compose run --rm backend python ingestion.py
-   ```
-   Wait for it to finish, then restart with `docker compose up` so the backend loads the populated DB.
-4. Open **http://localhost:8080**. The frontend proxies `/api` to the backend.
-
-The backend uses a named volume `chroma_data` for `.chroma`, so you only need to run ingestion once per environment. To refresh the document base after adding new sources, run the ingestion command again. Changing `LLM_PROVIDER` does not require re-running ingestion.
-
----
-
-## Local Setup
-
-1. **Configure environment** — copy `.env.example` to `.env`:
-   - **`GOOGLE_API_KEY`** (required): used for Gemini embeddings during ingestion and at query time. Set this even if you use OpenAI or Mistral for answer generation.
-   - **`LLM_PROVIDER`** — `gemini`, `mistral`, or `openai`. Set the matching key (`OPENAI_API_KEY` or `MISTRAL_API_KEY`). The vector store stays on Gemini embeddings regardless.
-   - Optional: `WEB_SEARCH_ENABLED=true` + `BRAVE_SEARCH_API_KEY` for fallback web search; `WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true` to restrict to iaea.org / retsinformation.dk / sst.dk.
-   - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing (auto-disabled when API keys are forwarded from the frontend).
-
-2. **Install dependencies:**
-   ```bash
-   uv sync
-   ```
-
-3. **Document registry** (optional) — copy `document_sources.example.yaml` to `document_sources.yaml` and add source URLs, or generate from local PDFs (see [Building document_sources.yaml](#building-document_sourcesyaml-from-local-pdfs)). The file is gitignored by default; remove that line if you want to commit a shared registry.
-
-4. **Run ingestion** (requires `GOOGLE_API_KEY`):
-   ```bash
-   uv run python ingestion.py
-   ```
-   Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** in `document_sources.yaml`: Danish sources are fetched as XML from retsinformation.dk (newest version of the series), IAEA sources from the publication page, and any direct PDF URLs. You only need to run ingestion once per document set.
-
-5. **Start the backend:**
-   ```bash
-   uv run uvicorn api.main:app --reload --port 8000
-   ```
-
-6. **Start the frontend** — from the project root, choose one:
-   - **Single server:** `npm -C frontend run build` then open http://localhost:8000
-   - **Dev mode** (hot reload): `npm -C frontend install && npm -C frontend run dev` then open http://localhost:5173
-
-7. **Optional CLI:**
-   ```bash
-   uv run python main.py
-   ```
-
----
-
-- **Backend**: `uv sync --all-extras` then `uv run pytest tests/ -v`
-- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
-
-Two Chroma collections are maintained:
-
-- **`radiation-iaea`** — IAEA and IAEA_other PDFs
-- **`radiation-dk-law`** — Bekendtgørelse (Danish legislation), ingested as XML from retsinformation.dk (always the newest version of each series)
-
-**Current corpus:**
-
-| Collection | Documents |
-|---|---|
-| IAEA | GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7, SSG-11, SSG-39, SSG-40, SSG-44, SSG-46, SSG-86, SSG-87, SSR-6, TECDOC-1380, TECDOC-1638, Nuclear Safety Measures (24G) |
-| Danish | BEK-2025-138405, BEK-2025-138505, Brug af åbne radioaktive kilder, Udarbejdelse af en sikkerhedsvurdering |
-
-Retrieval always uses **Gemini embeddings**. The LLM that generates answers can be Gemini, OpenAI, or Mistral — changing the generation provider does not require re-ingestion, since the LLM only receives retrieved text, not the embedding vectors.
-
----
-
-## Building document_sources.yaml from local PDFs
-
-To populate `document_sources.yaml` from PDFs already in `documents/`:
-
-```bash
-uv run python build_document_sources.py
+```mermaid
+flowchart TD
+    Q([User question]) --> API[API validates input\nresolves LLM + keys]
+    API -->|non-question\ne.g. 'thanks'| SC([Short-circuit reply])
+    API --> R[RETRIEVE\ndual vector search\nIAEA + Danish law]
+    R --> GD{GRADE_DOCUMENTS\nsufficient context?}
+    GD -->|yes| GEN[GENERATE\nRAG answer]
+    GD -->|no| RM[RETRIEVE_MISSING\nrefined LLM query]
+    RM --> GEN
+    RM -->|still insufficient| WS[WEB_SEARCH\nBrave Search fallback]
+    WS --> GEN
+    GEN --> GG{GRADE_GENERATION\ngrounded + complete?}
+    GG -->|pass| VT[VERIFY_TRUSTED\ncross-check trusted sources]
+    GG -->|fail, retries left| RM
+    GG -->|fail, max retries| WS
+    VT --> FIN[FINALIZE\nset routing outcome]
+    FIN --> ANS([Answer + sources + warning])
 ```
 
-This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata and first-page text (and from Danish `*_version.txt` files), optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries (to keep URLs), and writes the full list to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print the list without writing.
+See [docs/architecture.md](docs/architecture.md) for a deeper breakdown of each node and chain.
 
-## Collections and embeddings
+---
 
-- **`radiation-iaea`**: IAEA and IAEA_other PDFs  
-- **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
+## Quick start with Docker
 
-Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
+The simplest way to run the full stack.
 
-## Credits and references
+**Prerequisites:** Docker, a `GOOGLE_API_KEY` (required for embeddings).
 
-This project was inspired by and draws on patterns from the **LangChain / LangGraph course** by **Eden Marco**:
+```bash
+# 1. Configure environment
+cp .env.example .env
+# Edit .env — set GOOGLE_API_KEY and optionally LLM_PROVIDER + its key
 
-- **Eden Marco** — [LangChain course](https://github.com/emarco177/langchain-course) (GitHub, Apache-2.0)
+# 2. Start the stack
+docker compose up --build
 
-We thank [Roman Kuznetsov (@kuznero)](https://github.com/kuznero) for valuable comments on the project.
+# 3. In a second terminal, run ingestion once (fills the vector DB)
+docker compose run --rm backend python ingestion.py
+# Wait until it finishes, then restart the stack:
+docker compose restart backend
+```
+
+Open **http://localhost:8080** — the UI is served there, with the API proxied from the same origin.
+
+The vector DB is stored in a named Docker volume (`chroma_data`), so ingestion only needs to run once per environment. Re-run it after adding new documents.
+
+---
+
+## Local setup (without Docker)
+
+### 1. Prerequisites
+
+- Python 3.12+, [uv](https://docs.astral.sh/uv/) package manager
+- Node.js 18+ (for the frontend)
+- A `GOOGLE_API_KEY` — required for embeddings (always Gemini, regardless of which LLM you choose for generation)
+
+### 2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Key variables:
+
+| Variable | Required | Description |
+|---|---|---|
+| `GOOGLE_API_KEY` | **Yes** | Gemini embeddings (ingestion + retrieval) |
+| `LLM_PROVIDER` | No | `gemini` (default) \| `openai` \| `mistral` |
+| `OPENAI_API_KEY` | If using OpenAI | For generation only |
+| `MISTRAL_API_KEY` | If using Mistral | For generation only |
+| `WEB_SEARCH_ENABLED` | No | `true` to enable Brave Search fallback |
+| `BRAVE_SEARCH_API_KEY` | If web search on | Required for Brave Search |
+| `ADMIN_TOKEN` | Recommended | Required for document management routes |
+
+See `.env.example` for the full list including rate limiting and tracing options.
+
+### 3. Install and ingest
+
+```bash
+# Install Python dependencies
+uv sync
+
+# (Optional) Build document_sources.yaml from local PDFs
+uv run python build_document_sources.py
+
+# Run ingestion — builds the Chroma vector DB
+uv run python ingestion.py
+```
+
+Ingestion loads PDFs from `documents/IAEA/`, `documents/IAEA_other/`, and `documents/Bekendtgørelse/`, plus any URLs listed in `document_sources.yaml`. Danish sources are fetched as XML from retsinformation.dk (newest version of the series). You only need to run ingestion once; changing `LLM_PROVIDER` does **not** require re-ingestion.
+
+### 4. Start the backend
+
+```bash
+uv run uvicorn api.main:app --reload --port 8000
+```
+
+### 5. Start the frontend
+
+```bash
+# Build once (served by the backend at http://localhost:8000)
+npm -C frontend run build
+
+# Or run in dev mode with hot reload (http://localhost:5173)
+npm -C frontend install && npm -C frontend run dev
+```
+
+### 6. (Optional) CLI mode
+
+```bash
+uv run python main.py
+```
+
+---
+
+## Document management
+
+The **Documents** panel in the UI lets you check for newer versions of registered sources and re-run ingestion without touching the command line. The backend polls retsinformation.dk and the IAEA publication pages to detect when a document has been superseded.
+
+To register document sources manually, edit `document_sources.yaml` (or run `build_document_sources.py` to generate it from local PDFs). The file is gitignored by default so you can keep environment-specific URLs locally; remove the gitignore entry to commit a shared registry.
+
+---
+
+## Evaluation
+
+The evaluation harness in `eval/` runs the pipeline on a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall).
+
+```bash
+uv run python -m eval.run_eval
+```
+
+Reports are written to `eval/reports/`. See `eval/README.md` for options such as `--limit` and `--no-web-search`.
+
+---
+
+## Testing
+
+- **Backend:** `uv run pytest tests/ -v`
+- **Frontend:** `cd frontend && npm run test`
+
+CI runs both suites on every push and pull request.
+
+---
+
+## Security and operations
+
+- Mutating routes (`/ingest`, document management) require an `X-Admin-Token` header.
+- If `ADMIN_TOKEN` is not set, admin routes return `503` (fail-closed). Set `ADMIN_AUTH_BYPASS=true` only for local development.
+- Rate limiting is in-memory by default; set `RATE_LIMIT_BACKEND=redis` for multi-replica deployments.
+- The backend container runs as a non-root user with `no-new-privileges` and all Linux capabilities dropped.
+
+See [docs/production-readiness.md](docs/production-readiness.md) for the full security and operations reference.
+
+---
+
+## Further reading
+
+| File | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | RAG pipeline nodes, chains, and ingestion workflow |
+| [docs/production-readiness.md](docs/production-readiness.md) | Security, rate limiting, observability |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, code quality, PR process |
+| [ROADMAP.md](ROADMAP.md) | Planned evaluation improvements |
+
+---
+
+## Credits
+
+Inspired by patterns from the **LangChain / LangGraph course** by [Eden Marco](https://github.com/emarco177/langchain-course) (Apache-2.0).
+
+Thanks to [Roman Kuznetsov (@kuznero)](https://github.com/kuznero) for valuable feedback on the project.
