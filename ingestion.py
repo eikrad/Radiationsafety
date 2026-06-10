@@ -20,6 +20,7 @@ from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
+from tqdm import tqdm
 
 from graph.llm_factory import get_embedding_provider, get_embeddings
 
@@ -81,6 +82,8 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     """Return (iaea_collection_name, dk_collection_name) for the given embedding provider."""
     if embedding_provider == "mistral":
         return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
+    if embedding_provider == "ollama":
+        return (f"{IAEA_COLLECTION}-ollama", f"{DK_LAW_COLLECTION}-ollama")
     return (IAEA_COLLECTION, DK_LAW_COLLECTION)
 
 
@@ -396,15 +399,15 @@ def load_iaea_docs() -> list[Document]:
     for base_path in [DOCS_DIR / "IAEA", DOCS_DIR / "IAEA_other"]:
         if not base_path.exists():
             continue
-        for pdf_path in sorted(base_path.rglob("*.pdf")):
-            print(f"  {pdf_path.name}")
+        pdf_files = sorted(base_path.rglob("*.pdf"))
+        for pdf_path in tqdm(pdf_files, desc="Loading IAEA PDFs", unit="file"):
             try:
                 docs = _load_pdf_with_docling(pdf_path, max_tokens=IAEA_MAX_TOKENS)
                 for d in docs:
                     d.metadata["document_type"] = "IAEA"
                 all_docs.extend(docs)
             except Exception as e:
-                print(f"    Warning: skipped {pdf_path.name}: {e}")
+                tqdm.write(f"  Warning: skipped {pdf_path.name}: {e}")
     return all_docs
 
 
@@ -502,8 +505,7 @@ def load_dk_law_docs():
         return []
     all_docs = []
     pdf_files = list(dk_path.rglob("*.pdf"))
-    for i, pdf_path in enumerate(pdf_files):
-        print(f"  [{i + 1}/{len(pdf_files)}] {pdf_path.name}")
+    for pdf_path in tqdm(pdf_files, desc="Loading Danish PDFs", unit="file"):
         try:
             docs = _load_pdf_with_docling(pdf_path, max_tokens=DK_MAX_TOKENS)
             for d in docs:
@@ -516,29 +518,31 @@ def load_dk_law_docs():
             if reader is not None:
                 attach_docs = _extract_and_load_attachments(pdf_path, reader=reader)
                 if attach_docs:
-                    print(f"    + {len(attach_docs)} pages from attachments")
+                    tqdm.write(f"    + {len(attach_docs)} pages from attachments")
                     all_docs.extend(attach_docs)
         except Exception as e:
-            print(f"    Warning: skipped {pdf_path.name}: {e}")
+            tqdm.write(f"    Warning: skipped {pdf_path.name}: {e}")
     return all_docs
 
 
 def _add_documents_rate_limited(
     documents, collection_name, embeddings, persist_directory
 ):
-    """Add docs. Gemini embeddings: batches + optional delay. Mistral: all at once."""
+    """Add docs. Gemini embeddings: batches + optional delay. Ollama/Mistral: all at once with progress."""
     ep = get_embedding_provider()
     if ep == "gemini":
         _add_documents_gemini_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
     else:
-        Chroma.from_documents(
-            documents=documents,
-            collection_name=collection_name,
-            embedding=embeddings,
-            persist_directory=persist_directory,
-        )
+        with tqdm(total=1, desc=f"Embedding and adding to {collection_name}", unit="collection") as pbar:
+            Chroma.from_documents(
+                documents=documents,
+                collection_name=collection_name,
+                embedding=embeddings,
+                persist_directory=persist_directory,
+            )
+            pbar.update(1)
 
 
 def _add_documents_gemini_rate_limited(
@@ -547,21 +551,24 @@ def _add_documents_gemini_rate_limited(
     """Add documents in batches. Delay between batches from GEMINI_BATCH_DELAY_SEC (0 = no delay)."""
     delay_sec = _gemini_batch_delay_sec()
     vectorstore = None
-    for i in range(0, len(documents), GEMINI_BATCH_SIZE):
-        batch = documents[i : i + GEMINI_BATCH_SIZE]
-        if vectorstore is None:
-            vectorstore = Chroma.from_documents(
-                documents=batch,
-                collection_name=collection_name,
-                embedding=embeddings,
-                persist_directory=persist_directory,
-            )
-        else:
-            vectorstore.add_documents(batch)
-        print(f"  Added batch {i // GEMINI_BATCH_SIZE + 1} ({len(batch)} chunks)")
-        if i + GEMINI_BATCH_SIZE < len(documents) and delay_sec > 0:
-            print(f"  Waiting {delay_sec}s for rate limit...")
-            time.sleep(delay_sec)
+    num_batches = (len(documents) + GEMINI_BATCH_SIZE - 1) // GEMINI_BATCH_SIZE
+
+    with tqdm(total=num_batches, desc=f"Adding to {collection_name}", unit="batch") as pbar:
+        for i in range(0, len(documents), GEMINI_BATCH_SIZE):
+            batch = documents[i : i + GEMINI_BATCH_SIZE]
+            if vectorstore is None:
+                vectorstore = Chroma.from_documents(
+                    documents=batch,
+                    collection_name=collection_name,
+                    embedding=embeddings,
+                    persist_directory=persist_directory,
+                )
+            else:
+                vectorstore.add_documents(batch)
+            pbar.update(1)
+            pbar.set_postfix({"chunks": len(batch)})
+            if i + GEMINI_BATCH_SIZE < len(documents) and delay_sec > 0:
+                time.sleep(delay_sec)
 
 
 def ingest():
@@ -569,33 +576,39 @@ def ingest():
 
     PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
     inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
-    (gemini requires GOOGLE_API_KEY; mistral uses a separate collection suffix).
+    (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
     """
+    print(f"\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
+    print(f"📊 Using embedding provider: {ep}")
+    print(f"📦 Collections: {iaea_name}, {dk_name}\n")
+
     _clear_chroma_collections(ep)
     embeddings = get_embeddings(ep)
 
     # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
     iaea_from_url, dk_from_url = _load_docs_from_registry()
     if iaea_from_url:
-        print(f"  Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
+        tqdm.write(f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
     if dk_from_url:
-        print(f"  Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
+        tqdm.write(f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
 
     # IAEA collection: local dirs + registry URLs — all pre-chunked
     iaea_docs = load_iaea_docs()
     iaea_docs.extend(iaea_from_url)
     if iaea_docs:
         _add_documents_rate_limited(iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR))
-        print(f"Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        print(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}\n")
 
     # Danish law collection: local dirs + registry URLs — all pre-chunked
     dk_docs = load_dk_law_docs()
     dk_docs.extend(dk_from_url)
     if dk_docs:
         _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
-        print(f"Ingested {len(dk_docs)} chunks into {dk_name}")
+        print(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}\n")
+
+    print("🎉 Ingestion complete!")
 
 
 _retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
@@ -606,13 +619,19 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
 
     Applies to both gemini (Gemini/OpenAI) and mistral embedding providers.
     """
-    if embedding_provider not in ("gemini", "mistral"):
+    if embedding_provider not in ("gemini", "mistral", "ollama"):
         return True, ""
     iaea_name, dk_name = get_collection_names(embedding_provider)
-    default_msg = (
-        "Embeddings are not built yet. Set GOOGLE_API_KEY in .env (or export it), "
-        "then run: uv run python ingestion.py"
-    )
+    if embedding_provider == "ollama":
+        default_msg = (
+            "Local embeddings are not built yet. Run: "
+            "LLM_PROVIDER=ollama uv run python ingestion.py"
+        )
+    else:
+        default_msg = (
+            "Embeddings are not built yet. Set GOOGLE_API_KEY in .env (or export it), "
+            "then run: uv run python ingestion.py"
+        )
     try:
         import chromadb
 

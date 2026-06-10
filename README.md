@@ -34,8 +34,8 @@ The backend uses a named volume `chroma_data` for `.chroma`, so you only need to
 ## Setup
 
 1. Copy `.env.example` to `.env` and configure:
-   - **Embeddings (for ingestion and retrieval):** The vector store uses **Gemini embeddings** only. You need **`GOOGLE_API_KEY`** to run ingestion and to run queries (retrieval). Set this even if you later choose OpenAI or Mistral as the LLM for answers.
-   - **LLM for generation:** `LLM_PROVIDER` = `gemini`, `mistral`, or `openai`. Set the matching key: `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`. The same vector store (Gemini embeddings) is used for retrieval regardless of which LLM you use for generation.
+   - **Embeddings (for ingestion and retrieval):** Cloud providers use **Gemini embeddings** — you need **`GOOGLE_API_KEY`** to run ingestion and queries. Set this even if you later choose OpenAI or Mistral as the LLM for answers. For fully local mode, see [Privacy Mode](#privacy-mode-fully-local) below.
+   - **LLM for generation:** `LLM_PROVIDER` = `gemini`, `mistral`, `openai`, or `ollama`. Set the matching key: `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`. Ollama needs no API key. The same vector store (Gemini embeddings) is used for cloud providers regardless of which LLM generates answers.
    - Optional: `WEB_SEARCH_ENABLED=true`, `BRAVE_SEARCH_API_KEY` for fallback; `WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true` to restrict web search to iaea.org/retsinformation.dk/sst.dk (default is unrestricted; answers are still verified against trusted sources)
    - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing (tracing is auto-disabled when API keys are sent from the frontend to avoid leaking keys to LangSmith)
 
@@ -66,6 +66,44 @@ The backend uses a named volume `chroma_data` for `.chroma`, so you only need to
    ```bash
    uv run python main.py
    ```
+
+## Privacy Mode (Fully Local)
+
+All LLM generation and embeddings run locally via [Ollama](https://ollama.com). Zero data leaves your machine — LangSmith tracing and web search are automatically disabled.
+
+### Minimum system requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| GPU | 4 GB VRAM (CPU fallback works but slow) | 6 GB+ VRAM (e.g. NVIDIA RTX 3060) |
+| RAM | 16 GB | 32 GB |
+| Disk | ~5 GB (models + vector DB) | ~10 GB |
+| OS | Linux, macOS, or Windows | Linux (best Ollama performance) |
+
+### Setup
+
+1. Install Ollama:
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+2. Pull models:
+   ```bash
+   ollama pull llama3.1:8b
+   ollama pull nomic-embed-text
+   ```
+3. Set `LLM_PROVIDER=ollama` in `.env` (optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBED_MODEL`)
+4. Run ingestion (one-time, builds local embedding collections):
+   ```bash
+   uv run python ingestion.py
+   ```
+5. Start backend and frontend as usual, select **Ollama (Local)** in the dropdown
+
+### Notes
+
+- Answer quality is lower than cloud models (8B vs 100B+ parameters) — best suited for testing retrieval and data-sovereignty use cases.
+- First ingestion is slower than Gemini (local embedding computation on GPU/CPU).
+- Switch back to a cloud provider anytime — original Gemini-based collections are preserved.
+- The local collections use a `-ollama` suffix (e.g. `radiation-iaea-ollama`) and coexist with cloud collections.
 
 ## Evaluation
 
@@ -121,7 +159,9 @@ This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgøre
 - **`radiation-iaea`**: IAEA and IAEA_other PDFs  
 - **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
 
-Retrieval always uses **Gemini embeddings** (one shared vector store). The LLM that generates answers can be Gemini, OpenAI, or Mistral. The LLM only receives the **retrieved text** (the chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI (or Mistral) can be used for generation while the store stays on Gemini embeddings—no re-ingestion needed. Embedding models from different providers use different dimensions and are not interchangeable; adding OpenAI as an optional *embedding* backend would require separate Chroma collections and could be added later if needed.
+Cloud providers (Gemini, OpenAI, Mistral) all use **Gemini embeddings** (one shared vector store). The LLM that generates answers only receives the **retrieved text** (chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI or Mistral can be used for generation while the store stays on Gemini embeddings — no re-ingestion needed.
+
+**Ollama (Privacy Mode)** uses local embeddings (`nomic-embed-text` by default) and stores them in separate collections with an `-ollama` suffix (`radiation-iaea-ollama`, `radiation-dk-law-ollama`). Switching to Ollama requires a one-time re-ingestion. Cloud and local collections coexist — switching back to a cloud provider uses the original collections.
 
 ## Dependency notes
 

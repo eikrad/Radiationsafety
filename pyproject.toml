@@ -36,6 +36,8 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "langdetect>=1.0.9",
     "redis>=5.0.0",
+    "langchain-ollama>=1.1.0",
+    "tqdm>=4.67.3",
 ]
 
 [project.optional-dependencies]

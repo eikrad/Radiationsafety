@@ -1,4 +1,4 @@
-export const MODELS = ['mistral', 'gemini', 'openai'] as const
+export const MODELS = ['mistral', 'gemini', 'openai', 'ollama'] as const
 export type Model = (typeof MODELS)[number]
 
 /** Base path for backend API (Vite dev proxy and production nginx use /api). */
@@ -24,4 +24,5 @@ export const MODEL_VARIANTS: Record<Model, { id: string; label: string }[]> = {
     { id: 'gpt-4o-mini', label: 'GPT-4o mini (recommended)' },
     { id: 'gpt-4o', label: 'GPT-4o' },
   ],
+  ollama: [{ id: 'default', label: 'Ollama (default)' }],
 }
