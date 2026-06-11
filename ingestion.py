@@ -535,7 +535,11 @@ def _add_documents_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
     else:
-        with tqdm(total=1, desc=f"Embedding and adding to {collection_name}", unit="collection") as pbar:
+        with tqdm(
+            total=1,
+            desc=f"Embedding and adding to {collection_name}",
+            unit="collection",
+        ) as pbar:
             Chroma.from_documents(
                 documents=documents,
                 collection_name=collection_name,
@@ -553,7 +557,9 @@ def _add_documents_gemini_rate_limited(
     vectorstore = None
     num_batches = (len(documents) + GEMINI_BATCH_SIZE - 1) // GEMINI_BATCH_SIZE
 
-    with tqdm(total=num_batches, desc=f"Adding to {collection_name}", unit="batch") as pbar:
+    with tqdm(
+        total=num_batches, desc=f"Adding to {collection_name}", unit="batch"
+    ) as pbar:
         for i in range(0, len(documents), GEMINI_BATCH_SIZE):
             batch = documents[i : i + GEMINI_BATCH_SIZE]
             if vectorstore is None:

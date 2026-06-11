@@ -698,7 +698,9 @@ def query(req: QueryRequest, request: Request):
             detail=str(e),
         ) from e
     except Exception as e:
-        if is_ollama and ("Connection" in type(e).__name__ or "connect" in str(e).lower()):
+        if is_ollama and (
+            "Connection" in type(e).__name__ or "connect" in str(e).lower()
+        ):
             raise HTTPException(
                 status_code=503,
                 detail="Ollama is not running. Start it with: ollama serve",

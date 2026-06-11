@@ -9,7 +9,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # 1. LLM factory: Ollama provider
 # ---------------------------------------------------------------------------
@@ -25,7 +24,9 @@ class TestOllamaLLM:
         from graph.llm_factory import get_llm
 
         llm = get_llm(provider="ollama")
-        assert "ollama" in type(llm).__module__.lower() or "Ollama" in type(llm).__name__
+        assert (
+            "ollama" in type(llm).__module__.lower() or "Ollama" in type(llm).__name__
+        )
 
     def test_no_api_key_required(self, monkeypatch):
         """Ollama should not raise APIKeyError — it needs no key."""
@@ -325,10 +326,7 @@ class TestFrontendConstants:
         from pathlib import Path
 
         constants_path = (
-            Path(__file__).resolve().parent.parent
-            / "frontend"
-            / "src"
-            / "constants.ts"
+            Path(__file__).resolve().parent.parent / "frontend" / "src" / "constants.ts"
         )
         content = constants_path.read_text()
         assert "'ollama'" in content or '"ollama"' in content
@@ -337,10 +335,7 @@ class TestFrontendConstants:
         from pathlib import Path
 
         constants_path = (
-            Path(__file__).resolve().parent.parent
-            / "frontend"
-            / "src"
-            / "constants.ts"
+            Path(__file__).resolve().parent.parent / "frontend" / "src" / "constants.ts"
         )
         content = constants_path.read_text()
         assert "ollama:" in content or "ollama :" in content
@@ -387,9 +382,7 @@ class TestEnvExample:
     def test_env_example_has_ollama_vars(self):
         from pathlib import Path
 
-        env_path = (
-            Path(__file__).resolve().parent.parent / ".env.example"
-        )
+        env_path = Path(__file__).resolve().parent.parent / ".env.example"
         content = env_path.read_text()
         assert "OLLAMA_BASE_URL" in content
         assert "OLLAMA_MODEL" in content
@@ -398,9 +391,7 @@ class TestEnvExample:
     def test_env_example_mentions_privacy_mode(self):
         from pathlib import Path
 
-        env_path = (
-            Path(__file__).resolve().parent.parent / ".env.example"
-        )
+        env_path = Path(__file__).resolve().parent.parent / ".env.example"
         content = env_path.read_text()
         assert "Privacy" in content or "privacy" in content
         assert "no data leaves" in content.lower() or "fully local" in content.lower()
