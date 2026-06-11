@@ -19,7 +19,7 @@ jobs:
       - run: uv run black --check .
       - run: uv run isort --check .
       - run: uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip
-      - run: uv run pytest tests/ -v
+      - run: uv run pytest tests/ -n auto -v
 
       # Frontend
       - uses: actions/setup-node@v6
