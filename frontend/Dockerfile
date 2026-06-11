@@ -10,5 +10,11 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Pre-create nginx cache/run directories with correct ownership
+# This prevents permission errors when nginx runs with cap_drop: ALL
+RUN mkdir -p /var/cache/nginx/client_temp /var/run/nginx && \
+    chown -R nginx:nginx /var/cache/nginx /var/run/nginx
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
