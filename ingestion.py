@@ -367,9 +367,7 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
         if path is None:
             continue
         try:
-            docs = _load_pdf_with_docling(
-                path, source_label=label
-            )
+            docs = _load_pdf_with_docling(path, source_label=label)
             for d in docs:
                 d.metadata["document_type"] = "IAEA"
             iaea_docs.extend(docs)
@@ -465,9 +463,7 @@ def _extract_and_load_attachments(
                 continue
             try:
                 label = f"{parent_path.name} (Anhang: {att_name})"
-                docs = _load_pdf_with_docling(
-                    tmp_path, source_label=label
-                )
+                docs = _load_pdf_with_docling(tmp_path, source_label=label)
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
                     d.metadata["parent_document"] = str(parent_path.name)
@@ -598,9 +594,13 @@ def ingest():
         # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
         iaea_from_url, dk_from_url = _load_docs_from_registry()
         if iaea_from_url:
-            tqdm.write(f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
+            tqdm.write(
+                f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)"
+            )
         if dk_from_url:
-            tqdm.write(f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
+            tqdm.write(
+                f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)"
+            )
         overall_progress.update(1)
 
         # IAEA collection: local dirs + registry URLs — all pre-chunked
@@ -609,7 +609,9 @@ def ingest():
         overall_progress.update(1)
 
         if iaea_docs:
-            _add_documents_rate_limited(iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR))
+            _add_documents_rate_limited(
+                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+            )
             tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
         overall_progress.update(1)
 
@@ -672,9 +674,7 @@ def add_single_pdf_to_collection(
     label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace(
         "-", " "
     )
-    splits = _load_pdf_with_docling(
-        pdf_path, source_label=label
-    )
+    splits = _load_pdf_with_docling(pdf_path, source_label=label)
     for d in splits:
         d.metadata["document_type"] = "IAEA"
     if not splits:
