@@ -1,17 +1,17 @@
-# Documentation
+# docs/
 
-Navigation guide for the `docs/` folder.
+Documentation for the Radiation Safety RAG system.
 
 ## Contents
 
-| Path | What it covers |
+| File | What it covers |
 |------|----------------|
-| [architecture.md](architecture.md) | Full pipeline walkthrough — query path, each LangGraph node, chains, state fields, ingestion workflow, LLM provider selection, and API routes |
-| [production-readiness.md](production-readiness.md) | Deployment reference — admin auth, rate limiting, container hardening, observability, and runbook for common issues |
+| [architecture.md](architecture.md) | RAG pipeline nodes, chains, ingestion workflow, LLM providers, API routes — with Mermaid diagrams |
+| [production-readiness.md](production-readiness.md) | Security, admin auth, rate limiting, observability, container hardening, and a runbook |
 
 ## Where to start
 
-- **New to the codebase?** Read [architecture.md](architecture.md) — it walks through the full query path from user question to cited answer, with Mermaid diagrams for each stage.
-- **Setting up for production?** See [production-readiness.md](production-readiness.md) for auth, rate limits, Docker hardening, and a runbook.
-- **Adding a new node or chain?** The step-by-step extension guide is at the bottom of [architecture.md](architecture.md).
-- **Understanding document ingestion?** The ingestion pipeline and document update workflows are both diagrammed in [architecture.md](architecture.md).
+- **New to the project?** Start with [architecture.md](architecture.md) to understand how queries flow from the browser to the vector database and back.
+- **Deploying or operating the system?** Read [production-readiness.md](production-readiness.md) for container hardening, admin authentication, rate limiting configuration, and runbook entries.
+- **Adding a new pipeline node or chain?** Follow the step-by-step guide at the bottom of [architecture.md](architecture.md#adding-a-new-node).
+- **Looking for the big picture?** The [README.md](../README.md) in the repo root has a quick-start guide, Docker setup, evaluation instructions, and links back here.
