@@ -54,3 +54,5 @@ class GraphState(TypedDict):
     # Written by GRADE_GENERATION node; read by route_after_grade_generation.
     # True = generation passed; False = needs retry/web-search/end.
     generation_passed_grading: NotRequired[bool]
+    # True when running in Ollama privacy mode (fully local, no external API calls)
+    privacy_mode: NotRequired[bool]

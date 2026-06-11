@@ -725,7 +725,7 @@ def query(req: QueryRequest, request: Request):
         # Privacy guard: disable tracing and web search for Ollama (fully local mode)
         disable_tracing = bool(req.api_keys) or is_ollama
         if is_ollama:
-            invoke_input["web_search_attempted"] = True  # prevent web search fallback
+            invoke_input["privacy_mode"] = True
         if disable_tracing:
             import langsmith as ls
 

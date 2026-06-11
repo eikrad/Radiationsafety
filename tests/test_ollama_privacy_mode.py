@@ -392,3 +392,68 @@ class TestEnvExample:
         content = env_path.read_text()
         assert "Privacy" in content or "privacy" in content
         assert "no data leaves" in content.lower() or "fully local" in content.lower()
+
+
+# ---------------------------------------------------------------------------
+# 9. Graph nodes: privacy_mode blocks web search
+# ---------------------------------------------------------------------------
+
+
+class TestPrivacyModeGraphNodes:
+    """grade_documents should set web_search=False when privacy_mode=True."""
+
+    def test_grade_documents_respects_privacy_mode(self):
+        """When privacy_mode=True, web_search must be False even if context insufficient."""
+        from unittest.mock import patch
+        from langchain_core.documents import Document
+
+        from graph.nodes.grade_documents import grade_documents
+
+        insufficient_docs = [Document(page_content="unrelated content")]
+        state = {
+            "question": "What is ALARA?",
+            "documents": insufficient_docs,
+            "privacy_mode": True,
+        }
+
+        with patch(
+            "graph.nodes.grade_documents.get_context_sufficiency_grader"
+        ) as mock_grader:
+            mock_result = MagicMock()
+            mock_result.binary_score = False
+            mock_grader.return_value.invoke.return_value = mock_result
+
+            result = grade_documents(state)
+
+            assert result["web_search"] is False
+
+    def test_grade_documents_no_docs_respects_privacy_mode(self):
+        """When privacy_mode=True with no docs, web_search must be False."""
+        from graph.nodes.grade_documents import grade_documents
+
+        state = {"question": "What is ALARA?", "documents": [], "privacy_mode": True}
+
+        result = grade_documents(state)
+
+        assert result["web_search"] is False
+
+    def test_grade_documents_allows_web_search_without_privacy_mode(self):
+        """When privacy_mode=False (default), web_search may be True if context insufficient."""
+        from unittest.mock import patch
+        from langchain_core.documents import Document
+
+        from graph.nodes.grade_documents import grade_documents
+
+        insufficient_docs = [Document(page_content="unrelated content")]
+        state = {"question": "What is ALARA?", "documents": insufficient_docs}
+
+        with patch(
+            "graph.nodes.grade_documents.get_context_sufficiency_grader"
+        ) as mock_grader:
+            mock_result = MagicMock()
+            mock_result.binary_score = False
+            mock_grader.return_value.invoke.return_value = mock_result
+
+            result = grade_documents(state)
+
+            assert result["web_search"] is True
