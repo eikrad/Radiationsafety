@@ -584,7 +584,7 @@ def ingest():
     inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
     (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
     """
-    print(f"\n🚀 Starting ingestion pipeline...\n")
+    print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
     print(f"📊 Using embedding provider: {ep}")

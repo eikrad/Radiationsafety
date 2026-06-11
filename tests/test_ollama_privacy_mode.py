@@ -7,8 +7,6 @@ Written from the behavioral spec, not the implementation.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # 1. LLM factory: Ollama provider
 # ---------------------------------------------------------------------------
@@ -31,7 +29,7 @@ class TestOllamaLLM:
     def test_no_api_key_required(self, monkeypatch):
         """Ollama should not raise APIKeyError — it needs no key."""
         monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-        from graph.llm_factory import APIKeyError, get_llm
+        from graph.llm_factory import get_llm
 
         # Should NOT raise
         llm = get_llm(provider="ollama")
@@ -265,7 +263,6 @@ class TestPrivacyGuard:
         # have web_search_attempted=True when model is ollama.
         # We test this by inspecting what the query endpoint passes to graph.invoke.
         import os
-        from unittest.mock import MagicMock, patch
 
         # Mock the graph and dependencies
         mock_graph = MagicMock()
