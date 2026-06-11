@@ -194,7 +194,6 @@ See [docs/production-readiness.md](docs/production-readiness.md) for the full se
 | [docs/architecture.md](docs/architecture.md) | RAG pipeline nodes, chains, and ingestion workflow |
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, rate limiting, observability |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, code quality, PR process |
-| [ROADMAP.md](ROADMAP.md) | Planned evaluation improvements |
 
 ---
 
