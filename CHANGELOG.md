@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.0 - 2026-06-11
+
+### Added
+- **Privacy Mode**: fully air-gapped operation via Ollama for both LLM generation and embeddings.
+  - No cloud API calls, LangSmith tracing, or web search when `LLM_PROVIDER=ollama`
+  - Separate Chroma collections (`-ollama` suffix) to preserve cloud indexes
+  - Automatic privacy guards: web search and tracing disabled in privacy mode
+  - Local embedding models: `nomic-embed-text` (default)
+  - Local LLM models: `llama3.1:8b` (default)
+  - Configurable via `.env`: `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBED_MODEL`
+- **Test parallelization**: pytest-xdist for parallel test execution (`-n auto` in CI)
+- Updated all dependency versions to currently installed stable versions for consistency
+
+### Changed
+- CI now runs tests in parallel on available CPU cores for faster feedback
+- All main and dev dependencies pinned to stable versions (e.g., chromadb 1.5+, fastapi 0.136+, langchain 1.3+, pytest 9.0+)
+- `grade_documents` node now respects `privacy_mode` flag to prevent web search in air-gapped mode
+
 ## 0.3.0 - 2026-05-18
 
 ### Added
