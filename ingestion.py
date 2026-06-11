@@ -13,7 +13,6 @@ import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from docling.chunking import HybridChunker
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
@@ -58,13 +57,6 @@ DK_LAW_COLLECTION = "radiation-dk-law"
 
 # Google Gemini: batch size for embeddings. Delay between batches is from GEMINI_BATCH_DELAY_SEC env (0 or unset = no delay, e.g. 65 for free tier).
 GEMINI_BATCH_SIZE = 200
-
-# Docling HybridChunker token budgets (approximates previous character-based chunk sizes).
-IAEA_MAX_TOKENS = 256  # ~800 chars
-DK_MAX_TOKENS = 512  # ~2500 chars
-
-# Cached HybridChunker instances keyed by max_tokens — avoids reloading the tokeniser per file.
-_chunker_cache: dict[int, HybridChunker] = {}
 
 
 def _gemini_batch_delay_sec() -> float:
@@ -376,7 +368,7 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
             continue
         try:
             docs = _load_pdf_with_docling(
-                path, source_label=label, max_tokens=IAEA_MAX_TOKENS
+                path, source_label=label
             )
             for d in docs:
                 d.metadata["document_type"] = "IAEA"
@@ -404,7 +396,7 @@ def load_iaea_docs() -> list[Document]:
             pdf_files, desc="Loading IAEA PDFs", unit="file", disable=False
         ):
             try:
-                docs = _load_pdf_with_docling(pdf_path, max_tokens=IAEA_MAX_TOKENS)
+                docs = _load_pdf_with_docling(pdf_path)
                 for d in docs:
                     d.metadata["document_type"] = "IAEA"
                 all_docs.extend(docs)
@@ -416,27 +408,21 @@ def load_iaea_docs() -> list[Document]:
 def _load_pdf_with_docling(
     file_path: str | Path,
     source_label: str | None = None,
-    max_tokens: int = IAEA_MAX_TOKENS,
 ) -> list[Document]:
-    """Load and chunk a PDF using docling's HybridChunker.
+    """Load and chunk a PDF using DoclingLoader.
 
-    Returns pre-chunked Documents with source metadata set. Falls back to
+    Returns semantic chunks with source metadata set. Falls back to
     pypdf plain-text extraction if docling fails.
     """
     label = source_label or str(file_path)
     try:
-        if max_tokens not in _chunker_cache:
-            _chunker_cache[max_tokens] = HybridChunker(max_tokens=max_tokens)
-        loader = DoclingLoader(
-            file_path=str(file_path),
-            chunker=_chunker_cache[max_tokens],
-        )
+        loader = DoclingLoader(file_path=str(file_path))
         docs = loader.load()
         for d in docs:
             d.metadata["source"] = label
         return docs
     except Exception as e:
-        print(
+        tqdm.write(
             f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"
         )
     # Fallback: pypdf plain-text extraction
@@ -480,7 +466,7 @@ def _extract_and_load_attachments(
             try:
                 label = f"{parent_path.name} (Anhang: {att_name})"
                 docs = _load_pdf_with_docling(
-                    tmp_path, source_label=label, max_tokens=DK_MAX_TOKENS
+                    tmp_path, source_label=label
                 )
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
@@ -511,7 +497,7 @@ def load_dk_law_docs():
         pdf_files, desc="Loading Danish PDFs", unit="file", disable=False
     ):
         try:
-            docs = _load_pdf_with_docling(pdf_path, max_tokens=DK_MAX_TOKENS)
+            docs = _load_pdf_with_docling(pdf_path)
             for d in docs:
                 d.metadata["document_type"] = "Danish law"
             all_docs.extend(docs)
@@ -598,31 +584,46 @@ def ingest():
     print(f"📊 Using embedding provider: {ep}")
     print(f"📦 Collections: {iaea_name}, {dk_name}\n")
 
-    _clear_chroma_collections(ep)
-    embeddings = get_embeddings(ep)
+    with tqdm(
+        total=6,
+        desc="Overall ingestion progress",
+        unit="phase",
+        disable=False,
+        position=0,
+    ) as overall_progress:
+        _clear_chroma_collections(ep)
+        embeddings = get_embeddings(ep)
+        overall_progress.update(1)
 
-    # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
-    iaea_from_url, dk_from_url = _load_docs_from_registry()
-    if iaea_from_url:
-        tqdm.write(f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
-    if dk_from_url:
-        tqdm.write(f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
+        # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
+        iaea_from_url, dk_from_url = _load_docs_from_registry()
+        if iaea_from_url:
+            tqdm.write(f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
+        if dk_from_url:
+            tqdm.write(f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
+        overall_progress.update(1)
 
-    # IAEA collection: local dirs + registry URLs — all pre-chunked
-    iaea_docs = load_iaea_docs()
-    iaea_docs.extend(iaea_from_url)
-    if iaea_docs:
-        _add_documents_rate_limited(iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR))
-        print(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}\n")
+        # IAEA collection: local dirs + registry URLs — all pre-chunked
+        iaea_docs = load_iaea_docs()
+        iaea_docs.extend(iaea_from_url)
+        overall_progress.update(1)
 
-    # Danish law collection: local dirs + registry URLs — all pre-chunked
-    dk_docs = load_dk_law_docs()
-    dk_docs.extend(dk_from_url)
-    if dk_docs:
-        _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
-        print(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}\n")
+        if iaea_docs:
+            _add_documents_rate_limited(iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR))
+            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        overall_progress.update(1)
 
-    print("🎉 Ingestion complete!")
+        # Danish law collection: local dirs + registry URLs — all pre-chunked
+        dk_docs = load_dk_law_docs()
+        dk_docs.extend(dk_from_url)
+        overall_progress.update(1)
+
+        if dk_docs:
+            _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
+            tqdm.write(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}")
+        overall_progress.update(1)
+
+    print("\n🎉 Ingestion complete!")
 
 
 _retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
@@ -672,7 +673,7 @@ def add_single_pdf_to_collection(
         "-", " "
     )
     splits = _load_pdf_with_docling(
-        pdf_path, source_label=label, max_tokens=IAEA_MAX_TOKENS
+        pdf_path, source_label=label
     )
     for d in splits:
         d.metadata["document_type"] = "IAEA"
