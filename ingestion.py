@@ -401,7 +401,7 @@ def load_iaea_docs() -> list[Document]:
             continue
         pdf_files = sorted(base_path.rglob("*.pdf"))
         for pdf_path in tqdm(
-            pdf_files, desc="Loading IAEA PDFs", unit="file", force_terminal=True
+            pdf_files, desc="Loading IAEA PDFs", unit="file", disable=False
         ):
             try:
                 docs = _load_pdf_with_docling(pdf_path, max_tokens=IAEA_MAX_TOKENS)
@@ -508,7 +508,7 @@ def load_dk_law_docs():
     all_docs = []
     pdf_files = list(dk_path.rglob("*.pdf"))
     for pdf_path in tqdm(
-        pdf_files, desc="Loading Danish PDFs", unit="file", force_terminal=True
+        pdf_files, desc="Loading Danish PDFs", unit="file", disable=False
     ):
         try:
             docs = _load_pdf_with_docling(pdf_path, max_tokens=DK_MAX_TOKENS)
@@ -543,7 +543,7 @@ def _add_documents_rate_limited(
             total=1,
             desc=f"Embedding and adding to {collection_name}",
             unit="collection",
-            force_terminal=True,
+            disable=False,
         ) as pbar:
             Chroma.from_documents(
                 documents=documents,
@@ -566,7 +566,7 @@ def _add_documents_gemini_rate_limited(
         total=num_batches,
         desc=f"Adding to {collection_name}",
         unit="batch",
-        force_terminal=True,
+        disable=False,
     ) as pbar:
         for i in range(0, len(documents), GEMINI_BATCH_SIZE):
             batch = documents[i : i + GEMINI_BATCH_SIZE]
