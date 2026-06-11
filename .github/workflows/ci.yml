@@ -36,14 +36,34 @@ jobs:
       - run: npm run test
         working-directory: frontend
 
-      # Docker Integration Test
-      - name: Test Docker Compose Build
+  docker-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # Check if Docker-relevant files changed
+      - name: Check if Docker files changed
+        id: docker-changed
         run: |
-          # Build images
+          if git diff origin/main...HEAD --name-only 2>/dev/null | grep -E "Dockerfile|docker-compose|\.dockerignore"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Docker files detected in this PR"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping Docker tests (no Docker files changed)"
+          fi
+
+      # Only run if Docker files changed
+      - name: Build Docker Images
+        if: steps.docker-changed.outputs.changed == 'true'
+        run: |
           docker compose build
           echo "✅ Docker images built successfully"
 
       - name: Test Docker Compose Startup
+        if: steps.docker-changed.outputs.changed == 'true'
         run: |
           # Start containers
           docker compose up -d
