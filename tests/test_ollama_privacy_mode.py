@@ -405,6 +405,7 @@ class TestPrivacyModeGraphNodes:
     def test_grade_documents_respects_privacy_mode(self):
         """When privacy_mode=True, web_search must be False even if context insufficient."""
         from unittest.mock import patch
+
         from langchain_core.documents import Document
 
         from graph.nodes.grade_documents import grade_documents
@@ -440,6 +441,7 @@ class TestPrivacyModeGraphNodes:
     def test_grade_documents_allows_web_search_without_privacy_mode(self):
         """When privacy_mode=False (default), web_search may be True if context insufficient."""
         from unittest.mock import patch
+
         from langchain_core.documents import Document
 
         from graph.nodes.grade_documents import grade_documents
