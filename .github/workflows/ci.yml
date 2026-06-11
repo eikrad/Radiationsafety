@@ -35,3 +35,49 @@ jobs:
         working-directory: frontend
       - run: npm run test
         working-directory: frontend
+
+      # Docker Integration Test
+      - name: Test Docker Compose Build
+        run: |
+          # Build images
+          docker compose build
+          echo "✅ Docker images built successfully"
+
+      - name: Test Docker Compose Startup
+        run: |
+          # Start containers
+          docker compose up -d
+          echo "Waiting for services to start..."
+          sleep 10
+
+          # Check if containers are running
+          BACKEND_STATUS=$(docker compose ps backend --format "{{.State}}")
+          FRONTEND_STATUS=$(docker compose ps frontend --format "{{.State}}")
+
+          echo "Backend status: $BACKEND_STATUS"
+          echo "Frontend status: $FRONTEND_STATUS"
+
+          # Verify health
+          if [ "$BACKEND_STATUS" != "running" ]; then
+            echo "❌ Backend container failed to start"
+            docker compose logs backend
+            exit 1
+          fi
+
+          if [ "$FRONTEND_STATUS" != "running" ]; then
+            echo "❌ Frontend container failed to start"
+            docker compose logs frontend
+            exit 1
+          fi
+
+          # Health check: backend should respond
+          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || echo "000")
+          if [ "$HEALTH" != "200" ]; then
+            echo "❌ Backend health check failed (HTTP $HEALTH)"
+            docker compose logs backend
+            exit 1
+          fi
+
+          echo "✅ All containers running and healthy"
+          docker compose down
+        timeout-minutes: 2
