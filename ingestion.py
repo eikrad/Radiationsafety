@@ -14,8 +14,11 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from docling.chunking import BaseChunk
+from docling.chunking import BaseChunk, HybridChunker
 from docling.datamodel.document import DoclingDocument
+from docling_core.transforms.chunker.tokenizer.huggingface import (
+    HuggingFaceTokenizer,
+)
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
@@ -81,6 +84,11 @@ DK_LAW_COLLECTION = "radiation-dk-law"
 
 # Google Gemini: batch size for embeddings. Delay between batches is from GEMINI_BATCH_DELAY_SEC env (0 or unset = no delay, e.g. 65 for free tier).
 GEMINI_BATCH_SIZE = 200
+
+# Token limit for nomic-embed-text (HybridChunker will respect this)
+NOMIC_EMBED_MAX_TOKENS = 512
+# Tokenizer model ID that matches embedding model dimensionality/behavior
+NOMIC_EMBED_TOKENIZER_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 def _gemini_batch_delay_sec() -> float:
@@ -438,8 +446,14 @@ def _load_pdf_with_docling(
     """
     label = source_label or str(file_path)
     try:
+        tokenizer = HuggingFaceTokenizer.from_pretrained(
+            model_name=NOMIC_EMBED_TOKENIZER_MODEL,
+            max_token_count=NOMIC_EMBED_MAX_TOKENS,
+        )
+        chunker = HybridChunker(tokenizer=tokenizer)
         loader = DoclingLoader(
             file_path=str(file_path),
+            chunker=chunker,
             meta_extractor=_SimpleMetaExtractor(),
         )
         docs = loader.load()
