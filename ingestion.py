@@ -541,10 +541,14 @@ def load_dk_law_docs():
 def _add_documents_rate_limited(
     documents, collection_name, embeddings, persist_directory
 ):
-    """Add docs. Gemini embeddings: batches + optional delay. Ollama/Mistral: all at once with progress."""
+    """Add docs. Gemini: batches + optional delay. Ollama: batches with small delay to avoid overload."""
     ep = get_embedding_provider()
     if ep == "gemini":
         _add_documents_gemini_rate_limited(
+            documents, collection_name, embeddings, persist_directory
+        )
+    elif ep == "ollama":
+        _add_documents_ollama_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
     else:
@@ -561,6 +565,39 @@ def _add_documents_rate_limited(
                 persist_directory=persist_directory,
             )
             pbar.update(1)
+
+
+def _add_documents_ollama_rate_limited(
+    documents, collection_name, embeddings, persist_directory
+):
+    """Add documents in batches with small delay to avoid Ollama overload."""
+    batch_size = 10  # Conservative batch size for local embedding model
+    vectorstore = None
+
+    num_batches = (len(documents) + batch_size - 1) // batch_size
+
+    with tqdm(
+        total=num_batches,
+        desc=f"Adding to {collection_name}",
+        unit="batch",
+        disable=False,
+    ) as pbar:
+        for i in range(0, len(documents), batch_size):
+            batch = documents[i : i + batch_size]
+            if vectorstore is None:
+                vectorstore = Chroma.from_documents(
+                    documents=batch,
+                    collection_name=collection_name,
+                    embedding=embeddings,
+                    persist_directory=persist_directory,
+                )
+            else:
+                vectorstore.add_documents(batch)
+            pbar.update(1)
+            pbar.set_postfix({"chunks": len(batch)})
+            # Small delay between batches to prevent Ollama overload
+            if i + batch_size < len(documents):
+                time.sleep(0.3)
 
 
 def _add_documents_gemini_rate_limited(
