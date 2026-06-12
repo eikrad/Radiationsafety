@@ -77,6 +77,17 @@ test('privacy-persists-after-reload: privacy mode survives page reload', async (
   await expect(mistralOption).toBeDisabled()
 })
 
+test('privacy-auto-switches-to-ollama: enabling privacy mode selects ollama automatically', async ({ page }) => {
+  // Start with mistral selected (default)
+  await page.getByRole('combobox').selectOption('mistral')
+  await expect(page.getByRole('combobox')).toHaveValue('mistral')
+
+  await enablePrivacyMode(page)
+
+  // Model should have switched to ollama automatically
+  await expect(page.getByRole('combobox')).toHaveValue('ollama')
+})
+
 // --- Integration Tests (require PLAYWRIGHT_INTEGRATION=true + ollama serve) ---
 
 test('ollama-query-returns-answer: privacy mode query gets response', async ({ page }) => {

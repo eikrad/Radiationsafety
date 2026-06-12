@@ -41,6 +41,12 @@ export default function App() {
   }, [settingsOpen])
 
   useEffect(() => {
+    if (enforcePrivacyMode && model !== 'ollama') {
+      setModel('ollama')
+    }
+  }, [enforcePrivacyMode])
+
+  useEffect(() => {
     let cancelled = false
     fetch(`${API_BASE}/config`)
       .then((res) => res.json())
