@@ -161,6 +161,7 @@ class QueryResponse(BaseModel):
     used_web_search_label: str | None = (
         None  # Short label in question's language, e.g. "Sources incl. web search"
     )
+    privacy_mode: bool = False  # True if Ollama (fully local mode)
 
 
 class SetSourceUrlBody(BaseModel):
@@ -672,8 +673,13 @@ def query(req: QueryRequest, request: Request):
             warning=None,
             used_web_search=False,
             used_web_search_label=None,
+            privacy_mode=False,
         )
     chat_history = _to_tuples(req.chat_history)
+    model, api_key = _resolve_model_and_key(req.model, req.api_keys)
+    model_variant = req.model_variant
+    is_ollama = model == "ollama"
+
     if _is_non_question(req.question):
         answer = "You're welcome! Ask me anything about radiation safety."
         updated_history = chat_history + [(req.question, answer)]
@@ -684,10 +690,8 @@ def query(req: QueryRequest, request: Request):
             warning=None,
             used_web_search=False,
             used_web_search_label=None,
+            privacy_mode=is_ollama,
         )
-    model, api_key = _resolve_model_and_key(req.model, req.api_keys)
-    model_variant = req.model_variant
-    is_ollama = model == "ollama"
     try:
         from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
@@ -785,6 +789,7 @@ def query(req: QueryRequest, request: Request):
         warning=warning,
         used_web_search=used_web_search,
         used_web_search_label=used_web_search_label,
+        privacy_mode=is_ollama,
     )
 
 
