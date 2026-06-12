@@ -749,9 +749,9 @@ def query(req: QueryRequest, request: Request):
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
             ) from e
         if is_ollama and (
-            "Connection" in type(e).__name__
-            or "connect" in err_msg.lower()
-            or "refused" in err_msg.lower()
+            "Connect" in type(e).__name__
+            or "connection refused" in err_msg.lower()
+            or "11434" in err_msg
         ):
             raise HTTPException(
                 status_code=503,
