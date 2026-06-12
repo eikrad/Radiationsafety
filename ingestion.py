@@ -12,12 +12,15 @@ import tempfile
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
+from docling.chunking import BaseChunk
+from docling.datamodel.document import DoclingDocument
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
+from langchain_docling.loader import BaseMetaExtractor
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 from tqdm import tqdm
@@ -25,6 +28,26 @@ from tqdm import tqdm
 from graph.llm_factory import get_embedding_provider, get_embeddings
 
 load_dotenv()
+
+
+class _SimpleMetaExtractor(BaseMetaExtractor):
+    """Extracts only primitive metadata; filters out complex nested structures.
+
+    DoclingLoader can return nested dict metadata (e.g., DocMeta) which Chroma
+    rejects. This extractor keeps only source, headings, and page info.
+    """
+
+    def extract_chunk_meta(self, file_path: str, chunk: BaseChunk) -> dict[str, Any]:
+        meta = {"source": file_path}
+        if chunk.meta and chunk.meta.headings:
+            meta["headings"] = chunk.meta.headings
+        return meta
+
+    def extract_dl_doc_meta(
+        self, file_path: str, dl_doc: DoclingDocument
+    ) -> dict[str, Any]:
+        return {"source": file_path, "num_pages": len(dl_doc.pages)}
+
 
 # Paths relative to project root
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -415,7 +438,10 @@ def _load_pdf_with_docling(
     """
     label = source_label or str(file_path)
     try:
-        loader = DoclingLoader(file_path=str(file_path))
+        loader = DoclingLoader(
+            file_path=str(file_path),
+            meta_extractor=_SimpleMetaExtractor(),
+        )
         docs = loader.load()
         for d in docs:
             d.metadata["source"] = label
@@ -528,9 +554,8 @@ def _add_documents_rate_limited(
             unit="collection",
             disable=False,
         ) as pbar:
-            filtered_documents = filter_complex_metadata(documents)
             Chroma.from_documents(
-                documents=filtered_documents,
+                documents=documents,
                 collection_name=collection_name,
                 embedding=embeddings,
                 persist_directory=persist_directory,
@@ -545,7 +570,6 @@ def _add_documents_gemini_rate_limited(
     delay_sec = _gemini_batch_delay_sec()
     vectorstore = None
     num_batches = (len(documents) + GEMINI_BATCH_SIZE - 1) // GEMINI_BATCH_SIZE
-    filtered_documents = filter_complex_metadata(documents)
 
     with tqdm(
         total=num_batches,
@@ -553,8 +577,8 @@ def _add_documents_gemini_rate_limited(
         unit="batch",
         disable=False,
     ) as pbar:
-        for i in range(0, len(filtered_documents), GEMINI_BATCH_SIZE):
-            batch = filtered_documents[i : i + GEMINI_BATCH_SIZE]
+        for i in range(0, len(documents), GEMINI_BATCH_SIZE):
+            batch = documents[i : i + GEMINI_BATCH_SIZE]
             if vectorstore is None:
                 vectorstore = Chroma.from_documents(
                     documents=batch,
