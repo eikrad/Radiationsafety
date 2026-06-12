@@ -570,9 +570,10 @@ def _add_documents_rate_limited(
 def _add_documents_ollama_rate_limited(
     documents, collection_name, embeddings, persist_directory
 ):
-    """Add documents in batches with small delay to avoid Ollama overload."""
+    """Add documents in batches with retry logic to handle Ollama connection issues."""
     batch_size = 10  # Conservative batch size for local embedding model
     vectorstore = None
+    max_retries = 3
 
     num_batches = (len(documents) + batch_size - 1) // batch_size
 
@@ -584,20 +585,37 @@ def _add_documents_ollama_rate_limited(
     ) as pbar:
         for i in range(0, len(documents), batch_size):
             batch = documents[i : i + batch_size]
-            if vectorstore is None:
-                vectorstore = Chroma.from_documents(
-                    documents=batch,
-                    collection_name=collection_name,
-                    embedding=embeddings,
-                    persist_directory=persist_directory,
-                )
-            else:
-                vectorstore.add_documents(batch)
-            pbar.update(1)
-            pbar.set_postfix({"chunks": len(batch)})
-            # Small delay between batches to prevent Ollama overload
-            if i + batch_size < len(documents):
-                time.sleep(0.3)
+            batch_num = (i // batch_size) + 1
+
+            for attempt in range(max_retries):
+                try:
+                    if vectorstore is None:
+                        vectorstore = Chroma.from_documents(
+                            documents=batch,
+                            collection_name=collection_name,
+                            embedding=embeddings,
+                            persist_directory=persist_directory,
+                        )
+                    else:
+                        vectorstore.add_documents(batch)
+                    pbar.update(1)
+                    pbar.set_postfix({"chunks": len(batch)})
+                    # Small delay between batches to prevent Ollama overload
+                    if i + batch_size < len(documents):
+                        time.sleep(0.3)
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        wait_sec = 1 + (attempt * 2)  # 1s, 3s, 5s
+                        tqdm.write(
+                            f"  Batch {batch_num} failed (attempt {attempt + 1}/{max_retries}): {type(e).__name__}. Retrying in {wait_sec}s..."
+                        )
+                        time.sleep(wait_sec)
+                    else:
+                        tqdm.write(
+                            f"  Batch {batch_num} failed after {max_retries} attempts. Last error: {e}"
+                        )
+                        raise
 
 
 def _add_documents_gemini_rate_limited(
