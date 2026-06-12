@@ -1,5 +1,23 @@
 import { STORAGE_KEYS, type Model } from './constants'
 
+export function loadEnforcePrivacyMode(): boolean {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.enforcePrivacyMode)
+    if (raw === null) return false
+    return raw === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveEnforcePrivacyMode(enabled: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.enforcePrivacyMode, String(enabled))
+  } catch {
+    // Silently fail if localStorage is unavailable
+  }
+}
+
 export function loadDocumentSearchEnabled(): boolean {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.documentSearchEnabled)
