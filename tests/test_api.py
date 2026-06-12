@@ -249,6 +249,41 @@ def test_query_rate_limit_returns_429(client: TestClient, monkeypatch):
     assert second.headers.get("Retry-After")
 
 
+def test_query_response_includes_privacy_mode_field(client: TestClient):
+    """Query response includes privacy_mode field."""
+    res = client.post("/query", json={"question": "What is radiation protection?"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "privacy_mode" in data
+    assert isinstance(data["privacy_mode"], bool)
+
+
+def test_query_privacy_mode_true_for_ollama(client: TestClient):
+    """Query returns privacy_mode=true when model='ollama'."""
+    res = client.post(
+        "/query",
+        json={"question": "What is radiation?", "model": "ollama"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_mode"] is True
+
+
+def test_query_privacy_mode_false_for_cloud_models(client: TestClient):
+    """Query returns privacy_mode=false when model is not ollama."""
+    res = client.post(
+        "/query",
+        json={
+            "question": "What is radiation?",
+            "model": "mistral",
+            "api_keys": {"mistral": "test-key"},
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_mode"] is False
+
+
 def test_query_rate_limit_allows_requests_under_threshold(
     client: TestClient, monkeypatch
 ):

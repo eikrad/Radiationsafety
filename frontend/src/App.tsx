@@ -5,7 +5,7 @@ import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
 import { API_BASE, MODELS, STORAGE_KEYS, type Model } from './constants'
-import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage } from './storage'
+import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage, loadEnforcePrivacyMode } from './storage'
 import type { Message, QueryResponse } from './types'
 import './App.css'
 
@@ -24,6 +24,7 @@ export default function App() {
   const [model, setModel] = useState<Model>(loadStoredModel)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
+  const [enforcePrivacyMode, setEnforcePrivacyMode] = useState(loadEnforcePrivacyMode)
   /** From GET /api/config: true = server has .env keys (hide hint), false = needs key from client or .env. null = not yet loaded. */
   const [serverHasLlmKey, setServerHasLlmKey] = useState<boolean | null>(null)
 
@@ -32,6 +33,18 @@ export default function App() {
       localStorage.setItem(STORAGE_KEYS.model, model)
     } catch {}
   }, [model])
+
+  useEffect(() => {
+    if (!settingsOpen) {
+      setEnforcePrivacyMode(loadEnforcePrivacyMode())
+    }
+  }, [settingsOpen])
+
+  useEffect(() => {
+    if (enforcePrivacyMode && model !== 'ollama') {
+      setModel('ollama')
+    }
+  }, [enforcePrivacyMode])
 
   useEffect(() => {
     let cancelled = false
@@ -86,7 +99,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = (await res.json()) as QueryResponse & { detail?: string | unknown }
+      let data: QueryResponse & { detail?: string | unknown }
+      try {
+        data = (await res.json()) as QueryResponse & { detail?: string | unknown }
+      } catch {
+        throw new Error(
+          res.status >= 500
+            ? `Server error (${res.status}). Check if the backend is running and Ollama is available.`
+            : `Unexpected response from server (HTTP ${res.status}).`
+        )
+      }
       if (!res.ok) {
         const detail = data.detail
         const msg =
@@ -148,7 +170,8 @@ export default function App() {
           </div>
           <div className="header-right">
             <div className="model-selector-wrap">
-              <ModelSelector value={model} onChange={setModel} />
+              {enforcePrivacyMode && <span className="privacy-badge" title="Privacy Mode: fully local">🔒</span>}
+              <ModelSelector value={model} onChange={setModel} enforcePrivacyMode={enforcePrivacyMode} />
             </div>
             <button
               type="button"

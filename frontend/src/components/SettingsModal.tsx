@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { MODELS, MODEL_VARIANTS, STORAGE_KEYS, type Model } from '../constants'
-import { loadApiKeys, loadDocumentSearchEnabled, loadModelVariants } from '../storage'
+import {
+  loadApiKeys,
+  loadDocumentSearchEnabled,
+  loadModelVariants,
+  loadEnforcePrivacyMode,
+  saveEnforcePrivacyMode,
+} from '../storage'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -23,6 +29,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     openai: false,
   })
   const [documentSearchEnabled, setDocumentSearchEnabled] = useState(loadDocumentSearchEnabled())
+  const [enforcePrivacyMode, setEnforcePrivacyMode] = useState(loadEnforcePrivacyMode())
 
   useEffect(() => {
     if (!isOpen) return
@@ -30,6 +37,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setKeys(loadApiKeys())
       setVariants(loadModelVariants())
       setDocumentSearchEnabled(loadDocumentSearchEnabled())
+      setEnforcePrivacyMode(loadEnforcePrivacyMode())
     })
   }, [isOpen])
 
@@ -50,6 +58,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       localStorage.setItem(STORAGE_KEYS.apiKeys, JSON.stringify(keys))
       localStorage.setItem(STORAGE_KEYS.modelVariants, JSON.stringify(variants))
       localStorage.setItem(STORAGE_KEYS.documentSearchEnabled, String(documentSearchEnabled))
+      saveEnforcePrivacyMode(enforcePrivacyMode)
       onClose()
     } catch (e) {
       console.error('Failed to save settings:', e)
@@ -71,6 +80,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           Keys are stored only in your browser and are never sent to our servers except for LLM API
           calls. They are cleared when you close the tab or leave the page.
         </p>
+        <div className="settings-field-block">
+          <div className="settings-field">
+            <label className="settings-toggle-label">
+              <input
+                type="checkbox"
+                checked={enforcePrivacyMode}
+                onChange={(e) => setEnforcePrivacyMode(e.target.checked)}
+                aria-describedby="privacy-mode-desc"
+              />
+              <span>🔒 Privacy Mode</span>
+            </label>
+            <p id="privacy-mode-desc" className="settings-field-desc">
+              Run fully local with Ollama. No API keys required. No data leaves your machine.
+            </p>
+          </div>
+        </div>
         <div className="settings-field-block settings-beta-feature">
           <div className="settings-field">
             <label className="settings-toggle-label">

@@ -161,12 +161,36 @@ class QueryResponse(BaseModel):
     used_web_search_label: str | None = (
         None  # Short label in question's language, e.g. "Sources incl. web search"
     )
+    privacy_mode: bool = False  # True if Ollama (fully local mode)
 
 
 class SetSourceUrlBody(BaseModel):
     """Request body for PATCH /documents/source/{source_id}/url."""
 
     url: str
+
+
+def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
+    """Return a user-friendly error message for Ollama failures."""
+    import os
+
+    err = str(exc).lower()
+    llm_model = model_variant or os.getenv("OLLAMA_MODEL") or "llama3.1:8b"
+    embed_model = os.getenv("OLLAMA_EMBED_MODEL") or "nomic-embed-text"
+    if "not found" in err or "404" in err:
+        # Which model? Check if it's the embedding or LLM model
+        if embed_model.lower() in err:
+            return (
+                f"Ollama embedding model '{embed_model}' is not installed. "
+                f"Run: ollama pull {embed_model}"
+            )
+        return (
+            f"Ollama model '{llm_model}' is not installed. "
+            f"Run: ollama pull {llm_model}"
+        )
+    if "connect" in type(exc).__name__.lower() or "connection refused" in err:
+        return "Ollama is not running. Start it with: ollama serve"
+    return f"Ollama error: {exc}"
 
 
 api_router = APIRouter()
@@ -672,8 +696,13 @@ def query(req: QueryRequest, request: Request):
             warning=None,
             used_web_search=False,
             used_web_search_label=None,
+            privacy_mode=False,
         )
     chat_history = _to_tuples(req.chat_history)
+    model, api_key = _resolve_model_and_key(req.model, req.api_keys)
+    model_variant = req.model_variant
+    is_ollama = model == "ollama"
+
     if _is_non_question(req.question):
         answer = "You're welcome! Ask me anything about radiation safety."
         updated_history = chat_history + [(req.question, answer)]
@@ -684,26 +713,18 @@ def query(req: QueryRequest, request: Request):
             warning=None,
             used_web_search=False,
             used_web_search_label=None,
+            privacy_mode=is_ollama,
         )
-    model, api_key = _resolve_model_and_key(req.model, req.api_keys)
-    model_variant = req.model_variant
-    is_ollama = model == "ollama"
     try:
         from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
         llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
     except APIKeyError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e),
-        ) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        if is_ollama and (
-            "Connection" in type(e).__name__ or "connect" in str(e).lower()
-        ):
+        if is_ollama:
             raise HTTPException(
-                status_code=503,
-                detail="Ollama is not running. Start it with: ollama serve",
+                status_code=503, detail=_ollama_error_detail(e, model_variant)
             ) from e
         raise
     embedding_provider = get_embedding_provider(model)
@@ -744,7 +765,13 @@ def query(req: QueryRequest, request: Request):
                 status_code=429,
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
             ) from e
-        raise
+        if is_ollama:
+            raise HTTPException(
+                status_code=503, detail=_ollama_error_detail(e, model_variant)
+            ) from e
+        raise HTTPException(
+            status_code=500, detail=err_msg or "Internal server error"
+        ) from e
 
     answer = result.get("generation", "")
     docs = result.get("documents", [])
@@ -785,6 +812,7 @@ def query(req: QueryRequest, request: Request):
         warning=warning,
         used_web_search=used_web_search,
         used_web_search_label=used_web_search_label,
+        privacy_mode=is_ollama,
     )
 
 

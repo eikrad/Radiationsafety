@@ -10,6 +10,7 @@ export interface QueryResponse {
   warning?: string | null
   used_web_search?: boolean
   used_web_search_label?: string | null  // in question's language
+  privacy_mode?: boolean
 }
 
 export interface Message {

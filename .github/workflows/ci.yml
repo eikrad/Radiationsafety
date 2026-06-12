@@ -35,6 +35,9 @@ jobs:
         working-directory: frontend
       - run: npm run test
         working-directory: frontend
+      - name: Playwright E2E (UI-only, mocked API)
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium && npm run test:e2e
 
   docker-integration:
     runs-on: ubuntu-latest
