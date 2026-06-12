@@ -748,7 +748,18 @@ def query(req: QueryRequest, request: Request):
                 status_code=429,
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
             ) from e
-        raise
+        if is_ollama and (
+            "Connection" in type(e).__name__
+            or "connect" in err_msg.lower()
+            or "refused" in err_msg.lower()
+        ):
+            raise HTTPException(
+                status_code=503,
+                detail="Ollama is not running. Start it with: ollama serve",
+            ) from e
+        raise HTTPException(
+            status_code=500, detail=err_msg or "Internal server error"
+        ) from e
 
     answer = result.get("generation", "")
     docs = result.get("documents", [])

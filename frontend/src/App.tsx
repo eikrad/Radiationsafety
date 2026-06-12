@@ -93,7 +93,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      const data = (await res.json()) as QueryResponse & { detail?: string | unknown }
+      let data: QueryResponse & { detail?: string | unknown }
+      try {
+        data = (await res.json()) as QueryResponse & { detail?: string | unknown }
+      } catch {
+        throw new Error(
+          res.status >= 500
+            ? `Server error (${res.status}). Check if the backend is running and Ollama is available.`
+            : `Unexpected response from server (HTTP ${res.status}).`
+        )
+      }
       if (!res.ok) {
         const detail = data.detail
         const msg =
