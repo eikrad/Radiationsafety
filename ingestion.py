@@ -15,6 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
+from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -527,8 +528,9 @@ def _add_documents_rate_limited(
             unit="collection",
             disable=False,
         ) as pbar:
+            filtered_documents = filter_complex_metadata(documents)
             Chroma.from_documents(
-                documents=documents,
+                documents=filtered_documents,
                 collection_name=collection_name,
                 embedding=embeddings,
                 persist_directory=persist_directory,
@@ -543,6 +545,7 @@ def _add_documents_gemini_rate_limited(
     delay_sec = _gemini_batch_delay_sec()
     vectorstore = None
     num_batches = (len(documents) + GEMINI_BATCH_SIZE - 1) // GEMINI_BATCH_SIZE
+    filtered_documents = filter_complex_metadata(documents)
 
     with tqdm(
         total=num_batches,
@@ -550,8 +553,8 @@ def _add_documents_gemini_rate_limited(
         unit="batch",
         disable=False,
     ) as pbar:
-        for i in range(0, len(documents), GEMINI_BATCH_SIZE):
-            batch = documents[i : i + GEMINI_BATCH_SIZE]
+        for i in range(0, len(filtered_documents), GEMINI_BATCH_SIZE):
+            batch = filtered_documents[i : i + GEMINI_BATCH_SIZE]
             if vectorstore is None:
                 vectorstore = Chroma.from_documents(
                     documents=batch,
