@@ -32,7 +32,7 @@ CI runs both on push and on pull requests.
 
 ## Documentation
 
-- **Architecture diagram:** The README shows `architecture.png`, generated from `architecture.mmd`. If you change the RAG graph (nodes or flow in `graph/`), update `architecture.mmd` and regenerate the image: `uv run python scripts/render_architecture.py`, then commit the updated PNG.
+- **Architecture diagram:** The README shows `architecture.svg`, generated from `architecture.mmd`. If you change the RAG graph (nodes or flow in `graph/`), update `architecture.mmd` and regenerate the image: `uv run python scripts/render_architecture.py`, then commit the updated SVG.
 
 ## Pull requests
 
