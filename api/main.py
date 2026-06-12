@@ -170,6 +170,29 @@ class SetSourceUrlBody(BaseModel):
     url: str
 
 
+def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
+    """Return a user-friendly error message for Ollama failures."""
+    import os
+
+    err = str(exc).lower()
+    llm_model = model_variant or os.getenv("OLLAMA_MODEL") or "llama3.1:8b"
+    embed_model = os.getenv("OLLAMA_EMBED_MODEL") or "nomic-embed-text"
+    if "not found" in err or "404" in err:
+        # Which model? Check if it's the embedding or LLM model
+        if embed_model.lower() in err:
+            return (
+                f"Ollama embedding model '{embed_model}' is not installed. "
+                f"Run: ollama pull {embed_model}"
+            )
+        return (
+            f"Ollama model '{llm_model}' is not installed. "
+            f"Run: ollama pull {llm_model}"
+        )
+    if "connect" in type(exc).__name__.lower() or "connection refused" in err:
+        return "Ollama is not running. Start it with: ollama serve"
+    return f"Ollama error: {exc}"
+
+
 api_router = APIRouter()
 _ADMIN_TOKEN_HEADER = "X-Admin-Token"
 _TRUE_VALUES = {"1", "true", "yes", "on"}
@@ -697,17 +720,11 @@ def query(req: QueryRequest, request: Request):
 
         llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
     except APIKeyError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e),
-        ) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        if is_ollama and (
-            "Connection" in type(e).__name__ or "connect" in str(e).lower()
-        ):
+        if is_ollama:
             raise HTTPException(
-                status_code=503,
-                detail="Ollama is not running. Start it with: ollama serve",
+                status_code=503, detail=_ollama_error_detail(e, model_variant)
             ) from e
         raise
     embedding_provider = get_embedding_provider(model)
@@ -748,14 +765,9 @@ def query(req: QueryRequest, request: Request):
                 status_code=429,
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
             ) from e
-        if is_ollama and (
-            "Connect" in type(e).__name__
-            or "connection refused" in err_msg.lower()
-            or "11434" in err_msg
-        ):
+        if is_ollama:
             raise HTTPException(
-                status_code=503,
-                detail="Ollama is not running. Start it with: ollama serve",
+                status_code=503, detail=_ollama_error_detail(e, model_variant)
             ) from e
         raise HTTPException(
             status_code=500, detail=err_msg or "Internal server error"
