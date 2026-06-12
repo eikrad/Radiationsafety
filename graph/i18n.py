@@ -71,6 +71,12 @@ WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL: dict[str, str] = {
     "de": "Vektor-Store noch nicht erstellt. GOOGLE_API_KEY in .env setzen, dann: uv run python ingestion.py",
     "da": "Vektorstore er endnu ikke bygget. Sæt GOOGLE_API_KEY i .env, derefter: uv run python ingestion.py",
 }
+# Privacy Mode: Ollama local embeddings not built yet.
+WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA: dict[str, str] = {
+    "en": "Local embeddings are not built yet. Run: LLM_PROVIDER=ollama uv run python ingestion.py",
+    "de": "Lokale Embeddings sind noch nicht erstellt. Ausführen: LLM_PROVIDER=ollama uv run python ingestion.py",
+    "da": "Lokale embeddings er endnu ikke bygget. Kør: LLM_PROVIDER=ollama uv run python ingestion.py",
+}
 
 
 def get_warning_web_search_poor(lang: str) -> str:
@@ -99,7 +105,12 @@ def get_warning_not_verified_trusted_only(lang: str) -> str:
 
 
 def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:
-    """Return localized message for missing embeddings. In practice only gemini is used (retrieval always uses Gemini)."""
+    """Return localized message for missing embeddings."""
+    if embedding_provider == "ollama":
+        return (
+            WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA.get(lang)
+            or WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA["en"]
+        )
     if embedding_provider == "mistral":
         return (
             WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL.get(lang)

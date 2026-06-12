@@ -11,6 +11,7 @@ const MODEL_LABELS: Record<Model, string> = {
   mistral: 'Mistral API Key',
   gemini: 'Gemini API Key',
   openai: 'OpenAI API Key',
+  ollama: 'Ollama (Local)',
 }
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
@@ -92,43 +93,55 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="settings-fields">
           {MODELS.map((model) => (
             <div key={model} className="settings-field-block">
-              <div className="settings-field">
-                <label htmlFor={`api-key-${model}`}>{MODEL_LABELS[model]}</label>
-                <div className="settings-input-row">
-                  <input
-                    id={`api-key-${model}`}
-                    type={showKeys[model] ? 'text' : 'password'}
-                    value={keys[model]}
-                    onChange={(e) => handleChange(model, e.target.value)}
-                    placeholder="Enter API key..."
-                    autoComplete="off"
-                  />
-                  <button
-                    type="button"
-                    className="settings-toggle-visibility"
-                    onClick={() => handleToggleShow(model)}
-                    aria-label={showKeys[model] ? 'Hide' : 'Show'}
-                    title={showKeys[model] ? 'Hide' : 'Show'}
-                  >
-                    {showKeys[model] ? 'Hide' : 'Show'}
-                  </button>
+              {model === 'ollama' ? (
+                <div className="settings-field">
+                  <label>{MODEL_LABELS[model]}</label>
+                  <p className="settings-field-desc">
+                    Privacy Mode — runs fully local via Ollama. No API key needed. No data leaves
+                    your machine. Configure model and URL in server <code>.env</code>.
+                  </p>
                 </div>
-              </div>
-              {MODEL_VARIANTS[model].length > 1 && (
-                <div className="settings-field settings-model-variant">
-                  <label htmlFor={`variant-${model}`}>Model</label>
-                  <select
-                    id={`variant-${model}`}
-                    value={variants[model]}
-                    onChange={(e) => handleVariantChange(model, e.target.value)}
-                  >
-                    {MODEL_VARIANTS[model].map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              ) : (
+                <>
+                  <div className="settings-field">
+                    <label htmlFor={`api-key-${model}`}>{MODEL_LABELS[model]}</label>
+                    <div className="settings-input-row">
+                      <input
+                        id={`api-key-${model}`}
+                        type={showKeys[model] ? 'text' : 'password'}
+                        value={keys[model]}
+                        onChange={(e) => handleChange(model, e.target.value)}
+                        placeholder="Enter API key..."
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        className="settings-toggle-visibility"
+                        onClick={() => handleToggleShow(model)}
+                        aria-label={showKeys[model] ? 'Hide' : 'Show'}
+                        title={showKeys[model] ? 'Hide' : 'Show'}
+                      >
+                        {showKeys[model] ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                  {MODEL_VARIANTS[model].length > 1 && (
+                    <div className="settings-field settings-model-variant">
+                      <label htmlFor={`variant-${model}`}>Model</label>
+                      <select
+                        id={`variant-${model}`}
+                        value={variants[model]}
+                        onChange={(e) => handleVariantChange(model, e.target.value)}
+                      >
+                        {MODEL_VARIANTS[model].map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ))}

@@ -2,7 +2,7 @@
 
 import os
 
-ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai"})
+ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai", "ollama"})
 
 
 class APIKeyError(Exception):
@@ -43,6 +43,14 @@ def get_llm(
     prov = (provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
     if prov not in ALLOWED_PROVIDERS:
         prov = "gemini"
+
+    if prov == "ollama":
+        from langchain_ollama import ChatOllama
+
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        env_model = (os.getenv("OLLAMA_MODEL") or "").strip()
+        model = model_variant or env_model or "llama3.1:8b"
+        return ChatOllama(model=model, temperature=0, base_url=base_url)
 
     if prov == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
@@ -91,23 +99,32 @@ def get_llm(
 def get_embedding_provider(llm_provider: str | None = None) -> str:
     """Return which embedding backend to use for retrieval.
 
-    All providers (gemini, openai, mistral) use Gemini embeddings and the same Chroma collections,
-    so the single vector store can be used regardless of which LLM is chosen for generation.
+    Cloud providers (gemini, openai, mistral) share Gemini embeddings.
+    Ollama uses local embeddings (separate Chroma collections).
     """
+    prov = (llm_provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    if prov == "ollama":
+        return "ollama"
     return "gemini"
 
 
 def get_embeddings(embedding_provider: str | None = None):
-    """Return embeddings. All LLM providers use Gemini embeddings for retrieval (shared vector store).
+    """Return embeddings instance for the given provider.
 
     Args:
-        embedding_provider: 'gemini' | 'mistral'. If None, uses get_embedding_provider() (currently always 'gemini').
+        embedding_provider: 'gemini' | 'mistral' | 'ollama'. If None, uses get_embedding_provider().
     """
     ep = (
         embedding_provider
-        if embedding_provider in ("gemini", "mistral")
+        if embedding_provider in ("gemini", "mistral", "ollama")
         else get_embedding_provider()
     )
+    if ep == "ollama":
+        from langchain_ollama import OllamaEmbeddings
+
+        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        model = (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "nomic-embed-text"
+        return OllamaEmbeddings(model=model, base_url=base_url)
     if ep == "gemini":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 

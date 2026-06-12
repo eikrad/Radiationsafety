@@ -9,6 +9,7 @@ const MODEL_LABELS: Record<Model, string> = {
   mistral: 'Mistral',
   gemini: 'Gemini',
   openai: 'OpenAI',
+  ollama: 'Ollama (Local)',
 }
 
 export function ModelSelector({ value, onChange }: ModelSelectorProps) {

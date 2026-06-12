@@ -17,6 +17,7 @@ def grade_documents(
     """Run one sufficiency check on truncated context; set web_search=True if insufficient or no docs. Keeps all docs for generation."""
     question = state["question"]
     documents = state["documents"]
+    privacy_mode = state.get("privacy_mode", False)
     cfg = config or {}
     llm = state.get("llm") or get_llm()
 
@@ -24,7 +25,7 @@ def grade_documents(
         return {
             "documents": [],
             "trusted_documents": [],
-            "web_search": True,
+            "web_search": False if privacy_mode else True,
         }
 
     truncated = truncate_docs_for_grader(documents)
@@ -35,6 +36,10 @@ def grade_documents(
         config=cfg,
     )
     web_search = not sufficient.binary_score
+
+    # Privacy mode: never enable web search
+    if privacy_mode:
+        web_search = False
 
     return {
         "documents": list(documents),

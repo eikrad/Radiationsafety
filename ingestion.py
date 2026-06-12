@@ -8,16 +8,24 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 import os
 import re
 import shutil
+import signal
+import sys
 import tempfile
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
-from docling.chunking import HybridChunker
+from docling.chunking import BaseChunk, HybridChunker
+from docling.datamodel.document import DoclingDocument
+from docling_core.transforms.chunker.tokenizer.huggingface import (
+    HuggingFaceTokenizer,
+)
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
+from langchain_docling.loader import BaseMetaExtractor
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 from tqdm import tqdm
@@ -25,6 +33,26 @@ from tqdm import tqdm
 from graph.llm_factory import get_embedding_provider, get_embeddings
 
 load_dotenv()
+
+
+class _SimpleMetaExtractor(BaseMetaExtractor):
+    """Extracts only primitive metadata; filters out complex nested structures.
+
+    DoclingLoader can return nested dict metadata (e.g., DocMeta) which Chroma
+    rejects. This extractor keeps only source, headings, and page info.
+    """
+
+    def extract_chunk_meta(self, file_path: str, chunk: BaseChunk) -> dict[str, Any]:
+        meta = {"source": file_path}
+        if chunk.meta and chunk.meta.headings:
+            meta["headings"] = chunk.meta.headings
+        return meta
+
+    def extract_dl_doc_meta(
+        self, file_path: str, dl_doc: DoclingDocument
+    ) -> dict[str, Any]:
+        return {"source": file_path, "num_pages": len(dl_doc.pages)}
+
 
 # Paths relative to project root
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -59,12 +87,10 @@ DK_LAW_COLLECTION = "radiation-dk-law"
 # Google Gemini: batch size for embeddings. Delay between batches is from GEMINI_BATCH_DELAY_SEC env (0 or unset = no delay, e.g. 65 for free tier).
 GEMINI_BATCH_SIZE = 200
 
-# Docling HybridChunker token budgets (approximates previous character-based chunk sizes).
-IAEA_MAX_TOKENS = 256  # ~800 chars
-DK_MAX_TOKENS = 512  # ~2500 chars
-
-# Cached HybridChunker instances keyed by max_tokens — avoids reloading the tokeniser per file.
-_chunker_cache: dict[int, HybridChunker] = {}
+# Token limit for nomic-embed-text (HybridChunker will respect this)
+NOMIC_EMBED_MAX_TOKENS = 512
+# Tokenizer model ID that matches embedding model dimensionality/behavior
+NOMIC_EMBED_TOKENIZER_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 def _gemini_batch_delay_sec() -> float:
@@ -375,9 +401,7 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
         if path is None:
             continue
         try:
-            docs = _load_pdf_with_docling(
-                path, source_label=label, max_tokens=IAEA_MAX_TOKENS
-            )
+            docs = _load_pdf_with_docling(path, source_label=label)
             for d in docs:
                 d.metadata["document_type"] = "IAEA"
             iaea_docs.extend(docs)
@@ -404,7 +428,7 @@ def load_iaea_docs() -> list[Document]:
             pdf_files, desc="Loading IAEA PDFs", unit="file", disable=False
         ):
             try:
-                docs = _load_pdf_with_docling(pdf_path, max_tokens=IAEA_MAX_TOKENS)
+                docs = _load_pdf_with_docling(pdf_path)
                 for d in docs:
                     d.metadata["document_type"] = "IAEA"
                 all_docs.extend(docs)
@@ -416,27 +440,30 @@ def load_iaea_docs() -> list[Document]:
 def _load_pdf_with_docling(
     file_path: str | Path,
     source_label: str | None = None,
-    max_tokens: int = IAEA_MAX_TOKENS,
 ) -> list[Document]:
-    """Load and chunk a PDF using docling's HybridChunker.
+    """Load and chunk a PDF using DoclingLoader.
 
-    Returns pre-chunked Documents with source metadata set. Falls back to
+    Returns semantic chunks with source metadata set. Falls back to
     pypdf plain-text extraction if docling fails.
     """
     label = source_label or str(file_path)
     try:
-        if max_tokens not in _chunker_cache:
-            _chunker_cache[max_tokens] = HybridChunker(max_tokens=max_tokens)
+        tokenizer = HuggingFaceTokenizer.from_pretrained(
+            model_name=NOMIC_EMBED_TOKENIZER_MODEL,
+            max_token_count=NOMIC_EMBED_MAX_TOKENS,
+        )
+        chunker = HybridChunker(tokenizer=tokenizer)
         loader = DoclingLoader(
             file_path=str(file_path),
-            chunker=_chunker_cache[max_tokens],
+            chunker=chunker,
+            meta_extractor=_SimpleMetaExtractor(),
         )
         docs = loader.load()
         for d in docs:
             d.metadata["source"] = label
         return docs
     except Exception as e:
-        print(
+        tqdm.write(
             f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"
         )
     # Fallback: pypdf plain-text extraction
@@ -479,9 +506,7 @@ def _extract_and_load_attachments(
                 continue
             try:
                 label = f"{parent_path.name} (Anhang: {att_name})"
-                docs = _load_pdf_with_docling(
-                    tmp_path, source_label=label, max_tokens=DK_MAX_TOKENS
-                )
+                docs = _load_pdf_with_docling(tmp_path, source_label=label)
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
                     d.metadata["parent_document"] = str(parent_path.name)
@@ -511,7 +536,7 @@ def load_dk_law_docs():
         pdf_files, desc="Loading Danish PDFs", unit="file", disable=False
     ):
         try:
-            docs = _load_pdf_with_docling(pdf_path, max_tokens=DK_MAX_TOKENS)
+            docs = _load_pdf_with_docling(pdf_path)
             for d in docs:
                 d.metadata["document_type"] = "Danish law"
             all_docs.extend(docs)
@@ -532,10 +557,14 @@ def load_dk_law_docs():
 def _add_documents_rate_limited(
     documents, collection_name, embeddings, persist_directory
 ):
-    """Add docs. Gemini embeddings: batches + optional delay. Ollama/Mistral: all at once with progress."""
+    """Add docs. Gemini: batches + optional delay. Ollama: batches with small delay to avoid overload."""
     ep = get_embedding_provider()
     if ep == "gemini":
         _add_documents_gemini_rate_limited(
+            documents, collection_name, embeddings, persist_directory
+        )
+    elif ep == "ollama":
+        _add_documents_ollama_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
     else:
@@ -552,6 +581,57 @@ def _add_documents_rate_limited(
                 persist_directory=persist_directory,
             )
             pbar.update(1)
+
+
+def _add_documents_ollama_rate_limited(
+    documents, collection_name, embeddings, persist_directory
+):
+    """Add documents in batches with retry logic to handle Ollama connection issues."""
+    batch_size = 10  # Conservative batch size for local embedding model
+    vectorstore = None
+    max_retries = 3
+
+    num_batches = (len(documents) + batch_size - 1) // batch_size
+
+    with tqdm(
+        total=num_batches,
+        desc=f"Adding to {collection_name}",
+        unit="batch",
+        disable=False,
+    ) as pbar:
+        for i in range(0, len(documents), batch_size):
+            batch = documents[i : i + batch_size]
+            batch_num = (i // batch_size) + 1
+
+            for attempt in range(max_retries):
+                try:
+                    if vectorstore is None:
+                        vectorstore = Chroma.from_documents(
+                            documents=batch,
+                            collection_name=collection_name,
+                            embedding=embeddings,
+                            persist_directory=persist_directory,
+                        )
+                    else:
+                        vectorstore.add_documents(batch)
+                    pbar.update(1)
+                    pbar.set_postfix({"chunks": len(batch)})
+                    # Small delay between batches to prevent Ollama overload
+                    if i + batch_size < len(documents):
+                        time.sleep(0.3)
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        wait_sec = 1 + (attempt * 2)  # 1s, 3s, 5s
+                        tqdm.write(
+                            f"  Batch {batch_num} failed (attempt {attempt + 1}/{max_retries}): {type(e).__name__}. Retrying in {wait_sec}s..."
+                        )
+                        time.sleep(wait_sec)
+                    else:
+                        tqdm.write(
+                            f"  Batch {batch_num} failed after {max_retries} attempts. Last error: {e}"
+                        )
+                        raise
 
 
 def _add_documents_gemini_rate_limited(
@@ -592,37 +672,65 @@ def ingest():
     inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
     (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
     """
+
+    def _signal_handler(signum, frame):
+        print("\n\n⚠️  Ingestion interrupted by user. Exiting...\n")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _signal_handler)
+
     print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
     print(f"📊 Using embedding provider: {ep}")
     print(f"📦 Collections: {iaea_name}, {dk_name}\n")
 
-    _clear_chroma_collections(ep)
-    embeddings = get_embeddings(ep)
+    with tqdm(
+        total=6,
+        desc="Overall ingestion progress",
+        unit="phase",
+        disable=False,
+        position=0,
+    ) as overall_progress:
+        _clear_chroma_collections(ep)
+        embeddings = get_embeddings(ep)
+        overall_progress.update(1)
 
-    # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
-    iaea_from_url, dk_from_url = _load_docs_from_registry()
-    if iaea_from_url:
-        tqdm.write(f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)")
-    if dk_from_url:
-        tqdm.write(f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)")
+        # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
+        iaea_from_url, dk_from_url = _load_docs_from_registry()
+        if iaea_from_url:
+            tqdm.write(
+                f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)"
+            )
+        if dk_from_url:
+            tqdm.write(
+                f"  ✓ Loaded {len(dk_from_url)} chunks from registry URLs (Danish)"
+            )
+        overall_progress.update(1)
 
-    # IAEA collection: local dirs + registry URLs — all pre-chunked
-    iaea_docs = load_iaea_docs()
-    iaea_docs.extend(iaea_from_url)
-    if iaea_docs:
-        _add_documents_rate_limited(iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR))
-        print(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}\n")
+        # IAEA collection: local dirs + registry URLs — all pre-chunked
+        iaea_docs = load_iaea_docs()
+        iaea_docs.extend(iaea_from_url)
+        overall_progress.update(1)
 
-    # Danish law collection: local dirs + registry URLs — all pre-chunked
-    dk_docs = load_dk_law_docs()
-    dk_docs.extend(dk_from_url)
-    if dk_docs:
-        _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
-        print(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}\n")
+        if iaea_docs:
+            _add_documents_rate_limited(
+                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+            )
+            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        overall_progress.update(1)
 
-    print("🎉 Ingestion complete!")
+        # Danish law collection: local dirs + registry URLs — all pre-chunked
+        dk_docs = load_dk_law_docs()
+        dk_docs.extend(dk_from_url)
+        overall_progress.update(1)
+
+        if dk_docs:
+            _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
+            tqdm.write(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}")
+        overall_progress.update(1)
+
+    print("\n🎉 Ingestion complete!")
 
 
 _retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
@@ -671,9 +779,7 @@ def add_single_pdf_to_collection(
     label = (source_label or "").strip() or pdf_path.stem.replace("_", " ").replace(
         "-", " "
     )
-    splits = _load_pdf_with_docling(
-        pdf_path, source_label=label, max_tokens=IAEA_MAX_TOKENS
-    )
+    splits = _load_pdf_with_docling(pdf_path, source_label=label)
     for d in splits:
         d.metadata["document_type"] = "IAEA"
     if not splits:

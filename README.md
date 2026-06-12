@@ -3,202 +3,192 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-A RAG (Retrieval-Augmented Generation) system for querying IAEA and Danish radiation safety documents. Ask questions in plain language and get cited answers sourced directly from official standards and legislation.
+RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
-**Documents covered:**
-- IAEA standards and guidelines (GSR, SSG, SSR, TECDOC series)
-- Danish radiation legislation (*Bekendtgørelse*, fetched from retsinformation.dk)
+## Architecture
 
----
+The architecture includes an API pre-processing stage and a [LangGraph](https://langchain-ai.github.io/langgraph/) execution stage. The API validates inputs, short-circuits non-question acknowledgements, resolves provider/API-key settings, and then invokes the graph for retrieval, document grading, optional extra retrieval and web-search fallback, generation, grounding retries, and trusted-source verification.
 
-## How it works
+![RAG flow](architecture.svg)
 
-User questions flow through a [LangGraph](https://langchain-ai.github.io/langgraph/) pipeline that retrieves relevant document chunks, grades them for sufficiency, generates an answer, checks it for grounding, and optionally falls back to a web search — all before returning a response with cited sources.
+Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scripts/render_architecture.py`.
 
-**Stack at a glance:**
+## Running with Docker
 
-```mermaid
-graph LR
-    USER([Browser / CLI]) --> FE[React UI\nnginx :8080]
-    FE --> API[FastAPI\n:8000]
-    API --> LG[LangGraph\nPipeline]
-    LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM\nGemini / OpenAI / Mistral]
-    LG -.->|optional| BRAVE[Brave Search]
-    INGEST([ingestion.py]) --> CHROMA
-    DOCS[documents/] --> INGEST
-```
+The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
 
-**RAG pipeline:**
+1. Copy `.env.example` to `.env`. Set **`GOOGLE_API_KEY`** (required for ingestion and retrieval). Optionally set `LLM_PROVIDER` and the matching key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
+2. From the project root:
+   ```bash
+   docker compose up --build
+   ```
+3. In another terminal, run ingestion once (fills the persisted `chroma_data` volume):
+   ```bash
+   docker compose run --rm backend python ingestion.py
+   ```
+   Wait for it to finish, then stop the stack (`Ctrl+C`) and start again with `docker compose up` so the backend loads the new DB.
+4. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend.
 
-```mermaid
-flowchart TD
-    Q([User question]) --> API[API validates input\nresolves LLM + keys]
-    API -->|non-question\ne.g. 'thanks'| SC([Short-circuit reply])
-    API --> R[RETRIEVE\ndual vector search\nIAEA + Danish law]
-    R --> GD{GRADE_DOCUMENTS\nsufficient context?}
-    GD -->|yes| GEN[GENERATE\nRAG answer]
-    GD -->|no| RM[RETRIEVE_MISSING\nrefined LLM query]
-    RM --> GEN
-    RM -->|still insufficient| WS[WEB_SEARCH\nBrave Search fallback]
-    WS --> GEN
-    GEN --> GG{GRADE_GENERATION\ngrounded + complete?}
-    GG -->|pass| VT[VERIFY_TRUSTED\ncross-check trusted sources]
-    GG -->|fail, retries left| RM
-    GG -->|fail, max retries| WS
-    VT --> FIN[FINALIZE\nset routing outcome]
-    FIN --> ANS([Answer + sources + warning])
-```
+The backend uses a named volume `chroma_data` for `.chroma`, so you only need to run ingestion once per environment. To refresh the document base (e.g. after adding new sources), run the ingestion command again. Changing `LLM_PROVIDER` does not require re-running ingestion.
 
-See [docs/architecture.md](docs/architecture.md) for a deeper breakdown of each node and chain.
+## Setup
 
----
+1. Copy `.env.example` to `.env` and configure:
+   - **Embeddings (for ingestion and retrieval):** Cloud providers use **Gemini embeddings** — you need **`GOOGLE_API_KEY`** to run ingestion and queries. Set this even if you later choose OpenAI or Mistral as the LLM for answers. For fully local mode, see [Privacy Mode](#privacy-mode-fully-local) below.
+   - **LLM for generation:** `LLM_PROVIDER` = `gemini`, `mistral`, `openai`, or `ollama`. Set the matching key: `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`. Ollama needs no API key. The same vector store (Gemini embeddings) is used for cloud providers regardless of which LLM generates answers.
+   - Optional: `WEB_SEARCH_ENABLED=true`, `BRAVE_SEARCH_API_KEY` for fallback; `WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true` to restrict web search to iaea.org/retsinformation.dk/sst.dk (default is unrestricted; answers are still verified against trusted sources)
+   - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing (tracing is auto-disabled when API keys are sent from the frontend to avoid leaking keys to LangSmith)
 
-## Quick start with Docker
+2. Install dependencies:
+   ```bash
+   uv sync
+   ```
 
-The simplest way to run the full stack.
+3. **(Optional)** Document sources: copy `document_sources.example.yaml` to `document_sources.yaml` and add URLs, or **build the list from local PDFs** (see "Building document_sources.yaml from local PDFs" below). `document_sources.yaml` is gitignored by default so you can keep local or repo-specific URLs; remove that line from `.gitignore` if you want to commit a shared registry. The **Documents** button in the UI checks for updates (e.g. retsinformation.dk "Senere ændringer", IAEA "Superseded by") When you re-run ingestion, Danish sources always use the **newest** version of the series; the registry file is updated with that URL. Older Danish versions are kept in `documents/backup/Bekendtgørelse` (at most 2 per source).
 
-**Prerequisites:** Docker, a `GOOGLE_API_KEY` (required for embeddings).
+4. Run ingestion (requires **`GOOGLE_API_KEY`**; embeddings are always Gemini):
+   ```bash
+   uv run python ingestion.py
+   ```
+   You only need to run ingestion once per document set. Changing `LLM_PROVIDER` (e.g. to OpenAI or Mistral for generation) does **not** require re-running ingestion—the same vector store is used.
+   Ingestion loads **(1) local PDFs** from `documents/IAEA`, `documents/IAEA_other`, `documents/Bekendtgørelse`, and **(2) documents from URLs** listed in `document_sources.yaml`: **Danish** sources are fetched as **XML** from retsinformation.dk (newest version of the series), IAEA sources from the publication page PDF link, and any direct PDF URLs. You can rely entirely on the registry and skip placing PDFs locally. Use the **Documents** panel in the UI to "Check for updates" and "Re-run ingestion".
 
-```bash
-# 1. Configure environment
-cp .env.example .env
-# Edit .env — set GOOGLE_API_KEY and optionally LLM_PROVIDER + its key
+5. Start backend:
+   ```bash
+   uv run uvicorn api.main:app --reload --port 8000
+   ```
 
-# 2. Start the stack
-docker compose up --build
+6. Frontend – from project root, choose one:
+   - **Single server**: `npm -C frontend run build` then open http://localhost:8000
+   - **Dev mode** (hot reload): `npm -C frontend install && npm -C frontend run dev` then open http://localhost:5173
 
-# 3. In a second terminal, run ingestion once (fills the vector DB)
-docker compose run --rm backend python ingestion.py
-# Wait until it finishes, then restart the stack:
-docker compose restart backend
-```
+7. Optional CLI:
+   ```bash
+   uv run python main.py
+   ```
 
-Open **http://localhost:8080** — the UI is served there, with the API proxied from the same origin.
+## Privacy Mode (Fully Local)
 
-The vector DB is stored in a named Docker volume (`chroma_data`), so ingestion only needs to run once per environment. Re-run it after adding new documents.
+All LLM generation and embeddings run locally via [Ollama](https://ollama.com). Zero data leaves your machine — LangSmith tracing and web search are automatically disabled.
 
----
+### Minimum system requirements
 
-## Local setup (without Docker)
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| GPU | 4 GB VRAM (CPU fallback works but slow) | 6 GB+ VRAM (e.g. NVIDIA RTX 3060) |
+| RAM | 16 GB | 32 GB |
+| Disk | ~5 GB (models + vector DB) | ~10 GB |
+| OS | Linux, macOS, or Windows | Linux (best Ollama performance) |
 
-### 1. Prerequisites
+### Setup
 
-- Python 3.12+, [uv](https://docs.astral.sh/uv/) package manager
-- Node.js 18+ (for the frontend)
-- A `GOOGLE_API_KEY` — required for embeddings (always Gemini, regardless of which LLM you choose for generation)
+1. Install Ollama:
+   ```bash
+   curl -fsSL https://ollama.com/install.sh | sh
+   ```
+2. Pull models:
+   ```bash
+   ollama pull llama3.1:8b
+   ollama pull nomic-embed-text
+   ```
+3. Set `LLM_PROVIDER=ollama` in `.env` (optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBED_MODEL`)
+4. Run ingestion (one-time, builds local embedding collections):
+   ```bash
+   uv run python ingestion.py
+   ```
+5. Start backend and frontend as usual, select **Ollama (Local)** in the dropdown
 
-### 2. Configure environment
+### Notes
 
-```bash
-cp .env.example .env
-```
-
-Key variables:
-
-| Variable | Required | Description |
-|---|---|---|
-| `GOOGLE_API_KEY` | **Yes** | Gemini embeddings (ingestion + retrieval) |
-| `LLM_PROVIDER` | No | `gemini` (default) \| `openai` \| `mistral` |
-| `OPENAI_API_KEY` | If using OpenAI | For generation only |
-| `MISTRAL_API_KEY` | If using Mistral | For generation only |
-| `WEB_SEARCH_ENABLED` | No | `true` to enable Brave Search fallback |
-| `BRAVE_SEARCH_API_KEY` | If web search on | Required for Brave Search |
-| `ADMIN_TOKEN` | Recommended | Required for document management routes |
-
-See `.env.example` for the full list including rate limiting and tracing options.
-
-### 3. Install and ingest
-
-```bash
-# Install Python dependencies
-uv sync
-
-# (Optional) Build document_sources.yaml from local PDFs
-uv run python build_document_sources.py
-
-# Run ingestion — builds the Chroma vector DB
-uv run python ingestion.py
-```
-
-Ingestion loads PDFs from `documents/IAEA/`, `documents/IAEA_other/`, and `documents/Bekendtgørelse/`, plus any URLs listed in `document_sources.yaml`. Danish sources are fetched as XML from retsinformation.dk (newest version of the series). You only need to run ingestion once; changing `LLM_PROVIDER` does **not** require re-ingestion.
-
-### 4. Start the backend
-
-```bash
-uv run uvicorn api.main:app --reload --port 8000
-```
-
-### 5. Start the frontend
-
-```bash
-# Build once (served by the backend at http://localhost:8000)
-npm -C frontend run build
-
-# Or run in dev mode with hot reload (http://localhost:5173)
-npm -C frontend install && npm -C frontend run dev
-```
-
-### 6. (Optional) CLI mode
-
-```bash
-uv run python main.py
-```
-
----
-
-## Document management
-
-The **Documents** panel in the UI lets you check for newer versions of registered sources and re-run ingestion without touching the command line. The backend polls retsinformation.dk and the IAEA publication pages to detect when a document has been superseded.
-
-To register document sources manually, edit `document_sources.yaml` (or run `build_document_sources.py` to generate it from local PDFs). The file is gitignored by default so you can keep environment-specific URLs locally; remove the gitignore entry to commit a shared registry.
-
----
+- Answer quality is lower than cloud models (8B vs 100B+ parameters) — best suited for testing retrieval and data-sovereignty use cases.
+- First ingestion is slower than Gemini (local embedding computation on GPU/CPU).
+- Switch back to a cloud provider anytime — original Gemini-based collections are preserved.
+- The local collections use a `-ollama` suffix (e.g. `radiation-iaea-ollama`) and coexist with cloud collections.
 
 ## Evaluation
 
-The evaluation harness in `eval/` runs the pipeline on a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall).
+The evaluation harness lives in **`eval/`**. It runs the RAG graph on a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall), writing markdown and JSON reports to `eval/reports/`.
+
+From the project root:
 
 ```bash
 uv run python -m eval.run_eval
 ```
 
-Reports are written to `eval/reports/`. See `eval/README.md` for options such as `--limit` and `--no-web-search`.
-
----
+The harness uses your `.env` for the LLM (no API keys in the golden data). Run ingestion first so the graph has documents to retrieve. See `eval/README.md` for options (`--limit`, `--no-web-search`), metric definitions, and optional LangSmith tracing.
 
 ## Testing
 
-- **Backend:** `uv run pytest tests/ -v`
-- **Frontend:** `cd frontend && npm run test`
+CI runs the test suite on push and on pull requests (see status badge above).
 
-CI runs both suites on every push and pull request.
+- **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
+- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
 
----
+## Security and Operations
 
-## Security and operations
+- Mutating routes (`/ingest` and mutating `/documents/*` endpoints) require `X-Admin-Token`.
+- If `ADMIN_TOKEN` is not configured, admin routes are fail-closed (`503`) unless `ADMIN_AUTH_BYPASS=true` is explicitly set for local-only use.
+- Query/admin rate limits are in-memory and per-client (`RATE_LIMIT_*`). This MVP is suitable for single-process deployments.
+- For multi-worker or multi-replica deployments, set `RATE_LIMIT_BACKEND=redis` and `RATE_LIMIT_REDIS_URL` to enforce global limits.
 
-- Mutating routes (`/ingest`, document management) require an `X-Admin-Token` header.
-- If `ADMIN_TOKEN` is not set, admin routes return `503` (fail-closed). Set `ADMIN_AUTH_BYPASS=true` only for local development.
-- Rate limiting is in-memory by default; set `RATE_LIMIT_BACKEND=redis` for multi-replica deployments.
-- The backend container runs as a non-root user with `no-new-privileges` and all Linux capabilities dropped.
+### Runbook quick checks
 
-See [docs/production-readiness.md](docs/production-readiness.md) for the full security and operations reference.
+- **429 spike**: verify `RATE_LIMIT_*` values and recent traffic source patterns.
+- **Admin routes suddenly unavailable (503)**: check `ADMIN_TOKEN` presence and accidental bypass misconfiguration.
+- **Service health degraded**: inspect `/health` and `/metrics` plus container health status in Compose.
 
----
+### Container hardening notes
 
-## Further reading
+- Backend container runs as non-root user (`appuser`) and sets `PYTHONDONTWRITEBYTECODE=1` plus `PYTHONUNBUFFERED=1`.
+- Compose applies `no-new-privileges` and drops Linux capabilities (`cap_drop: [ALL]`) for backend/frontend.
+- Backend uses `tmpfs: /tmp` and a persistent named volume only for `/app/.chroma`.
+- Healthchecks are active for backend, and frontend waits for backend healthy state before startup.
 
-| File | Contents |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | RAG pipeline nodes, chains, and ingestion workflow |
-| [docs/production-readiness.md](docs/production-readiness.md) | Security, rate limiting, observability |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, code quality, PR process |
+## Building document_sources.yaml from local PDFs
 
----
+To populate `document_sources.yaml` from the PDFs you already have in `documents/`:
 
-## Credits
+```bash
+uv run python build_document_sources.py
+```
 
-Inspired by patterns from the **LangChain / LangGraph course** by [Eden Marco](https://github.com/emarco177/langchain-course) (Apache-2.0).
+This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata and first-page text (and from Danish `*_version.txt` files), optionally confirms Danish ELI URLs on retsinformation.dk, merges with any existing registry entries (to keep URLs), and writes the full list to `document_sources.yaml`. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print the list without writing.
 
-Thanks to [Roman Kuznetsov (@kuznero)](https://github.com/kuznero) for valuable feedback on the project.
+## Collections and embeddings
+
+- **`radiation-iaea`**: IAEA and IAEA_other PDFs  
+- **`radiation-dk-law`**: Bekendtgørelse (Danish legislation), ingested from retsinformation.dk XML (newest version)
+
+Cloud providers (Gemini, OpenAI, Mistral) all use **Gemini embeddings** (one shared vector store). The LLM that generates answers only receives the **retrieved text** (chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI or Mistral can be used for generation while the store stays on Gemini embeddings — no re-ingestion needed.
+
+**Ollama (Privacy Mode)** uses local embeddings (`nomic-embed-text` by default) and stores them in separate collections with an `-ollama` suffix (`radiation-iaea-ollama`, `radiation-dk-law-ollama`). Switching to Ollama requires a one-time re-ingestion. Cloud and local collections coexist — switching back to a cloud provider uses the original collections.
+
+## Dependency notes
+
+**2026-05-27 — Weekly maintenance**
+
+### Fixes applied
+
+- **`black` and `isort` moved to dev-only** — they were incorrectly listed as runtime dependencies. They are code-formatting tools and belong in `[project.optional-dependencies] dev`. Production installs (`uv sync` without `--all-extras`) are now leaner.
+- **CI**: `actions/checkout` updated from `v5` to `v6` (current stable).
+
+### Major upgrades available (not auto-applied — require testing)
+
+These packages have new major versions that were not auto-applied because major bumps may contain breaking API or config changes:
+
+| Package | In use | Latest | Notes |
+|---|---|---|---|
+| `vite` (frontend) | `^7.3.1` | `8.x` | New config/plugin APIs; review migration guide |
+| `@vitejs/plugin-react` | `^5.1.1` | `6.x` | Follows Vite major |
+| `eslint` / `@eslint/js` | `^9.x` | `10.x` | Flat-config updates |
+| `typescript` | `~5.6` | `6.x` | New type-system features; some breaking changes |
+| `langchain-google-genai` | `>=2.0.0` | `4.x` | Two major versions ahead — review the LangChain changelog before upgrading |
+
+## Credits and references
+
+This project was inspired by and draws on patterns from the **LangChain / LangGraph course** by **Eden Marco** and the accompanying open-source repository:
+
+- **Eden Marco** – [LangChain course](https://github.com/emarco177/langchain-course) (GitHub)
+- Repository: [github.com/emarco177/langchain-course](https://github.com/emarco177/langchain-course) (Apache-2.0)
+
+We thank [Roman Kuznetsov (@kuznero)](https://github.com/kuznero) for valuable comments on the project.

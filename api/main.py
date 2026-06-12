@@ -687,6 +687,7 @@ def query(req: QueryRequest, request: Request):
         )
     model, api_key = _resolve_model_and_key(req.model, req.api_keys)
     model_variant = req.model_variant
+    is_ollama = model == "ollama"
     try:
         from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
@@ -696,6 +697,15 @@ def query(req: QueryRequest, request: Request):
             status_code=400,
             detail=str(e),
         ) from e
+    except Exception as e:
+        if is_ollama and (
+            "Connection" in type(e).__name__ or "connect" in str(e).lower()
+        ):
+            raise HTTPException(
+                status_code=503,
+                detail="Ollama is not running. Start it with: ollama serve",
+            ) from e
+        raise
     embedding_provider = get_embedding_provider(model)
     try:
         invoke_input = {
@@ -712,7 +722,11 @@ def query(req: QueryRequest, request: Request):
             "run_name": "RadiationSafetyRAG",
             "tags": ["rag", "radiation-safety"],
         }
-        if req.api_keys:
+        # Privacy guard: disable tracing and web search for Ollama (fully local mode)
+        disable_tracing = bool(req.api_keys) or is_ollama
+        if is_ollama:
+            invoke_input["privacy_mode"] = True
+        if disable_tracing:
             import langsmith as ls
 
             with ls.tracing_context(enabled=False):

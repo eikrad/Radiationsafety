@@ -19,7 +19,7 @@ jobs:
       - run: uv run black --check .
       - run: uv run isort --check .
       - run: uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip
-      - run: uv run pytest tests/ -v
+      - run: uv run pytest tests/ -n auto -v
 
       # Frontend
       - uses: actions/setup-node@v6
@@ -35,3 +35,69 @@ jobs:
         working-directory: frontend
       - run: npm run test
         working-directory: frontend
+
+  docker-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # Check if Docker-relevant files changed
+      - name: Check if Docker files changed
+        id: docker-changed
+        run: |
+          if git diff origin/main...HEAD --name-only 2>/dev/null | grep -E "Dockerfile|docker-compose|\.dockerignore"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Docker files detected in this PR"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping Docker tests (no Docker files changed)"
+          fi
+
+      # Only run if Docker files changed
+      - name: Build Docker Images
+        if: steps.docker-changed.outputs.changed == 'true'
+        run: |
+          docker compose build
+          echo "✅ Docker images built successfully"
+
+      - name: Test Docker Compose Startup
+        if: steps.docker-changed.outputs.changed == 'true'
+        run: |
+          # Start containers
+          docker compose up -d
+          echo "Waiting for services to start..."
+          sleep 10
+
+          # Check if containers are running
+          BACKEND_STATUS=$(docker compose ps backend --format "{{.State}}")
+          FRONTEND_STATUS=$(docker compose ps frontend --format "{{.State}}")
+
+          echo "Backend status: $BACKEND_STATUS"
+          echo "Frontend status: $FRONTEND_STATUS"
+
+          # Verify health
+          if [ "$BACKEND_STATUS" != "running" ]; then
+            echo "❌ Backend container failed to start"
+            docker compose logs backend
+            exit 1
+          fi
+
+          if [ "$FRONTEND_STATUS" != "running" ]; then
+            echo "❌ Frontend container failed to start"
+            docker compose logs frontend
+            exit 1
+          fi
+
+          # Health check: backend should respond
+          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || echo "000")
+          if [ "$HEALTH" != "200" ]; then
+            echo "❌ Backend health check failed (HTTP $HEALTH)"
+            docker compose logs backend
+            exit 1
+          fi
+
+          echo "✅ All containers running and healthy"
+          docker compose down
+        timeout-minutes: 2
