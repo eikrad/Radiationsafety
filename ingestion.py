@@ -8,6 +8,8 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 import os
 import re
 import shutil
+import signal
+import sys
 import tempfile
 import time
 import xml.etree.ElementTree as ET
@@ -670,6 +672,13 @@ def ingest():
     inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
     (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
     """
+
+    def _signal_handler(signum, frame):
+        print("\n\n⚠️  Ingestion interrupted by user. Exiting...\n")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _signal_handler)
+
     print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
