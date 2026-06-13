@@ -7,11 +7,36 @@ RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIB
 
 ## Architecture
 
-The architecture includes an API pre-processing stage and a [LangGraph](https://langchain-ai.github.io/langgraph/) execution stage. The API validates inputs, short-circuits non-question acknowledgements, resolves provider/API-key settings, and then invokes the graph for retrieval, document grading, optional extra retrieval and web-search fallback, generation, grounding retries, and trusted-source verification.
+The system has three layers: a React/TypeScript chat UI, a FastAPI backend, and a [LangGraph](https://langchain-ai.github.io/langgraph/) pipeline that orchestrates retrieval, grading, generation, and source verification.
 
-![RAG flow](architecture.svg)
+```mermaid
+graph LR
+    USER([Browser / CLI]) --> FE[React UI]
+    FE --> API[FastAPI :8000]
+    API --> LG[LangGraph Pipeline]
+    LG --> CHROMA[(Chroma Vector DB)]
+    LG --> LLM[LLM — Gemini · OpenAI · Mistral]
+    LG -.->|optional| BRAVE[Brave Search]
+    INGEST([ingestion.py]) --> CHROMA
+    DOCS[IAEA + Danish PDFs] --> INGEST
+```
 
-Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scripts/render_architecture.py`.
+**Query flow** — the API validates inputs and short-circuits non-questions; the pipeline retrieves document chunks, grades their relevance, generates an answer, checks it for groundedness, and verifies against trusted sources before returning citations:
+
+```mermaid
+flowchart LR
+    Q([Question]) --> R[Retrieve docs]
+    R --> GD{Docs sufficient?}
+    GD -->|yes| GEN[Generate]
+    GD -->|no| RM[Retrieve more or web search]
+    RM --> GEN
+    GEN --> GG{Grounded?}
+    GG -->|yes| VT[Verify trusted]
+    GG -->|no| RM
+    VT --> ANS([Answer + sources])
+```
+
+For a full breakdown of nodes, chains, state fields, ingestion workflow, and API routes, see [`docs/architecture.md`](docs/architecture.md).
 
 ## Running with Docker
 
