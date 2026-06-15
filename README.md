@@ -3,15 +3,22 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-RAG system for querying IAEA and Danish radiation safety documents. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+Ask questions about IAEA standards and Danish radiation safety legislation and get cited, grounded answers from a curated local document collection. Works with cloud LLMs (Gemini, OpenAI, Mistral) or fully offline via Ollama.
 
-## Architecture
+```mermaid
+flowchart LR
+    USER([Your question]) --> FE[Chat UI\nnginx :8080]
+    FE --> API[FastAPI :8000]
+    API --> GRAPH[LangGraph Pipeline]
+    GRAPH --> CHROMA[(Chroma\nvector DB)]
+    GRAPH --> LLM[LLM — Gemini / OpenAI\n/ Mistral / Ollama]
+    GRAPH -.->|optional fallback| WEB[Brave Search]
+    DOCS[IAEA + Danish PDFs] -->|ingestion.py| CHROMA
+```
 
-The architecture includes an API pre-processing stage and a [LangGraph](https://langchain-ai.github.io/langgraph/) execution stage. The API validates inputs, short-circuits non-question acknowledgements, resolves provider/API-key settings, and then invokes the graph for retrieval, document grading, optional extra retrieval and web-search fallback, generation, grounding retries, and trusted-source verification.
+See [docs/architecture.md](docs/architecture.md) for the full pipeline breakdown — nodes, chains, ingestion workflow, LLM providers, and API routes.
 
-![RAG flow](architecture.svg)
-
-Diagram source: `architecture.mmd` (Mermaid). To regenerate: `uv run python scripts/render_architecture.py`.
+---
 
 ## Running with Docker
 
@@ -162,27 +169,6 @@ This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgøre
 Cloud providers (Gemini, OpenAI, Mistral) all use **Gemini embeddings** (one shared vector store). The LLM that generates answers only receives the **retrieved text** (chunks found by similarity search); it never sees or interprets the embedding vectors. So OpenAI or Mistral can be used for generation while the store stays on Gemini embeddings — no re-ingestion needed.
 
 **Ollama (Privacy Mode)** uses local embeddings (`nomic-embed-text` by default) and stores them in separate collections with an `-ollama` suffix (`radiation-iaea-ollama`, `radiation-dk-law-ollama`). Switching to Ollama requires a one-time re-ingestion. Cloud and local collections coexist — switching back to a cloud provider uses the original collections.
-
-## Dependency notes
-
-**2026-05-27 — Weekly maintenance**
-
-### Fixes applied
-
-- **`black` and `isort` moved to dev-only** — they were incorrectly listed as runtime dependencies. They are code-formatting tools and belong in `[project.optional-dependencies] dev`. Production installs (`uv sync` without `--all-extras`) are now leaner.
-- **CI**: `actions/checkout` updated from `v5` to `v6` (current stable).
-
-### Major upgrades available (not auto-applied — require testing)
-
-These packages have new major versions that were not auto-applied because major bumps may contain breaking API or config changes:
-
-| Package | In use | Latest | Notes |
-|---|---|---|---|
-| `vite` (frontend) | `^7.3.1` | `8.x` | New config/plugin APIs; review migration guide |
-| `@vitejs/plugin-react` | `^5.1.1` | `6.x` | Follows Vite major |
-| `eslint` / `@eslint/js` | `^9.x` | `10.x` | Flat-config updates |
-| `typescript` | `~5.6` | `6.x` | New type-system features; some breaking changes |
-| `langchain-google-genai` | `>=2.0.0` | `4.x` | Two major versions ahead — review the LangChain changelog before upgrading |
 
 ## Credits and references
 
