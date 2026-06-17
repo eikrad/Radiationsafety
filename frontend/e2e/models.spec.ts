@@ -44,8 +44,9 @@ test('gemini-query-no-privacy-badge: Gemini queries show no privacy badge', asyn
   await page.goto('/')
   await page.getByRole('combobox').selectOption('gemini')
   await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  const responsePromise = page.waitForResponse('/api/query')
   await page.getByRole('button', { name: 'Ask' }).click()
-  await page.waitForResponse('/api/query')
+  await responsePromise
   await expect(page.locator('.privacy-badge')).not.toBeVisible()
 })
 
@@ -55,8 +56,9 @@ test('ollama-query-shows-privacy-badge: Ollama queries show privacy badge', asyn
   await page.route('/api/query', (r) => r.fulfill({ json: MOCK_QUERY_RESPONSE(true) }))
   await page.goto('/')
   await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  const responsePromise = page.waitForResponse('/api/query')
   await page.getByRole('button', { name: 'Ask' }).click()
-  await page.waitForResponse('/api/query')
+  await responsePromise
   await expect(page.locator('.privacy-badge')).toBeVisible()
 })
 
@@ -74,9 +76,9 @@ test('error-display-on-api-failure: shows error message when query fails', async
 
 // --- Integration Tests (require PLAYWRIGHT_INTEGRATION=true + backend running) ---
 
-for (const [provider, keyEnv, modelLabel] of [
-  ['gemini', 'GOOGLE_API_KEY', 'Gemini'],
-  ['mistral', 'MISTRAL_API_KEY', 'Mistral'],
+for (const [provider, keyEnv] of [
+  ['gemini', 'GOOGLE_API_KEY'],
+  ['mistral', 'MISTRAL_API_KEY'],
 ] as const) {
   test(`${provider}-query-end-to-end: full query flow`, async ({ page }) => {
     test.skip(

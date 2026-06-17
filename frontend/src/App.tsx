@@ -44,7 +44,7 @@ export default function App() {
     if (enforcePrivacyMode && model !== 'ollama') {
       setModel('ollama')
     }
-  }, [enforcePrivacyMode])
+  }, [enforcePrivacyMode, model])
 
   useEffect(() => {
     let cancelled = false
