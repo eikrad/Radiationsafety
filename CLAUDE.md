@@ -59,6 +59,17 @@ frontend/src/constants.ts — API URLs, configuration
 - **Chroma collections**: `radiation-iaea` and `radiation-dk-law` — do not rename without re-ingestion
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
 
+### Branching workflow
+
+```
+feature branch  →  staging  →  master
+```
+
+- **All PRs target `staging`**, never `master` directly
+- `master` is only updated by merging `staging` → `master` after validation
+- When creating a feature branch or fixing a bug, set `base = staging` in the PR
+- `staging` acts as the integration/QA gate before production (`master`)
+
 ---
 
 ## 4. Logseq Second Brain
