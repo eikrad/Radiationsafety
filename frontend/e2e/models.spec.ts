@@ -44,8 +44,9 @@ test('gemini-query-no-privacy-badge: Gemini queries show no privacy badge', asyn
   await page.goto('/')
   await page.getByRole('combobox').selectOption('gemini')
   await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  const responsePromise = page.waitForResponse('/api/query')
   await page.getByRole('button', { name: 'Ask' }).click()
-  await page.waitForResponse('/api/query')
+  await responsePromise
   await expect(page.locator('.privacy-badge')).not.toBeVisible()
 })
 
@@ -55,8 +56,9 @@ test('ollama-query-shows-privacy-badge: Ollama queries show privacy badge', asyn
   await page.route('/api/query', (r) => r.fulfill({ json: MOCK_QUERY_RESPONSE(true) }))
   await page.goto('/')
   await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  const responsePromise = page.waitForResponse('/api/query')
   await page.getByRole('button', { name: 'Ask' }).click()
-  await page.waitForResponse('/api/query')
+  await responsePromise
   await expect(page.locator('.privacy-badge')).toBeVisible()
 })
 
