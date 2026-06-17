@@ -1,0 +1,19 @@
+name: Protect master
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  require-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch is staging
+        run: |
+          if [ "${{ github.head_ref }}" != "staging" ]; then
+            echo "❌ PRs into master must come from 'staging', not '${{ github.head_ref }}'."
+            echo "   Workflow: feature branch → staging → master"
+            exit 1
+          fi
+          echo "✅ Source branch is staging — allowed to merge into master."
