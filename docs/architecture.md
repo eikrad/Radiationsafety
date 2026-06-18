@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral]
+    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -139,6 +139,23 @@ Key fields:
 
 ---
 
+## Language support
+
+`graph/i18n.py` provides language-aware strings for user-facing messages. When the pipeline attaches a `retrieval_warning` to a response (for example, when web search was used and the answer may not be fully grounded), the warning text is selected based on the detected language of the query.
+
+This means a Danish question gets a Danish warning, and an English question gets an English warning — the system does not force all replies into a single language.
+
+```mermaid
+flowchart LR
+    QUERY[User question] --> DETECT[Detect language\nEnglish / Danish]
+    DETECT --> I18N[graph/i18n.py\nselect warning strings]
+    I18N --> WARN[retrieval_warning\nattached to response]
+```
+
+The same module is used by the `FINALIZE` node when constructing the final response object.
+
+---
+
 ## Document ingestion
 
 ```mermaid
@@ -182,10 +199,11 @@ flowchart TD
 ### Key ingestion facts
 
 - **Embeddings are always Gemini** — `GOOGLE_API_KEY` is required for both ingestion and query time.
-- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
+- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral / Ollama for *generation*) does **not** require re-ingestion.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
+- **Ollama (privacy mode)** uses separate local collections with a `-ollama` suffix and requires a one-time re-ingestion with local embeddings (`nomic-embed-text`).
 
 ### Updating documents
 
@@ -215,10 +233,19 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
+    FAC -->|ollama| OLL[langchain-ollama\nfully local · zero data leaves machine\nllama3.1:8b default]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
+    OLL --> CHAINS
 ```
+
+| Provider | Key required | Notes |
+|---|---|---|
+| `gemini` | `GOOGLE_API_KEY` | Default; also used for embeddings |
+| `openai` | `OPENAI_API_KEY` | Shares Gemini embedding store — no re-ingestion needed |
+| `mistral` | `MISTRAL_API_KEY` | Shares Gemini embedding store — no re-ingestion needed |
+| `ollama` | None | Fully local; uses separate `-ollama` collections; requires re-ingestion |
 
 The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
 
