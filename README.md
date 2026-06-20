@@ -61,6 +61,20 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
 | [docs/maintenance.md](docs/maintenance.md) | Dependency upgrade notes and document update procedures |
 
+## Ingestion overview
+
+Documents are embedded once into a local Chroma database. The same vector store is reused for all queries — changing which LLM generates answers does **not** require re-ingestion.
+
+```mermaid
+flowchart LR
+    PDFS[Local PDFs\ndocuments/] --> INGEST
+    URLS[document_sources.yaml\nURLs] --> INGEST
+    INGEST([ingestion.py\nGemini embeddings]) --> CHROMA
+    CHROMA[(Chroma\nradiation-iaea · radiation-dk-law)] -->|similarity search| PIPELINE[LangGraph pipeline]
+```
+
+`GOOGLE_API_KEY` is required to run ingestion. See [docs/architecture.md](docs/architecture.md) for the full ingestion and document-update workflow.
+
 ## Running with Docker
 
 The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
