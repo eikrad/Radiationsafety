@@ -10,7 +10,7 @@ The system has three main layers:
 
 1. **API** (`api/main.py`) — validates inputs, enforces rate limits, resolves LLM provider, and invokes the graph.
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
-3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings.
+3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings (or local embeddings in Ollama mode).
 
 The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API.
 
@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral]
+    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -181,11 +181,21 @@ flowchart TD
 
 ### Key ingestion facts
 
-- **Embeddings are always Gemini** — `GOOGLE_API_KEY` is required for both ingestion and query time.
+- **Embeddings are always Gemini** for cloud providers — `GOOGLE_API_KEY` is required for both ingestion and query time. Ollama mode uses local embeddings instead (see [Privacy Mode](#privacy-mode-fully-local-ollama) below).
 - Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
+
+### Building document_sources.yaml from local PDFs
+
+To populate `document_sources.yaml` from PDFs you already have in `documents/`:
+
+```bash
+uv run python build_document_sources.py
+```
+
+This scans `documents/IAEA`, `documents/IAEA_other`, and `documents/Bekendtgørelse`, extracts titles and version info from PDF metadata, optionally confirms Danish ELI URLs on retsinformation.dk, merges with existing registry entries, and writes the full list. Use `--no-confirm` to skip URL lookups, or `--dry-run` to print without writing.
 
 ### Updating documents
 
@@ -215,12 +225,67 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
+    FAC -->|ollama| OLL[langchain-ollama\nlocal model e.g. llama3.1:8b]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
+    OLL --> CHAINS
 ```
 
 The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
+
+---
+
+## Privacy Mode (fully local — Ollama)
+
+Setting `LLM_PROVIDER=ollama` switches both LLM generation **and** embeddings to run entirely on local hardware via [Ollama](https://ollama.com). LangSmith tracing and web search are automatically disabled — zero data leaves your machine.
+
+```mermaid
+flowchart LR
+    subgraph LOCAL [Local machine only — no outbound connections]
+        direction TB
+        OLLAMA[Ollama server\nlocalhost:11434]
+        EMBED[nomic-embed-text\nembeddings]
+        LLM_L[llama3.1:8b\nor custom model]
+        CHROMA_L[(radiation-iaea-ollama\nradiation-dk-law-ollama)]
+    end
+
+    QUERY([User question]) --> EMBED
+    EMBED --> CHROMA_L
+    CHROMA_L --> LLM_L
+    LLM_L --> ANSWER([Answer])
+```
+
+### Minimum system requirements
+
+| Component | Minimum | Recommended |
+|---|---|---|
+| GPU | 4 GB VRAM (CPU fallback works but is slow) | 6 GB+ VRAM (e.g. NVIDIA RTX 3060) |
+| RAM | 16 GB | 32 GB |
+| Disk | ~5 GB (models + vector DB) | ~10 GB |
+| OS | Linux, macOS, or Windows | Linux (best Ollama performance) |
+
+### Setup
+
+1. Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh`
+2. Pull models:
+   ```bash
+   ollama pull llama3.1:8b
+   ollama pull nomic-embed-text
+   ```
+3. Set `LLM_PROVIDER=ollama` in `.env`. Optionally configure `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_EMBED_MODEL`.
+4. Run ingestion once — this builds separate local embedding collections:
+   ```bash
+   uv run python ingestion.py
+   ```
+5. Start backend and frontend as usual, then select **Ollama (Local)** in the UI dropdown.
+
+### Notes
+
+- Local collections use an `-ollama` suffix (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) and coexist with cloud collections.
+- Answer quality is lower than cloud models (8B vs 100B+ parameters) — best suited for data-sovereignty use cases and testing retrieval.
+- First ingestion is slower than Gemini (local embedding computation on GPU/CPU).
+- Switching back to a cloud provider uses the original Gemini-indexed collections — no re-ingestion needed.
 
 ---
 
