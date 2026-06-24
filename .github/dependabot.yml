@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Python backend — managed by uv, pyproject.toml
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    target-branch: "staging"
+    labels:
+      - "dependencies"
+    groups:
+      langchain:
+        patterns:
+          - "langchain*"
+          - "langchainhub"
+          - "langgraph*"
+
+  # React/TypeScript frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    target-branch: "staging"
+    labels:
+      - "dependencies"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    target-branch: "staging"
+    labels:
+      - "dependencies"
+      - "ci"
