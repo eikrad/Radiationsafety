@@ -10,7 +10,7 @@ The system has three main layers:
 
 1. **API** (`api/main.py`) — validates inputs, enforces rate limits, resolves LLM provider, and invokes the graph.
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
-3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings.
+3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini or Ollama embeddings.
 
 The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API.
 
@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral]
+    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -170,22 +170,31 @@ flowchart TD
         C2[Danish\n512 tokens / chunk]
     end
 
-    CHUNK --> EMBED[Gemini Embeddings\nbatch size 200]
-    EMBED --> CHROMA
+    CHUNK --> EMBED{Embeddings}
+    EMBED -->|cloud provider| GEMINI[Gemini Embeddings\nbatch size 200]
+    EMBED -->|ollama| LOCAL_EMBED[nomic-embed-text\nlocal GPU / CPU]
+    GEMINI --> CHROMA_CLOUD
+    LOCAL_EMBED --> CHROMA_LOCAL
 
-    subgraph CHROMA [Chroma .chroma/]
+    subgraph CHROMA_CLOUD [Chroma — cloud collections]
         COL1[(radiation-iaea)]
         COL2[(radiation-dk-law)]
+    end
+
+    subgraph CHROMA_LOCAL [Chroma — Ollama collections]
+        COL3[(radiation-iaea-ollama)]
+        COL4[(radiation-dk-law-ollama)]
     end
 ```
 
 ### Key ingestion facts
 
-- **Embeddings are always Gemini** — `GOOGLE_API_KEY` is required for both ingestion and query time.
-- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
+- **Cloud providers use Gemini embeddings** — `GOOGLE_API_KEY` is required for ingestion and query time when `LLM_PROVIDER` is `gemini`, `openai`, or `mistral`.
+- **Ollama uses local embeddings** (`nomic-embed-text` by default) stored in separate collections with an `-ollama` suffix (`radiation-iaea-ollama`, `radiation-dk-law-ollama`). Switching to Ollama requires a one-time re-ingestion; cloud collections are preserved and coexist.
+- Switching between cloud providers (Gemini / OpenAI / Mistral) does **not** require re-ingestion — they all share the same Gemini-embedded vector store.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
-- The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
+- The Chroma collections must not be renamed without re-ingesting.
 
 ### Updating documents
 
@@ -215,12 +224,16 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
+    FAC -->|ollama| OLL[Ollama\nLocal — llama3.1:8b default\nzero data leaves machine]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
+    OLL --> CHAINS
 ```
 
 The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
+
+**Ollama (Privacy Mode):** uses `nomic-embed-text` for local embeddings and stores them in separate Chroma collections with an `-ollama` suffix. LangSmith tracing and web search are automatically disabled in this mode. See the [Privacy Mode section](../README.md#privacy-mode-fully-local) in the main README for hardware requirements and setup steps.
 
 ---
 
