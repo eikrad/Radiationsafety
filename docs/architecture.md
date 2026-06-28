@@ -10,7 +10,7 @@ The system has three main layers:
 
 1. **API** (`api/main.py`) — validates inputs, enforces rate limits, resolves LLM provider, and invokes the graph.
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
-3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings.
+3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings (or local `nomic-embed-text` in Ollama privacy mode).
 
 The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API.
 
@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral]
+    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -170,22 +170,24 @@ flowchart TD
         C2[Danish\n512 tokens / chunk]
     end
 
-    CHUNK --> EMBED[Gemini Embeddings\nbatch size 200]
+    CHUNK --> EMBED[Embeddings\nGemini — cloud default\nnomic-embed-text — Ollama mode]
     EMBED --> CHROMA
 
     subgraph CHROMA [Chroma .chroma/]
         COL1[(radiation-iaea)]
         COL2[(radiation-dk-law)]
+        COL3[(radiation-iaea-ollama)]
+        COL4[(radiation-dk-law-ollama)]
     end
 ```
 
 ### Key ingestion facts
 
-- **Embeddings are always Gemini** — `GOOGLE_API_KEY` is required for both ingestion and query time.
-- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
+- **Cloud providers (Gemini / OpenAI / Mistral)** use **Gemini embeddings** — `GOOGLE_API_KEY` is required for both ingestion and query time. Changing `LLM_PROVIDER` between cloud providers does **not** require re-ingestion.
+- **Ollama (privacy mode)** uses local `nomic-embed-text` embeddings and stores them in separate collections with an `-ollama` suffix (`radiation-iaea-ollama`, `radiation-dk-law-ollama`). Switching to Ollama requires a one-time re-ingestion. Cloud and Ollama collections coexist — switching back to a cloud provider uses the original collections.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
-- The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
+- The core Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
 
 ### Updating documents
 
@@ -215,12 +217,40 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
+    FAC -->|ollama| OLL[langchain-ollama\nllama3.1:8b by default\nfully local — no data leaves machine]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
+    OLL --> CHAINS
 ```
 
-The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
+| Provider | Key required | Embeddings | Collections | Notes |
+|---|---|---|---|---|
+| `gemini` | `GOOGLE_API_KEY` | Gemini | `radiation-iaea`, `radiation-dk-law` | Default |
+| `openai` | `OPENAI_API_KEY` | Gemini | `radiation-iaea`, `radiation-dk-law` | Gemini key also required |
+| `mistral` | `MISTRAL_API_KEY` | Gemini | `radiation-iaea`, `radiation-dk-law` | Gemini key also required |
+| `ollama` | *(none)* | `nomic-embed-text` (local) | `radiation-iaea-ollama`, `radiation-dk-law-ollama` | Privacy mode — zero data leaves machine |
+
+The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage. In Ollama mode, tracing and web search are automatically disabled.
+
+### Ollama (privacy mode)
+
+Set `LLM_PROVIDER=ollama` to run everything locally. No data is sent to any external service.
+
+```mermaid
+flowchart LR
+    subgraph LOCAL [Local machine only]
+        direction TB
+        OLLAMA[Ollama\nllama3.1:8b + nomic-embed-text]
+        CHROMA_L[(Chroma\nradiation-iaea-ollama\nradiation-dk-law-ollama)]
+        OLLAMA <--> CHROMA_L
+    end
+    USER([User]) --> FE[React UI]
+    FE --> API[FastAPI]
+    API --> LOCAL
+```
+
+Requires a one-time re-ingestion after setting `LLM_PROVIDER=ollama` (builds the `-ollama` collections). Answer quality is lower than cloud models but no query data or documents leave the machine.
 
 ---
 
