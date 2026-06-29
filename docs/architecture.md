@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral]
+    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -51,6 +51,7 @@ flowchart TD
         R[RETRIEVE\nParallel search\nradiation-iaea + radiation-dk-law]
         GD{GRADE_DOCUMENTS\nContext sufficient?}
         RM[RETRIEVE_MISSING\nLLM generates refined query\nthen re-retrieves]
+        PR[PREPARE_RETRY_RETRIEVE\nIncrements retry counter]
         WS[WEB_SEARCH\nBrave Search fallback\nadds results as web-type docs]
         GEN[GENERATE\nFormats context + chat history\nLLM produces answer]
         GG{GRADE_GENERATION\nGrounded + complete?}
@@ -65,7 +66,8 @@ flowchart TD
         WS --> GEN
         GEN --> GG
         GG -->|pass| VT
-        GG -->|fail, retries < 2| RM
+        GG -->|fail, retries < 2| PR
+        PR --> RM
         GG -->|fail, max retries + web enabled| WS
         VT --> FIN
     end
@@ -79,10 +81,10 @@ The `routing_outcome` field in the response tells you which path the query took:
 
 | Outcome | Meaning |
 |---|---|
-| `trusted_only_verified` | Answer grounded in vector DB documents only |
+| `trusted_only_verified` | Answer grounded in vector DB documents; passed hallucination check |
+| `trusted_only_unverified` | Answer grounded in vector DB documents; hallucination check skipped or inconclusive |
 | `web_search_unverified` | Web search was used; answer may not be fully grounded |
-| `web_search_verified` | Web search used, but answer verified against trusted sources |
-| `trusted_supplemented` | Trusted sources supplemented the web answer |
+| `web_search_verified` | Web search used and answer verified against trusted sources |
 
 ---
 
@@ -95,6 +97,7 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `RETRIEVE` | `retrieve.py` | Parallel vector search on both Chroma collections |
 | `GRADE_DOCUMENTS` | `grade_documents.py` | Asks LLM: is the retrieved context sufficient? |
 | `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
+| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments retry counter before looping back to RETRIEVE_MISSING (max 2 cycles) |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
 | `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
@@ -133,9 +136,11 @@ Key fields:
 | `trusted_documents` | `list` | Vector DB chunks only (for verification) |
 | `chat_history` | `list[tuple]` | Previous (question, answer) pairs |
 | `web_search` | `bool` | Flag: should web search run? |
+| `web_search_attempted` | `bool` | Set to true once WEB_SEARCH node runs |
 | `reflection` | `str` | LLM hint about what was missing (from grader) |
 | `routing_outcome` | `str` | Final path taken through the graph |
 | `retrieval_warning` | `str` | User-facing warning (language-aware) |
+| `retry_after_generation_count` | `int` | How many PREPARE_RETRY_RETRIEVE cycles have run (max 2) |
 
 ---
 
@@ -182,7 +187,7 @@ flowchart TD
 ### Key ingestion facts
 
 - **Embeddings are always Gemini** — `GOOGLE_API_KEY` is required for both ingestion and query time.
-- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
+- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion. Switching to Ollama does require a one-time re-ingestion into separate local collections.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
@@ -215,10 +220,19 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
+    FAC -->|ollama| OLL[langchain-ollama\nLlama 3.1 + nomic-embed-text\nfully local — no data leaves machine]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
+    OLL --> CHAINS
 ```
+
+| Provider | `LLM_PROVIDER` value | Key required | Notes |
+|---|---|---|---|
+| Google Gemini | `gemini` | `GOOGLE_API_KEY` | Default. Also used for embeddings by all cloud providers. |
+| OpenAI | `openai` | `OPENAI_API_KEY` | Uses Gemini embeddings — no re-ingestion needed when switching. |
+| Mistral | `mistral` | `MISTRAL_API_KEY` | Uses Gemini embeddings — no re-ingestion needed when switching. |
+| Ollama (local) | `ollama` | — | Fully local. Uses `nomic-embed-text` embeddings stored in separate `-ollama` collections. Requires a one-time re-ingestion. LangSmith tracing and web search are automatically disabled. |
 
 The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
 
