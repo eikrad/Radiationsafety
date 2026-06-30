@@ -11,9 +11,10 @@ Reference for deploying and operating the Radiation Safety RAG system.
 | `POST /query` | Public | Rate-limited |
 | `GET /health` | Public | Container healthcheck target |
 | `GET /metrics` | Public | Prometheus-style counters |
-| `GET /config` | Public | Returns which LLM keys are configured |
+| `GET /config` | Public | Returns whether the server has an LLM key configured (`server_has_llm_key`) |
 | `GET /documents/check-updates` | Public | Polls retsinformation.dk / IAEA for newer versions |
 | `POST /ingest` | **Admin** | Triggers full re-ingestion in background |
+| `GET /ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST /documents/add-pdf` | **Admin** | Upload and register a new PDF |
 | `PATCH /documents/source/{id}/url` | **Admin** | Manually update a source URL |
 | `POST /documents/source/{id}/lookup-url` | **Admin** | Auto-resolve newest URL for a source |
