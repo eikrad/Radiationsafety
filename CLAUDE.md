@@ -30,11 +30,36 @@ ingestion.py             — PDF/XML loading, chunking, Chroma population
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
-eval/                    — RAGAS evaluation (run_eval.py, golden.json)
+eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
 ```
+
+### Graph topology
+
+```
+RETRIEVE → GRADE_DOCUMENTS
+               ↓ sufficient            ↓ insufficient + WEB_SEARCH_ENABLED
+           GENERATE ←── WEB_SEARCH  RETRIEVE_MISSING ──(loop up to 3×)──→ WEB_SEARCH
+               ↓
+        GRADE_GENERATION          ← Reflexion node: LLM grades, writes reflection hint
+               ↓ route_after_grade_generation (pure, no LLM)
+    useful → VERIFY_TRUSTED → FINALIZE → END
+    retry  → PREPARE_RETRY_RETRIEVE → RETRIEVE_MISSING (reads reflection hint)
+    web    → WEB_SEARCH
+    end    → VERIFY_TRUSTED → FINALIZE → END
+```
+
+### Key state fields
+
+| Field | Type | Set by | Used by |
+|---|---|---|---|
+| `reflection` | `str` | `grade_generation` node | `retrieve_missing` → `missing_query_chain` |
+| `generation_passed_grading` | `bool` | `grade_generation` node | `route_after_grade_generation` |
+| `retry_after_generation_count` | `int` | `prepare_retry_retrieve` | routing, `retrieve_missing` |
+| `retrieval_count` | `int` | `retrieve`, `retrieve_missing` | routing cap (max 3) |
+| `trusted_documents` | `list[Document]` | `retrieve`, `retrieve_missing` | `verify_trusted` |
 
 ### Adding a new node
 

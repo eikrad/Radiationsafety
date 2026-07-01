@@ -4,6 +4,37 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-07-01
+
+### Checks performed
+- Reviewed all dependencies in `pyproject.toml` and `frontend/package.json` against the versions actually pinned (the 2026-06-10 entry below had drifted from `pyproject.toml`).
+
+### Dependency status
+
+**Python backend (`pyproject.toml`):**
+All deps use `>=` lower bounds and are resolved/pinned by `uv.lock`.
+
+| Package | Constraint | Status |
+|---|---|---|
+| `fastapi` | `>=0.136.0` | Current |
+| `langchain` | `>=1.3.0` | Current |
+| `langgraph` | `>=1.2.0` | Current |
+| `chromadb` | `>=1.5.0` | Current |
+| `uvicorn` | `>=0.49.0` | Current |
+| `langchain-google-genai` | `>=4.2.0` | Current |
+| `langchain-openai` | `>=1.3.0` | Current |
+| `langchain-mistralai` | `>=1.1.0` | Current |
+| `langchain-ollama` | `>=1.1.0` | Current |
+| `redis` | `>=8.0.0` | Current |
+| `docling` | `>=2.101.0` | Current |
+
+**Frontend (`frontend/package.json`):** unchanged since the previous check — see the 2026-06-10 entry below.
+
+### No major upgrades pending
+All packages are on current major versions this cycle.
+
+---
+
 ## 2026-06-10
 
 ### Checks performed
@@ -16,6 +47,8 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 - **CI Node version** — Bumped Node from `20` to `22` (LTS) in `.github/workflows/ci.yml`. Vite 8 officially targets Node 20.18+ or 22+; using the LTS release explicitly removes any ambiguity and aligns with the Node.js long-term support schedule.
 
 ### Dependency status
+
+*(Superseded by the 2026-07-01 entry above — the Python constraints below no longer match `pyproject.toml`, kept here for history.)*
 
 **Python backend (`pyproject.toml`):**
 All deps use `>=` lower bounds and are resolved/pinned by `uv.lock`. No updates needed this cycle.

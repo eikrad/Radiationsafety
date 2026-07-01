@@ -32,6 +32,7 @@ flowchart TB
         WEB_SEARCH[Web search fallback\nBrave Search]
         GENERATE[Generate answer]
         GRADE_GEN[Grade generation]
+        RETRY_PREP[Prepare retry\n+ reflection hint]
         VERIFY[Verify trusted sources]
         FINALIZE[Finalize + attach warning]
     end
@@ -41,12 +42,13 @@ flowchart TB
     GRADE -->|sufficient| GENERATE
     GRADE -->|insufficient| RETRIEVE_MISSING
     RETRIEVE_MISSING --> GENERATE
-    RETRIEVE_MISSING -->|cap reached| WEB_SEARCH
+    RETRIEVE_MISSING -->|cap reached, 3 attempts| WEB_SEARCH
     WEB_SEARCH --> GENERATE
     GENERATE --> GRADE_GEN
     GRADE_GEN -->|passed| VERIFY
-    GRADE_GEN -->|failed, retries left| RETRIEVE_MISSING
-    GRADE_GEN -->|failed, no retries| WEB_SEARCH
+    GRADE_GEN -->|failed, retries left| RETRY_PREP
+    RETRY_PREP --> RETRIEVE_MISSING
+    GRADE_GEN -->|failed, no retries left| WEB_SEARCH
     VERIFY --> FINALIZE
     FINALIZE --> RESPONSE([Answer + sources + routing_outcome])
 ```

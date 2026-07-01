@@ -73,7 +73,7 @@ RETRIEVE → GRADE_DOCUMENTS
 ### Adding a new chain
 
 1. Create file in `graph/chains/`, implement `get_*` factory function
-2. Export from `graph/chains/__init__.py`
+2. Import directly from the chain file in the node(s) that use it (e.g. `from graph.chains.my_chain import get_my_chain`). Note: `graph/chains/__init__.py` is intentionally minimal; chains are not re-exported there.
 
 ---
 
@@ -85,6 +85,17 @@ RETRIEVE → GRADE_DOCUMENTS
 - **Environment variables**: always update `.env.example` when adding new variables
 - **Chroma collections**: `radiation-iaea` and `radiation-dk-law` — do not rename without re-ingestion
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
+
+### Branching workflow
+
+```
+feature branch  →  staging  →  master
+```
+
+- **All PRs target `staging`**, never `master` directly
+- `master` is only updated by merging `staging` → `master` after validation
+- When creating a feature branch or fixing a bug, set `base = staging` in the PR
+- `staging` acts as the integration/QA gate before production (`master`)
 
 ---
 

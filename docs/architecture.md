@@ -54,19 +54,24 @@ flowchart TD
         WS[WEB_SEARCH\nBrave Search fallback\nadds results as web-type docs]
         GEN[GENERATE\nFormats context + chat history\nLLM produces answer]
         GG{GRADE_GENERATION\nGrounded + complete?}
+        PRR[PREPARE_RETRY_RETRIEVE\nIncrement retry counter]
         VT[VERIFY_TRUSTED\nHallucination check vs\ntrusted sources only]
         FIN[FINALIZE\nSet routing_outcome\nAttach warning if needed]
 
         R --> GD
-        GD -->|sufficient| GEN
-        GD -->|insufficient| RM
-        RM -->|ok| GEN
-        RM -->|still insufficient + web enabled| WS
+        GD -->|sufficient, or web search disabled| GEN
+        GD -->|insufficient + web search enabled| RM
+        RM -->|returning from PREPARE_RETRY_RETRIEVE| GEN
+        RM -->|sufficient| GEN
+        RM -->|still insufficient, retrieval_count < 3| RM
+        RM -->|still insufficient, retrieval_count >= 3| WS
         WS --> GEN
         GEN --> GG
         GG -->|pass| VT
-        GG -->|fail, retries < 2| RM
-        GG -->|fail, max retries + web enabled| WS
+        GG -->|fail, web search on, retries < 2| PRR
+        PRR --> RM
+        GG -->|fail, web already attempted or web off| VT
+        GG -->|fail, retries exhausted| WS
         VT --> FIN
     end
 
@@ -79,10 +84,10 @@ The `routing_outcome` field in the response tells you which path the query took:
 
 | Outcome | Meaning |
 |---|---|
-| `trusted_only_verified` | Answer grounded in vector DB documents only |
-| `web_search_unverified` | Web search was used; answer may not be fully grounded |
-| `web_search_verified` | Web search used, but answer verified against trusted sources |
-| `trusted_supplemented` | Trusted sources supplemented the web answer |
+| `trusted_only_verified` | Web search was never used; answer verified against trusted sources |
+| `trusted_only_unverified` | Web search was never used; answer could not be verified against trusted sources |
+| `web_search_verified` | Web search was used, but the answer was still verified against trusted sources |
+| `web_search_unverified` | Web search was used; answer may not be fully grounded in trusted sources |
 
 ---
 
@@ -94,9 +99,10 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 |---|---|---|
 | `RETRIEVE` | `retrieve.py` | Parallel vector search on both Chroma collections |
 | `GRADE_DOCUMENTS` | `grade_documents.py` | Asks LLM: is the retrieved context sufficient? |
-| `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
+| `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves. Loops up to 3 times before falling back to `WEB_SEARCH` |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
-| `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
+| `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete; sets a `reflection` hint on failure |
+| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the post-generation retry counter, then routes back to `RETRIEVE_MISSING` with the grader's `reflection` hint. Allowed up to 2 times per query |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
@@ -134,6 +140,8 @@ Key fields:
 | `chat_history` | `list[tuple]` | Previous (question, answer) pairs |
 | `web_search` | `bool` | Flag: should web search run? |
 | `reflection` | `str` | LLM hint about what was missing (from grader) |
+| `retrieval_count` | `int` | Number of `RETRIEVE_MISSING` passes so far (capped at 3 before falling back to `WEB_SEARCH`) |
+| `retry_after_generation_count` | `int` | Number of post-generation retries via `PREPARE_RETRY_RETRIEVE` (capped at 2) |
 | `routing_outcome` | `str` | Final path taken through the graph |
 | `retrieval_warning` | `str` | User-facing warning (language-aware) |
 
