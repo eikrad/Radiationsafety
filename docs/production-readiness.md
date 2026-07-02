@@ -11,8 +11,9 @@ Reference for deploying and operating the Radiation Safety RAG system.
 | `POST /query` | Public | Rate-limited |
 | `GET /health` | Public | Container healthcheck target |
 | `GET /metrics` | Public | Prometheus-style counters |
-| `GET /config` | Public | Returns which LLM keys are configured |
+| `GET /config` | Public | Returns `{server_has_llm_key: bool}` |
 | `GET /documents/check-updates` | Public | Polls retsinformation.dk / IAEA for newer versions |
+| `GET /ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST /ingest` | **Admin** | Triggers full re-ingestion in background |
 | `POST /documents/add-pdf` | **Admin** | Upload and register a new PDF |
 | `PATCH /documents/source/{id}/url` | **Admin** | Manually update a source URL |
@@ -47,7 +48,7 @@ ADMIN_AUTH_BYPASS=true
 | `RATE_LIMIT_REDIS_URL` | — | Required if using Redis backend |
 | `RATE_LIMIT_QUERY_MAX_REQUESTS` | `60` | Max query requests per window |
 | `RATE_LIMIT_QUERY_WINDOW_SEC` | `60` | Window size in seconds |
-| `RATE_LIMIT_ADMIN_MAX_REQUESTS` | `10` | Max admin requests per window |
+| `RATE_LIMIT_ADMIN_MAX_REQUESTS` | `20` | Max admin requests per window |
 | `RATE_LIMIT_ADMIN_WINDOW_SEC` | `60` | Admin window size in seconds |
 
 **Single-process deployments:** `in_memory` is suitable. Limits are per-client (IP-based).
@@ -59,11 +60,13 @@ ADMIN_AUTH_BYPASS=true
 ## Observability
 
 - Every HTTP response includes an `X-Request-ID` header for log correlation.
-- `GET /metrics` exports Prometheus-style counters:
-  - `requests_total` — total requests by route
-  - `errors_total` — total errors by route
-  - `request_duration_seconds_sum` — cumulative request durations
-  - `query_web_search_total` — queries that triggered web search fallback
+- `GET /metrics` exports Prometheus-style counters, all prefixed `radiationsafety_`:
+  - `radiationsafety_graph_loaded` — 1 if the RAG graph is loaded, 0 otherwise
+  - `radiationsafety_uptime_seconds` — process uptime
+  - `radiationsafety_http_requests_total` / `radiationsafety_http_errors_total` — request and error totals, also broken down by path (`_by_path_total`, `_by_path_errors_total`) and by status class (`radiationsafety_http_responses_by_status_class_total`, e.g. `2xx`/`4xx`/`5xx`)
+  - `radiationsafety_http_request_duration_seconds_sum` — cumulative request duration
+  - `radiationsafety_query_web_search_attempts_total` — queries that triggered web search fallback
+  - `radiationsafety_query_outcomes_total{outcome=...}` — query outcomes by routing category (see `docs/architecture.md#routing-outcomes`)
 
 ---
 

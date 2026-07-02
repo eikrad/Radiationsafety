@@ -211,7 +211,7 @@ Goal: load as few pages as needed, then synthesize in the LLM.
 These PDFs are stored locally and already ingested into Chroma:
 
 **IAEA Standards:**
-GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
+GSG-2, GSG-7, GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
 SSG-11, SSG-39, SSG-40, SSG-44, SSG-46, SSG-86, SSG-87,
 SSR-6, TECDOC-1380, TECDOC-1638, nuclear_safety_measures (24G)
 
