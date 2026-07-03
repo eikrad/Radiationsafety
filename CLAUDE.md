@@ -9,8 +9,8 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: always Gemini (`GOOGLE_API_KEY` required for ingestion and retrieval)
-- **LLM for generation**: configurable — `gemini`, `openai`, or `mistral` via `LLM_PROVIDER`
+- **Embeddings**: Gemini for cloud providers (`GOOGLE_API_KEY` required for ingestion and retrieval); Ollama privacy mode uses local embeddings instead (separate `-ollama` Chroma collections)
+- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
@@ -22,19 +22,45 @@ RAG system for querying IAEA and Danish radiation safety documents.
 api/main.py              — FastAPI routes, admin auth, rate limiting
 graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
-graph/chains/            — LLM chains (generation, grading, search-query, truncate)
-graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral)
+graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
+                           hallucinations_grader, missing_query_chain, search_query_chain, truncate)
+graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral/Ollama)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
-eval/                    — RAGAS evaluation (run_eval.py, golden.json)
+eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
 ```
+
+### Graph topology
+
+```
+RETRIEVE → GRADE_DOCUMENTS
+               ↓ sufficient            ↓ insufficient + WEB_SEARCH_ENABLED
+           GENERATE ←── WEB_SEARCH  RETRIEVE_MISSING ──(loop up to 3×)──→ WEB_SEARCH
+               ↓
+        GRADE_GENERATION          ← Reflexion node: LLM grades, writes reflection hint
+               ↓ route_after_grade_generation (pure, no LLM)
+    useful → VERIFY_TRUSTED → FINALIZE → END
+    retry  → PREPARE_RETRY_RETRIEVE → RETRIEVE_MISSING (reads reflection hint)
+    web    → WEB_SEARCH
+    end    → VERIFY_TRUSTED → FINALIZE → END
+```
+
+### Key state fields
+
+| Field | Type | Set by | Used by |
+|---|---|---|---|
+| `reflection` | `str` | `grade_generation` node | `retrieve_missing` → `missing_query_chain` |
+| `generation_passed_grading` | `bool` | `grade_generation` node | `route_after_grade_generation` |
+| `retry_after_generation_count` | `int` | `prepare_retry_retrieve` | routing, `retrieve_missing` |
+| `retrieval_count` | `int` | `retrieve`, `retrieve_missing` | routing cap (max 3) |
+| `trusted_documents` | `list[Document]` | `retrieve`, `retrieve_missing` | `verify_trusted` |
 
 ### Adding a new node
 
@@ -195,7 +221,7 @@ Goal: load as few pages as needed, then synthesize in the LLM.
 These PDFs are stored locally and already ingested into Chroma:
 
 **IAEA Standards:**
-GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
+GSG-2, GSG-7, GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
 SSG-11, SSG-39, SSG-40, SSG-44, SSG-46, SSG-86, SSG-87,
 SSR-6, TECDOC-1380, TECDOC-1638, nuclear_safety_measures (24G)
 
