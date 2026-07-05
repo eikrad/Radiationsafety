@@ -170,7 +170,8 @@ The harness uses your `.env` for the LLM (no API keys in the golden data). Run i
 CI runs the test suite on push and on pull requests (see status badge above).
 
 - **Backend**: `uv pip install -e ".[dev]"` then `uv run pytest tests/ -v`
-- **Frontend**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
+- **Frontend (unit)**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
+- **Frontend (E2E)**: `cd frontend && npx playwright install --with-deps chromium && npm run test:e2e` — UI-only Playwright tests against a mocked API (see `frontend/e2e/`)
 
 ## Security and Operations
 

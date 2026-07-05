@@ -75,28 +75,29 @@ flowchart TD
 
 ### Routing outcomes
 
-The `routing_outcome` field in the response tells you which path the query took:
+The `routing_outcome` field in the response tells you which path the query took. It is set by the `finalize` node based on whether web search was attempted and whether `VERIFY_TRUSTED` confirmed the answer against trusted sources (see `QueryOutcome` in `graph/state.py`):
 
 | Outcome | Meaning |
 |---|---|
-| `trusted_only_verified` | Answer grounded in vector DB documents only |
-| `web_search_unverified` | Web search was used; answer may not be fully grounded |
-| `web_search_verified` | Web search used, but answer verified against trusted sources |
-| `trusted_supplemented` | Trusted sources supplemented the web answer |
+| `trusted_only_verified` | No web search was needed; answer verified against trusted (vector DB) sources |
+| `trusted_only_unverified` | No web search was needed, but the hallucination check could not confirm the answer against trusted sources |
+| `web_search_verified` | Web search was used, but the answer was still verified against trusted sources |
+| `web_search_unverified` | Web search was used; answer could not be verified against trusted sources (user-facing warning attached) |
 
 ---
 
 ## LangGraph nodes
 
-Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
+Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/` (two nodes — `PREPARE_RETRY_RETRIEVE` and `FINALIZE` — are small enough that they are defined inline in `graph/graph.py` instead).
 
 | Node | File | What it does |
 |---|---|---|
 | `RETRIEVE` | `retrieve.py` | Parallel vector search on both Chroma collections |
 | `GRADE_DOCUMENTS` | `grade_documents.py` | Asks LLM: is the retrieved context sufficient? |
-| `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
+| `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves (up to 3 total retrievals) |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
 | `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
+| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter, then loops back to `RETRIEVE_MISSING` (up to 2 retries after a failed generation grade) |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
@@ -215,12 +216,14 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
+    FAC -->|ollama| OLL[langchain-ollama\nllama3.1:8b (local, no API key)]
     GEM --> CHAINS[LLM Chains]
     OAI --> CHAINS
     MIS --> CHAINS
+    OLL --> CHAINS
 ```
 
-The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
+The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage. Ollama (privacy mode) also auto-disables tracing and web search so no data leaves the machine.
 
 ---
 
@@ -233,7 +236,9 @@ The frontend can pass API keys directly (stored in `sessionStorage`, never persi
 | `GET` | `/metrics` | Public | Prometheus-style counters |
 | `GET` | `/config` | Public | Server capabilities (which LLM keys are set) |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
+| `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a registered source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
+| `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
 | `PATCH` | `/documents/source/{id}/url` | Admin | Update a source URL manually |
 | `POST` | `/documents/source/{id}/lookup-url` | Admin | Auto-resolve newest URL for a source |
