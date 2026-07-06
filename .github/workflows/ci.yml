@@ -50,7 +50,7 @@ jobs:
       - name: Check if Docker files changed
         id: docker-changed
         run: |
-          if git diff origin/main...HEAD --name-only 2>/dev/null | grep -E "Dockerfile|docker-compose|\.dockerignore"; then
+          if git diff origin/master...HEAD --name-only 2>/dev/null | grep -E "Dockerfile|docker-compose|\.dockerignore"; then
             echo "changed=true" >> $GITHUB_OUTPUT
             echo "✅ Docker files detected in this PR"
           else
