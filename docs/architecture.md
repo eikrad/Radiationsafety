@@ -54,24 +54,30 @@ flowchart TD
         WS[WEB_SEARCH\nBrave Search fallback\nadds results as web-type docs]
         GEN[GENERATE\nFormats context + chat history\nLLM produces answer]
         GG{GRADE_GENERATION\nGrounded + complete?}
+        PRR[PREPARE_RETRY_RETRIEVE\nIncrements retry counter\nmax 2 before web search]
         VT[VERIFY_TRUSTED\nHallucination check vs\ntrusted sources only]
         FIN[FINALIZE\nSet routing_outcome\nAttach warning if needed]
 
         R --> GD
-        GD -->|sufficient| GEN
-        GD -->|insufficient| RM
-        RM -->|ok| GEN
-        RM -->|still insufficient + web enabled| WS
+        GD -->|sufficient, or insufficient + web off| GEN
+        GD -->|insufficient + web enabled| RM
+        RM -->|enough docs, or retry-after-generation path| GEN
+        RM -->|"still insufficient, retrieval_count < 3"| RM
+        RM -->|retrieval cap reached| WS
         WS --> GEN
         GEN --> GG
         GG -->|pass| VT
-        GG -->|fail, retries < 2| RM
-        GG -->|fail, max retries + web enabled| WS
+        GG -->|fail, retries < 2 + web enabled| PRR
+        PRR --> RM
+        GG -->|fail, retries exhausted + web enabled| WS
+        GG -->|fail, web search disabled or already attempted| VT
         VT --> FIN
     end
 
     FIN --> ANS([Answer + sources + routing_outcome + warning])
 ```
+
+A pre-rendered, full-resolution version of this graph (built directly from `graph/graph.py`) is kept at [`architecture.svg`](../architecture.svg) / [`architecture.png`](../architecture.png) in the repo root, source [`architecture.mmd`](../architecture.mmd).
 
 ### Routing outcomes
 
@@ -82,7 +88,6 @@ The `routing_outcome` field in the response tells you which path the query took:
 | `trusted_only_verified` | Answer grounded in vector DB documents only |
 | `web_search_unverified` | Web search was used; answer may not be fully grounded |
 | `web_search_verified` | Web search used, but answer verified against trusted sources |
-| `trusted_supplemented` | Trusted sources supplemented the web answer |
 
 ---
 
@@ -97,6 +102,7 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
 | `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
+| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter before another `RETRIEVE_MISSING` pass (max 2 before falling back to web search) |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
@@ -252,9 +258,10 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `POST` | `/query` | Public | RAG query — main entry point |
 | `GET` | `/health` | Public | Health check |
 | `GET` | `/metrics` | Public | Prometheus-style counters |
-| `GET` | `/config` | Public | Server capabilities (which LLM keys are set) |
+| `GET` | `/config` | Public | Whether the server has an LLM key configured (`server_has_llm_key`), so the client can hide/show the API-key hint |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
+| `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
 | `PATCH` | `/documents/source/{id}/url` | Admin | Update a source URL manually |
 | `POST` | `/documents/source/{id}/lookup-url` | Admin | Auto-resolve newest URL for a source |

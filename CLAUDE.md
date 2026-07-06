@@ -10,7 +10,7 @@ RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
 - **Embeddings**: always Gemini (`GOOGLE_API_KEY` required for ingestion and retrieval)
-- **LLM for generation**: configurable — `gemini`, `openai`, or `mistral` via `LLM_PROVIDER`
+- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (local/offline "Privacy Mode") via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
