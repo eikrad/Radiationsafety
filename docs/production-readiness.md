@@ -48,7 +48,7 @@ ADMIN_AUTH_BYPASS=true
 | `RATE_LIMIT_REDIS_URL` | — | Required if using Redis backend |
 | `RATE_LIMIT_QUERY_MAX_REQUESTS` | `60` | Max query requests per window |
 | `RATE_LIMIT_QUERY_WINDOW_SEC` | `60` | Window size in seconds |
-| `RATE_LIMIT_ADMIN_MAX_REQUESTS` | `10` | Max admin requests per window |
+| `RATE_LIMIT_ADMIN_MAX_REQUESTS` | `20` | Max admin requests per window |
 | `RATE_LIMIT_ADMIN_WINDOW_SEC` | `60` | Admin window size in seconds |
 
 **Single-process deployments:** `in_memory` is suitable. Limits are per-client (IP-based).
@@ -60,11 +60,17 @@ ADMIN_AUTH_BYPASS=true
 ## Observability
 
 - Every HTTP response includes an `X-Request-ID` header for log correlation.
-- `GET /metrics` exports Prometheus-style counters:
-  - `requests_total` — total requests by route
-  - `errors_total` — total errors by route
-  - `request_duration_seconds_sum` — cumulative request durations
-  - `query_web_search_total` — queries that triggered web search fallback
+- `GET /metrics` exports Prometheus-style counters, all prefixed `radiationsafety_`:
+  - `radiationsafety_graph_loaded` — 1 if the RAG graph is loaded, 0 otherwise
+  - `radiationsafety_uptime_seconds` — process uptime
+  - `radiationsafety_http_requests_total` — total HTTP requests served
+  - `radiationsafety_http_errors_total` — total HTTP responses with status >= 400
+  - `radiationsafety_http_request_duration_seconds_sum` — cumulative request durations
+  - `radiationsafety_query_web_search_attempts_total` — query runs that attempted web search
+  - `radiationsafety_query_outcomes_total{outcome=...}` — query outcomes by routing category (see `routing_outcome` in [architecture.md](architecture.md))
+  - `radiationsafety_http_requests_by_path_total{path=...}` — requests broken down by path
+  - `radiationsafety_http_errors_by_path_total{path=...}` — errors broken down by path
+  - `radiationsafety_http_responses_by_status_class_total{status_class=...}` — responses broken down by status class (e.g. `2xx`, `4xx`)
 
 ---
 
