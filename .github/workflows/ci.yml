@@ -65,6 +65,17 @@ jobs:
           docker compose build
           echo "✅ Docker images built successfully"
 
+      - name: Create CI env file
+        if: steps.docker-changed.outputs.changed == 'true'
+        run: |
+          # docker-compose.yml requires `env_file: .env` to exist for `docker compose up` to
+          # even start — it doesn't need to contain real secrets since the backend only
+          # loads LLM API keys lazily per-request (graph/llm_factory.py), never at startup,
+          # so /health responds before any provider key is touched. A placeholder is enough.
+          cp .env.example .env
+          echo "GOOGLE_API_KEY=ci-test-key-not-real" >> .env
+          echo "✅ Created CI-safe .env from .env.example"
+
       - name: Test Docker Compose Startup
         if: steps.docker-changed.outputs.changed == 'true'
         run: |
