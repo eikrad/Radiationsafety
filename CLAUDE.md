@@ -9,8 +9,8 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: always Gemini (`GOOGLE_API_KEY` required for ingestion and retrieval)
-- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (local/offline "Privacy Mode") via `LLM_PROVIDER`
+- **Embeddings**: Gemini for cloud providers (`GOOGLE_API_KEY` required for ingestion and retrieval); Ollama privacy mode uses local embeddings instead (separate `-ollama` Chroma collections)
+- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
@@ -22,8 +22,9 @@ RAG system for querying IAEA and Danish radiation safety documents.
 api/main.py              — FastAPI routes, admin auth, rate limiting
 graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
-graph/chains/            — LLM chains (generation, grading, search-query, truncate)
-graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral)
+graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
+                           hallucinations_grader, missing_query_chain, search_query_chain, truncate)
+graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral/Ollama)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
