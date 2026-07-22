@@ -87,7 +87,7 @@ jobs:
       # ── Create / update issue if vulnerabilities found ────────────────────
       - name: Open or update security issue
         if: steps.py.outputs.has_vulns == 'true' || steps.npm.outputs.has_vulns == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PY_REPORT: ${{ steps.py.outputs.report }}
           NPM_REPORT: ${{ steps.npm.outputs.report }}
