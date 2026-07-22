@@ -166,17 +166,22 @@ flowchart TD
     end
 
     LOCAL --> CHUNK
-    DKURL -->|fetch newest XML| CHUNK
     IAEAURL -->|parse page, fetch PDF| CHUNK
     DIRECT -->|download PDF| CHUNK
+    DKURL -->|fetch newest XML| CHUNKDK
 
-    subgraph CHUNK [Chunking — Docling HybridChunker]
+    subgraph CHUNK [PDFs — Docling HybridChunker]
         direction LR
-        C1[IAEA\n256 tokens / chunk]
-        C2[Danish\n512 tokens / chunk]
+        C1[IAEA + Danish PDFs\n~512 tokens / chunk\nnomic-embed-text tokenizer]
+    end
+
+    subgraph CHUNKDK [Danish XML — RecursiveCharacterTextSplitter]
+        direction LR
+        C2[2500 chars / chunk\n200 char overlap]
     end
 
     CHUNK --> EMBED[Gemini Embeddings\nbatch size 200]
+    CHUNKDK --> EMBED
     EMBED --> CHROMA
 
     subgraph CHROMA [Chroma .chroma/]
@@ -260,6 +265,7 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `GET` | `/metrics` | Public | Prometheus-style counters |
 | `GET` | `/config` | Public | Whether the server has an LLM key configured (`server_has_llm_key`), so the client can hide/show the API-key hint |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
+| `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a document source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
 | `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
