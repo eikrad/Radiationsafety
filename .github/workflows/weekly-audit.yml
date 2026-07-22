@@ -1,0 +1,140 @@
+name: Weekly Security Audit
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Every Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Dependency security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # ── Python (pip-audit via uv) ─────────────────────────────────────────
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Sync Python dependencies
+        run: uv sync --all-extras --quiet
+
+      - name: Export locked requirements for audit
+        run: uv export --format requirements-txt --no-hashes --output-file /tmp/reqs.txt
+
+      - name: Python security audit (pip-audit)
+        id: py
+        run: |
+          pip install pip-audit --quiet
+          REPORT=$(pip-audit -r /tmp/reqs.txt --format columns 2>&1) || true
+          STATUS=$?
+          {
+            echo "report<<PYEOF"
+            echo "$REPORT"
+            echo "PYEOF"
+            echo "has_vulns=$([ $STATUS -ne 0 ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+
+      # ── Frontend (npm audit) ──────────────────────────────────────────────
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci --silent
+        working-directory: frontend
+
+      - name: Frontend npm security audit
+        id: npm
+        working-directory: frontend
+        run: |
+          REPORT=$(npm audit 2>&1) || true
+          STATUS=$?
+          {
+            echo "report<<NPMEOF"
+            echo "$REPORT"
+            echo "NPMEOF"
+            echo "has_vulns=$([ $STATUS -ne 0 ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+
+      # ── Step summary ──────────────────────────────────────────────────────
+      - name: Write step summary
+        env:
+          PY_REPORT: ${{ steps.py.outputs.report }}
+          NPM_REPORT: ${{ steps.npm.outputs.report }}
+        run: |
+          {
+            echo "## Weekly Security Audit — $(date -I)"
+            echo ""
+            echo "### Python (pip-audit)"
+            echo '```'
+            printf '%s\n' "$PY_REPORT"
+            echo '```'
+            echo ""
+            echo "### Frontend npm audit"
+            echo '```'
+            printf '%s\n' "$NPM_REPORT"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Create / update issue if vulnerabilities found ────────────────────
+      - name: Open or update security issue
+        if: steps.py.outputs.has_vulns == 'true' || steps.npm.outputs.has_vulns == 'true'
+        uses: actions/github-script@v7
+        env:
+          PY_REPORT: ${{ steps.py.outputs.report }}
+          NPM_REPORT: ${{ steps.npm.outputs.report }}
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10);
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `[Security] Vulnerabilities detected – ${date}`;
+            const body = [
+              `## Weekly Security Audit — ${date}`,
+              ``,
+              `Triggered by [workflow run](${runUrl}).`,
+              ``,
+              `### Python (pip-audit)`,
+              `\`\`\``,
+              process.env.PY_REPORT || '(no output)',
+              `\`\`\``,
+              ``,
+              `### Frontend npm audit`,
+              `\`\`\``,
+              process.env.NPM_REPORT || '(no output)',
+              `\`\`\``,
+              ``,
+              `_Review and address **high** or **critical** severity items._`,
+              `_Close this issue once all findings are resolved._`,
+            ].join('\n');
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              ...context.repo,
+              labels: 'security-audit',
+              state: 'open',
+            });
+
+            if (open.length > 0) {
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: open[0].number,
+                title,
+                body,
+              });
+              core.info(`Updated existing issue #${open[0].number}`);
+            } else {
+              const { data: issue } = await github.rest.issues.create({
+                ...context.repo,
+                title,
+                body,
+                labels: ['security-audit', 'maintenance'],
+              });
+              core.info(`Created issue #${issue.number}`);
+            }

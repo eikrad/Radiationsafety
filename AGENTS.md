@@ -9,8 +9,8 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: always Gemini (`GOOGLE_API_KEY` required for ingestion and retrieval)
-- **LLM for generation**: configurable — `gemini`, `openai`, or `mistral` via `LLM_PROVIDER`
+- **Embeddings**: Gemini for cloud providers (`GOOGLE_API_KEY` required for ingestion and retrieval); Ollama privacy mode uses local embeddings instead (separate `-ollama` Chroma collections)
+- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
@@ -21,11 +21,10 @@ RAG system for querying IAEA and Danish radiation safety documents.
 ```
 api/main.py              — FastAPI routes, admin auth, rate limiting
 graph/graph.py           — LangGraph workflow (nodes, edges, routing)
-graph/nodes/             — retrieve, grade_documents, grade_generation, generate,
-                           web_search, verify_trusted, retrieve_missing
+graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
-graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral)
+graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral/Ollama)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
@@ -33,7 +32,7 @@ ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
 eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json)
-tests/                   — pytest suite (135 tests)
+tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
 ```
@@ -73,7 +72,7 @@ RETRIEVE → GRADE_DOCUMENTS
 ### Adding a new chain
 
 1. Create file in `graph/chains/`, implement `get_*` factory function
-2. Export from `graph/chains/__init__.py`
+2. Import directly from the chain file in the node(s) that use it (e.g. `from graph.chains.my_chain import get_my_chain`). Note: `graph/chains/__init__.py` is intentionally minimal; chains are not re-exported there.
 
 ---
 
@@ -85,6 +84,17 @@ RETRIEVE → GRADE_DOCUMENTS
 - **Environment variables**: always update `.env.example` when adding new variables
 - **Chroma collections**: `radiation-iaea` and `radiation-dk-law` — do not rename without re-ingestion
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
+
+### Branching workflow
+
+```
+feature branch  →  staging  →  master
+```
+
+- **All PRs target `staging`**, never `master` directly
+- `master` is only updated by merging `staging` → `master` after validation
+- When creating a feature branch or fixing a bug, set `base = staging` in the PR
+- `staging` acts as the integration/QA gate before production (`master`)
 
 ---
 
@@ -211,7 +221,7 @@ Goal: load as few pages as needed, then synthesize in the LLM.
 These PDFs are stored locally and already ingested into Chroma:
 
 **IAEA Standards:**
-GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
+GSG-2, GSG-7, GSR-1, GSR-2, GSR-3, GSR-4, GSR-5, GSR-6, GSR-7,
 SSG-11, SSG-39, SSG-40, SSG-44, SSG-46, SSG-86, SSG-87,
 SSR-6, TECDOC-1380, TECDOC-1638, nuclear_safety_measures (24G)
 
