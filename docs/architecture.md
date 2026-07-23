@@ -12,7 +12,7 @@ The system has three main layers:
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
 3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings (or local embeddings in Ollama mode).
 
-The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API.
+The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API. Key components live in `frontend/src/components/`: `QueryForm` (question input), `ResponseDisplay` (answer + sources + warnings), `DocumentsPanel` + `DocumentListSidebar` + `DocumentUpdatesModal` (document management UI), `ModelSelector` (LLM provider picker), and `SettingsModal` (API keys, preferences).
 
 ```mermaid
 graph LR
@@ -106,6 +106,8 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
+
+Shared helpers used across nodes: `graph/nodes/retrieval_common.py` (shared Chroma retrieval logic for `RETRIEVE`/`RETRIEVE_MISSING`), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
 
 ---
 
@@ -210,6 +212,19 @@ flowchart TD
     BUILD --> INGEST
 ```
 
+### Danish source sync
+
+`POST /documents/sync-danish` brings every Danish Bekendtgørelse up to the newest version in one call, via `document_updates.sync_danish_legislation()` and `graph/services/`:
+
+```mermaid
+flowchart LR
+    SYNC[POST /documents/sync-danish] --> HARVEST[retsinformation_harvest.py\nincremental harvest of changed docs]
+    HARVEST --> ELI[retsinformation_eli.py\nresolve latest ELI expression per source]
+    ELI --> REPLACE[Download newest XML\nback up old version]
+    REPLACE --> BACKUP[(documents/backup/Bekendtgørelse/\nmax 2 kept per source)]
+    REPLACE --> INGEST[Re-ingest into Chroma]
+```
+
 ---
 
 ## LLM providers
@@ -260,6 +275,7 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `GET` | `/metrics` | Public | Prometheus-style counters |
 | `GET` | `/config` | Public | Whether the server has an LLM key configured (`server_has_llm_key`), so the client can hide/show the API-key hint |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
+| `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a document source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
 | `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
