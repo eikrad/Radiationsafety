@@ -172,10 +172,10 @@ flowchart TD
     IAEAURL -->|parse page, fetch PDF| CHUNK
     DIRECT -->|download PDF| CHUNK
 
-    subgraph CHUNK [Chunking — Docling HybridChunker]
+    subgraph CHUNK [Chunking]
         direction LR
-        C1[IAEA\n256 tokens / chunk]
-        C2[Danish\n512 tokens / chunk]
+        C1[PDFs - IAEA + other\nDocling HybridChunker\nmax 512 tokens per chunk]
+        C2[Danish XML\nRecursiveCharacterTextSplitter\n2500 chars per chunk / 200 overlap]
     end
 
     CHUNK --> EMBED[Gemini Embeddings\nbatch size 200]
