@@ -772,19 +772,19 @@ wheels = [
 
 [[package]]
 name = "docling"
-version = "2.108.0"
+version = "2.114.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docling-slim", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/5f/261151b79eedf12023b636c7185cfd016b989167da1058fd9b9bf3211ef9/docling-2.108.0.tar.gz", hash = "sha256:a47253a4a04104c1ad509da92c55f62738737ca71706816a9df252e3c3f0d39e", size = 8946, upload-time = "2026-07-01T10:31:23.237Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4c/45/682c1ffc1f6aa3a75a417c59e2eed813b4eecbf311ea07d385fe9ba5f432/docling-2.114.0.tar.gz", hash = "sha256:b5aa9159b5710ba7bd391c9ded0c7d520f4dfc27d38116e7bcfa382d90f5449a", size = 9015, upload-time = "2026-07-20T14:08:39.125Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4e/19/3fcd9f1981e5b623e2c9fc4b44b886f5a2bdbdf7d8968ce65d05c7d5b40a/docling-2.108.0-py3-none-any.whl", hash = "sha256:04d29cfdd94fc1e3cbcf6e503fcdc23e733914103b66b91dd110154d3a9035b3", size = 5109, upload-time = "2026-07-01T10:31:22.156Z" },
+    { url = "https://files.pythonhosted.org/packages/31/cb/fe2c0622ba1a222c566543421c977abe801b895a55ac2715d92434eddb41/docling-2.114.0-py3-none-any.whl", hash = "sha256:0e4a3e28730abd7c3c87772b0930c3b7ca691e2cb10c8b2d9c35702810f8b59b", size = 5179, upload-time = "2026-07-20T14:08:37.934Z" },
 ]
 
 [[package]]
 name = "docling-core"
-version = "2.85.0"
+version = "2.87.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
@@ -801,9 +801,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/02/f1cd4003d06240aa229acb5074b1dc5bec227580fd82a2dbe40b1cbefc80/docling_core-2.85.0.tar.gz", hash = "sha256:c4f49148ad8ac7cbe58d85cce90d2b3b0741d2b73cbfabb332e2df9e9583b3b4", size = 323268, upload-time = "2026-06-25T16:16:32.726Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/36/96e3c029d8e018403e178e1d68b2135b63413c1a3ed4c39a56fec032d265/docling_core-2.87.1.tar.gz", hash = "sha256:a2c19e63519e49f993d93103481934b772db701c80c683900476f898dfac841a", size = 338077, upload-time = "2026-07-15T09:11:39.579Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8e/c9/fe3bca4d1b431a32a7cbbe7afebfa5dae5a8bd0eb6ca4e132473f64239a1/docling_core-2.85.0-py3-none-any.whl", hash = "sha256:7c9e7e77966b91a61bffebb74f043fbecebe6e6e38bcf3790f05bddd5a4e306f", size = 260749, upload-time = "2026-06-25T16:16:30.988Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/af/d4c2efbb825f3b5df55ffb6c533e30e118d881ead4f3492a7e7b483905a0/docling_core-2.87.1-py3-none-any.whl", hash = "sha256:1cd1748470523322b6314b72c79e8d1c638489fa903b8a1901cae023b14a4f84", size = 282104, upload-time = "2026-07-15T09:11:37.595Z" },
 ]
 
 [package.optional-dependencies]
@@ -869,7 +869,7 @@ wheels = [
 
 [[package]]
 name = "docling-slim"
-version = "2.108.0"
+version = "2.114.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
@@ -881,9 +881,9 @@ dependencies = [
     { name = "requests" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/e7/10eff77367832c2b6ff7aac5c951429fdb7b65b2ec65a9b7aa019dc3169f/docling_slim-2.108.0.tar.gz", hash = "sha256:a870fe790cd64cfef24411216d7c6324b51400fe55b6b10787e00bce64deb75d", size = 486931, upload-time = "2026-07-01T10:30:03.899Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/27/8bbec79fe126ef0a66246497abb030e1a621cc66f0698315f86f3320776b/docling_slim-2.114.0.tar.gz", hash = "sha256:8cdc84fc98fe86b6a9d548102a468e93284609c27fe5c185c1b13d68b2e6f81d", size = 541307, upload-time = "2026-07-20T14:07:09.05Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/58/791630d9f324153272b688c3bf266a6bd76d3997bd09fcb4a65abb430e66/docling_slim-2.108.0-py3-none-any.whl", hash = "sha256:2e263e5c9704cd070f8d6113353e20dc57a1fa895808e547587195ff03be90ec", size = 615567, upload-time = "2026-07-01T10:30:01.838Z" },
+    { url = "https://files.pythonhosted.org/packages/53/5a/fce90f82e0cd509daf98fe724129277b886c008ce46107c4834e34b2d7b8/docling_slim-2.114.0-py3-none-any.whl", hash = "sha256:e8c936e627dce030d20d3d09949c1e145dd937d5d8a3614e94e5fe84639a4a02", size = 675690, upload-time = "2026-07-20T14:07:06.53Z" },
 ]
 
 [package.optional-dependencies]
@@ -896,7 +896,6 @@ standard = [
     { name = "docling-parse" },
     { name = "httpx" },
     { name = "huggingface-hub" },
-    { name = "lxml" },
     { name = "mail-parser" },
     { name = "marko" },
     { name = "numpy" },
@@ -3878,7 +3877,7 @@ dev = [
 requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=26.5.0" },
     { name = "chromadb", specifier = ">=1.5.0" },
-    { name = "docling", specifier = ">=2.101.0" },
+    { name = "docling", specifier = ">=2.111.0" },
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28.1" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=8.0.1" },
@@ -3886,15 +3885,15 @@ requires-dist = [
     { name = "langchain-chroma", specifier = ">=1.1.0" },
     { name = "langchain-community", specifier = ">=0.4.2" },
     { name = "langchain-docling", specifier = ">=2.0.0" },
-    { name = "langchain-google-genai", specifier = ">=4.2.0" },
-    { name = "langchain-mistralai", specifier = ">=1.1.0" },
+    { name = "langchain-google-genai", specifier = ">=4.2.7" },
+    { name = "langchain-mistralai", specifier = ">=1.1.6" },
     { name = "langchain-ollama", specifier = ">=1.1.0" },
     { name = "langchain-openai", specifier = ">=1.3.0" },
     { name = "langchain-text-splitters", specifier = ">=1.1.2" },
     { name = "langchainhub", specifier = ">=0.1.21" },
     { name = "langdetect", specifier = ">=1.0.9" },
-    { name = "langgraph", specifier = ">=1.2.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.1.0" },
+    { name = "langgraph", specifier = ">=1.2.8" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.2.0" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.6.0" },
     { name = "pypdf", specifier = ">=6.13.3" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.0" },
@@ -3905,13 +3904,13 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "redis", specifier = ">=8.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.0" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.49.0" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.51.0" },
 ]
 provides-extras = ["dev"]
 
 [[package]]
 name = "rapidocr"
-version = "3.9.0"
+version = "3.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorlog" },
@@ -3927,7 +3926,7 @@ dependencies = [
     { name = "tqdm" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/e0/3d3c394448c3527aa99b858647b5404110c5e30a5549f9e2bc4c645bb6b8/rapidocr-3.9.0-py3-none-any.whl", hash = "sha256:f9e624d11315aa1ffe8ecf486a9ae7c2f7bef741d25a1e508fc5e25cb75dfed5", size = 27240223, upload-time = "2026-06-23T02:33:55.29Z" },
+    { url = "https://files.pythonhosted.org/packages/55/ed/0ee9b9281986974be9d2406ae0134c8d7c91d2fc613f16ffda9701eeda6f/rapidocr-3.9.2-py3-none-any.whl", hash = "sha256:04d6b8d151f823d930bd91910555f57bea897c0c44fa6794267b94cf9c1ef9a0", size = 27275208, upload-time = "2026-07-21T10:59:01.599Z" },
 ]
 
 [[package]]
