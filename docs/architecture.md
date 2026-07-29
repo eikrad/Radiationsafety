@@ -260,6 +260,7 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `GET` | `/metrics` | Public | Prometheus-style counters |
 | `GET` | `/config` | Public | Whether the server has an LLM key configured (`server_has_llm_key`), so the client can hide/show the API-key hint |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
+| `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a document source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
 | `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
