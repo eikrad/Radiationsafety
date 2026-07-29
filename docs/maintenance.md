@@ -4,6 +4,93 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-07-29
+
+> **⚠️ Open-PR backlog — action needed.** Ten Dependabot/docs PRs from prior cycles are still open and unmerged against `staging`: **#73** (jsdom 28.1.0→30.0.0, frontend, MAJOR), **#72** (eslint-plugin-react-refresh 0.4.26→0.5.3), **#71** (docs: fix documentation drift in README and architecture.md), **#69** (@testing-library/jest-dom 6.9.1→7.0.0, MAJOR), **#67** (globals 16.5.0→17.7.0, MAJOR), **#66** (typescript 6.0.3→7.0.2, MAJOR), **#65** (actions/checkout 6→7), **#64** (actions/github-script 7→9), **#63** (actions/setup-node 6→7), **#62** (actions/setup-python 6→7). None of these were touched, merged, or closed this cycle — re-bumping any of the same packages here would create merge conflicts, as flagged in a prior cycle's PR for another repo in this maintenance program. Verified via `list_pull_requests` against `staging` at the start of this cycle that exactly these 10 remain open (no drift since they were last enumerated). **Recommendation: review and merge (or explicitly close) #62–#73** so the dependency surface stops growing across cycles.
+
+### Checks performed
+- Fetched `origin/staging` and reset the working branch (`claude/modest-faraday-llwh2p`, previously a zero-commit mirror of the old `master` tip) to the actual current `staging` tip (`1a4a6ce`, verified via `git log`, not assumed)
+- Baseline run **before any changes**: `uv sync --all-extras && uv run pytest tests/ -v` → **177 passed**
+- Baseline run: `uv run ruff check .`, `uv run black --check .`, `uv run isort --check .`, `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip`, `uv run pre-commit run --all-files` → all clean, no pre-existing issues found
+- Baseline run: `npm -C frontend ci && npm -C frontend run test && npm -C frontend run lint && npm -C frontend run build` → **29 tests passed (5 files)**, lint clean, build clean
+- Python dependency audit: `uv pip list --outdated` reviewed against `pyproject.toml` floors, cross-checked with `uv tree --invert` for anything constrained transitively
+- Frontend dependency audit: `npm -C frontend outdated`, excluding all packages already covered by the 10 open PRs above
+- Security audit: `npm -C frontend audit` and `uv run --with pip-audit pip-audit -r <exported uv.lock requirements>` (project interpreter via `uv export --format requirements-txt`, not global pip)
+
+### Fixes applied
+No pre-existing failures found — baseline was fully green, nothing to fix. Applied targeted dependency bumps and one security fix only (see below).
+
+### Dependency updates
+
+**Python backend** — applied via `uv lock --upgrade-package <name>` one at a time (never a blanket `uv lock --upgrade`), all within `pyproject.toml`'s existing `>=` floors:
+
+| Package | Before | After | Type | Notes |
+|---|---|---|---|---|
+| `fastapi` | 0.139.2 | 0.141.1 | minor | |
+| `langchain-core` | 1.5.0 | 1.5.2 | patch | transitive, pulled in alongside the langchain-* bumps |
+| `langchain-google-genai` | 4.3.1 | 4.3.2 | patch | |
+| `langchain-openai` | 1.4.0 | 1.4.1 | patch | |
+| `langgraph` | 1.2.9 | 1.2.10 | patch | |
+| `uvicorn` | 0.51.0 | 0.52.0 | minor | |
+| `ruff` (dev) | 0.15.22 | 0.16.0 | minor | |
+
+`docling` (2.114.0 → 2.116.0 available) was again **deliberately left untouched this cycle**, same reasoning as 2026-07-22: it sits upstream of `opencv-python` (via `rapidocr` → `docling-slim`) which still only has a major version available (4.13.0.92 → 5.0.0.93), and upstream of `semchunk`/`transformers` majors via `docling-core`. Confirmed via `uv tree --invert --package opencv-python` and `git diff uv.lock` that none of the docling-chain packages moved.
+
+**Frontend** — applied via `npm -C frontend update <package>` (package.json semver ranges unchanged, `package-lock.json` refreshed only), plus `npm audit fix` for the security fix:
+
+| Package | Before | After | Type | Notes |
+|---|---|---|---|---|
+| `brace-expansion` | 5.0.7 | 5.0.8 | patch | security fix, see below |
+| `eslint` | 10.7.0 | 10.8.0 | minor | |
+| `@eslint/config-helpers` | 0.6.0 | 0.7.0 | patch | transitive, pulled in by the eslint bump |
+| `@playwright/test` | 1.61.1 | 1.62.0 | minor | now requires Node ≥20 (repo CI/dev on Node 22 — no impact) |
+| `playwright` / `playwright-core` | 1.61.1 | 1.62.0 | minor | transitive, pulled in alongside `@playwright/test` |
+
+### Security findings
+
+`npm -C frontend audit` — before fixes: **1 high severity vulnerability**:
+
+| Package | Version | Advisory | Severity/notes | Resolution |
+|---|---|---|---|---|
+| `brace-expansion` | ≤5.0.7 | GHSA-mh99-v99m-4gvg | DoS via unbounded expansion length causing an out-of-memory process crash | **Fixed** — `npm audit fix` upgraded to 5.0.8 |
+
+After fix: `npm -C frontend audit` → **0 vulnerabilities.**
+
+`pip-audit` against the exported `uv.lock` (via `uv run --with pip-audit pip-audit -r <export>`, project interpreter):
+
+| Package | Version | ID | Severity/notes | Resolution |
+|---|---|---|---|---|
+| `chromadb` | 1.5.9 | PYSEC-2026-311 | Pre-auth code injection via `trust_remote_code` on the Chroma HTTP server's `/api/v2/.../collections` endpoint | **Not directly fixable** — no fix version published yet; confirmed via `pip index versions chromadb` that 1.5.9 is still the latest release on PyPI as of this cycle |
+
+**Risk assessment — chromadb PYSEC-2026-311 (remaining, unpatched upstream, carried over from prior cycles):** Re-verified this cycle via `grep` over `ingestion.py` that the app only ever constructs `chromadb.PersistentClient(path=...)` (an embedded, on-disk client) — no `chromadb.HttpClient` / standalone server process is started anywhere in the codebase, and no code path sets `trust_remote_code`. The vulnerable HTTP/gRPC server endpoint is not exposed by this deployment. **Assessed as not reachable in this app's current usage**, consistent with the 2026-07-08/07-15/07-22 assessments. Recommend continuing to re-check each cycle until a fix version ships.
+
+### Major upgrades — flagged, NOT applied
+
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `docling` (Python) | 2.114.0 | 2.116.0 | Sits upstream of `opencv-python`'s pending major (below) via `rapidocr`, and of `semchunk`/`transformers` majors via `docling-core` — held back again this cycle pending a dedicated review of the OCR dependency chain |
+| `opencv-python` (Python, transitive via docling/rapidocr) | 4.13.0.92 | 5.0.0.93 | Major version bump; known breaking-change risk for docling's OCR path — do not pull in via a blanket `uv lock --upgrade` |
+| `@testing-library/jest-dom` (frontend) | 6.9.1 | 7.0.0 | Major; already tracked in open Dependabot PR **#69** — not duplicated here |
+| `globals` (frontend) | 16.5.0 | 17.7.0 | Major; already tracked in open Dependabot PR **#67** — not duplicated here |
+| `jsdom` (frontend) | 28.1.0 | 30.0.1 | Major; already tracked in open Dependabot PR **#73** (targets 30.0.0; 30.0.1 is now latest) — not duplicated here |
+| `eslint-plugin-react-refresh` (frontend) | 0.4.26 | 0.5.3 | 0.x → 0.x "minor" that is breaking-change-equivalent per semver-zero convention; already tracked in open Dependabot PR **#72** — not duplicated here |
+| `typescript` (frontend) | 6.0.3 | 7.0.2 | Major; package.json pins `~6.0.0` deliberately; already tracked in open Dependabot PR **#66** — not duplicated here |
+
+### Post-change verification
+All checks re-run after dependency bumps, everything green:
+- `uv run pytest tests/ -v` → **177 passed**
+- `uv run ruff check .` → clean
+- `uv run black --check .` → clean
+- `uv run isort --check .` → clean
+- `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` → clean
+- `uv run pre-commit run --all-files` → clean
+- `npm -C frontend run test` → **29 passed (5 files)**
+- `npm -C frontend run lint` → clean
+- `npm -C frontend run build` → clean
+- Confirmed via `git diff --stat` that only `uv.lock` and `frontend/package-lock.json` changed — no `pyproject.toml` or `package.json` range edits were needed
+
+---
+
 ## 2026-07-22
 
 > **⚠️ Open-PR backlog — action needed.** Five PRs from prior maintenance cycles are still open and unmerged against `staging`: **#56** (staging→master release merge), **#57** (2026-07-08 maintenance), **#58** (docs), **#59** (2026-07-15 maintenance), **#60** (docs). Because none of these has landed, `staging`'s tip going into this cycle was still the 2026-06-17 entry below — none of the 06-24, 07-01, 07-08, or 07-15 cycles' changes are actually present on `staging`. This audit was performed against the real, current `origin/staging` tip (not assumed-merged prior PRs). Every additional unmerged maintenance PR compounds the backlog and risks conflicting/duplicate dependency bumps landing out of order. **Recommendation: review and merge (or explicitly close) #56–#60 before the next cycle** so future audits start from a moving baseline instead of stacking on top of each other.
