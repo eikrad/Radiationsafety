@@ -4,6 +4,160 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-08-05
+
+> **⚠️ Open-PR backlog — verified fresh via `mcp__github__list_pull_requests` (state=open), not assumed from any prior note.** 12 PRs are currently open against this repo. Against `staging`: **#74** (prior weekly-maintenance cycle, "2026-07-29") is still open/unmerged; **#71** (docs: fix documentation drift) is still open; and 9 Dependabot PRs are open — **#73** (`jsdom` 28.1.0→30.0.0, now a bigger major than the 29.1.1 seen two cycles ago), **#72** (`eslint-plugin-react-refresh` 0.4.26→0.5.3), **#69** (`@testing-library/jest-dom` 6.9.1→7.0.0), **#67** (`globals` 16.5.0→17.7.0), **#66** (`typescript` 6.0.3→7.0.2), and GitHub Actions bumps **#65** (`actions/checkout` 6→7), **#64** (`actions/github-script` 7→9), **#63** (`actions/setup-node` 6→7), **#62** (`actions/setup-python` 6→7). Separately, **#75** (docs fix) is open against `master` directly. None of #74's dependency bumps have landed on `staging`, so — same as every prior cycle — this audit was run against the real, current `origin/staging` tip (`1a4a6ce`), not assumed-merged prior work. **Every package covered by an open Dependabot PR above was explicitly excluded from this cycle's update pass** to avoid duplicate/conflicting bumps landing out of order (see Dependency updates below for confirmation none of those five npm packages were touched here). Recommend the user merge or close #74, #71, #75, and the Dependabot backlog before the next cycle — this note has repeated for three cycles running now and the backlog keeps growing.
+
+### Checks performed
+- Fetched `origin/staging`, diffed local branch both directions (`git log claude/modest-faraday-f8vh9h..origin/staging` / reverse) — confirmed no non-merge commits unique to the local branch, then reset the working branch to `origin/staging`'s actual tip (`1a4a6ce`)
+- Verified the open-PR backlog live via GitHub MCP tools (see banner above) rather than trusting any carried-over list
+- Baseline **before any changes**: `uv sync --all-extras && uv run pytest tests/ -v` → **177 passed**
+- Baseline: `uv run ruff check .`, `uv run black --check .`, `uv run isort --check .`, `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip`, `uv run pre-commit run --all-files` → all clean, no pre-existing issues
+- Baseline: `npm -C frontend ci && npm -C frontend run test` → **29 passed (5 files)**; `npm -C frontend run lint` and `npm -C frontend run build` → clean
+- Python dependency audit: `uv pip list --outdated` cross-checked with `uv tree --invert` for transitively-constrained packages (e.g. confirmed `cryptography` and `aiohttp` are transitive-only, via `google-auth` and `kubernetes`/`langchain-community` respectively)
+- Frontend dependency audit: `npm -C frontend outdated`, excluding the 5 packages already covered by open Dependabot PRs (#73, #72, #69, #67, #66)
+- Security audit: `uv export --format requirements-txt --no-hashes` + `uv run --with pip-audit pip-audit -r <export>` (project's own Python 3.12 interpreter, not a fresh resolve — same environment-scan approach as prior cycles, since resolving the raw export against the live PyPI index still fails on point releases newer than what's published upstream); `npm -C frontend audit --json`
+- Re-verified the chromadb `PYSEC-2026-311` finding against the current `ingestion.py`: grepped for `Chroma`/`HttpClient`/`PersistentClient`/`trust_remote_code` — still only `chromadb.PersistentClient` and `langchain_chroma.Chroma` embedded usage, no server component, no `trust_remote_code`. Finding still present upstream (confirmed via `pip index versions chromadb`, latest is still 1.5.9) and still not reachable in this app.
+
+### Fixes applied
+No pre-existing failures found — baseline was fully green (177 pytest, all lint/format/type checks clean, frontend 29 tests/lint/build clean). Applied targeted dependency bumps and security fixes only (see below).
+
+### Dependency updates
+
+**Python backend** — applied via `uv lock --upgrade-package <name>` one package at a time (never a blanket `uv lock --upgrade`), all within `pyproject.toml`'s existing `>=` floors — **no `pyproject.toml` edits were needed**:
+
+| Package | Before | After | Type | Notes |
+|---|---|---|---|---|
+| `aiohttp` | 3.14.1 | 3.14.3 | patch | fixes 3 CVEs, see Security findings |
+| `fastapi` | 0.139.2 | 0.141.1 | minor | |
+| `langchain-core` | 1.5.0 | 1.5.3 | patch | |
+| `langchain-google-genai` | 4.3.1 | 4.3.2 | patch | |
+| `langchain-openai` | 1.4.0 | 1.4.1 | patch | |
+| `langgraph` | 1.2.9 | 1.2.10 | patch | |
+| `langsmith` | 0.9.5 | 0.10.16 | minor (transitive) | |
+| `uvicorn` | 0.51.0 | 0.52.1 | minor | |
+| `redis` | 8.0.1 | 8.1.0 | minor | |
+| `docling` | 2.114.0 | 2.118.0 | minor | confirmed via lockfile diff that `opencv-python` stayed at `4.13.0.92` — same trap avoided as every prior cycle |
+| `docling-core` | 2.87.1 | 2.90.0 | minor | pulled transitively by docling bump |
+| `docling-slim` | 2.114.0 | 2.118.0 | minor | pulled transitively by docling bump |
+| `docling-parse` | 7.4.0 | 7.10.0 | minor | |
+| `doclang` | 0.7.0 | 0.7.3 | patch | dropped an unused optional dep (`saxonche`) upstream — not our change |
+| `openai` | 2.47.0 | 2.53.0 | minor | |
+| `google-auth` | 2.55.1 | 2.56.2 | minor | |
+| `google-genai` | 2.10.0 | 2.16.0 | minor | |
+| `huggingface-hub` | 1.21.0 | 1.26.0 | minor | |
+| `hf-xet` | 1.5.1 | 1.6.0 | minor | |
+| `grpcio` | 1.81.1 | 1.83.0 | minor | |
+| `kubernetes` | 36.0.2 | 36.0.3 | patch | |
+| `onnxruntime` | 1.27.0 | 1.28.0 | minor | |
+| `numpy` | 2.5.0 | 2.5.1 | patch | |
+| `pandas` | 3.0.3 | 3.0.5 | patch | |
+| `pypdfium2` | 5.11.0 | 5.12.1 | minor | |
+| `pylatexenc` | 2.10 | 2.11 | minor | |
+| `filelock` | 3.29.4 | 3.32.2 | minor | |
+| `fsspec` | 2026.6.0 | 2026.7.0 | minor | |
+| `soupsieve` | 2.8.4 | 2.9.1 | minor | |
+| `starlette` | 1.3.1 | 1.4.1 | minor | |
+| `regex` | 2026.6.28 | 2026.7.19 | minor | |
+| `typing-extensions` | 4.15.0 | 4.16.0 | minor | |
+| `typer` | 0.24.2 | 0.26.8 | minor | |
+| `platformdirs` | 4.10.0 | 4.11.0 | minor | |
+| `pydantic-core`, `tokenizers`, `mpmath`, `antlr4-python3-runtime` | — | — | — | already pulled to latest transitively by the bumps above; no separate action needed |
+| `uuid-utils` | 0.16.2 | 0.17.0 | minor | |
+| `python-discovery` | 1.4.2 | 1.5.1 | minor | |
+| `mail-parser` | 4.4.0 | 4.5.0 | minor | |
+| `faker` (dev) | 40.28.0 | 40.36.0 | minor | |
+| `colorlog` | 6.10.1 | 6.12.0 | minor | |
+| `annotated-types` | 0.7.0 | 0.8.0 | minor | |
+| `annotated-doc` | 0.0.4 | 0.0.5 | patch | |
+| `anyio` | 4.14.1 | 4.14.2 | patch | |
+| `certifi` | 2026.6.17 | 2026.7.22 | patch | |
+| `cffi` | 2.0.0 | 2.1.1 | minor | |
+| `charset-normalizer` | 3.4.7 | 3.4.9 | patch | |
+| `greenlet` | 3.5.3 | 3.5.4 | patch | |
+| `xxhash` | 3.8.0 | 3.8.1 | patch | |
+| `yarl` | 1.24.2 | 1.24.5 | patch | |
+| `types-requests` (dev) | 2.33.0.20260518 | 2.33.0.20260712 | patch | |
+| `virtualenv` (dev) | 21.5.1 | 21.7.1 | minor | |
+| `ruff` (dev) | 0.15.22 | 0.16.1 | minor | |
+| `tqdm` | 4.68.3 | 4.70.0 | minor | |
+| `opentelemetry-api`/`-sdk`/`-proto`/`-exporter-otlp-proto-common`/`-exporter-otlp-proto-grpc`/`-semantic-conventions` | 1.43.0 (0.64b0) | 1.44.0 (0.65b0) | minor | bumped as a set |
+
+**Frontend** — applied via `npm -C frontend update` (package.json semver ranges unchanged, `package-lock.json` refreshed only), explicitly excluding the 5 packages already covered by open Dependabot PRs (`jsdom`, `eslint-plugin-react-refresh`, `@testing-library/jest-dom`, `globals`, `typescript`):
+
+| Package | Before | After | Type |
+|---|---|---|---|
+| `@playwright/test` / `playwright` / `playwright-core` | 1.61.1 | 1.62.1 | patch |
+| `@testing-library/user-event` | 14.6.1 | 14.6.3 | patch |
+| `@types/react` | 19.2.17 | 19.2.18 | patch |
+| `@types/react-dom` | 19.2.3 | 19.2.4 | patch |
+| `@typescript-eslint/eslint-plugin` | 8.65.0 | 8.66.0 | minor |
+| `@typescript-eslint/parser` | 8.65.0 | 8.66.0 | minor |
+| `@vitejs/plugin-react` | 6.0.4 | 6.0.5 | patch |
+| `eslint` | 10.7.0 | 10.8.0 | minor |
+| `vite` | 8.1.5 | 8.2.0 | minor |
+| `brace-expansion` (transitive, via `eslint`→`minimatch`) | 5.0.7 | 5.0.9 | patch — via `npm audit fix`, security fix |
+| `postcss` (transitive, via `vite`) | 8.5.22 | 8.5.25 | patch — via `npm audit fix`, security fix |
+| `undici` (transitive, via `jsdom`) | 7.28.0 | 7.29.0 | patch — via `npm audit fix`, security fix (fixed without touching `jsdom` itself, which stays on the Dependabot PR #73 track) |
+
+### Security findings
+
+**`npm -C frontend audit`** — before fixes: **3 vulnerabilities (1 moderate, 2 high)**, all with non-breaking fixes available via `npm audit fix` (no `package.json` range edits, no major bumps pulled in):
+
+| Package | Version | Severity | Advisory | Resolution |
+|---|---|---|---|---|
+| `brace-expansion` | 5.0.7 | High | GHSA-mh99-v99m-4gvg / GHSA-rgw5-rvv9-x895 — DoS via unbounded expansion/intermediate arrays | **Fixed** — 5.0.9 |
+| `postcss` | 8.5.22 | Moderate | GHSA-fxqj-rqcc-2cmp — incomplete fix of prior sourceMappingURL path-read issue | **Fixed** — 8.5.25 |
+| `undici` | 7.28.0 | High | GHSA-4cwx-7wf7-3272 (+3 related moderate advisories) — cross-user cache info disclosure / request smuggling in Node's fetch stack | **Fixed** — 7.29.0 (patch bump only; did not require touching `jsdom`, which is intentionally left to Dependabot PR #73) |
+
+After fixes: **`npm -C frontend audit` → 0 vulnerabilities.**
+
+**Python (`pip-audit` against the exported `uv.lock` reqs, resolved with the project's own Python 3.12 interpreter via `uv run --with pip-audit`)** — before fixes: **5 known vulnerabilities in 3 packages**:
+
+| Package | Version | ID | Severity/notes | Resolution |
+|---|---|---|---|---|
+| `aiohttp` | 3.14.1 | PYSEC-2026-3545 | Out-of-bounds heap read in the C response parser building an error message for a malformed response — client-side DoS | **Fixed** — upgraded to 3.14.3 |
+| `aiohttp` | 3.14.1 | PYSEC-2026-3546 | Request-smuggling risk via a WebSocket-upgrade edge case in the HTTP parsers | **Fixed** — upgraded to 3.14.2+ |
+| `aiohttp` | 3.14.1 | PYSEC-2026-3547 | Client decompresses RSV1-flagged frames even without `permessage-deflate` negotiated — CPU/memory amplification risk | **Fixed** — upgraded to 3.14.2+ |
+| `chromadb` | 1.5.9 | PYSEC-2026-311 | Pre-auth code injection via `trust_remote_code` on the Chroma HTTP server's `/api/v2/.../collections` endpoint | **Not fixable** — 1.5.9 is still the latest release on PyPI as of this cycle (re-confirmed via `pip index versions chromadb`); no patched version exists |
+| `cryptography` | 49.0.0 | PYSEC-2026-3552 | Bleichenbacher-style timing/error oracle in `pkcs7_decrypt_der`/`_pem`/`_smime` against attacker-supplied `EnvelopedData` — requires an app that auto-decrypts untrusted S/MIME and reflects the outcome | **Fix requires a major bump (50.0.0)** — see Major upgrades table; not applied this cycle, see risk assessment below |
+
+**Risk assessment — chromadb PYSEC-2026-311 (remaining, unpatched upstream, re-verified this cycle):** re-grepped `ingestion.py` and `graph/` for `Chroma`/`HttpClient`/`PersistentClient`/`trust_remote_code` — the code still only ever constructs `chromadb.PersistentClient` and `langchain_chroma.Chroma` as an embedded, on-disk, in-process client against `_CHROMA_DIR`. No standalone Chroma HTTP/gRPC server is started anywhere in this codebase, and no code path sets `trust_remote_code`. **Still assessed as not reachable in this app's current usage.** Same conclusion as the 2026-07-08/07-15/07-22 cycles; will keep re-checking each cycle (and via `weekly-audit.yml`) until a fix ships.
+
+**Risk assessment — cryptography PYSEC-2026-3552 (fix exists at 50.0.0, held back as a major):** the vulnerable functions (`pkcs7_decrypt_der`/`_pem`/`_smime`) decrypt attacker-supplied S/MIME `EnvelopedData` and are only exploitable by an application that does that and reflects the outcome (e.g. a mail gateway). Grepped the codebase for `cryptography`/`pkcs7` usage directly — none found; `cryptography` is a transitive-only dependency pulled in by `google-auth` (for JWT/service-account signing), which never touches PKCS#7/S-MIME. **Assessed as not reachable in this app.** Flagged for a dedicated `cryptography` major-version review rather than silently applied, per this cycle's policy of holding back majors even when they carry a security fix, given the low practical exploitability here.
+
+### Major upgrades — flagged, NOT applied
+
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `cryptography` (Python, transitive via `google-auth`) | 49.0.0 | 50.0.0 | Major version; fixes PYSEC-2026-3552 but assessed not reachable in this app (see risk assessment above) — needs a dedicated review rather than a drive-by major bump |
+| `opencv-python` (Python, transitive via `docling`/`rapidocr`) | 4.13.0.92 | 5.0.0.93 | Major; known breaking-change risk for docling's OCR path — held back every cycle since 2026-07-08, re-confirmed this cycle that the `docling` minor bump does not pull it in |
+| `semchunk` (Python, transitive via `docling`) | 3.2.5 | 4.1.1 | Major; carried over from the 2026-07-15 cycle |
+| `websockets` (Python, transitive) | 15.0.1 | 17.0.1 | Major (two majors behind); carried over, no security relevance found this cycle |
+| `transformers` (Python, transitive via `docling`/`torch`) | 5.8.1 | 5.14.1 | Large jump (12+ releases) tied to `docling`/`torch` compatibility — deferred pending dedicated review, carried over from 2026-07-15 |
+| `@testing-library/jest-dom` (frontend) | 6.9.1 | 7.0.0 | Major — **already covered by open Dependabot PR #69**, not duplicated here |
+| `globals` (frontend) | 16.5.0 | 17.7.0 | Major — **already covered by open Dependabot PR #67**, not duplicated here (flagged every cycle since 2026-06-17) |
+| `jsdom` (frontend) | 28.1.0 | 30.0.1 | Major — **already covered by open Dependabot PR #73** (now targeting 30.0.0, a bigger jump than the 29.1.1 seen at the 2026-07-15 cycle); not duplicated here. The `undici` security fix above was applied independently without needing this bump. |
+| `eslint-plugin-react-refresh` (frontend) | 0.4.26 | 0.5.3 | 0.x "minor" that is breaking-change-equivalent per semver-zero convention — **already covered by open Dependabot PR #72**, not duplicated here |
+| `typescript` (frontend) | 6.0.3 | 7.0.2 | Major (TS7 "Corsa" native compiler rewrite) — **already covered by open Dependabot PR #66**, not duplicated here |
+| `torch` / `torchvision` | 2.13.0 / 0.28.0 | — (current) | Not flagged this cycle — already at latest, no action needed |
+
+### Post-change verification
+All checks re-run after dependency bumps, everything green:
+- `uv run pytest tests/ -v` → **177 passed**
+- `uv run ruff check .` → clean
+- `uv run black --check .` → clean
+- `uv run isort --check .` → clean
+- `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` → clean
+- `uv run pre-commit run --all-files` → clean (black, isort)
+- `npm -C frontend run test` → **29 passed (5 files)**
+- `npm -C frontend run lint` → clean
+- `npm -C frontend run build` → clean
+- `npm -C frontend audit` → 0 vulnerabilities (down from 3)
+- Confirmed via diff that only `uv.lock` and `frontend/package-lock.json` changed — no `pyproject.toml` or `package.json` range edits were needed, and no env vars were added (`.env.example` untouched)
+
+---
+
 ## 2026-07-22
 
 > **⚠️ Open-PR backlog — action needed.** Five PRs from prior maintenance cycles are still open and unmerged against `staging`: **#56** (staging→master release merge), **#57** (2026-07-08 maintenance), **#58** (docs), **#59** (2026-07-15 maintenance), **#60** (docs). Because none of these has landed, `staging`'s tip going into this cycle was still the 2026-06-17 entry below — none of the 06-24, 07-01, 07-08, or 07-15 cycles' changes are actually present on `staging`. This audit was performed against the real, current `origin/staging` tip (not assumed-merged prior PRs). Every additional unmerged maintenance PR compounds the backlog and risks conflicting/duplicate dependency bumps landing out of order. **Recommendation: review and merge (or explicitly close) #56–#60 before the next cycle** so future audits start from a moving baseline instead of stacking on top of each other.
