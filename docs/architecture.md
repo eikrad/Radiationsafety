@@ -85,7 +85,8 @@ The `routing_outcome` field in the response tells you which path the query took:
 
 | Outcome | Meaning |
 |---|---|
-| `trusted_only_verified` | Answer grounded in vector DB documents only |
+| `trusted_only_verified` | Answer grounded in vector DB documents only, verified |
+| `trusted_only_unverified` | Web search was never attempted, but verification against trusted sources failed |
 | `web_search_unverified` | Web search was used; answer may not be fully grounded |
 | `web_search_verified` | Web search used, but answer verified against trusted sources |
 
