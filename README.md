@@ -222,6 +222,14 @@ See [docs/production-readiness.md](docs/production-readiness.md) for the full ru
 
 Cloud providers (Gemini, OpenAI, Mistral) all use the Gemini-embedded collections. The LLM for generation only receives retrieved text — never the raw vectors. Switching the generation provider requires no re-ingestion.
 
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, code quality checks, and the branching workflow (`feature branch → staging → master`; PRs target `staging`).
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party attributions.
+
 ## Credits and references
 
 This project was inspired by and draws on patterns from the **LangChain / LangGraph course** by **Eden Marco**:
