@@ -14,7 +14,6 @@ Reference for deploying and operating the Radiation Safety RAG system.
 | `GET /config` | Public | Returns whether the server has an LLM key configured (`server_has_llm_key`) |
 | `GET /documents/check-updates` | Public | Polls retsinformation.dk / IAEA for newer versions |
 | `GET /documents/source/{id}/file` | Public | Serve the local PDF for a document source |
-| `GET /ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST /ingest` | **Admin** | Triggers full re-ingestion in background |
 | `GET /ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST /documents/add-pdf` | **Admin** | Upload and register a new PDF |
