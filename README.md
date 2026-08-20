@@ -3,7 +3,22 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-Ask questions about IAEA nuclear safety standards and Danish radiation legislation in plain language. The system retrieves the most relevant chunks from a local vector database, grades them, generates a grounded answer, and flags anything it cannot verify.
+Ask questions about IAEA nuclear safety standards and Danish radiation legislation in plain language. Before an answer is shown, the system retrieves source chunks, grades them, generates a grounded reply, and flags anything it cannot verify.
+
+## Quality and evaluation
+
+This project is built around a validation layer, not only a chatbot. A recruiter or engineer landing here from a CV should start with this section.
+
+- **RAGAS-style scoring** — faithfulness, answer relevance, context precision, and context recall against a golden Q&A set (`eval/`)
+- **Grounding in the live pipeline** — document grading, generation grading, trusted-source verify, and retrieval warnings
+- **177 pytest tests** plus GitHub Actions CI on every push and pull request
+- **Pass rule** — a question passes when all four metrics are ≥ 0.5 (configurable; see `eval/README.md`)
+
+```bash
+uv run python -m eval.run_eval
+```
+
+Reports land in `eval/reports/`. Run ingestion first so the graph has documents to retrieve. Full options (`--limit`, `--no-web-search`, grader provider, LangSmith) are in [`eval/README.md`](eval/README.md).
 
 ## Features
 
@@ -13,7 +28,6 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **Web search fallback** — Brave Search kicks in when local documents don't cover the query
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
-- **Evaluation harness** — RAGAS-style scoring (faithfulness, relevance, precision, recall) against a golden Q&A dataset
 
 ## How it works
 
@@ -187,13 +201,7 @@ Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist w
 
 ## Evaluation
 
-The evaluation harness lives in `eval/`. It runs the RAG pipeline against a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall), writing reports to `eval/reports/`.
-
-```bash
-uv run python -m eval.run_eval
-```
-
-Run ingestion first so the graph has documents to retrieve. See `eval/README.md` for options (`--limit`, `--no-web-search`) and optional LangSmith tracing.
+See **[Quality and evaluation](#quality-and-evaluation)** above and [`eval/README.md`](eval/README.md) for the harness, metrics, pass rules, and report format.
 
 ## Testing
 
