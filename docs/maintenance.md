@@ -4,6 +4,120 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-08-19
+
+> **Note on `docs/maintenance.md` staleness:** this file's history lives on `staging`, and `staging` currently has entries through 2026-08-12 — this cycle is not actually two months late. The "last entry 2026-06-17" observation applies only to `master`, which is **61 commits behind `staging`** (`git rev-list --left-right --count origin/master...origin/staging` → `1  61`) — confirmed by `git show origin/master:docs/maintenance.md`, whose latest entry is indeed the 2026-06-17 one. Every weekly cycle since 2026-07-08 has landed correctly on `staging` (see git log: `54f187c`, `b9dab7b`, `9250bb8`, `b001c83`, `f2cf6be`); they just haven't been promoted to `master` via a `staging`→`master` merge. Recommend the owner merge `staging` → `master` to bring the production branch's log (and code) current — a ~2-month-old `master` means production is missing 5 cycles of dependency/security fixes. Open-PR backlog verified fresh via `mcp__github__list_pull_requests` (state=open): **0 open PRs**, matching the pre-verified context for this cycle.
+
+### Checks performed
+- `git fetch origin staging master`, then `git reset --hard origin/staging` (branch `claude/modest-faraday-jdicez`, tip `4d370de`) — starting fresh per this cycle's setup, no prior local commits to reconcile.
+- Verified open-PR backlog live via `mcp__github__list_pull_requests` (state=open) → 0, confirming the pre-checked context.
+- Baseline **before any changes**: `uv sync --all-extras && uv run pytest tests/ -n auto -v` → **177 passed**; `uv run ruff check .`, `uv run black --check .`, `uv run isort --check .`, `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip`, `uv run pre-commit run --all-files` → all clean.
+- Baseline: `npm -C frontend ci && npm -C frontend run test` → **29 passed (5 files)**; `npm -C frontend run lint` and `npm -C frontend run build` → clean.
+- Playwright E2E (`npx playwright install --with-deps chromium && npm run test:e2e`, as run in CI) could **not** be executed in this sandbox — the outbound proxy blocks `cdn.playwright.dev` (`403 request blocked: no rule or allowlist entry allows host`). This is a sandbox network restriction, not a code regression; not run in any prior maintenance cycle either (same environment).
+- Python dependency audit: `uv pip list --outdated` cross-checked against prior cycle's transitive-pinning notes (opencv-python/antlr4-python3-runtime still pinned via docling/rapidocr/omegaconf; nvidia-*/cuda-* packages still pinned by torch's CUDA runtime requirement — none moved).
+- Frontend dependency audit: `npm -C frontend outdated`.
+- Security audit: `uv export --format requirements-txt --no-hashes` + `uv run --with pip-audit pip-audit -r <export>` (project's own Python 3.12 interpreter — a bare `pip-audit -r <export>` against the live index still fails resolving point releases newer than published upstream, same issue as every prior cycle); `npm -C frontend audit`.
+- Verified `langchain-openai` 1.4.3→1.5.2 does **not** pull the `openai` 3.x major transitively (checked `uv.lock` before/after in isolation — `openai` stayed pinned at `2.53.0`).
+
+### Fixes applied
+No pre-existing failures found — baseline was fully green (177 pytest, all lint/format/type checks clean, frontend 29 tests/lint/build clean). No code fixes needed. Applied a batch of routine patch/minor dependency bumps only (no new security vulnerabilities found this cycle).
+
+### Security findings
+
+**`pip-audit`** — **2 known vulnerabilities in 2 packages**, both carried over unchanged from 2026-08-12, no new findings:
+
+| Package | Version | ID | Resolution |
+|---|---|---|---|
+| `chromadb` | 1.5.9 | PYSEC-2026-311 | **Not fixable** — still latest on PyPI; **not reachable** (embedded `PersistentClient` only, no HTTP server, `trust_remote_code` never set) |
+| `cryptography` | 49.0.0 | PYSEC-2026-3552 | **Fix requires major bump (50.0.0)** — not applied, see Major upgrades below; **not reachable** (transitive-only via `google-auth`, no PKCS#7/S-MIME usage) |
+
+**`npm -C frontend audit`** — **0 vulnerabilities**, both before and after changes.
+
+### Dependency updates
+
+**Python backend** — applied via one batched `uv lock --upgrade-package <name> ...` call (each package named explicitly, never a blanket `uv lock --upgrade`), all within `pyproject.toml`'s existing `>=` floors — **no `pyproject.toml` edits needed**:
+
+| Package | Before | After | Type | Notes |
+|---|---|---|---|---|
+| `langchain-core` | 1.5.4 | 1.6.0 | minor | |
+| `langchain-openai` | 1.4.3 | 1.5.2 | minor | verified `openai` stayed pinned at 2.53.0, did not pull the 3.x major |
+| `langchain-google-genai` | 4.3.3 | 4.3.4 | patch | |
+| `langgraph-sdk` | 0.4.2 | 0.4.3 | patch | |
+| `langsmith` | 0.10.18 | 0.11.1 | minor | |
+| `docling` | 2.119.0 | 2.120.3 | patch | confirmed `opencv-python` stayed at `4.13.0.92` — same trap avoided as every prior cycle |
+| `docling-core` | 2.91.0 | 2.92.0 | patch | |
+| `docling-parse` | 7.12.1 | 7.14.0 | minor | |
+| `docling-slim` | 2.119.0 | 2.120.3 | patch | |
+| `google-genai` | 2.17.0 | 2.18.1 | minor | |
+| `huggingface-hub` | 1.27.0 | 1.28.0 | minor | |
+| `onnxruntime` | 1.28.0 | 1.29.0 | minor | |
+| `pypdf` | 6.15.0 | 6.16.1 | minor | |
+| `pypdfium2` | 5.12.1 | 5.13.0 | minor | |
+| `tiktoken` | 0.13.0 | 0.14.0 | minor | |
+| `uvicorn` | 0.52.1 | 0.52.4 | patch | |
+| `orjson` | 3.11.9 | 3.12.0 | minor | |
+| `lxml` | 6.1.1 | 6.1.2 | patch | |
+| `filelock` | 3.32.2 | 3.32.3 | patch | |
+| `idna` | 3.18 | 3.19 | minor | |
+| `librt` | 0.13.0 | 0.15.0 | minor | |
+| `mail-parser` | 4.6.1 | 4.6.2 | patch | |
+| `platformdirs` | 4.11.2 | 4.11.3 | patch | |
+| `pygments` | 2.20.0 | 2.21.0 | minor | |
+| `python-dotenv` | 1.2.2 | 1.2.3 | patch | |
+| `charset-normalizer` | 3.5.0 | 3.5.1 | patch | |
+| `ruff` (dev) | 0.16.2 | 0.16.3 | patch | |
+| `mypy` (dev) | 2.3.0 | 2.3.1 | patch | |
+| `typer`, `mpmath`, `packaging`, `pydantic-core`, `tokenizers` | — | — | — | requested but did not move — held at current versions by other packages' compatibility constraints elsewhere in the tree |
+
+**Frontend** — applied via `npm -C frontend update` (package.json semver ranges unchanged, `package-lock.json` refreshed only):
+
+| Package | Before | After | Type |
+|---|---|---|---|
+| `@testing-library/user-event` | 14.6.4 | 14.6.5 | patch |
+| `@typescript-eslint/eslint-plugin` | 8.66.0 | 8.67.0 | patch |
+| `@typescript-eslint/parser` | 8.66.0 | 8.67.0 | patch |
+| `vitest` | 4.1.10 | 4.1.11 | patch |
+| assorted transitive patch bumps | — | — | — |
+
+### Major upgrades — flagged, NOT applied
+
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `cryptography` (Python, transitive via `google-auth`) | 49.0.0 | 50.0.0 | Major; fixes PYSEC-2026-3552 but not reachable in this app — carried over, still needs dedicated review |
+| `opencv-python` (Python, transitive via `docling`/`rapidocr`) | 4.13.0.92 | 5.0.0.93 | Major; known breaking-change risk for docling's OCR path — held back every cycle since 2026-07-08 |
+| `semchunk` (Python, transitive via `docling`) | 3.2.5 | 4.1.1 | Major; carried over from 2026-07-15 |
+| `websockets` (Python, transitive) | 15.0.1 | 17.0.1 | Major (two majors behind); carried over |
+| `transformers` (Python, transitive via `docling`/`torch`) | 5.8.1 | 5.15.1 | Large jump tied to `docling`/`torch` compatibility — deferred, gap has grown further this cycle |
+| `openai` (Python, transitive via `langchain-openai`) | 2.53.0 | 3.3.1 | Major SDK rewrite; confirmed `langchain-openai` 1.5.2 still pins below 3.x — gap has grown since 2026-08-12 (was 3.0.0, now 3.3.1) |
+| `langchain-docling` (Python) | 2.0.0 | 3.0.0 | **New this cycle** — major; not bumped, needs its own compatibility review against `docling` 2.x |
+| `xxhash` (Python, transitive via `langgraph`/`langsmith`) | 3.8.1 | 4.0.1 | Major; no CVE driving it, carried over |
+| `antlr4-python3-runtime` (Python, transitive via `omegaconf`←`rapidocr`←`docling`) | 4.9.3 | 4.13.2 | Large jump, transitive-pinned by `omegaconf`'s compatibility range — same category as `opencv-python` |
+| `ast-serialize` (Python, transitive via `mypy`, dev-only) | 0.6.0 | 0.8.0 | 0.x "zero-ver" jump, breaking-change-equivalent per convention — dev-only, low risk, held back |
+| `eslint-plugin-react-refresh` (frontend) | 0.4.26 | 0.5.4 | 0.x "minor" that is breaking-change-equivalent per semver-zero convention — no open Dependabot PR tracking it currently |
+| `typescript` (frontend) | 6.0.3 | 7.0.2 | Major (TS7 "Corsa" native compiler rewrite) — no open Dependabot PR tracking it currently |
+
+### Infrastructure pins reviewed — no drift
+- `Dockerfile`: `python:3.12-slim` — matches CI's `python-version: "3.12"` and `.python-version`
+- `frontend/Dockerfile`: `node:22-alpine` — matches CI's `node-version: "22"`
+- `nginx:alpine` (frontend/Dockerfile stage 2) — floating tag, no pinned-stale patch to bump
+
+### Post-change verification
+All checks re-run after dependency bumps, everything green:
+- `uv run pytest tests/ -n auto -v` → **177 passed**
+- `uv run ruff check .` → clean
+- `uv run black --check .` → clean
+- `uv run isort --check .` → clean
+- `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` → clean
+- `uv run pre-commit run --all-files` → clean (black, isort)
+- `npm -C frontend run test` → **29 passed (5 files)**
+- `npm -C frontend run lint` → clean
+- `npm -C frontend run build` → clean
+- `npm -C frontend audit` → 0 vulnerabilities
+- `pip-audit` → same 2 known, non-reachable findings as before changes (no new vulnerabilities)
+- Confirmed via `git diff --stat` that only `uv.lock` and `frontend/package-lock.json` changed — no `pyproject.toml` or `package.json` range edits were needed
+
+---
+
 ## 2026-08-12
 
 > **Open-PR backlog — verified fresh via `mcp__github__list_pull_requests` (state=open).** Only **2** PRs open against `staging`, both Dependabot: **#80** (`globals` 17.7.0→17.9.0) and **#79** (`vite` 8.2.0→8.2.1). This is a markedly healthier state than the 2026-07-22/2026-08-05 cycles, which each flagged a growing backlog of unmerged prior maintenance PRs (#56–#60, #74, #71, #75) — that backlog appears to have been cleared since the last cycle. Both open packages were explicitly excluded from this cycle's dependency-update pass to avoid duplicate/conflicting bumps.
