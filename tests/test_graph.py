@@ -235,16 +235,19 @@ def test_web_search_deduplicates_existing_results(monkeypatch):
 
 
 @pytest.mark.parametrize(
-    ("enabled", "attempted", "retry_count", "expected"),
+    ("enabled", "attempted", "retry_count", "privacy_mode", "expected"),
     [
-        (False, False, 0, "end"),
-        (True, True, 0, "end"),
-        (True, False, 0, "retry_retrieve"),
-        (True, False, 1, "retry_retrieve"),
-        (True, False, 2, "web_search"),
+        (False, False, 0, False, "end"),
+        (True, True, 0, False, "end"),
+        (True, False, 0, False, "retry_retrieve"),
+        (True, False, 1, False, "retry_retrieve"),
+        (True, False, 2, False, "web_search"),
+        # Privacy mode must never fall through to web_search, even after retries.
+        (True, False, 2, True, "end"),
+        (True, False, 0, True, "retry_retrieve"),
     ],
 )
-def test_generation_retry_route_matrix(enabled, attempted, retry_count, expected):
+def test_generation_retry_route_matrix(enabled, attempted, retry_count, privacy_mode, expected):
     """Route matrix for retry-after-generation decisions."""
     from graph.graph import _generation_retry_route
 
@@ -253,6 +256,21 @@ def test_generation_retry_route_matrix(enabled, attempted, retry_count, expected
             web_search_enabled=enabled,
             web_search_attempted=attempted,
             retry_count=retry_count,
+            privacy_mode=privacy_mode,
         )
         == expected
     )
+
+
+def test_route_after_grade_generation_privacy_mode_never_web_search(monkeypatch):
+    """route_after_grade_generation must not route to web_search when privacy_mode=True."""
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    from graph.graph import route_after_grade_generation
+
+    state = {
+        "generation_passed_grading": False,
+        "web_search_attempted": False,
+        "retry_after_generation_count": 2,
+        "privacy_mode": True,
+    }
+    assert route_after_grade_generation(state) == "end"

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadEnforcePrivacyMode, saveEnforcePrivacyMode } from './storage'
+import {
+  loadEnforcePrivacyMode,
+  saveEnforcePrivacyMode,
+  loadApiKeys,
+  saveApiKeys,
+  hasAnyApiKeyInStorage,
+} from './storage'
 
 // Mock localStorage for Node environment
 const localStorageMock = (() => {
@@ -82,5 +88,33 @@ describe('Privacy Mode Storage', () => {
       expect(() => saveEnforcePrivacyMode(true)).not.toThrow()
       setItemSpy.mockRestore()
     })
+  })
+})
+
+describe('API key storage (sessionStorage, not localStorage)', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('loadApiKeys returns empty keys when sessionStorage is empty', () => {
+    expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })
+  })
+
+  it('saveApiKeys writes to sessionStorage, not localStorage', () => {
+    saveApiKeys({ mistral: 'm-key', gemini: 'g-key', openai: '' })
+    expect(loadApiKeys()).toEqual({ mistral: 'm-key', gemini: 'g-key', openai: '' })
+    expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
+  })
+
+  it('hasAnyApiKeyInStorage reflects sessionStorage contents', () => {
+    expect(hasAnyApiKeyInStorage()).toBe(false)
+    saveApiKeys({ mistral: '', gemini: '', openai: 'sk-test' })
+    expect(hasAnyApiKeyInStorage()).toBe(true)
+  })
+
+  it('loadApiKeys does not throw and returns empty keys on corrupted data', () => {
+    sessionStorage.setItem('radiation-safety-api-keys', 'not-json')
+    expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })
   })
 })

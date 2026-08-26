@@ -34,9 +34,13 @@ const DEFAULT_VARIANTS: Record<Model, string> = {
   openai: 'gpt-4o-mini',
 }
 
+// API keys use sessionStorage, not localStorage: they must not outlive the tab.
+// sessionStorage is cleared by the browser itself when the tab closes, which
+// covers the crash/force-kill/mobile-backgrounding cases that the beforeunload/
+// pagehide handlers in App.tsx can miss.
 export function loadApiKeys(): Record<Model, string> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.apiKeys)
+    const raw = sessionStorage.getItem(STORAGE_KEYS.apiKeys)
     if (!raw) return { mistral: '', gemini: '', openai: '' }
     const parsed = JSON.parse(raw) as Record<string, string>
     return {
@@ -46,6 +50,14 @@ export function loadApiKeys(): Record<Model, string> {
     }
   } catch {
     return { mistral: '', gemini: '', openai: '' }
+  }
+}
+
+export function saveApiKeys(keys: Record<Model, string>): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEYS.apiKeys, JSON.stringify(keys))
+  } catch {
+    // Silently fail if sessionStorage is unavailable
   }
 }
 

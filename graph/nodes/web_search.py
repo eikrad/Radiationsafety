@@ -83,6 +83,14 @@ def web_search(
     existing_docs = list(state.get("documents") or [])
     chat_history = state.get("chat_history") or []
     cfg = config or {}
+    if state.get("privacy_mode"):
+        # Defense in depth: privacy mode must never call an external search API,
+        # regardless of which routing path reached this node.
+        return {
+            "documents": existing_docs,
+            "web_search": False,
+            "web_search_attempted": True,
+        }
     api_key = os.getenv("BRAVE_SEARCH_API_KEY")
     if not api_key:
         return {
