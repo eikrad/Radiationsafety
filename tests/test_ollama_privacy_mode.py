@@ -459,3 +459,28 @@ class TestPrivacyModeGraphNodes:
             result = grade_documents(state)
 
             assert result["web_search"] is True
+
+    def test_web_search_node_refuses_to_call_brave_in_privacy_mode(self, monkeypatch):
+        """web_search() must not call Brave when privacy_mode=True, even with a key configured.
+
+        Regression test: the generation-retry path (route_after_grade_generation ->
+        _generation_retry_route) used to reach WEB_SEARCH without checking privacy_mode,
+        so a repeatedly-failing generation in Ollama mode could still leak the query to
+        Brave. This is the defense-in-depth check inside the node itself.
+        """
+        monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "fake-key-should-never-be-used")
+        from graph.nodes.web_search import web_search
+
+        state = {
+            "question": "What is ALARA?",
+            "documents": [],
+            "chat_history": [],
+            "privacy_mode": True,
+        }
+
+        with patch("graph.nodes.web_search.BraveSearch") as mock_brave:
+            result = web_search(state)
+
+            mock_brave.from_api_key.assert_not_called()
+            assert result["web_search"] is False
+            assert result["web_search_attempted"] is True

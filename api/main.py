@@ -338,7 +338,18 @@ def config():
         or (os.getenv("GOOGLE_API_KEY") or "").strip()
         or (os.getenv("OPENAI_API_KEY") or "").strip()
     )
-    return {"server_has_llm_key": server_has_llm_key}
+    return {
+        "server_has_llm_key": server_has_llm_key,
+        # Who to name as the GDPR controller in the in-app privacy notice. Unset
+        # (the default) means: nobody has configured this deployment as a shared
+        # instance, so the notice falls back to the solo-local-use explanation.
+        "privacy_controller_name": (os.getenv("PRIVACY_CONTROLLER_NAME") or "").strip()
+        or None,
+        "privacy_controller_contact": (
+            os.getenv("PRIVACY_CONTROLLER_CONTACT") or ""
+        ).strip()
+        or None,
+    }
 
 
 @api_router.get("/documents/check-updates")

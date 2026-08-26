@@ -1,0 +1,4645 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Dokument id="idbf8066fb-2714-4d25-97d3-1f42584d258b" SchemaLocation="http://www.retsinformation.dk/offentlig/xml/schemas/2025/08/19/BEKH.Retsinfo.LexDania_2.1.xsd">
+  <Meta id="idd3c85529-d08b-4354-8626-f0acddbd54d4">
+    <DocumentType>BEK H#LOKDOK04</DocumentType>
+    <Rank>B</Rank>
+    <AccessionNumber>B20250138605</AccessionNumber>
+    <DocumentId>DI001645</DocumentId>
+    <UniqueDocumentId>253767</UniqueDocumentId>
+    <DocumentTitle>Bekendtgørelse om strålingsgeneratorer</DocumentTitle>
+    <Year>2025</Year>
+    <DiesSigni>2025-11-18</DiesSigni>
+    <DateOfSubmit id="submit_1" />
+    <StartDate REFid="submit_1">2025-11-28</StartDate>
+    <EndDate REFid="submit_1">2025-11-29</EndDate>
+    <Status>Valid</Status>
+    <Number>1386</Number>
+    <PopularTitle>Strålingsgeneratorbekendtgørelsen</PopularTitle>
+    <AnnouncedIn>Lovtidende A</AnnouncedIn>
+    <DiesEdicti>2025-11-28</DiesEdicti>
+    <EuReferences>32013L0059</EuReferences>
+    <Concerns id="concerns_1" />
+    <Ref_Accn REFid="concerns_1">A20180002330</Ref_Accn>
+    <Ref_Af REFid="concerns_1">2018-01-15</Ref_Af>
+    <Ref_Text REFid="concerns_1">Lov om ioniserende stråling og strålebeskyttelse (strålebeskyttelsesloven)</Ref_Text>
+    <Republished>Nej</Republished>
+    <Sign id="sign" />
+    <Signature REFid="sign">Jonas Egebart</Signature>
+    <Sub-Sign id="subsign" />
+    <Signature REFid="subsign">Kresten Breddam</Signature>
+    <PlaceOfSignature>Sundhedsstyrelsen</PlaceOfSignature>
+    <JournalNumber>Indenrigs- og Sundhedsmin.,\n Sundhedsstyrelsen, j.nr. 02-0004-5</JournalNumber>
+    <Ministry>Indenrigs- og Sundhedsministeriet</Ministry>
+    <AdministrativeAuthority>Sundhedsstyrelsen</AdministrativeAuthority>
+  </Meta>
+  <TitelGruppe id="idb1b4b6cf-3fab-48f6-80bd-18adceb22902">
+    <Titel id="id29ea77c8-45e2-406b-af77-b98c4b76187a">
+      <Linea>
+        <Char>Bekendtgørelse om strålingsgeneratorer</Char>
+      </Linea>
+      <Nota id="idfab78a48-6ef8-41ba-906a-3e84e94cd8b9" formaNo="EU">
+        <Explicatus>1)</Explicatus>
+        <Exitus>
+          <Linea>
+            <Char>Bekendtgørelsen indeholder bestemmelser, der gennemfører dele af Rådets direktiv 2013/59/Euratom af 5. december 2013 om fastlæggelse af grundlæggende sikkerhedsnormer til beskyttelse mod de farer, som er forbundet med udsættelse for ioniserende stråling og om ophævelse af direktiv 89/618/Euratom, 90/641/Euratom, 96/29/Euratom, 97/43/Euratom og 2003/122/Euratom, EU-Tidende 2014, nr. L 13, side 1.</Char>
+          </Linea>
+        </Exitus>
+      </Nota>
+    </Titel>
+  </TitelGruppe>
+  <DokumentIndhold id="idc1c9dcf0-eb4c-4906-ad4f-fb5d22152174">
+    <Indledning id="id0825aecb-6e03-4144-bdcf-272028a75d74">
+      <Exitus>
+        <Linea>
+          <Char>I medfør af § 1, stk. 5, § 2, stk. 2, § 4, stk. 2, § 5, stk. 2, § 7, stk. 2, § 8, stk. 2, § 9, stk. 2, § 10, stk. 2, § 11, stk. 1, § 15, § 15 a, stk. 2, og § 26, stk. 3, i lov nr. 23 af 15. januar 2018 om ioniserende stråling og strålebeskyttelse (strålebeskyttelsesloven), som ændret ved lov nr. 305 af 25. marts 2025, fastsættes:</Char>
+        </Linea>
+      </Exitus>
+    </Indledning>
+    <Afsnit id="ida503ca99-df3e-4703-ba65-e2d249d4257b" localId="1">
+      <Kapitel id="id889c9f24-2df6-4200-b3ca-265881efcb58" localId="1">
+        <Explicatus>Kapitel 1</Explicatus>
+        <Rubrica id="idb719b18b-4ee2-4745-982d-17b13f92f35f">
+          <Linea>
+            <Char formaChar="Italic">Supplerende regler</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="id7f5d4f68-4ca8-4038-959f-54d02b689f72" localId="1">
+            <Explicatus>§ 1.</Explicatus>
+            <Stk id="id8ef98c4e-a0d1-4b06-a71b-f868f080bdc9">
+              <Exitus>
+                <Linea>
+                  <Char>Denne bekendtgørelse supplerer bekendtgørelse om ioniserende stråling og strålebeskyttelse.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idecd6e5e3-dfe6-479a-971b-de21515a9770" localId="2">
+            <Explicatus>§ 2.</Explicatus>
+            <Stk id="idb0ed34ad-a4e4-4f25-aaea-6e1681f1c3cb">
+              <Exitus>
+                <Linea>
+                  <Char>Brug af strålingsgeneratorer, der medfører aktivering, er, ud over bestemmelserne i denne bekendtgørelse, underlagt de bestemmelser i bekendtgørelse om radioaktive stoffer, der er relevante for brug af åbne radioaktive kilder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="id9842ca12-8caf-4406-9d53-35ff15bd5525" localId="2">
+        <Explicatus>Kapitel 2</Explicatus>
+        <Rubrica id="id9fb18acd-b8e2-4cae-a16e-468946663c1b">
+          <Linea>
+            <Char formaChar="Italic">Dispensation m.v.</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="id3a332515-1cda-49cd-912f-e47b2fb5e981" localId="3">
+            <Explicatus>§ 3.</Explicatus>
+            <Stk id="id3333eea4-5c95-4bae-b36e-9b704513f874">
+              <Exitus>
+                <Linea>
+                  <Char>Sundhedsstyrelsen kan dispensere fra bestemmelserne i denne bekendtgørelse, stille andre krav eller skærpe krav, hvis det vurderes strålebeskyttelsesmæssigt begrundet.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="idb979f4af-9668-41ad-ab74-e9548e2a0bf4" localId="3">
+        <Explicatus>Kapitel 3</Explicatus>
+        <Rubrica id="id3d04985d-9e48-4cb5-84b8-d186512e8340">
+          <Linea>
+            <Char formaChar="Italic">Definitioner</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="idcd133e13-16eb-48ad-be9a-c07b7f993146" localId="4">
+            <Explicatus>§ 4.</Explicatus>
+            <Stk id="id63fa43bc-d214-4342-9dc4-2a8a500e825e">
+              <Exitus>
+                <Linea>
+                  <Char>I denne bekendtgørelse forstås ved:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id308e3822-ec19-41ef-a7e3-bc729a0505d7">
+                <Index>
+                  <Indentatio id="id657d1f16-6112-4079-ba0b-20008eab800c" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Aktivering: En proces, ved hvilken en stabil nuklid ved bestråling omdannes til en radionuklid.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id68b8e30a-4d90-4464-bc8b-a4c6d01e56c1" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Brug: Anvendelse af, eftersyn af, fremstilling af, indgreb i, installation af eller kontrol af strålingsgeneratorer.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idd8b3ba97-affb-4075-8289-2a42fd670425" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Forbrugerprodukt: Genstand, hvori en strålingsgenerator er indbygget, og som er fremstillet med henblik på at gøre genstanden tilgængelig for enkeltpersoner i befolkningen uden overvågning eller myndighedskontrol.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id41831d42-9598-49e4-81d2-4b6937905e94" formaInd="Nummer">
+                    <Explicatus>4)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Generel diagnostik: Medicinsk anvendelse af strålingsgeneratorer til billeddannelse i forbindelse med konventionelle radiologiske undersøgelser, herunder anvendelse til gennemlysning, der ikke omfatter intervention.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="ide85b8f3c-0269-4532-adf3-77998c6fb6ef" formaInd="Nummer">
+                    <Explicatus>5)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Gennemlysning: Medicinsk anvendelse af strålingsgeneratorer til 2D-billeddannelse, hvor der eksponeres over længere tid, typisk flere sekunder.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id9381f2d4-0b70-4ec0-95ad-cea8051b573e" formaInd="Nummer">
+                    <Explicatus>6)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Hudterapi: Behandling af hudlidelser bortset fra kræft ved anvendelse af strålingsgenerator.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id5188cdbe-80ce-44c0-a5a4-362b0ac4badb" formaInd="Nummer">
+                    <Explicatus>7)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Håndholdt strålingsgenerator: Strålingsgenerator, der er beregnet til at holde i hænderne, mens eksponering udføres.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idf44a3bc0-c927-4822-83d8-8ef8e8a174d2" formaInd="Nummer">
+                    <Explicatus>8)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Ikke-medicinsk billeddannelse: Enhver bevidst bestråling, som ikke er medicinsk bestråling, af personer til billeddannelsesformål, hvor det primære formål med bestrålingen ikke er at gavne sundheden for den bestrålede person, f.eks. retsmedicinske eller forsikringsmæssige formål.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id0b231a9b-8df8-4743-b3be-16a66e7030c4" formaInd="Nummer">
+                    <Explicatus>9)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Industriel radiografi: Anvendelse af strålingsgeneratorer, der ikke er selvafskærmende, til billeddannelse til industrielle eller forskningsmæssige formål, f.eks. til vurdering af svejsninger i metaller.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id659c16de-7db5-4855-8b3b-ee193c50d486" formaInd="Nummer">
+                    <Explicatus>10)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Intervention: Medicinsk procedure, hvor der indføres udstyr i patientens krop, f.eks. katetre eller nåle, og hvor udstyrets position i patientens krop følges og monitoreres direkte, typisk ved gennemlysning.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="ideaf2ad03-031a-4e23-8860-4452795b928d" formaInd="Nummer">
+                    <Explicatus>11)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Røntgenterapi: Behandling af kræft ved anvendelse af strålingsgenerator, der opererer med en spændingsforskel, der er mindre end eller lig med 100 kV.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id0b4ac2ac-2350-42e7-87d4-6ba3bc3697ce" formaInd="Nummer">
+                    <Explicatus>12)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Selvafskærmende strålingsgenerator: Strålingsgenerator, der er fast indbygget i en afskærmning, som er tilstrækkelig til, at stråleudsættelsen forbundet med anvendelse af strålingsgeneratoren uden for anlæg ikke er af strålebeskyttelsesmæssig betydning.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id1de6d47e-55ca-4dac-9d6a-fa116f44d99b" formaInd="Nummer">
+                    <Explicatus>13)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Stråleterapi: Behandling af kræft ved anvendelse af strålingsgeneratorer, der opererer med energier større end eller lig med 1 MeV.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id38bea207-68e5-489d-b3b2-abc417ca6e59" formaInd="Nummer">
+                    <Explicatus>14)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Verifikationssystem: Computersystem i forbindelse med behandling, som verificerer, at strålingsgeneratorens indstillinger er i overensstemmelse med den planlagte behandlingsplan.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="id14d0dac3-9da1-4cac-a4e6-99dbe8fcb180" localId="4">
+        <Explicatus>Kapitel 4</Explicatus>
+        <Rubrica id="id57a2c402-b67d-4614-8280-0f520521e5d2">
+          <Linea>
+            <Char formaChar="Italic">Forbud</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="ida7c642ef-9dbd-48eb-ba93-f0b0094e7a9a" localId="5">
+            <Explicatus>§ 5.</Explicatus>
+            <Stk id="ideff1ef28-9540-402b-b5e2-a243d4360339">
+              <Exitus>
+                <Linea>
+                  <Char>Det er forbudt at gøre forbrugerprodukter tilgængelige for enkeltpersoner i befolkningen, medmindre forbrugerprodukterne er typegodkendt af Sundhedsstyrelsen.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id1c636f23-af32-4850-bcd4-6d8becc89434" localId="6">
+            <Explicatus>§ 6.</Explicatus>
+            <Stk id="idfd49ba10-fcc0-4bf3-b4f1-84da4df4e039">
+              <Exitus>
+                <Linea>
+                  <Char>Det er forbudt ved medicinsk anvendelse at anvende strålingsgeneratorer til gennemlysning eller intervention uden automatisk styring af dosishastigheden og billeddannende system med indbygget forstærkning.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="idaa622e07-72b5-433a-9a09-2bead4a73685" localId="5">
+        <Explicatus>Kapitel 5</Explicatus>
+        <Rubrica id="id827d49a4-23f4-4b14-aa58-a727409fec73">
+          <Linea>
+            <Char formaChar="Italic">Tilladelse, underretning, undtagelse, sikkerhedsvurdering og registrering</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="ida50d867f-8ec9-4c22-a897-143233911370" localId="7">
+            <Explicatus>§ 7.</Explicatus>
+            <Stk id="id8466394c-ac21-43d6-a1c8-77dc04bef351">
+              <Exitus>
+                <Linea>
+                  <Char>Tilladelse fra Sundhedsstyrelsen kræves for følgende, jf. dog §§ 8 og 9:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id69959ba9-272e-4f9e-b9c2-61e2f34249b0">
+                <Index>
+                  <Indentatio id="ida6e10d7c-e282-47dc-896b-de96cc7a4ccb" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Fremstilling af strålingsgeneratorer.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id3861e7a4-5bca-48d1-a542-ab79a63bc9fb" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Installation af strålingsgeneratorer.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idd24745df-db54-4785-a9cd-4fc952f6206a" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Modtagekontrol af strålingsgeneratorer, anlæg og relevant udstyr.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idd64de8fd-bde2-4381-b7e7-76ccbcfaaaf2" formaInd="Nummer">
+                    <Explicatus>4)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse af strålingsgeneratorer.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id56b10f90-d9be-4347-8ce7-0f46b9e77819" formaInd="Nummer">
+                    <Explicatus>5)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Statuskontrol af strålingsgeneratorer og relevant udstyr.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id9f5cf6d7-1914-4699-9421-0c2f5bd32d8f" formaInd="Nummer">
+                    <Explicatus>6)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Eftersyn af strålingsgeneratorer, anlæg og relevant udstyr.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id0c940876-e052-4155-bbff-90ca7614cd99" formaInd="Nummer">
+                    <Explicatus>7)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Radiologisk kontrol af strålingsgeneratorer, anlæg og relevant udstyr.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id888a3c84-9e21-4d28-9bcf-e29064e628b1" formaInd="Nummer">
+                    <Explicatus>8)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Indgreb i strålingsgeneratorer og relevant udstyr.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id31980164-c3d0-4aad-9760-c7e23800b07c" localId="8">
+            <Explicatus>§ 8.</Explicatus>
+            <Stk id="id652a4cfa-049a-4c04-b783-3e59fe92a417">
+              <Exitus>
+                <Linea>
+                  <Char>Følgende anvendelsesområder for strålingsgeneratorer til medicinsk og veterinærmedicinsk anvendelse er undtaget fra kravet i § 7, nr. 4, om tilladelse fra Sundhedsstyrelsen, men er omfattet af krav om underretning til Sundhedsstyrelsen:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id3aae32c3-724e-45de-9a48-21d77fdb9349">
+                <Index>
+                  <Indentatio id="idd0e1e47e-cae4-447b-8131-1d6f0a73f181" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse i virksomhedens egne anlæg af strålingsgeneratorer til medicinske intraorale undersøgelser, bortset fra håndholdte strålingsgeneratorer, til medicinske intraorale undersøgelser.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id5021109b-cf8f-4e8b-9bff-c792a77234bf" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse i virksomhedens egne anlæg af orthopantomografer og cephalostater til medicinske dental undersøgelser.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id28d09211-19a8-45c5-bb3e-899bd499a543" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse i virksomhedens egne anlæg af strålingsgeneratorer til veterinærmedicinske undersøgelser bortset fra veterinærmedicinsk anvendelse af CT-skannere, CBCT-skannere, håndholdte strålingsgeneratorer og strålingsgeneratorer til gennemlysning.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+            <Stk id="id29425351-55b5-4374-b99a-c58083cec3b1">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Underretning efter stk. 1 er ikke krævet for virksomheder, som har tilladelse i medfør af § 7, nr. 4, til henholdsvis medicinsk eller veterinærmedicinsk anvendelse.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="iddcdeacd4-a2ca-4792-87a9-7b9d99c08fea">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Virksomheder omfattet af krav om underretning om anvendelse af strålingsgeneratorer, jf. stk. 1, er undtaget fra kravene i § 7, nr. 6 og 7, om tilladelse til eftersyn og radiologisk kontrol af egne strålingsgeneratorer samt tilhørende anlæg og relevant udstyr.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id3f27045d-1164-48a1-8209-a7a15b876ea6" localId="9">
+            <Explicatus>§ 9.</Explicatus>
+            <Stk id="id78c3faee-a878-4e02-9fd4-5deb61f8676c">
+              <Exitus>
+                <Linea>
+                  <Char>Følgende anvendelsesområder for strålingsgeneratorer til anden end medicinsk eller veterinærmedicinsk anvendelse er undtaget fra kravet i § 7, nr. 4, om tilladelse fra Sundhedsstyrelsen, men omfattet af krav om underretning til Sundhedsstyrelsen:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="idb943727b-7c24-4ca0-a62f-50de7c629478">
+                <Index>
+                  <Indentatio id="id1343dee7-af15-4be7-8632-8ccb8c5f3597" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse af selvafskærmende strålingsgeneratorer bortset fra selvafskærmende strålingsgeneratorer til strålesterilisering.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="ida305c755-e7fa-4905-8853-6b14b9eac29e" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse af håndholdte strålingsgeneratorer til røntgenfluorescensspektroskopi.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+            <Stk id="iddd04d69a-b38f-417a-a80d-50402edd62b0">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Underretning efter stk. 1 er ikke krævet for virksomheder, som har tilladelse i medfør af § 7, nr. 4, til anden end medicinsk eller veterinærmedicinsk anvendelse.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="idd68e531a-aa5e-4ae4-b0ac-0249bab765f3">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Virksomheder omfattet af krav om underretning om anvendelse af strålingsgeneratorer, jf. stk. 1, er undtaget fra kravene i § 7, nr. 3, 6 og 7, om tilladelse til modtagekontrol, eftersyn og radiologisk kontrol af egne strålingsgeneratorer samt tilhørende anlæg og relevant udstyr.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idd9667bb9-0a90-4421-a851-70f87a831ed8" localId="10">
+            <Explicatus>§ 10.</Explicatus>
+            <Stk id="id712515c1-7774-4507-86ee-705b0359cf8a">
+              <Exitus>
+                <Linea>
+                  <Char>Modtagekontrol, anvendelse, eftersyn og radiologisk kontrol af skolekilder til undervisningsformål er undtaget fra kravene om tilladelse eller underretning i medfør af §§ 7 og 9.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="idde1584ad-505f-4f30-b2c0-eb6a611cc281">
+            <Linea>
+              <Char formaChar="Italic">Sikkerhedsvurdering</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="idbc5a7b7f-bec6-4e32-b5d0-bb6de05faccb" localId="11">
+            <Explicatus>§ 11.</Explicatus>
+            <Stk id="id847ce627-c7be-4cfa-bcca-a3633645ba66">
+              <Exitus>
+                <Linea>
+                  <Char>For brug af strålingsgeneratorer, der er omfattet af krav om tilladelse, og som fremgår af bilag 1, skal der foretages en sikkerhedsvurdering.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="id6ec77670-68f7-47d0-8ee1-ae084c6c5a72">
+            <Linea>
+              <Char formaChar="Italic">Registrering</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="ida956f0df-3174-443e-9db2-582fa87dd32c" localId="12">
+            <Explicatus>§ 12.</Explicatus>
+            <Stk id="id00182aea-465b-495c-8012-1e993f67deef">
+              <Exitus>
+                <Linea>
+                  <Char>Følgende skal registreres i Sundhedsstyrelsens register for strålekilder og anlæg:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id66ba76b9-f6fc-49fc-8438-af9599c1e562">
+                <Index>
+                  <Indentatio id="idaac70bc1-aae1-40fa-af3c-7fdc7797d315" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Strålingsgeneratorer, for hvilke anvendelse er underlagt krav om tilladelse eller underretning, jf. §§ 7-9.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id548d24b8-b818-493d-9b3b-8b9141eb6f4f" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anlæg, der benyttes til brug af strålingsgeneratorer, hvor brugen er underlagt krav om tilladelse eller underretning, jf. §§ 7-9.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+            <Stk id="id694f3ba1-59fb-47be-8b1b-47be38b562d4">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>En registreret strålingsgenerator eller et registreret anlæg, der ikke længere skal anvendes, skal afmeldes hos Sundhedsstyrelsen.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="id0db4ab9c-4299-4473-817d-f9f30888d149" localId="6">
+        <Explicatus>Kapitel 6</Explicatus>
+        <Rubrica id="id126a9f33-1511-4b5c-9c17-33101569a460">
+          <Linea>
+            <Char formaChar="Italic">Krav til særlige kompetencepersoners og klinisk ansvarlige sundhedspersoners viden, færdigheder og kompetencer</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="id5de74107-7b0d-41e8-aab3-e0d598446fb8" localId="13">
+            <Explicatus>§ 13.</Explicatus>
+            <Stk id="id0c1de662-932c-497e-b2fa-7acf57c3f911">
+              <Exitus>
+                <Linea>
+                  <Char>Krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 2.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idfd4870a0-b2aa-4763-9523-f9ba8ff23d66" localId="14">
+            <Explicatus>§ 14.</Explicatus>
+            <Stk id="idcc48fc84-6aeb-408d-b167-8c2b194510c1">
+              <Exitus>
+                <Linea>
+                  <Char>Krav til medicinsk-fysiske eksperters viden, færdigheder og kompetencer fremgår af bilag 3.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id9718cf37-d332-4d66-ba91-3bdc6cb663f1" localId="15">
+            <Explicatus>§ 15.</Explicatus>
+            <Stk id="id04d21b60-8124-4c52-8ee0-403668d8fe3c">
+              <Exitus>
+                <Linea>
+                  <Char>Krav til klinisk ansvarlige sundhedspersoners viden, færdigheder og kompetencer fremgår af bilag 4.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="idf981edfb-52cb-4a26-90bc-fa4d457ca1a3" localId="7">
+        <Explicatus>Kapitel 7</Explicatus>
+        <Rubrica id="ide0cfe32b-6fa5-4e09-8325-c44063e669c5">
+          <Linea>
+            <Char formaChar="Italic">Krav til stråleudsatte arbejdstageres viden, færdigheder og kompetencer</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="id0d3f3f92-f693-46a0-bdca-1e1b2dc9ee0a" localId="16">
+            <Explicatus>§ 16.</Explicatus>
+            <Stk id="id96b26ef8-71eb-400b-a0a1-23d9a509b786">
+              <Exitus>
+                <Linea>
+                  <Char>Stråleudsatte arbejdstagere, der beskæftiges med de typer af brug og anvendelsesområder, der fremgår af bilag 5, skal være særligt uddannede hertil, før de må arbejde selvstændigt med strålingsgeneratorer.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Krav til deres viden, færdigheder og kompetencer fremgår af bilaget.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id488c9099-3547-420b-bf19-0c5478f92e13">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Personer under uddannelse må udføre arbejde med strålingsgeneratorer under supervision af en arbejdstager med viden, færdigheder og kompetencer i henhold til stk. 1.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id30cfea2d-7b63-49df-8edd-3461f701c108">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stråleudsatte arbejdstageres viden, færdigheder og kompetencer skal løbende opdateres.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="id6ec008aa-8a28-44a5-9b86-ebfb46e1e514" localId="8">
+        <Explicatus>Kapitel 8</Explicatus>
+        <Rubrica id="idd32ea695-4bed-441a-acf9-38b567411f6f">
+          <Linea>
+            <Char formaChar="Italic">Krav til brug af strålingsgeneratorer</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Rubrica id="idfc0a3004-c702-4c15-80e7-840f74b553d2">
+            <Linea>
+              <Char formaChar="Italic">Generelle krav</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id63aedf94-85a0-4897-84e7-d8a013c321c9" localId="17">
+            <Explicatus>§ 17.</Explicatus>
+            <Stk id="id7ad6a6f4-211d-491a-b603-e06cb3c4807a">
+              <Exitus>
+                <Linea>
+                  <Char>Strålingsgeneratorer skal være tydeligt og holdbart mærket med oplysning om</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id810a029c-504b-4d88-8e22-0d6558350d89">
+                <Index>
+                  <Indentatio id="idaf3873c2-20f0-4024-b491-89558b1ab237" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>producent,</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idb5a2c2c2-fd5b-446e-8871-1b9302569187" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>typebetegnelse,</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id0f7a36b4-66c6-4578-990f-666914265c86" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>serienummer og</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id3cb91699-2d3d-4c3e-ac13-09bcc347bf6b" formaInd="Nummer">
+                    <Explicatus>4)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>maksimal rørspænding og maksimal rørstrøm, eller maksimal energi for accelereret partikel, hvor relevant.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+            <Stk id="id7493d1f6-b00f-44d0-a70e-7e524d387640">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Mobile strålingsgeneratorer skal i tillæg til kravene i stk. 1 være mærket med symbol for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, suppleret med teksten »Ioniserende stråling«.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id78ed24a2-a8eb-466a-ada9-7b0f573e9870" localId="18">
+            <Explicatus>§ 18.</Explicatus>
+            <Stk id="idf405426e-5780-443d-93cf-957f2121214b">
+              <Exitus>
+                <Linea>
+                  <Char>Eksponering med en strålingsgenerator skal indikeres af et tydeligt visuelt eller akustisk advarselssignal.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id3cffe12d-cc74-4b32-a080-47dc7fe17fe2" localId="19">
+            <Explicatus>§ 19.</Explicatus>
+            <Stk id="id1c12d340-5464-4f49-8948-4baead83cd20">
+              <Exitus>
+                <Linea>
+                  <Char>Mobile strålingsgeneratorer, der ikke er håndholdte, skal under anvendelsen være fikseret.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idf5b68495-a50a-46c5-b9f3-90c42c7df82a" localId="20">
+            <Explicatus>§ 20.</Explicatus>
+            <Stk id="idc182df42-b76a-4e78-a936-329da157e780">
+              <Exitus>
+                <Linea>
+                  <Char>Brug af strålingsgeneratorer skal foregå i anlæg, jf. dog stk. 2-5.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id170e93c2-d7f5-47a9-9ae7-1490d53bed78">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til medicinske undersøgelser, hvis patientens tilstand tilsiger det.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id59f3be8c-c816-4249-80c8-30a6a9750c35">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til veterinærmedicinske undersøgelser, hvis dyrets størrelse eller andre forhold ikke muliggør anvendelse i anlæg.</Char>
+                </Linea>
+                <Linea>
+                  <Char>I sådanne tilfælde skal der benyttes optimerende foranstaltninger.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id9c385743-00c6-4dcf-a11a-230f2a2f28df">
+              <Explicatus>Stk. 4.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til anden end medicinsk eller veterinærmedicinsk anvendelse, hvis strålingsgeneratoren er konstrueret med tilstrækkelig indbygget afskærmning med henblik på anvendelse uden for anlæg, f.eks. selvafskærmende eller håndholdte strålingsgeneratorer.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="ida6f2ee59-9913-449d-b5e6-16991db50723">
+              <Explicatus>Stk. 5.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til anden end medicinsk eller veterinærmedicinsk anvendelse, hvis de undersøgte emners størrelse eller andre forhold ikke muliggør anvendelse i anlæg.</Char>
+                </Linea>
+                <Linea>
+                  <Char>I sådanne tilfælde skal der benyttes optimerende foranstaltninger.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idb9d799cc-a974-4670-a426-1eed9a503c02" localId="21">
+            <Explicatus>§ 21.</Explicatus>
+            <Stk id="id65cd9167-c74a-4062-a75b-d0b7a48bbc4a">
+              <Exitus>
+                <Linea>
+                  <Char>Ved brug af strålingsgeneratorer i anlæg skal betjening af strålingsgeneratoren så vidt muligt ske fra en betjeningsplads uden for anlægget.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Betjening af strålingsgeneratorer inde i et anlæg skal foregå under benyttelse af optimerende foranstaltninger.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id6d9382a8-a6ff-4ef6-b8ef-12e4dd1102bb" localId="22">
+            <Explicatus>§ 22.</Explicatus>
+            <Stk id="id1c636ab7-f418-4e1e-bb2e-3be834cb6e4a">
+              <Exitus>
+                <Linea>
+                  <Char>Personer og dyr må kun udsættes for den direkte stråling, hvis det er en del af deres egen undersøgelse, behandling eller ikke-medicinske billeddannelse.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="ide08affbc-a1c6-4382-aa75-54175ccd0d81">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for medicinske eller veterinærmedicinske undersøgelser, hvor en arbejdstagers hænder kortvarigt må udsættes for den direkte stråling, og kun så længe det er nødvendigt for undersøgelsen</Char>
+                  <Char formaChar="Italic">.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id4318bd20-95c0-44ba-b30c-66f1cebc4a4e" localId="23">
+            <Explicatus>§ 23.</Explicatus>
+            <Stk id="id154ff4ef-baeb-48d1-8fb8-2c76ce3a9d1e">
+              <Exitus>
+                <Linea>
+                  <Char>Ved et kontrolleret område, jf. § 44 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, skal der være et advarselsskilt for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, suppleret med teksten: »Strålingsgenerator.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Kontrolleret område.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Risiko for ekstern bestråling«.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idea1c37ef-655c-45e2-bb7f-7fcfbe5dd6f2" localId="24">
+            <Explicatus>§ 24.</Explicatus>
+            <Stk id="idbc6c43cc-8671-4f30-9ce7-e7dc64c780aa">
+              <Exitus>
+                <Linea>
+                  <Char>Ved et overvåget område, jf. § 45 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, skal der, hvor relevant i forhold til den radiologiske risikos karakter og omfang, være advarselsskilt for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, suppleret med teksten: »Strålingsgenerator.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Overvåget område.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Risiko for ekstern bestråling«.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id02739cf0-d935-4775-8856-db480a8a87de" localId="25">
+            <Explicatus>§ 25.</Explicatus>
+            <Stk id="id5d008956-ff02-4bd4-8bf8-9559930ee27f">
+              <Exitus>
+                <Linea>
+                  <Char>Der skal udføres eftersyn og radiologisk kontrol af strålingsgeneratorer, anlæg og relevant udstyr med de intervaller, der er angivet i stk. 2-4.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id76644ad8-7dae-4d3a-bc01-864da4c4709b">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om tilladelse, jf. § 7, nr. 4, må intervallet mellem eftersyn ikke være længere end 13 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id6f8a79c3-cd0e-4959-8d94-8e325b714c30">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om underretning, jf. §§ 8 og 9, må intervallet mellem eftersyn ikke være længere end 25 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="idbf7b2223-22b7-4b4e-a210-e2fcfc85e8d9">
+              <Explicatus>Stk. 4.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Der skal udføres radiologisk kontrol i forbindelse med eftersyn, hvor relevant.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Intervallet mellem radiologisk kontrol af anlæg må ikke være længere end 61 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id97fe8a0b-f2e6-4987-a1ec-c90fb32ae8b5" localId="26">
+            <Explicatus>§ 26.</Explicatus>
+            <Stk id="idc27a1a6d-5b3c-4330-be9a-b08a449e9ace">
+              <Exitus>
+                <Linea>
+                  <Char>Før endelig bortskaffelse af en strålingsgenerator skal der træffes foranstaltninger, der forhindrer, at strålingsgeneratoren kan danne stråling.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id215eddf5-fb37-4be6-b379-a85353101b1b" localId="27">
+            <Explicatus>§ 27.</Explicatus>
+            <Stk id="idf87cd393-9929-41a2-8ded-4328187ef0a7">
+              <Exitus>
+                <Linea>
+                  <Char>Der skal føres en fortegnelse over strålingsgeneratorer.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id04c8c638-aa3d-4a08-9aaf-37d32c49a687">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Fortegnelsen, jf. stk. 1, skal for hver strålingsgenerator indeholde følgende oplysninger:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id6fe7fbdb-7950-4fb9-8348-d2fe1c05c620">
+                <Index>
+                  <Indentatio id="id4ecab8f1-be6b-43d4-a004-1158783c33a0" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Producent.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="ide0ff06f2-d74b-4331-a164-d465ce4bfbca" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Typebetegnelse.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id4e7a9dae-a46b-470b-b945-e1b27c3b4f33" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Serienummer.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id00ba9c2a-a0ad-44ba-b9ec-66cc9d0b1edd" formaInd="Nummer">
+                    <Explicatus>4)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Formålet med anvendelsen af strålingsgeneratoren.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id2825c333-0fa3-4def-bee4-59248d1770a2" formaInd="Nummer">
+                    <Explicatus>5)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Strålingstype.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id6ae98489-6b95-48a8-b86d-88570aa7fcfa" formaInd="Nummer">
+                    <Explicatus>6)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Maksimal rørspænding og rørstrøm, eller maksimal energi for accelereret partikel, hvor relevant.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id4e0c66b3-5d51-4237-9381-cf96e36ac135" formaInd="Nummer">
+                    <Explicatus>7)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Stationær eller mobil strålingsgenerator.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idc84ab2b2-aafe-467b-959b-d2e788bb410a" formaInd="Nummer">
+                    <Explicatus>8)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Placering.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idb1abdb82-3c50-48b1-a542-310df96080e4" formaInd="Nummer">
+                    <Explicatus>9)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Relevant kontaktperson.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id3a23707d-43ce-413b-b348-22921c335ae7" localId="28">
+            <Explicatus>§ 28.</Explicatus>
+            <Stk id="idf1aac3b6-78a4-4427-bff8-c96af2cef6dd">
+              <Exitus>
+                <Linea>
+                  <Char>Der skal føres en fortegnelse over anlæg, der benyttes til brug af strålingsgeneratorer, som er omfattet af krav om tilladelse, jf. § 7.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Hvert anlæg skal være entydigt identificeret i fortegnelsen.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="ida384c286-b382-421e-8c4c-82510f739965">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Fortegnelsen, jf. stk. 1, skal for hvert anlæg indeholde følgende:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="iddbdb9907-84e0-4d54-8dbf-f2204268d067">
+                <Index>
+                  <Indentatio id="id1811d297-6a58-4f6a-9055-0968d81ea624" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Oplysning om anlæggets konstruktion og indretningens evne til at yde strålebeskyttelse.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id694f7674-4134-4875-9871-88241c0c95ec" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Tegning af anlægget.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id33713255-dd9c-4d12-a40a-a9d2a1c6e078" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Oplysning om eventuel klassificering som kontrolleret eller overvåget område.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="id55332ecd-f04e-413e-b26d-2ee1d416ea7e">
+            <Linea>
+              <Char formaChar="Italic">Supplerende krav til medicinsk anvendelse</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id89cebb18-a71c-4465-b9d7-53143eaf544a" localId="29">
+            <Explicatus>§ 29.</Explicatus>
+            <Stk id="idbb67c32a-d323-4acf-b131-f298ae6ce658">
+              <Exitus>
+                <Linea>
+                  <Char>Patienter eller personer, der udsættes for medicinsk bestråling, skal overvåges, herunder kunne ses og høres, under bestrålingen.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id227c96b6-65d1-4645-83ec-17c6c794d77c">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for intraorale undersøgelser.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idddaf9218-41ea-46bc-b633-5da746e00c36" localId="30">
+            <Explicatus>§ 30.</Explicatus>
+            <Stk id="idb4a6d3ce-b942-4554-a04f-e45476c716bc">
+              <Exitus>
+                <Linea>
+                  <Char>Kun de arbejdstagere og omsorgspersoner, der er nødvendige for gennemførelsen af en undersøgelse, må befinde sig i anlægget eller området, mens undersøgelsen foregår.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id4e4eceb9-39a0-4348-b409-1f47c2e50beb">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Arbejdstagere, omsorgspersoner samt enkeltpersoner i befolkningen, der befinder sig i anlæg eller områder, mens en undersøgelse foregår, skal beskyttes mod spredt stråling.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id10009245-a3f2-4e5f-a251-c5dc2f9c6909" localId="31">
+            <Explicatus>§ 31.</Explicatus>
+            <Stk id="id8039b8c5-cf71-430e-95f8-2a45fd32403b">
+              <Exitus>
+                <Linea>
+                  <Char>Ingen andre personer end patienten må befinde sig i anlægget under en behandling.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id534b7eb3-6a55-46bb-928e-c0e1a44a256e">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Stk. 1 gælder ikke for hudterapi.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id512d4be3-89a0-4439-a7d8-97903192fc4f" localId="32">
+            <Explicatus>§ 32.</Explicatus>
+            <Stk id="ida19e218f-00eb-4fe6-b3b9-bec1bf7a51d3">
+              <Exitus>
+                <Linea>
+                  <Char>Der skal udføres statuskontrol på strålingsgeneratorer og relevant udstyr med de intervaller, der er angivet i stk. 2-4.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id9baf4ca8-f117-48d2-b4b6-35c722a712d4">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om tilladelse, jf. § 7, nr. 4, må intervallet mellem statuskontrol ikke være længere end 13 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id0f803cf6-25c3-40c6-98fd-73afcd2c9f88">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om underretning, jf. § 8, stk. 1, nr. 2, må intervallet mellem statuskontrol ikke være længere end 25 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id02ae064c-a37d-4e8b-ae98-511fd075efdc">
+              <Explicatus>Stk. 4.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om underretning, jf. § 8, stk. 1, nr. 1, må intervallet mellem statuskontrol ikke være længere end 61 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id849e5660-68fd-4c9e-a1f7-13442f434cbe" localId="33">
+            <Explicatus>§ 33.</Explicatus>
+            <Stk id="iddaec353e-b56f-4a0c-8386-ffac3f7e5e1c">
+              <Exitus>
+                <Linea>
+                  <Char>Den, der foretager ændringer i opsætning og, hvor relevant, undersøgelsesprotokoller, i forbindelse med modtage- eller statuskontrol, eftersyn, indgreb m.v., skal straks videreformidle ændringerne til alle relevante personer i virksomheden.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idde7f9177-fc4e-437f-9b40-7610ca41f311" localId="34">
+            <Explicatus>§ 34.</Explicatus>
+            <Stk id="idf3c2a927-889a-4c49-8630-0d527dec9deb">
+              <Exitus>
+                <Linea>
+                  <Char>Inden den første anvendelse af en strålingsgenerator til behandling skal der udføres kalibrering af dosis.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id406e6789-2ad8-4024-a838-a73dc784289a">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Kalibreringen skal ske i henhold til en vedtagen dosimetriprotokol.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id609d672f-ba08-4770-af11-881366230b7b">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Kalibreringen skal godkendes af en medicinsk-fysisk ekspert inden første anvendelse.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id2fc8fcbd-cd38-4704-a522-73aad9427ebb" localId="35">
+            <Explicatus>§ 35.</Explicatus>
+            <Stk id="id776abd6c-18bb-45a2-be5d-c56261a6d254">
+              <Exitus>
+                <Linea>
+                  <Char>Supplerende krav til specifikke typer af medicinske anvendelser af strålingsgeneratorer fremgår af bilag 6.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="id80b91d1f-3fa9-4f4f-8c0d-c4706df576a7">
+            <Linea>
+              <Char formaChar="Italic">Supplerende krav til veterinærmedicinsk anvendelse</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id9fc5a5fe-02d4-4b33-9d35-b738282ff017" localId="36">
+            <Explicatus>§ 36.</Explicatus>
+            <Stk id="id76ea03de-cb44-4826-a2a7-ed790bda90ab">
+              <Exitus>
+                <Linea>
+                  <Char>Dyret skal så vidt muligt befinde sig alene i anlægget eller området, mens undersøgelsen foregår.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Dyret skal derfor immobiliseres ved bedøvelse eller ved benyttelse af tekniske hjælpemidler, hvor relevant.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id6e0cb04c-4c3c-4111-a2d7-6033678371d1">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Når det ikke er muligt at gennemføre undersøgelsen, mens dyret befinder sig alene i anlægget eller området, må arbejdstagere og enkeltpersoner i befolkningen over 18 år støtte dyret, mens undersøgelsen foregår.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="ide8cd17c7-793c-4b61-85b9-fa4d29b269b1">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Arbejdstagere og enkeltpersoner i befolkningen, der befinder sig i anlægget eller området, mens en undersøgelse foregår, skal beskyttes mod spredt stråling.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idd0dc950e-2694-4998-8e2c-85d36bdbcc93" localId="37">
+            <Explicatus>§ 37.</Explicatus>
+            <Stk id="idb4c3fe20-6118-4747-850e-5749c953e318">
+              <Exitus>
+                <Linea>
+                  <Char>Ingen personer må befinde sig i anlægget under en behandling.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id0c81ea79-110c-4e5b-bb7d-bbd7ac7b5546" localId="38">
+            <Explicatus>§ 38.</Explicatus>
+            <Stk id="idd597bfbb-041c-462b-92a3-6b3bfcd17f39">
+              <Exitus>
+                <Linea>
+                  <Char>Der skal udføres statuskontrol på strålingsgeneratorer og relevant udstyr med de intervaller, der er angivet i stk. 2-4.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="ida2794780-f915-492f-8d1f-9b6f189928bf">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om tilladelse, jf. § 7, nr. 4, må intervallet mellem statuskontrol ikke være længere end 13 måneder.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="idf03511ff-98ce-4eba-a209-bbe0faeb067f">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer, der er omfattet af krav om underretning, jf. § 8, stk. 1, nr. 3, må intervallet mellem statuskontrol ikke være længere end 25 måneder, jf. dog stk. 4.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id664bd030-a126-4a34-9bfd-38f774c9302e">
+              <Explicatus>Stk. 4.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>For anvendelse af strålingsgeneratorer til intraorale undersøgelser må intervallet mellem statuskontrol ikke være længere end 10 år.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id5a3048c4-916c-4818-b34e-81723de1bd01" localId="39">
+            <Explicatus>§ 39.</Explicatus>
+            <Stk id="id3929e387-3068-46b2-aee0-07280e6f8570">
+              <Exitus>
+                <Linea>
+                  <Char>Virksomheden skal sende indberetning til Sundhedsstyrelsen om lokationer, hvor der foretages mere end 200 eksponeringer pr. måned uden for anlæg.</Char>
+                </Linea>
+                <Linea>
+                  <Char>Sundhedsstyrelsen skal have indberetningen hurtigst muligt, og så vidt muligt inden arbejdet påbegyndes.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="id8da49a6e-62c7-42e0-b628-6ceb7cc46421">
+            <Linea>
+              <Char formaChar="Italic">Supplerende krav til ikke-medicinsk billeddannelse</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id897a25c3-70b0-43fe-8c8c-9758ede834b9" localId="40">
+            <Explicatus>§ 40.</Explicatus>
+            <Stk id="id964694a0-84f6-4caa-975a-e5386ffc4c9a">
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af medicinsk-radiologiske strålingsgeneratorer til ikke-medicinsk billeddannelsesformål skal opfylde alle relevante krav til medicinsk anvendelse.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id496f8080-6925-4bc8-a299-f9d066223653" localId="41">
+            <Explicatus>§ 41.</Explicatus>
+            <Stk id="id27f3e6ba-bc43-41e0-92c3-b6fbc00cb49f">
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af andre strålingsgeneratorer end de, der er nævnt i § 40, er underlagt de krav, som Sundhedsstyrelsen fastsætter i det enkelte tilfælde.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idcb11dbd6-4835-43eb-9fd0-22ed7c630de6" localId="42">
+            <Explicatus>§ 42.</Explicatus>
+            <Stk id="id18d224de-ec03-4055-a731-6102593f472f">
+              <Exitus>
+                <Linea>
+                  <Char>Personer må kun udsættes for bestråling i forbindelse med ikke-medicinsk billeddannelse, hvis de er blevet informeret om sundhedsrisikoen forbundet med bestrålingen og er blevet anmodet om deres samtykke, dog under hensyntagen til tilfælde, hvor myndigheder kan handle uden samtykke fra personen i henhold til anden lovgivning.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="id5c084327-46f4-41d8-8e20-415b9e51fd79">
+            <Linea>
+              <Char formaChar="Italic">Supplerende krav til anvendelse til industrielle formål, forskning og undervisning</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id1f9b1c6a-d771-4d27-a895-7429e7dd9ee1" localId="43">
+            <Explicatus>§ 43.</Explicatus>
+            <Stk id="id9cef7312-d828-41cd-b5fd-d31d52227e13">
+              <Exitus>
+                <Linea>
+                  <Char>Supplerende krav til anvendelse af selvafskærmende strålingsgeneratorer, håndholdte strålingsgeneratorer og strålingsgeneratorer i anlæg fremgår af bilag 6.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id8b984dea-5e60-4626-ad94-d28fe400be7a" localId="44">
+            <Explicatus>§ 44.</Explicatus>
+            <Stk id="id24143f3f-9713-4fe8-973e-19ada9651f23">
+              <Exitus>
+                <Linea>
+                  <Char>Supplerende krav til anvendelse af strålingsgeneratorer til industriel radiografi i og uden for anlæg fremgår af bilag 7.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="idf577f047-b8cb-4a55-ac25-c31d8e1471bb" localId="45">
+            <Explicatus>§ 45.</Explicatus>
+            <Stk id="id0f09e85f-3ebc-4803-a750-886c67461237">
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af skolekilder til undervisningsformål på grundskoler, gymnasiale uddannelser, videregående uddannelser m.v. skal opfylde følgende krav:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="id392388f3-44c9-4506-a061-ce7f68437994">
+                <Index>
+                  <Indentatio id="id8a913747-11fe-441f-818b-79f73cc7b4aa" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse af skolekilder skal foregå under opsyn af en lærer, der opfylder kravene til viden, færdigheder og kompetencer, der fremgår af bilag 5, jf. dog nr. 2.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id0690ae4b-f02c-4b6a-9eec-1d2ef0193dd6" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Anvendelse af skolekilder til og med grundskolens 8. klasse skal foregå som demonstrationsforsøg udført af en lærer, der opfylder kravene til viden, færdigheder og kompetencer, der fremgår af bilag 5.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id27350253-4bf3-46c1-bda7-da46dada33de" localId="46">
+            <Explicatus>§ 46.</Explicatus>
+            <Stk id="id5a3efc9d-0fcc-4b07-b39c-b996a982ef94">
+              <Exitus>
+                <Linea>
+                  <Char>Skolekilder skal være typegodkendt af Sundhedsstyrelsen.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id1b836ec4-2f39-4034-a102-53a8f0b3ee7a">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Skolekilder skal opfylde følgende krav for at kunne opnå typegodkendelse, jf. stk. 1:</Char>
+                </Linea>
+              </Exitus>
+              <Exitus id="idb0870d93-c289-4573-874f-0ccffcd0bb60">
+                <Index>
+                  <Indentatio id="ida7b5a8f5-8350-4ea5-907c-72a1d1c29905" formaInd="Nummer">
+                    <Explicatus>1)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Skolekilden skal være konstrueret med henblik på anvendelse til undervisningsformål.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="ida7bfaea0-1797-40bd-8207-e32694adf854" formaInd="Nummer">
+                    <Explicatus>2)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Skolekilden skal være selvafskærmende.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="ide9a91810-cbe1-404d-ba67-a26ce8d575f7" formaInd="Nummer">
+                    <Explicatus>3)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Skolekilden skal operere med en spændingsforskel, der er mindre end eller lig med 30 kV.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id3d3d16ab-6a22-4396-964f-8bc47030f9dc" formaInd="Nummer">
+                    <Explicatus>4)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Skolekilden skal være udstyret med en teknisk anordning, der forhindrer, at skolekilden kan eksponere kontinuerligt.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="id4f423fbd-1644-4d26-b63b-e67d63bef519" formaInd="Nummer">
+                    <Explicatus>5)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Dosishastigheden 10 cm fra overfladen af skolekilden må ikke være større end 1 μSv/h.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                  <Indentatio id="idaff5c576-d475-4fa0-8d69-b4ce4186bc7a" formaInd="Nummer">
+                    <Explicatus>6)</Explicatus>
+                    <Exitus>
+                      <Linea>
+                        <Char>Med skolekilden skal følge adgang til en brugsvejledning, der som minimum skal indeholde information om anvendelse af skolekilden.</Char>
+                      </Linea>
+                    </Exitus>
+                  </Indentatio>
+                </Index>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="id989ff191-6829-4369-b5e5-66da9cda803d">
+            <Linea>
+              <Char formaChar="Italic">Supplerende krav til fremstilling af, indgreb i og installation af strålingsgeneratorer</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id785e2277-a88c-4fd7-932f-2debf7397c34" localId="47">
+            <Explicatus>§ 47.</Explicatus>
+            <Stk id="iddd6410a2-fffe-430f-a78c-c8b419ea9f18">
+              <Exitus>
+                <Linea>
+                  <Char>Supplerende krav til fremstilling af, indgreb i og installation af strålingsgeneratorer fremgår af bilag 6.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="ida7b350fc-1031-4a8a-ac8a-b575ec21230a" localId="9">
+        <Explicatus>Kapitel 9</Explicatus>
+        <Rubrica id="id8c4790e4-ac0e-474f-b07e-784df3472a40">
+          <Linea>
+            <Char formaChar="Italic">Klageadgang og straf</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Paragraf id="id86806f04-fe1b-4a1b-a3c3-ba89ad85e90c" localId="48">
+            <Explicatus>§ 48.</Explicatus>
+            <Stk id="id3ef3c468-011a-4685-a26b-48d21cff6ac4">
+              <Exitus>
+                <Linea>
+                  <Char>Klager over afgørelser, der er truffet af Sundhedsstyrelsen i henhold til denne bekendtgørelse, kan kun indbringes for indenrigs- og sundhedsministeren, hvis klagen vedrører retlige spørgsmål, jf. strålebeskyttelseslovens § 25.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+          <Paragraf id="id5d9c293f-b72b-4009-ba93-74753d3dccec" localId="49">
+            <Explicatus>§ 49.</Explicatus>
+            <Stk id="idf0bc1424-225b-41d2-9c9d-53077436a592">
+              <Exitus>
+                <Linea>
+                  <Char>Medmindre højere straf er forskyldt efter anden lovgivning, straffes med bøde den virksomhed, der overtræder §§ 5-9, §§ 11 og 12, bilag 2, jf. § 13, bilag 3, jf. § 14, bilag 4, jf. § 15, §§ 16-19, § 20, stk. 1, stk. 3, 2. pkt., og stk. 5, 2. pkt., §§ 21-23, §§ 25-28, § 29, stk. 1, § 30, § 31, stk. 1, §§ 32-45, § 46, stk. 1, og bilag 6, jf. § 47.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="iddef6b69a-4501-47e4-b8cd-77570ee9797a">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Der kan pålægges selskaber m.v. (juridiske personer) strafansvar efter reglerne i straffelovens 5. kapitel.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+      <Kapitel id="idafb34974-6413-4861-b0f8-1e75d9025be9" localId="10">
+        <Explicatus>Kapitel 10</Explicatus>
+        <Rubrica id="id3c209fae-ca10-41e6-b4af-7806074a9e8a">
+          <Linea>
+            <Char formaChar="Italic">Ikrafttrædelses-, virknings-, overgangs- og territorialbestemmelser</Char>
+          </Linea>
+        </Rubrica>
+        <ParagrafGruppe>
+          <Rubrica id="id823c9ccb-2f57-46e0-9b79-e9c5a9c83870">
+            <Linea>
+              <Char formaChar="Italic">Ikrafttrædelses-,virknings- og overgangsbestemmelser</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="idd7a2fe73-728e-4035-ba76-09163220718a" localId="50">
+            <Explicatus>§ 50.</Explicatus>
+            <Stk id="id7be68a14-5742-4413-a1e5-ee4a680d8018">
+              <Exitus>
+                <Linea>
+                  <Char>Bekendtgørelsen træder i kraft den 1. januar 2026.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id9f5fa7f3-b023-4fd2-86bd-dae35531e95e">
+              <Explicatus>Stk. 2.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>§§ 13-16 har virkning fra den 1. januar 2027.</Char>
+                </Linea>
+                <Linea>
+                  <Char>For strålebeskyttelseskoordinatorer, medicinsk-fysiske eksperter, klinisk ansvarlige sundhedspersoner og stråleudsatte arbejdstagere gælder §§ 11-13 i bekendtgørelse nr. 671 af 1. juli 2019 om brug af strålingsgeneratorer frem til den 1. januar 2027.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id0c80aaaa-b202-413f-9e03-7c2abc642bb1">
+              <Explicatus>Stk. 3.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>§ 46 har virkning for skolekilder, der importeres eller fremstilles fra den 1. januar 2027.</Char>
+                </Linea>
+                <Linea>
+                  <Char>For skolekilder, der er importeret eller fremstillet inden den 1. januar 2027, gælder de hidtil gældende regler.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+            <Stk id="id36dcdeff-f6ae-4d4a-95f8-8ea3c7ea79fe">
+              <Explicatus>Stk. 4.</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Bekendtgørelse nr. 671 af 1. juli 2019 om brug af strålingsgeneratorer ophæves.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+        <ParagrafGruppe>
+          <Rubrica id="idb4d2adb8-b4d4-47fb-909f-754aa15bcf62">
+            <Linea>
+              <Char formaChar="Italic">Territorialbestemmelser</Char>
+            </Linea>
+          </Rubrica>
+          <Paragraf id="id170a0780-069c-412e-ad1a-fd704dbd43f1" localId="51">
+            <Explicatus>§ 51.</Explicatus>
+            <Stk id="id3e6a2549-902f-4d26-ae4a-68ea076639f5">
+              <Exitus>
+                <Linea>
+                  <Char>Bekendtgørelsen gælder ikke for Færøerne og Grønland.</Char>
+                </Linea>
+              </Exitus>
+            </Stk>
+          </Paragraf>
+        </ParagrafGruppe>
+      </Kapitel>
+    </Afsnit>
+  </DokumentIndhold>
+  <UnderskriftGruppe id="idd3019e8c-a191-4bbb-8fc5-6cd9ad50a959">
+    <UnderskriftStedDato />
+    <Underskriver />
+  </UnderskriftGruppe>
+  <Bilag id="id54dcf272-18ae-4005-acdc-c72d3a2411d6" localId="1">
+    <Explicatus>Bilag 1</Explicatus>
+    <Rubrica id="id4796c835-7163-4559-8b64-2f19d5c9b317">
+      <Linea>
+        <Char formaChar="Bold">Krav om sikkerhedsvurdering</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="id496c6892-97b3-4131-896a-d32e7681c86c">
+      <TekstGruppe id="idf035406f-6f2c-4115-9da7-07cabe6ab02b">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til § 11.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char>Følgende er omfattet af krav om sikkerhedsvurdering:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Index>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>1)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Fremstilling af, installation af og kontrol af samt indgreb i strålingsgeneratorer.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>2)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af strålingsgeneratorer til medicinske eller veterinærmedicinske undersøgelser, hvor arbejdstagere rutinemæssigt og som en del af arbejdsgangen opholder sig tæt ved patienten eller dyret under undersøgelsen, herunder intervention.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>3)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af strålingsgeneratorer til behandling.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>4)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af mobile strålingsgeneratorer.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>5)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af håndholdte strålingsgeneratorer til backscatterskanning.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>6)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af strålingsgeneratorer til industriel radiografi.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>7)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af strålingsgeneratorer til industrielle og forskningsmæssige formål, der kræver høje dosishastigheder, f.eks. strålesterilisering.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>8)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af acceleratorer til industrielle og forskningsmæssige formål.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>9)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Anvendelse af cyklotroner.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+          </Index>
+        </Exitus>
+        <Exitus />
+        <Exitus />
+        <Exitus />
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+  <Bilag id="ida1e13b9c-0be9-45d2-bb5c-d55a457059fc" localId="2">
+    <Explicatus>Bilag 2</Explicatus>
+    <Rubrica id="idb8d6d4dd-a1c5-4c77-96ea-87f1248b6878">
+      <Linea>
+        <Char formaChar="Bold">Krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="id5c7ac6c3-87f6-4de0-921d-e971f5433268">
+      <TekstGruppe id="id852363e3-8a14-4215-b56f-032fc2f15504">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til § 13.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer, der har uddannelse og erfaring som angivet nedenfor, opfylder kravene til viden, færdigheder og kompetencer for en strålebeskyttelseskoordinator for den pågældende type af brug eller for det pågældende anvendelsesområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Herudover skal strålebeskyttelseskoordinatorer have kendskab til den relevante lovgivning på området samt tilhørende vejledninger.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer med anden uddannelse eller erfaring end angivet nedenfor vurderes individuelt af Sundhedsstyrelsen.</Char>
+          </Linea>
+          <Linea>
+            <Char>For typer af brug eller anvendelsesområder, der ikke er nævnt nedenfor, fastsætter Sundhedsstyrelsen krav til strålebeskyttelseskoordinatorens viden, færdigheder og kompetencer i det enkelte tilfælde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Medicinsk anvendelse</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Viden om ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med medicinsk anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Veterinærmedicinsk anvendelse</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i radiologi på uddannelse inden for veterinærmedicin eller tilsvarende.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med veterinærmedicinsk anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens     opgaveområde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Anvendelse til industrielle formål, forskning og undervisning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Fremstilling af radionuklider</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Isotopkursus godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer af strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af strålingsgeneratorer til fremstilling af radionuklider.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Strålesterilisering m.v. i industrielle bestrålingsanlæg</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i strålebeskyttelse forbundet med industrielle bestrålingsanlæg godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af strålingsgeneratorer til strålesterilisering.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Industriel radiografi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i strålebeskyttelse forbundet med industriel radiografi godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af strålingsgeneratorer til industriel radiografi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Ikke-medicinsk billeddannelse</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse forbundet med anvendelse af strålingsgeneratorer til ikke-medicinsk billeddannelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer af strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.5.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Strålesterilisering med selvafskærmende strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.5.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.5.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af selvafskærmende strålingsgeneratorer til strålesterilisering.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="NormalInd" />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.6.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Anden anvendelse af selvafskærmende strålingsgeneratorer end den i punkt 3.5 nævnte</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.6.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af selvafskærmende strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.7.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Backscatterskanning med håndholdte strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.7.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.7.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer af strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.8.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Røntgenfluorescensspektroskopi med håndholdte strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.8.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer af strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.9.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Forskning og undervisning på højere læreanstalter m.v.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.9.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.9.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.10.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Undervisning med skolekilder</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.10.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som fysik- eller kemilærer eller tilsvarende.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.10.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Viden om ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Øvrig brug af strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Fremstilling, installation, modtagekontrol, statuskontrol, eftersyn og radiologisk kontrol af samt</Char>
+            <Char> indgreb i strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer af strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.1.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Erfaring med udførelse af radiologisk kontrol.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Modtagekontrol og statuskontrol forbundet med medicinsk og veterinærmedicinsk anvendelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>I tillæg til kravene i punkt 4.1.1.-4.1.4. erfaring med optimering af billedkvalitet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">4.3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Eftersyn og radiologisk kontrol, der er undtaget fra krav om tilladelse, jf. § 8, stk. 2.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i anvendelse af de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer af strålingsgeneratorer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">4.4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Modtagekontrol, statuskontrol, eftersyn og radiologisk kontrol af anlæg og udstyr samt indgreb i anlæg og udstyr.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med de typer af strålingsgeneratorer, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>4.4.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Erfaring med udførelse af radiologisk kontrol.</Char>
+          </Linea>
+        </Exitus>
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+  <Bilag id="id3eedcdc2-6628-4413-b7a2-eb7468c45f67" localId="3">
+    <Explicatus>Bilag 3</Explicatus>
+    <Rubrica id="id794b6f12-4cc8-4d67-9c8e-bee54660c4db">
+      <Linea>
+        <Char formaChar="Bold">Krav til medicinsk-fysiske eksperters viden, færdigheder og kompetencer</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="id6bcd7ce3-189e-4c66-a718-6ece369e1099">
+      <TekstGruppe id="ida341f143-cc01-4458-b7e1-9a978b1c9b42">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til § 14.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char>Personer, der har uddannelse og erfaring som angivet nedenfor, opfylder kravene til viden, færdigheder og kompetencer for en medicinsk-fysisk ekspert for det pågældende anvendelsesområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Herudover skal medicinsk-fysiske eksperter have kendskab til den relevante lovgivning på området samt tilhørende vejledninger.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char>Personer med anden uddannelse eller erfaring end angivet nedenfor vurderes individuelt af Sundhedsstyrelsen.</Char>
+          </Linea>
+          <Linea>
+            <Char>For anvendelsesområder, der ikke er nævnt nedenfor, fastsætter Sundhedsstyrelsen krav til den medicinsk-fysiske eksperts viden, færdigheder og kompetencer i det enkelte tilfælde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CBCT-skanning forbundet med dentomaxillofacial radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Generel diagnostik, kiropraktik, mammografi og screeningsprogrammer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til generel diagnostik, kiropraktik eller screeningsprogrammer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">DEXA-skanning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker uanset grenspeciale.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Gennemlysning og intervention</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til intervention.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">5.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CT-skanning forbundet med diagnostisk radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>5.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>5.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til CT-skanning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">6.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CT-skanning med hybridskanner forbundet med nuklearmedicinske undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>6.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>6.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til CT-skanning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">7.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CT-skanning forbundet med dosisplanlægning til stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>7.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i diagnostisk radiologi eller hospitalsfysiker i onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>7.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til CT-skanning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">8.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Hudterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>8.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>8.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til hudterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">9.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Røntgenterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>9.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>9.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til røntgenterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">10.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>10.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som hospitalsfysiker i onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>10.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ekspertgodkendelse fra Dansk Selskab for Medicinsk Fysik.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>10.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse og drift af strålingsgeneratorer til stråleterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus />
+        <Exitus />
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+  <Bilag id="id11553397-59b5-4fe7-991b-15286023d845" localId="4">
+    <Explicatus>Bilag 4</Explicatus>
+    <Rubrica id="ida8e56c30-8cca-4024-a9af-c0cb7ec66e65">
+      <Linea>
+        <Char formaChar="Bold">Krav til klinisk ansvarlige sundhedspersoners viden, færdigheder og kompetencer</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="id83be8424-ea3d-493a-bd5d-09a3d39f22ed">
+      <TekstGruppe id="idd2c42607-eff3-4723-8f01-c07cb45eb605">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til § 15.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Den klinisk ansvarlige sundhedsperson skal være uddannet inden for følgende:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Index>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>1)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Frembringelse og detektion af ioniserende stråling.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>2)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Dosimetri relateret til anvendelsesområdet.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>3)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Strålebiologi.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+            <Indentatio formaInd="Nummer">
+              <Explicatus>4)</Explicatus>
+              <Exitus>
+                <Linea>
+                  <Char>Strålebeskyttelse.</Char>
+                </Linea>
+              </Exitus>
+            </Indentatio>
+          </Index>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Den klinisk ansvarlige sundhedsperson skal have uddannelse i og erfaring med medicinsk anvendelse af strålingsgeneratorer, herunder vurdering af berettigelsen og det kliniske resultat.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer, der har uddannelse og erfaring som angivet nedenfor, opfylder kravene til viden, færdigheder og kompetencer for en klinisk ansvarlig sundhedsperson for det pågældende anvendelsesområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer, der er i gang med en af nedennævnte uddannelser, opfylder kravene, når den relevante del af uddannelsen er gennemført.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer med anden uddannelse eller erfaring end angivet nedenfor vurderes individuelt af Sundhedsstyrelsen.</Char>
+          </Linea>
+          <Linea>
+            <Char>For anvendelsesområder, der ikke er nævnt nedenfor, fastsætter Sundhedsstyrelsen krav til den klinisk ansvarlige sundhedspersons viden, færdigheder og kompetencer i det enkelte tilfælde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Intraorale undersøgelser forbundet med dentomaxillofacial radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandlæge,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandplejer eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med dentale undersøgelser eller dentomaxillofacial radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Undersøgelser med orthopantomografer og cephalostater forbundet med dentomaxillofacial</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="NormalInd">
+          <Linea>
+            <Char formaChar="Bold">radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandlæge eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med undersøgelser med orthopantomografer og cephalostater.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CBCT-undersøgelser forbundet med dentomaxillofacial radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandlæge med anerkendt supplerende uddannelse eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med CBCT-undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">DEXA-skanning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i klinisk fysiologi og nuklearmedicin,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge inden for relevant speciale med supplerende uddannelse i ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med undersøgelser med DEXA-skanning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">5.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Kiropraktiske undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>5.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som kiropraktor</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>5.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af strålingsgeneratorer til kiropraktiske undersøgelser.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">6.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Generel diagnostik, mammografi og screeningsprogrammer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>6.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>6.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med generel diagnostik eller screeningsprogrammer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">7.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Gennemlysning og intervention</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>7.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge inden for relevant speciale med supplerende uddannelse i ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>7.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med anvendelse af strålingsgeneratorer til gennemlysning eller intervention.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">8.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CT-skanning forbundet med diagnostisk radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>8.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>8.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med CT-skanning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">9.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CT-skanning med hybridskanner forbundet med nuklearmedicinske undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>9.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i klinisk fysiologi og nuklearmedicin eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>9.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med CT skanning med hybridskanner forbundet med nuklearmedicinske undersøgelser.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">10.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">CT-skanning forbundet med dosisplanlægning til stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>10.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i klinisk onkologi eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i diagnostisk radiologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>10.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med CT-skanning til dosisplanlægning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">11.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Hudterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>11.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i dermato-venerologi eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge i klinisk onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>11.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med hudterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">12.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Røntgenterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>12.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som speciallæge i klinisk onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>12.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med røntgenterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">13.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>13.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som speciallæge i klinisk onkologi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>13.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tidssvarende erfaring med stråleterapi.</Char>
+          </Linea>
+        </Exitus>
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+  <Bilag id="id1dc59b07-c920-4b59-aadb-1dbaa78d7983" localId="5">
+    <Explicatus>Bilag 5</Explicatus>
+    <Rubrica id="idc1e9f383-9b7a-42e9-b092-357718ac9fe8">
+      <Linea>
+        <Char formaChar="Bold">Krav til stråleudsatte arbejdstageres viden, færdigheder og kompetencer</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="ida0cb9067-98db-433f-88b3-d40e7aacb4a6">
+      <TekstGruppe id="idd9e42d96-1070-4258-a9dd-2773ce28deec">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til §§ 16 og 45 samt bilag 6 og 7.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer, der har uddannelse og oplæring som angivet nedenfor, opfylder kravene til viden, færdigheder og kompetencer for en stråleudsat arbejdstager beskæftiget med pågældende type af brug eller det pågældende anvendelsesområde.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer med anden uddannelse eller anden oplæring end angivet nedenfor vurderes individuelt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Medicinsk anvendelse</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Intraorale undersøgelser og undersøgelser med orthopantografer og cephalostater</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandlæge,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandplejer,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandklinikassistent med røntgenuddannelse eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Undersøgelser med dentale CBCT-skannere</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandlæge,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandplejer,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- tandklinikassistent med røntgenuddannelse eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Derudover skal arbejdstageren have gennemført praktisk kursus i CBCT dentalrøntgen indeholdende følgende elementer:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Patientpositionering ved relevante typer undersøgelser.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Indstilling af eksponeringsparametre.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Initial analyse af billedkvalitet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Håndtering af software.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">DEXA-skanning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- bioanalytiker og have erfaring med udførelse af nuklearmedicinske undersøgelser eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- læge med supplerende uddannelse i ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Desuden betragtes kravene til viden, færdigheder og kompetencer opfyldt, hvis en person har mindst 2 års relevant erfaring fra plejeområdet eller arbejde med klienter samt har gennemført uddannelsesforløb i DEXA-skanning godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Kiropraktiske undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- kiropraktor.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.5.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Generel diagnostik, gennemlysning, intervention og CT-skanning forbundet med diagnostisk radiologi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge inden for relevant speciale med supplerende uddannelse i ioniserende stråling og strålebeskyttelse og have erfaring med relevante undersøgelser eller intervention.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.6.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Mammografi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Personer, der udfører mammografi, skal være autoriserede sundhedspersoner.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.7.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">CT-skanning med hybridskanner forbundet med nuklearmedicin</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- bioanalytiker på nuklearmedicinsk afdeling med efteruddannelse i CT-skanning eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge inden for relevant speciale med supplerende uddannelse i ioniserende stråling og strålebeskyttelse og have erfaring med relevante undersøgelser.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.8.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">CT-skanning forbundet med planlægning af stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf, samt være oplært i principperne for lejring af patienter i forbindelse med stråleterapi eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- autoriseret sundhedsperson med anerkendt kompetence i stråleterapi samt være oplært i CT-skanning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.9.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Hudterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- radiograf,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- speciallæge inden for dermato-venerologi eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- sygeplejerske med oplæring i ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.10.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Røntgenterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer, der udfører behandlinger, skal være autoriserede sundhedspersoner med anerkendt kompetence i stråleterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.11.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer, der udfører behandlinger, skal være autoriserede sundhedspersoner med anerkendt kompetence i stråleterapi.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus>
+          <Linea>
+            <Char>Personer, der udfører undersøgelser eller behandlinger, som nævnt i punkt 1.1.-1.11., af børn, eller som udfører undersøgelser forbundet med et screeningsprogram, skal desuden have særlig uddannelse eller oplæring heri.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Veterinærmedicinsk anvendelse</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Veterinærmedicinske undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Uddannelse som</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- dyrlæge eller</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>- veterinærsygeplejerske.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Anvendelse til industrielle formål, forskning og undervisning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Strålesterilisation m.v. i industrielle bestrålingsanlæg</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus for operatører af industrielle bestrålingsanlæg godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Industriel radiografi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>Arbejdstagere, der udfører industriel radiografi:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i strålebeskyttelse forbundet med industriel radiografi godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Repetitionskursus mindst hvert 5. år.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kurset skal være godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>Arbejdstagere, der assisterer ved industriel radiografi:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kursus i strålebeskyttelse forbundet med industriel radiografi for assistenter godkendt af Sundhedsstyrelsen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Repetitionskursus hvert 5. år.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Backscatterskanning med håndholdte strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Grundlæggende kendskab til ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse i anvendelse af denne type strålingsgenerator.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til denne type strålingsgenerator.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Undervisning med skolekilder</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Uddannelse som fysik- eller kemilærer eller tilsvarende.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Viden om ioniserende stråling og strålebeskyttelse.</Char>
+          </Linea>
+        </Exitus>
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+  <Bilag id="id02314451-36da-4b0e-b0e4-f76abfcfa79b" localId="6">
+    <Explicatus>Bilag 6</Explicatus>
+    <Rubrica id="id98c51e65-d724-4468-bc6c-a2afc60dfe26">
+      <Linea>
+        <Char formaChar="Bold">Supplerende krav til typer af brug og anvendelsesområder</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="idae99e28c-87a3-4bdf-afc0-1740ccbd7c8c">
+      <TekstGruppe id="id8dc200b3-bc55-4525-8579-994f36af02b7">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til §§ 36, 44 og 47.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Medicinsk anvendelse</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Medicinsk anvendelse, generelt</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Beskrivelse af billeder skal foregå i passende indstillet belysning, så alle detaljer i billedet fremstår klart.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved benyttelse af lysmarkering af strålefeltet, skal lysmarkeringen kunne ses på personen, der skal undersøges eller behandles.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Intraorale undersøgelser</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal have en nominel rørspænding på mindst 60 kV og højst 70 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med tubus, så afstanden fra fokus til enden af tubus er mindst 20 cm.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålefeltet skal være kollimeret, så strålefeltets form er rektangulær, og størrelsen ved enden af tubus svarer til den største af de billedmodtagere, der rutinemæssigt benyttes klinisk, dog højst 40 mm × 50 mm.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Gennemlysning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer til langvarige gennemlysninger, f.eks. hjerte- og karundersøgelser, skal være forsynet med en anordning, der måler den strålingsmængde, som strålingsgeneratoren afgiver.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer til langvarige gennemlysninger skal så vidt muligt være udstyret med en anordning til måling af en indikator for patientens huddosis.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Resultater af målinger omtalt i punkt 1.3.1.-1.3.2. skal være til rådighed for den, der betjener strålingsgeneratoren.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.4.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Intervention</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.4.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med en anordning, der måler den strålingsmængde, som strålingsgeneratoren afgiver.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.4.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Den målte strålingsmængde skal under proceduren være til rådighed for den, der betjener strålingsgeneratoren.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.4.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal så vidt muligt være udstyret med en anordning til måling af en indikator for patientens huddosis.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.4.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med en anordning, der ved afslutningen af proceduren oplyser om parametre relevante for vurdering af patientdosis.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.4.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>Efter endt procedure skal informationerne omtalt i punkt 1.4.2. og 1.4.4. automatisk overføres til undersøgelsesrapporten (patientjournalen).</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.5.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">CT-skanning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.5.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med en anordning, der ved afslutningen af proceduren oplyser om parametre relevante for vurdering af patientdosis.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.5.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Efter endt procedure skal informationerne omtalt i punkt 1.5.1. automatisk overføres til undersøgelsesrapporten (patientjournalen).</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.6.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Øvrige billeddiagnostiske formål, herunder screeningsprogrammer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.6.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer, der er markedsført første gang efter 6. februar 2018, skal være forsynet med en anordning, der oplyser om parametre, der er relevante for vurdering af patientdosis.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.7.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Hudterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.7.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>For hudterapi med energier mindre end eller lig med 15 kV skal den, der udfører behandlingen, inden hver behandlingsfraktion foretage en ekstra verifikation af patientpositionering, hjælpemidler og strålingsgeneratorens behandlingsparametre.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.7.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>For hudterapi med energier større end 15 kV skal to arbejdstagere, der opfylder kravene i bilag 5, punkt 1.9., inden hver behandlingsfraktion godkende den endelige patientpositionering, hjælpemidler og strålingsgeneratorens behandlingsparametre.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.7.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Den, der udfører behandlingen, skal blive ved betjeningspulten og overvåge behandlingen under hele behandlingsfraktionen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.8.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Røntgenterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.8.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>To arbejdstagere, der opfylder kravene i bilag 5, punkt 1.10., skal inden hver behandingsfraktion godkende den endelige patientpositionering, hjælpemidler og strålingsgeneratorens behandlingsparametre.</Char>
+          </Linea>
+          <Linea>
+            <Char>Den ene af de to arbejdstagere behøver ikke at have afsluttet uddannelsen, forudsat, at de manglende kompetencer er uden betydning for varetagelse af opgaven.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.8.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Den, der udfører behandlingen, skal blive ved betjeningspulten og overvåge behandlingen under hele behandlingsfraktionen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.9.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Planlægnings-CT, billedvejledning og verifikation forbundet med stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.9.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med en anordning, der ved afslutningen af proceduren oplyser om parametre relevante for vurdering af patientdosis.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.9.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Efter endt procedure skal informationerne omtalt i punkt 1.9.1. automatisk overføres til undersøgelsesrapporten (patientjournalen).</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">1.10.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Stråleterapi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved indgange til anlægget skal der være en rød advarselslampe, der lyser eller blinker, når der eksponeres.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved lampen skal der være et advarselsskilt for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, og teksten »Ioniserende stråling når lampen lyser«.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Behandlingen skal afbrydes automatisk, hvis en indgang til anlægget benyttes under eksponering.</Char>
+          </Linea>
+          <Linea>
+            <Char>Genindkobling efter afbrydelsen må kun kunne ske fra betjeningsstedet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Anlægget skal være indrettet, så utilsigtet ophold i anlægget under eksponering forhindres, f.eks. ved at anlægget er indrettet med en last-man-out-kontakt.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer, der utilsigtet befinder sig i anlægget under eksponering, skal uhindret kunne komme ud af anlægget eller kunne afbryde eksponeringen på et tydeligt angivet nødstop inde i anlægget.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.5 To arbejdstagere, der opfylder kravene i bilag 5, punkt 1.11., skal inden hver behandlingsfraktion godkende den endelige patientpositionering, hjælpemidler og strålingsgeneratorens behandlingsparametre.</Char>
+          </Linea>
+          <Linea>
+            <Char>Den ene af de to arbejdstagere behøver ikke at have afsluttet uddannelsen, forudsat, at de manglende kompetencer er uden betydning for varetagelse af opgaven.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>En af arbejdstagerne nævnt i punkt 1.10.5. skal blive ved betjeningspulten og overvåge behandlingen.</Char>
+          </Linea>
+          <Linea>
+            <Char>Den anden skal befinde sig i umiddelbar nærhed under behandlingsfraktionen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.7.</Char>
+          </Linea>
+          <Linea>
+            <Char>Mindst én arbejdstager med uddannelse som hospitalsfysiker inden for onkologi skal stå til umiddelbar rådighed under hver behandlingsfraktion.</Char>
+          </Linea>
+          <Linea>
+            <Char>Arbejdstageren behøver ikke at have afsluttet uddannelsen, forudsat, at de manglende kompetencer er uden betydning for varetagelse af opgaven.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.10.8.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med verifikationssystem.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Anvendelse til industrielle formål, forskning og undervisning</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Ikke-selvafskærmende strålingsgeneratorer i anlæg</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved indgange til anlægget skal der være en rød advarselslampe, der lyser eller blinker, når der eksponeres.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved lampen skal der være et advarselsskilt med symbol for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, og teksten »Ioniserende stråling når lampen lyser«.</Char>
+          </Linea>
+          <Linea>
+            <Char>Inde i anlægget skal der være en advarselslampe med samme tekst, hvor relevant.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>For anlæg, hvor dosishastigheden ved indgange til anlægget kan blive større end 20 µSv/h, skal eksponeringen afbrydes automatisk, hvis en indgang til anlægget benyttes under eksponering.</Char>
+          </Linea>
+          <Linea>
+            <Char>Genindkobling efter afbrydelsen må kun kunne ske fra betjeningsstedet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Anlægget skal, hvor relevant, være indrettet, så utilsigtet ophold i anlægget under eksponering forhindres, f.eks. ved at anlægget er indrettet med en last-man-out-kontakt.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer, der utilsigtet befinder sig i anlægget under eksponering, skal uhindret kunne komme ud af anlægget eller kunne afbryde eksponeringen på et tydeligt angivet nødstop inde i anlægget.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>Der skal være adgang til mobilt udstyr til måling af dosishastighed.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">Supplerende krav vedr.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">cyklotroner</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>I tillæg til kravene i punkt 2.1.1.-2.1.5. gælder:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>Inde i anlægget skal være en fastmonteret dosishastighedsmåler, der er tilsluttet display ved indgangen til anlægget.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.7.</Char>
+          </Linea>
+          <Linea>
+            <Char>Stråleudsatte arbejdstagere skal benytte personbåret dosishastighedsalarm med alarmgivning, der er egnet til arbejdsforholdene.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">Supplerende krav vedr.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">anlæg til strålesterilisering</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>I tillæg til kravene i punkt 2.1.1.-2.1.5. gælder:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.1.8.</Char>
+          </Linea>
+          <Linea>
+            <Char>Anlæg skal være indrettet, så et akustisk alarmsignal lyder, hvis en indgang til anlægget benyttes under eksponering.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Selvafskærmende strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Dosishastigheden må ikke være større end 5 µSv/h på tilgængelige overflader af strålingsgeneratoren.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være konstrueret, så eksponering kun kan foregå, når alle dele af afskærmningen er korrekt monteret og i deres afskærmende position.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være konstrueret, så strålingen afbrydes ved åbning af afskærmningen.</Char>
+          </Linea>
+          <Linea>
+            <Char>Genindkobling efter afbrydelsen må kun kunne ske fra betjeningsstedet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Afbrydere, der detekterer afskærmningens position ved eksponering, skal være indrettet, så eksponering afbrydes, selv ved fejl på afbryderen eller ved fejlbetjening, f.eks. ved dublering af sikkerhedsafbrydere.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>Der skal være mindst én eksponeringsindikator, der er synlig fra strålingsgeneratorens betjeningssted.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer med kun én eksponeringsindikator, må kun kunne eksponere, når eksponeringsindikatoren fungerer korrekt.</Char>
+          </Linea>
+          <Linea>
+            <Char>Alternativt skal strålingsgeneratoren være indrettet med mindst to eksponeringsindikatorer, der ikke må kunne deaktiveres samtidigt som følge af en fejl.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.7.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved eksponeringsindikatorer skal der være mærkning, der angiver signalets betydning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.8.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer med permanent åbning skal være indrettet, så sandsynligheden for, at personer kan tage ophold inden for afskærmningen under eksponering minimeres.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.9.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer med permanent åbning, f.eks. en tunnel, som de undersøgte emner passerer igennem, skal have et nødstop.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.10.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer med permanent åbning skal have mindst én synlig eksponeringsindikator ved hver åbning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.11.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer til bagageskanning skal være konstrueret, så der kun eksponeres, når emnet er ud for strålingsgeneratorens feltåbning, f.eks. ved benyttelse af fotocelle.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.12.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer, der er tilkoblet produktionslinjer, skal automatisk afbrydes ved længerevarende produktionsstop.</Char>
+          </Linea>
+          <Linea>
+            <Char>Alternativt skal det direkte strålefelt være utilgængeligt for personer.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.13.</Char>
+          </Linea>
+          <Linea>
+            <Char>For strålingsgeneratorer uden permanent åbning, hvor personer kan tage ophold inden for afskærmningen under eksponering, gælder kravene for ikke-selvafskærmende strålingsgeneratorer i anlæg, jf. punkt 2.1.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.2.14.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved strålingsgeneratorer skal der være adgang til en brugsanvisning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Håndholdte strålingsgeneratorer til røntgenflourescensspektroskopi</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Dosishastigheden må ikke være større end 5 µSv/h på overfladen af strålingsgeneratoren.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>På strålingsgeneratorer skal der være en tydelig eksponeringsindikator.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.3.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Anvendelse af strålingsgeneratorer må kun være mulig med nøgle, kode eller tilsvarende anordning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.3.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Eksponering må kun være mulig, når et emne er placeret umiddelbart foran strålevinduet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.3.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal have en manuelt aktiveret kontakt, så eksponering kun er mulig, når kontakten holdes inde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>2.3.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal ledsages af en brugsanvisning, der skal indeholde advarsel om ioniserende strålings skadelige virkning, oplysning om hvilke arbejdstagere, der må anvende strålingsgeneratoren, samt navn og kontaktoplysninger på strålebeskyttelseskoordinatoren.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Øvrig brug, herunder fremstilling, indgreb, installation m.v.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char formaChar="Italic">3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Italic">Alle typer strålingsgeneratorer</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Arbejdstagere, der udfører arbejdsopgaver, som indebærer tilsidesættelse af indbyggede sikkerhedsforanstaltninger eller -anordninger, herunder fjernelse  af indbygget afskærmning og afbrydelse af interlocks, skal benytte personbåret dosishastighedsalarm med alarmgivning, der er egnet til arbejdsforholdene, hvor relevant.</Char>
+          </Linea>
+        </Exitus>
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+  <Bilag id="idb746d7cd-01c9-4c59-b160-06a9623b4d6e" localId="7">
+    <Explicatus>Bilag 7</Explicatus>
+    <Rubrica id="idee97d6b5-54e8-404a-b091-cdbe4783ff05">
+      <Linea>
+        <Char formaChar="Bold">Supplerende krav til industriel radiografi</Char>
+      </Linea>
+    </Rubrica>
+    <BilagIndhold id="id73bf0786-5871-4212-bdfe-cf1b67241022">
+      <TekstGruppe id="idccd5a8d8-7f8d-4cc1-83da-dbfc79233e76">
+        <Exitus>
+          <Linea>
+            <Char>Bilaget relaterer sig til § 44.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">1.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Industriel radiografi, generelt</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være forsynet med en anordning, der begrænser eksponeringstiden, eller have en manuelt aktiveret kontakt, så eksponering kun er mulig,   når kontakten holdes inde.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal være afskærmet i et omfang, så dosishastigheden ved lukket strålevindue og maksimal belastning ikke kan blive større end følgende    værdier i 1 meters afstand fra fokus.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>1 mSv/h for indstillede spændinger, der er mindre end eller lig med 150 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>2,5 mSv/h for indstillede spændinger, der er større end 150 kV og mindre end eller lig med 200 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>5 mSv/h for indstillede spændinger, der er større end 200 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingsgeneratorer skal have en egenfiltrering svarende til nedenstående værdier, medmindre den radiografiske prøvningsteknik kræver en lavere filtrering, i så    fald skal strålingsgeneratorer altid være ledsaget af tilsatsfiltre, som angivet herunder:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>2,0 mm aluminium for maksimal rørspænding, der er større end 50 kV og mindre end eller lig med 100 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>3,0 mm aluminium for maksimal rørspænding, der er større end 100 kV og mindre end eller lig med 200 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>4,0 mm aluminium for maksimal rørspænding, der er større end 200 kV og mindre end eller lig med 300 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>1.3.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>0,5 mm kobber for maksimal rørspænding, der er større end 300 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ud over mærkningen, jf. § 17, skal strålingsgeneratorer være mærket med: maksimal rørspænding, maksimal rørstrøm, fokus-placering, åbningsvinkel og     egenfiltrering.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>På strålingsgeneratorer med en egenfiltrering svarende til mindre end 1 mm aluminium skal mærkningen, jf. § 17, suppleres med følgende tekst: »Advarsel:    Ioniserende stråling med høj dosishastighed.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kan forårsage stråleforbrænding på få sekunder«.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>På strålingsgeneratorer skal være en rød lampe, der lyser eller blinker under eksponering.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.7.</Char>
+          </Linea>
+          <Linea>
+            <Char>På betjeningspulte skal være en rød lampe, der lyser eller blinker under eksponering, samt en grøn lampe, der lyser når eksponeringen er afbrudt.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.8.</Char>
+          </Linea>
+          <Linea>
+            <Char>Eksponeringsfunktioner skal have en låseanordning eller tilsvarende, der gør det muligt at blokere eksponeringsfunktionen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.9.</Char>
+          </Linea>
+          <Linea>
+            <Char>På betjeningspulten skal være en kortfattet brugsanvisning.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.10.</Char>
+          </Linea>
+          <Linea>
+            <Char>På strålingsgeneratorer med rundstrålefelt skal det bælteformede område, hvorigennem den direkte stråling udsendes, være tydeligt angivet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.11.</Char>
+          </Linea>
+          <Linea>
+            <Char>Stråleudsatte arbejdstagere skal benytte personbåret dosishastighedsalarm med alarmgivning, der er egnet til arbejdsforholdene.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>1.12.</Char>
+          </Linea>
+          <Linea>
+            <Char>Stråleudsatte arbejdstagere skal benytte personbåret elektronisk dosimeter, der fører log over registrerede doser.</Char>
+          </Linea>
+          <Linea>
+            <Char>De registrerede doser skal aflæses minimum én    gang månedligt.</Char>
+          </Linea>
+          <Linea>
+            <Char>Virksomheden skal dokumentere disse doser.</Char>
+          </Linea>
+          <Linea>
+            <Char>Dokumentationen skal bevares i mindst 5 år.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">2.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Supplerende krav vedr.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">industriel radiografi i anlæg</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char>I tillæg til kravene i punkt.</Char>
+          </Linea>
+          <Linea>
+            <Char>1.1.-1.12. gælder:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved indgange til anlægget skal der være en rød advarselslampe, der lyser eller blinker, når der eksponeres.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved lampen skal der være et advarselsskilt med symbol    for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, og teksten »Ioniserende stråling når lampen lyser«.</Char>
+          </Linea>
+          <Linea>
+            <Char>Inde i anlægget   skal der være en advarselslampe med samme tekst, hvor relevant.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved den primære indgang til anlægget skal der være oplysning om, hvilke begrænsninger, der er på benyttelsen af anlægget, f.eks. typer af strålekilder, energier,    eksponeringsretning.</Char>
+          </Linea>
+          <Linea>
+            <Char>Navn og kontaktoplysninger på strålebeskyttelseskoordinatoren skal fremgå.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålingen skal afbrydes automatisk, hvis en indgang til anlægget benyttes under eksponering.</Char>
+          </Linea>
+          <Linea>
+            <Char>Genindkobling efter afbrydelsen må kun kunne ske fra     betjeningsstedet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Anlægget skal være indrettet, så utilsigtet ophold i anlægget under eksponering forhindres, f.eks. ved at anlægget er indrettet med en last-man-out-kontakt.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer, der utilsigtet befinder sig i anlægget under eksponering, skal uhindret kunne komme ud af anlægget eller kunne afbryde eksponeringen på et tydeligt    angivet nødstop inde i anlægget.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>Alle afskærmningsflader i anlægget skal være tydelig mærket med oplysning om afskærmningsmaterialet og tykkelsen af afskærmningen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>2.7.</Char>
+          </Linea>
+          <Linea>
+            <Char>Der må kun eksponeres i retninger, hvor anlægget yder afskærmning i overensstemmelse med §§ 11 og 12 i bekendtgørelse om ioniserende stråling og     strålebeskyttelse.</Char>
+          </Linea>
+          <Linea>
+            <Char>Hvis kun bestemte eksponeringsretninger kan benyttes, skal disse angives tydeligt i anlægget med markerede felter og teksten »Tilladt strålefelt«.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char formaChar="Bold">3.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">Supplerende krav vedr.</Char>
+          </Linea>
+          <Linea>
+            <Char formaChar="Bold">industriel radiografi uden for anlæg</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus>
+          <Linea>
+            <Char>I tillæg til kravene i punkt.</Char>
+          </Linea>
+          <Linea>
+            <Char>1.1-1.12 gælder</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Følgende udstyr skal altid benyttes:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.1.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tydelig, rød advarselslampe, der er forbundet til kontrolpulten, og som lyser under eksponering.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.1.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Dosishastighedsmåler.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.1.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Afspærringsmateriel i gule farver med symbol for ioniserende stråling, jf. bilag 6 i bekendtgørelse om ioniserende stråling og strålebeskyttelse, og            letforståelig advarselstekst.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Der skal benyttes følgende udstyr, hvor relevant:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>Spalteblænde til begrænsning af strålefeltet.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>Afskærmningsudstyr, som angivet herunder:</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.2.1.</Char>
+          </Linea>
+          <Linea>
+            <Char>To skærme med en blyækvivalent på mindst 2,0 mm for maksimal rørspænding, der er mindre end eller lig med 200 kV,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.2.2.</Char>
+          </Linea>
+          <Linea>
+            <Char>To skærme med en blyækvivalent på mindst 3,0 mm for maksimal rørspænding, der er større end 200 kV og mindre end eller lig med 300 kV,</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>3.2.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Afskærmningsudstyr med blyækvivalent tilpasset forholdene for maksimal rørspænding, der er større end 300 kV.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus formaForma="Tab3">
+          <Linea>
+            <Char>Skærmene skal være tydeligt mærket med oplysning om tykkelsen af afskærmningen.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab2">
+          <Linea>
+            <Char>3.2.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Tubus og tilsatsfiltre.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.3.</Char>
+          </Linea>
+          <Linea>
+            <Char>Området omkring opstillingen, hvor dosishastigheden er større end 60 µSv/h, skal afgrænses.</Char>
+          </Linea>
+          <Linea>
+            <Char>Personer ikke må befinde sig inden for dette område under     eksponering, og området skal holdes under konstant opsyn under eksponering og være afspærret eller på anden måde adgangskontrolleret.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.4.</Char>
+          </Linea>
+          <Linea>
+            <Char>Kablet, der forbinder strålingsgenerator og betjeningspult, skal have en sådan længde, at pulten kan placeres på et sted, hvor dosishastigheden ikke er større end 20  µSv/h.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.5.</Char>
+          </Linea>
+          <Linea>
+            <Char>Ved betjeningsstedet må dosishastigheden ikke være større end 20 µSv/h.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.6.</Char>
+          </Linea>
+          <Linea>
+            <Char>Øvrige arbejdstagere og enkeltpersoner i befolkningen må ikke tage ophold i områder med dosishastigheder, der er større end 7,5 µSv/h.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.7.</Char>
+          </Linea>
+          <Linea>
+            <Char>Hvis det ikke fra betjeningsstedet er muligt at overskue alle områder, der er nævnt under punkt 3.3., skal der træffes foranstaltninger for at forhindre adgang til    områderne.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.8.</Char>
+          </Linea>
+          <Linea>
+            <Char>Under afprøvning og opvarmning skal den direkte stråling afblændes med en blænde, eller for strålingsgeneratorer af rundstråletypen, med en maske.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.9.</Char>
+          </Linea>
+          <Linea>
+            <Char>Strålefeltet skal være begrænset til den for opgaven nødvendige størrelse ved hjælp af en spalteblænde eller en tubus.</Char>
+          </Linea>
+          <Linea>
+            <Char>Når en strålingsgenerator af rundstråletypen   benyttes som strålingsgenerator med retningsstrålefelt, skal det være forsynet med en maske, der afskærmer den del af strålevinduet, der ikke benyttes.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.10.</Char>
+          </Linea>
+          <Linea>
+            <Char>Arbejdet skal foregå under tilstedeværelse af mindst to arbejdstagere, hvoraf mindst den ene skal have viden, færdigheder og kompetencer til udførelse af industriel  radiografi, jf. bilag 5, punkt 3.2.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.11.</Char>
+          </Linea>
+          <Linea>
+            <Char>Efter eksponering skal der udføres målinger for at bekræfte, at eksponeringen er afbrudt, før afspærring kan fjernes og adgangskontrol, jf. punkt 3.3., kan ophøre.</Char>
+          </Linea>
+        </Exitus>
+        <Exitus />
+        <Exitus formaForma="Tab1">
+          <Linea>
+            <Char>3.12.</Char>
+          </Linea>
+          <Linea>
+            <Char>Virksomheden skal sende indberetning til Sundhedsstyrelsen om lokationer, hvor der foretages mere end 200 eksponeringer pr. måned uden for anlæg.</Char>
+          </Linea>
+          <Linea>
+            <Char>Sundhedsstyrelsen skal have indberetningen hurtigst muligt, og så vidt muligt inden arbejdet påbegyndes.</Char>
+          </Linea>
+        </Exitus>
+      </TekstGruppe>
+    </BilagIndhold>
+  </Bilag>
+</Dokument>
