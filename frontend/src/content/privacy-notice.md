@@ -1,12 +1,4 @@
-This notice describes how **this instance** of Radiation Safety RAG handles data. It is
-software you can self-host; the person or organization running it is responsible for filling
-in the fields marked `[operator to fill in]` before relying on this notice for a real
-deployment.
-
-### Who operates this instance
-
-- **Controller:** `[operator to fill in — name of the person or organization running this instance]`
-- **Contact:** `[operator to fill in — an email address or other way to reach the controller]`
+This notice describes how **this instance** of Radiation Safety RAG handles data.
 
 ### This is not legal or clinical advice
 

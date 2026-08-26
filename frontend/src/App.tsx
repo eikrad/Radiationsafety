@@ -29,6 +29,11 @@ export default function App() {
   const [enforcePrivacyMode, setEnforcePrivacyMode] = useState(loadEnforcePrivacyMode)
   /** From GET /api/config: true = server has .env keys (hide hint), false = needs key from client or .env. null = not yet loaded. */
   const [serverHasLlmKey, setServerHasLlmKey] = useState<boolean | null>(null)
+  /** From GET /api/config: set only if the operator configured PRIVACY_CONTROLLER_NAME/CONTACT. */
+  const [privacyController, setPrivacyController] = useState<{
+    name: string | null
+    contact: string | null
+  }>({ name: null, contact: null })
 
   useEffect(() => {
     try {
@@ -52,9 +57,20 @@ export default function App() {
     let cancelled = false
     fetch(`${API_BASE}/config`)
       .then((res) => res.json())
-      .then((data: { server_has_llm_key?: boolean }) => {
-        if (!cancelled) setServerHasLlmKey(Boolean(data.server_has_llm_key))
-      })
+      .then(
+        (data: {
+          server_has_llm_key?: boolean
+          privacy_controller_name?: string | null
+          privacy_controller_contact?: string | null
+        }) => {
+          if (cancelled) return
+          setServerHasLlmKey(Boolean(data.server_has_llm_key))
+          setPrivacyController({
+            name: data.privacy_controller_name ?? null,
+            contact: data.privacy_controller_contact ?? null,
+          })
+        }
+      )
       .catch(() => {
         if (!cancelled) setServerHasLlmKey(false)
       })
@@ -203,6 +219,8 @@ export default function App() {
         <PrivacyNoticeModal
           isOpen={privacyNoticeOpen}
           onClose={() => setPrivacyNoticeOpen(false)}
+          controllerName={privacyController.name}
+          controllerContact={privacyController.contact}
         />
       <div className="conversation-area">
         {messages.length === 0 && serverHasLlmKey === false && !hasAnyApiKeyInStorage() && (
