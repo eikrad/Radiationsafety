@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-09-09
+
+### Security
+- **`cryptography` 49.0.0 → 50.0.1 (⚠️ major version bump)** — fixes
+  [GHSA-g6cj-pr64-35w5](https://github.com/advisories/GHSA-g6cj-pr64-35w5)
+  (PYSEC-2026-3552, CVE-2026-69247): `pkcs7_decrypt_der`/`pkcs7_decrypt_pem`/
+  `pkcs7_decrypt_smime` leaked a Bleichenbacher timing/output oracle against
+  the recovered content-encryption key (introduced in 44.0.0, fixed in 50.0.0).
+  `cryptography` is a transitive dependency (via `google-auth` →
+  `google-genai` → `langchain-google-genai`), not pinned directly in
+  `pyproject.toml`; bumped via `uv lock --upgrade-package cryptography`.
+  Verified with `pip-audit` (CVE no longer reported) and the full test/lint
+  suite (177 backend tests, ruff, black, isort — all green; no code changes
+  required, `uv.lock` only).
+
+### Notes (routine weekly maintenance, no code changes otherwise)
+- `pip-audit` against the resolved environment also flagged `transformers`
+  5.8.1 (CVE-2026-9856, path-traversal in `save_pretrained`, fixed in
+  5.10.0) and `accelerate`/`chromadb` (no fix version published yet).
+  `transformers` could not be bumped: `docling-core`/`docling-ibm-models`
+  cap it at `<5.9.0` on `sys_platform == "darwin"`, and `uv.lock` is a
+  cross-platform lock, so `uv lock --upgrade-package transformers` cannot
+  select 5.10.0 without breaking macOS installs. Left at 5.8.1 pending an
+  upstream `docling` release that relaxes the darwin cap; tracked for a
+  future maintenance pass rather than forced here.
+
 ## 0.4.0 - 2026-06-11
 
 ### Added
