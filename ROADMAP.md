@@ -42,12 +42,14 @@ the graph. See `eval/README.md`.
 
 ### Next
 
-1. **Choose the judge**: run `eval.judge_check` for the Scaleway candidates and
-   record a baseline with the winner.
-2. **Golden set v2**: about 40 questions tagged by topic (medical, industrial,
-   research, transport, waste, emergency, occupational, general), language and
-   source, including English questions about Danish law and a few questions
-   the sources do not answer (`expected_behavior: refuse`).
+1. **Golden set v2**: 24 questions so far (13 Danish law, 11 IAEA across all
+   topics); grow to about 40, including English questions about Danish law and
+   a few questions the sources do not answer (`expected_behavior: refuse`).
+   The judge is chosen: `qwen3.8-27b` on Scaleway (16/16 fixtures) with three
+   groundedness votes.
+2. **Scaleway embeddings**: `qwen3-embedding-8b` and `bge-multilingual-gemma2`
+   in their own Chroma collections, compared with Gemini by evidence recall in
+   a retrieval-only eval; then drop Gemini.
 3. **Retrieval experiments**, each a labelled run, cheapest first: more chunks
    per collection (`retriever_k`), BM25 fused with the dense retriever (RRF),
    the Danish translation of non-Danish questions as an extra query (RRF), and
