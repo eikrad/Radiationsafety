@@ -524,6 +524,12 @@
   color: #888;
 }
 
+.header-center .ai-disclosure {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: #a0a0a0;
+}
+
 .header-right {
   justify-self: end;
   display: flex;
@@ -718,6 +724,33 @@
   font-size: 0.85rem;
   color: #888;
   margin: 0;
+}
+
+.privacy-notice-modal {
+  max-width: 700px;
+}
+
+.privacy-notice-body {
+  padding: 0.5rem 1.5rem 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.privacy-notice-body h3 {
+  font-size: 0.95rem;
+  margin: 1rem 0 0.4rem;
+}
+
+.privacy-notice-body p,
+.privacy-notice-body ul {
+  margin: 0.4rem 0;
+}
+
+.privacy-notice-body code {
+  background: #2a2a2a;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.85em;
 }
 
 .settings-fields {
@@ -1175,6 +1208,9 @@
   .header-center p {
     color: #666;
   }
+  .header-center .ai-disclosure {
+    color: #888;
+  }
   .header-btn,
   .model-selector {
     background: #e8e8e8;
@@ -1187,6 +1223,9 @@
   .api-keys-hint {
     background: #e8e8f0;
     border-color: #c4c4d4;
+  }
+  .privacy-notice-body code {
+    background: #e8e8e8;
   }
   .api-keys-hint h3 {
     color: #333;

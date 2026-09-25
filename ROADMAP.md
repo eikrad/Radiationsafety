@@ -12,6 +12,32 @@ quickest win to most complex.
 
 ---
 
+## Done — Run History & Dashboard
+
+Every eval run records what it tested (git commit, models, `retriever_k`,
+prompt fingerprints, metrics version, dataset fingerprint, label) in the
+committed `eval/history/runs.jsonl`, and `python -m eval.dashboard` renders a
+local HTML page with trends, run-vs-baseline comparisons, a per-topic
+breakdown and a question-by-run grid. See `eval/README.md`.
+
+This covers part of Phase 3's baseline idea: a run labelled `baseline` is what
+later runs are compared against; `eval/data/baseline.json` can be derived from
+the history instead of maintained separately. Phase 2's cost and latency can
+be added to the run header when implemented. When Phase 1 lands, bump
+`METRICS_VERSION` so the dashboard marks the scoring change.
+
+### Next
+
+1. **Golden set v2**: about 40 questions tagged by topic (medical, industrial,
+   research, transport, waste, emergency, occupational, general), language and
+   source, including English questions about Danish law.
+2. **Phase 1 — continuous scoring** (below).
+3. Record a baseline run, then **Danish retrieval queries** for the Danish law
+   collection (translate the query when the question is not in Danish, and the
+   reverse for IAEA).
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous
@@ -333,3 +359,5 @@ be developed together or in sequence.
 | Side-by-side prompt comparison  | 5     | planned |
 | Human review queue              | 6     | planned |
 | Corrections → golden dataset    | 6     | planned |
+| Experiment history & comparison| —     | done    |
+| Per-topic score breakdown       | —     | done    |

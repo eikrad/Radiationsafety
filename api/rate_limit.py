@@ -11,6 +11,14 @@ try:
 except ImportError:  # pragma: no cover - optional dependency resolution
     redis = None
 
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+
+# In-memory backend only: drop entries untouched for this long so the store
+# doesn't grow forever for a process that never restarts. A rate-limit window
+# is at most a few minutes, so anything untouched for an hour is stale.
+_STALE_ENTRY_TTL_SEC = 3600.0
+_SWEEP_INTERVAL_SEC = 300.0
+
 
 def env_int(name: str, default: int) -> int:
     raw = (os.getenv(name) or "").strip()
@@ -34,13 +42,40 @@ def env_float(name: str, default: float) -> float:
     return value if value > 0 else default
 
 
+def _trust_proxy_headers() -> bool:
+    """Whether to honor X-Forwarded-For. Off by default: with no trusted proxy in
+    front, any client can set this header to bypass rate limits or poison the
+    store with arbitrary keys. Enable only when a trusted reverse proxy sets it."""
+    return (os.getenv("TRUST_PROXY_HEADERS") or "").strip().lower() in _TRUE_VALUES
+
+
 def request_client_key(request: Request) -> str:
-    xff = (request.headers.get("x-forwarded-for") or "").strip()
-    if xff:
-        return xff.split(",")[0].strip()
+    if _trust_proxy_headers():
+        xff = (request.headers.get("x-forwarded-for") or "").strip()
+        if xff:
+            return xff.split(",")[0].strip()
     if request.client and request.client.host:
         return str(request.client.host)
     return "unknown"
+
+
+def _sweep_stale_entries(
+    store: dict[str, tuple[float, int]], app_state: dict[str, Any], now: float
+) -> None:
+    """Drop in-memory entries (mostly client-IP keys) untouched for longer than
+    the stale TTL, so the store doesn't accumulate for the life of the process.
+    Runs at most once per sweep interval, not on every request."""
+    last_sweep = app_state.get("rate_limit_last_sweep", 0.0)
+    if now - last_sweep < _SWEEP_INTERVAL_SEC:
+        return
+    app_state["rate_limit_last_sweep"] = now
+    stale_keys = [
+        key
+        for key, (started_at, _count) in store.items()
+        if now - started_at >= _STALE_ENTRY_TTL_SEC
+    ]
+    for key in stale_keys:
+        del store[key]
 
 
 def enforce_rate_limit(
@@ -65,6 +100,7 @@ def enforce_rate_limit(
     # Default and fallback backend: process-local in-memory limiter.
     store = app_state.setdefault("rate_limit_store", {})
     now = time.monotonic()
+    _sweep_stale_entries(store, app_state, now)
     key = f"{bucket}:{request_client_key(request)}"
     started_at, count = store.get(key, (now, 0))
     if now - started_at >= window_seconds:

@@ -12,7 +12,7 @@ export function ResponseDisplay({ messages }: ResponseDisplayProps) {
     <div className="response-display">
       {messages.map((msg, i) => (
         <div key={i} className={`message message-${msg.role}`}>
-          <h3>{msg.role === 'user' ? 'You' : 'Assistant'}</h3>
+          <h3>{msg.role === 'user' ? 'You' : 'AI Assistant'}</h3>
           {msg.role === 'assistant' && msg.warning && (
             <p className="message-warning">{msg.warning}</p>
           )}

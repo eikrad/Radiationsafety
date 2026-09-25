@@ -165,6 +165,107 @@ All checks re-run after dependency bumps, everything green:
 
 ---
 
+## 2026-09-16
+
+> **Open-PR backlog — verified fresh via `mcp__github__list_pull_requests` (state=open).** **10** PRs open against `staging`: **5 Dependabot** (`#99` `@vitejs/plugin-react` 6.0.5→6.1.1, `#98` `eslint` 10.8.1→10.9.1, `#97` `@types/react-dom` 19.2.4→19.2.5, `#96` `eslint-plugin-react-refresh` 0.4.26→0.5.5, `#92` `vite` 8.2.1→8.2.2) and **5 non-Dependabot** (`#105` major `cryptography` 49.0.0→50.0.1 bump, `#101` docs, `#100` weekly maintenance 2026-09-02, `#95` weekly maintenance 2026-08-26, `#94` GDPR/EU AI Act fixes). None of these were touched, merged, or duplicated — every package Dependabot already has open against was explicitly excluded from this cycle's dependency-update pass below.
+
+### Checks performed
+- `git fetch origin`, then fast-forward merged `origin/staging` (`8f11363`) into the fresh branch `claude/modest-faraday-5i21zt` (which started at `39182e8`, the older `master`/PR-#56 point) — no unique local commits existed yet, so this was a clean fast-forward, no conflicts.
+- Verified the open-PR backlog live via `mcp__github__list_pull_requests` (state=open) rather than trusting the pre-supplied context — confirmed 10 open (5 Dependabot, 5 non-Dependabot, see banner above).
+- Baseline **before any changes**: `uv sync --all-extras && uv run pytest tests/ -v` → **177 passed**, zero pre-existing failures. `uv run ruff check .`, `uv run black --check .`, `uv run isort --check .`, `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip`, `uv run pre-commit run --all-files` → all clean.
+- Baseline: `npm -C frontend ci && npm -C frontend run test` → **29 passed (5 files)**; `npm -C frontend run lint` and `npm -C frontend run build` → clean.
+- Playwright E2E (`npx playwright install --with-deps chromium && npm run test:e2e`, as run in CI) could **not** be executed in this sandbox — the outbound proxy blocks `cdn.playwright.dev` (`403 request blocked: no rule or allowlist entry allows host`). Sandbox network restriction, not a code regression; CI itself runs this with full network access.
+- Security audit: `uv export --format requirements-txt --no-hashes -o /tmp/reqs.txt` + `uv run --with pip-audit pip-audit -r /tmp/reqs.txt` (run against the project's own Python 3.12 interpreter via `uv run --with`, since the globally-installed `pip-audit` resolves against the system's default Python 3.11 and fails on this project's `>=3.12`-only pins); `npm -C frontend audit`.
+- Python dependency audit: `uv pip list --outdated`, cross-referenced against `pyproject.toml`'s direct dependency list to separate direct vs. transitive candidates.
+- Frontend dependency audit: `npm -C frontend outdated`, excluding every package already the target of an open Dependabot PR (see banner).
+- Re-verified the chromadb `PYSEC-2026-311`/`-3813`/`-3814`/`-3815` findings against `ingestion.py`: grepped for `Chroma`/`HttpClient`/`PersistentClient`/`trust_remote_code` — still only `chromadb.PersistentClient` (embedded, on-disk) at `ingestion.py:123` and `:760`, no HTTP server component exposed, `trust_remote_code` never set. Confirmed via PyPI metadata that `1.5.9` is still the latest release — no fix exists upstream yet.
+- Confirmed `docling-ibm-models`'s actual installed-metadata requirement (`importlib.metadata.requires`) allows `transformers<6.0.0,>=4.42.0` on non-Darwin platforms (only macOS is restricted to `<5.9.0`) and `accelerate<2.0.0,>=1.2.1` — so forcing newer `transformers`/`accelerate` via explicit `pyproject.toml` entries stays within `docling-ibm-models`' own compatibility range on our (Linux CI) platform; `uv lock` resolved without pulling any major-version transitive bump.
+
+### Fixes applied
+Baseline was fully green (177 pytest, all lint/format/type checks clean, frontend 29 tests/lint/build clean) — no pre-existing failures to fix. Applied two **security fixes** (`accelerate`, `transformers`, both newly surfaced by this cycle's `pip-audit` run and not covered by any open Dependabot PR) plus a batch of routine minor dependency bumps.
+
+### Security findings
+
+**`pip-audit`** — **9 known vulnerabilities in 4 packages** found before fixes; **7 vulnerabilities in 2 packages** remain after fixes (both carried over, no fix currently applicable):
+
+| Package | Version | ID | Resolution |
+|---|---|---|---|
+| `accelerate` | 1.14.0 | PYSEC-2026-3804 (path traversal in `load_checkpoint_in_model`/`load_checkpoint_and_dispatch` via unsanitized `weight_map` entries) | **Fixed** — upgraded to 1.15.0 |
+| `transformers` | 5.8.1 | PYSEC-2026-3929 | **Fixed** — upgraded to 5.17.0 (advisory's minimum fix is 5.10.0; resolver landed on the current latest, still within the same major line and `docling-ibm-models`' allowed range) |
+| `chromadb` | 1.5.9 | PYSEC-2026-311, PYSEC-2026-3813, PYSEC-2026-3814, PYSEC-2026-3815 | **Not fixable** — still latest on PyPI, carried over unchanged; **not reachable** in this app (embedded `PersistentClient` only, no HTTP server, `trust_remote_code` never set — all four advisories target the HTTP server's collections/RBAC endpoints) |
+| `cryptography` | 49.0.0 | PYSEC-2026-3552 | **Fix requires major bump (50.0.0)** — already in flight via open PR **#105**, not duplicated here |
+
+**`npm -C frontend audit`** — **0 vulnerabilities**, both before and after changes.
+
+### Dependency updates
+
+**Python backend** — `transformers` and `accelerate` added as explicit direct dependencies in `pyproject.toml` (they were previously transitive-only via `docling-ibm-models`, with no way to force a security-fixed version without pinning them ourselves); everything else applied via one batched `uv lock --upgrade-package <name> ...` call (each package named explicitly, never a blanket `uv lock --upgrade`):
+
+| Package | Before | After | Type | Notes |
+|---|---|---|---|---|
+| `accelerate` | 1.14.0 | 1.15.0 | minor | **security fix** (PYSEC-2026-3804); now a direct `pyproject.toml` dependency (`>=1.15.0`) |
+| `transformers` | 5.8.1 | 5.17.0 | minor (large jump, same major) | **security fix** (PYSEC-2026-3929); now a direct `pyproject.toml` dependency (`>=5.10.0`) |
+| `tokenizers` | 0.22.2 | 0.23.2 | minor | transitive, pulled in by the `transformers` bump |
+| `langchain` | 1.3.15 | 1.4.1 | minor | |
+| `langchain-core` | 1.6.0 | 1.6.3 | patch | transitive via `langchain` |
+| `langchain-google-genai` | 4.3.4 | 4.4.0 | minor | still satisfies the `>=4` floor enforced by `tests/test_dependency_constraints.py` |
+| `langchain-openai` | 1.5.2 | 1.6.2 | minor | verified `openai` stayed pinned below 3.x, did not pull the major SDK rewrite |
+| `google-genai` | 2.18.1 | 2.23.0 | minor | transitive via `langchain-google-genai` |
+| `pypdf` | 6.16.1 | 6.19.0 | minor | |
+| `uvicorn` | 0.52.4 | 0.53.0 | minor | |
+| `docling-core`, `docling-ibm-models` | 2.92.0 / 3.14.0 | now multi-resolved (2.92.0/2.97.0, 3.13.2/3.14.0 depending on platform marker) | — | side effect of the `transformers`/`accelerate` bump; not a version regression, `uv` simply added platform-specific resolution branches |
+
+**Frontend** — applied via targeted `npm update <package> ...` naming only the packages **not** already covered by an open Dependabot PR (`package.json`'s existing `^`/`~` ranges already permitted these versions, so only `package-lock.json` changed, no `package.json` edits needed):
+
+| Package | Before | After | Type |
+|---|---|---|---|
+| `react` | 19.2.8 | 19.3.0 | minor |
+| `react-dom` | 19.2.8 | 19.3.0 | minor |
+| `@types/react` | 19.2.18 | 19.3.0 | minor |
+| `@typescript-eslint/eslint-plugin` | 8.67.0 | 8.70.0 | minor |
+| `@typescript-eslint/parser` | 8.67.0 | 8.70.0 | minor |
+| `@playwright/test` (dev) | 1.62.1 | 1.63.0 | minor |
+| `@testing-library/react` (dev) | 16.3.2 | 16.3.3 | patch |
+| `@testing-library/user-event` (dev) | 14.6.5 | 14.6.7 | patch |
+| `globals` (dev) | 17.11.0 | 17.12.0 | minor |
+| `scheduler` | 0.27.0 | 0.28.0 | minor | transitive via `react-dom` |
+
+Explicitly **skipped** (already the target of an open Dependabot PR, to avoid a duplicate/conflicting bump): `eslint` (→10.9.1 via #98), `eslint-plugin-react-refresh` (→0.5.5 via #96), `@types/react-dom` (→19.2.5 via #97), `vite` (→8.2.2 via #92), `@vitejs/plugin-react` (→6.1.1 via #99).
+
+### Major upgrades — flagged, NOT applied
+
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `cryptography` (Python, transitive via `google-auth`) | 49.0.0 | 50.0.0 | Major; fixes PYSEC-2026-3552 but not reachable in this app (no PKCS#7/S-MIME usage) — **already has an open PR (#105)**, intentionally not duplicated |
+| `langchain-docling` (Python, direct) | 2.0.0 | 3.0.0 | Major; needs its own compatibility review against the `docling` 2.x line before bumping |
+| `docling` (Python, direct) | 2.120.3 | 2.128.0 | Not itself major, but bumping it risks cascading `docling-ibm-models` to its new `4.0.2` major release (currently resolved at 3.13.2/3.14.0) — deferred pending a dedicated review of that cascade |
+| `openai` (Python, transitive via `langchain-openai`) | 2.53.0 | 3.14.1 | Major SDK rewrite; confirmed `langchain-openai` 1.6.2 still pins below 3.x — gap has grown again this cycle |
+| `opencv-python` (Python, transitive via `docling`/`rapidocr`) | 4.13.0.92 | 5.0.0.93 | Major; known breaking-change risk for docling's OCR path — held back every cycle since 2026-07-08 |
+| `semchunk` (Python, transitive via `docling`) | 3.2.5 | 4.1.1 | Major; carried over from 2026-07-15 |
+| `websockets` (Python, transitive) | 15.0.1 | 17.1 | Major (multiple majors behind); carried over |
+| `xxhash` (Python, transitive via `langgraph`/`langsmith`) | 3.8.1 | 4.0.1 | Major; no CVE driving it, carried over |
+| `antlr4-python3-runtime` (Python, transitive via `omegaconf`←`rapidocr`←`docling`) | 4.9.3 | 4.13.2 | Large jump, transitive-pinned by `omegaconf`'s compatibility range — same category as `opencv-python` |
+| `isort` (Python, dev) | 8.0.1 | 9.0.1 | Major; dev-only tooling, deferred pending a dedicated formatting-diff review |
+| `typescript` (frontend) | 6.0.3 | 7.0.2 | Major (TS7 "Corsa" native compiler rewrite) — no open Dependabot PR tracking it currently |
+| `vitest` (frontend) | 4.1.11 | 5.0.1 | Major — no open Dependabot PR tracking it currently; would also need `@vitest/*` companion packages reviewed together |
+
+### Post-change verification
+All checks re-run after dependency bumps, everything green:
+- `uv run pytest tests/ -v` → **177 passed**
+- `uv run ruff check .` → clean
+- `uv run black --check .` → clean
+- `uv run isort --check .` → clean
+- `uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` → clean
+- `uv run pre-commit run --all-files` → clean (black, isort)
+- `npm -C frontend run test` → **29 passed (5 files)**
+- `npm -C frontend run lint` → clean
+- `npm -C frontend run build` → clean
+- `npm -C frontend audit` → 0 vulnerabilities
+- `pip-audit` → same 2 known, non-reachable/already-tracked findings as before changes (no new vulnerabilities; 2 of the original 4 flagged packages fixed)
+- `git diff --stat` confirms only `pyproject.toml` (2 new direct deps), `uv.lock`, and `frontend/package-lock.json` changed — no `frontend/package.json` range edits were needed
+
+---
+
 ## 2026-08-19
 
 > **Note on `docs/maintenance.md` staleness:** this file's history lives on `staging`, and `staging` currently has entries through 2026-08-12 — this cycle is not actually two months late. The "last entry 2026-06-17" observation applies only to `master`, which is **61 commits behind `staging`** (`git rev-list --left-right --count origin/master...origin/staging` → `1  61`) — confirmed by `git show origin/master:docs/maintenance.md`, whose latest entry is indeed the 2026-06-17 one. Every weekly cycle since 2026-07-08 has landed correctly on `staging` (see git log: `54f187c`, `b9dab7b`, `9250bb8`, `b001c83`, `f2cf6be`); they just haven't been promoted to `master` via a `staging`→`master` merge. Recommend the owner merge `staging` → `master` to bring the production branch's log (and code) current — a ~2-month-old `master` means production is missing 5 cycles of dependency/security fixes. Open-PR backlog verified fresh via `mcp__github__list_pull_requests` (state=open): **0 open PRs**, matching the pre-verified context for this cycle.
