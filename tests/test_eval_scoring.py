@@ -67,9 +67,16 @@ def test_evidence_matches_despite_case_and_line_breaks():
 
 
 def test_evidence_matches_despite_soft_hyphens_and_typographic_dashes():
-    chunk = "indsats‑ og redningsmand­skab – se bilag 3"
+    chunk = "indsats\u2011 og redningsmand\u00adskab \u2013 se bilag 3"
 
     assert evidence_found(["indsats- og redningsmandskab - se bilag 3"], [chunk])
+
+
+def test_evidence_matches_despite_invisible_format_characters():
+    """The Danish XML text contains zero-width joiners inside words."""
+    chunk = "resultatet af individuel dosi\u200dsovervågning"
+
+    assert evidence_found(["individuel dosisovervågning"], [chunk])
 
 
 def test_any_alternative_quote_counts_as_evidence():

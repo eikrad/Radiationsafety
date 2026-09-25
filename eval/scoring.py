@@ -28,13 +28,19 @@ SUPPORT = "support"
 PARTIAL = "partial_support"
 NOT_SUPPORT = "not_support"
 
-_DASHES = dict.fromkeys(map(ord, "‐‑‒–—―−"), "-")
-_SOFT_HYPHEN = "­"
+# Hyphen and dash variants (U+2010-U+2015, minus sign U+2212) all match "-".
+# Code points, not literal characters, so the table survives formatters.
+_DASHES = dict.fromkeys([*range(0x2010, 0x2016), 0x2212], "-")
 
 
 def normalize(text: str) -> str:
-    """Case-, whitespace- and typography-insensitive form for verbatim matching."""
-    text = unicodedata.normalize("NFKC", text).replace(_SOFT_HYPHEN, "")
+    """Case-, whitespace- and typography-insensitive form for verbatim matching.
+
+    Invisible format characters (Unicode category Cf) are dropped: the Danish
+    XML sources contain soft hyphens and zero-width joiners inside words.
+    """
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
     text = text.translate(_DASHES).casefold()
     return re.sub(r"\s+", " ", text).strip()
 
