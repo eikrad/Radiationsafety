@@ -21,8 +21,15 @@ from pathlib import Path
 
 from eval.dashboard import write_dashboard
 from eval.golden import GoldenError, golden_warnings, load_golden
-from eval.graph_run import save_outputs
-from eval.history import DEFAULT_HISTORY_PATH, append_run, build_run_record, git_info
+from eval.graph_run import load_outputs, save_outputs
+from eval.history import (
+    DEFAULT_HISTORY_PATH,
+    append_run,
+    build_run_record,
+    dataset_fingerprint,
+    git_info,
+    load_runs,
+)
 from eval.judge import judge_item
 from eval.scoring import METRICS_VERSION, score_item
 
@@ -109,19 +116,23 @@ def _model_name(llm) -> str:
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
 
-def _judge_llm(graph_llm, llm_provider: str) -> tuple[object, dict]:
+def _judge_llm(
+    default_llm, llm_provider: str, answer_model: str
+) -> tuple[object, dict]:
     """The judge model and how it was chosen.
 
     EVAL_GRADER_PROVIDER picks the provider, EVAL_JUDGE_MODEL the model. With
-    neither set the answering model judges itself; that is recorded and warned
-    about, because a model grading its own answers is lenient.
+    neither set, default_llm (the answering model) judges; that is recorded and
+    warned about, because a model grading its own answers is lenient.
+    answer_model is the model that wrote the answers being judged (for a
+    re-score: the original run's model, not today's default).
     """
     from graph.llm_factory import get_llm, scaleway_chat
 
     provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
     model = (os.getenv("EVAL_JUDGE_MODEL") or "").strip() or None
     if not provider and not model:
-        judge = graph_llm
+        judge = default_llm
     elif provider == "scaleway":
         if not model:
             raise ValueError("Set EVAL_JUDGE_MODEL to a Scaleway model id")
@@ -133,9 +144,18 @@ def _judge_llm(graph_llm, llm_provider: str) -> tuple[object, dict]:
         "judge_provider": judge_provider,
         "judge_model": _model_name(judge),
         "judge_is_generator": judge_provider == llm_provider
-        and _model_name(judge) == _model_name(graph_llm),
+        and _model_name(judge) == answer_model,
     }
     return judge, info
+
+
+def _warn_if_self_judged(info: dict) -> None:
+    if info["judge_is_generator"]:
+        print(
+            "Warning: the judge is the answering model (set EVAL_GRADER_PROVIDER / "
+            "EVAL_JUDGE_MODEL); self-judged scores tend to be lenient.",
+            file=sys.stderr,
+        )
 
 
 def score_outputs(
@@ -235,7 +255,7 @@ def _run_eval(
     if no_web_search:
         os.environ["WEB_SEARCH_ENABLED"] = "false"
 
-    from eval.history import dataset_fingerprint, prompt_fingerprints
+    from eval.history import prompt_fingerprints
     from graph.consts import env_bool
     from graph.graph import app as graph
     from graph.llm_factory import (
@@ -247,7 +267,7 @@ def _run_eval(
 
     graph_llm = get_llm()
     llm_provider = os.getenv("LLM_PROVIDER", "gemini").lower()
-    judge_llm, judge_info = _judge_llm(graph_llm, llm_provider)
+    judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     embedding_provider = get_embedding_provider()
     header = {
         "dataset": dataset_fingerprint(golden),
@@ -268,12 +288,7 @@ def _run_eval(
         f"judge = {judge_info['judge_provider']}/{judge_info['judge_model']}",
         file=sys.stderr,
     )
-    if judge_info["judge_is_generator"]:
-        print(
-            "Warning: the judge is the answering model (set EVAL_GRADER_PROVIDER / "
-            "EVAL_JUDGE_MODEL); self-judged scores tend to be lenient.",
-            file=sys.stderr,
-        )
+    _warn_if_self_judged(judge_info)
 
     outputs: dict[str, dict] = {}
     for item in golden:
@@ -287,6 +302,53 @@ def _run_eval(
     save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
     results = score_outputs(golden, outputs, judge_llm)
+    return summarize(results), results, header
+
+
+def _rescore(
+    run_id: str, golden: list[dict], output_dir: Path, history_file: Path
+) -> tuple[dict, list[dict], dict] | None:
+    """Judge and score a saved run again with today's judge and scoring.
+
+    The answers, and therefore the answering model, retrieval settings, prompts
+    and git state, are the original run's; only the judgement is new.
+    Returns None (after printing why) if the run cannot be found.
+    """
+    outputs_path = output_dir / f"outputs_{run_id}.json"
+    if not outputs_path.exists():
+        print(
+            f"There are no saved outputs for run {run_id} in {output_dir}",
+            file=sys.stderr,
+        )
+        return None
+    outputs = load_outputs(outputs_path)
+    original = next((r for r in load_runs(history_file) if r["run_id"] == run_id), None)
+    if original is None:
+        report = output_dir / f"report_{run_id}.json"
+        original = json.loads(report.read_text("utf-8")) if report.exists() else {}
+    config = dict(original.get("config") or {})
+
+    saved = [item for item in golden if item["id"] in outputs]
+    for item in golden:
+        if item["id"] not in outputs:
+            print(
+                f"Warning: {item['id']}: not in the saved run, skipped", file=sys.stderr
+            )
+
+    from graph.llm_factory import get_llm
+
+    llm_provider = config.get("llm_provider") or os.getenv("LLM_PROVIDER", "gemini")
+    judge_llm, judge_info = _judge_llm(
+        get_llm(), llm_provider, config.get("llm_model") or "n/a"
+    )
+    _warn_if_self_judged(judge_info)
+    results = score_outputs(saved, outputs, judge_llm)
+    header = {
+        "git": original.get("git"),
+        "dataset": dataset_fingerprint(saved),
+        "config": {**config, **judge_info, "metrics_version": METRICS_VERSION},
+        "rescored_from": run_id,
+    }
     return summarize(results), results, header
 
 
@@ -446,6 +508,15 @@ def main() -> int:
         action="store_true",
         help="Do not record this run in the history",
     )
+    parser.add_argument(
+        "--rescore",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "Judge and score a saved run again (outputs_<RUN_ID>.json in --output-dir) "
+            "with the current golden set, judge and scoring, without running the graph"
+        ),
+    )
     args = parser.parse_args()
 
     if not args.golden.exists():
@@ -475,20 +546,28 @@ def main() -> int:
     )
     started = time.monotonic()
     run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    # Before the run: describes the code that ran, not edits made while it ran.
-    git = git_info()
-    summary, results, header = _run_eval(
-        golden,
-        no_web_search=args.no_web_search,
-        output_dir=args.output_dir,
-        run_id=run_id,
-        delay_after_graph_sec=delay_after_graph,
-        delay_between_items_sec=delay_between_items,
-    )
+    if args.rescore:
+        rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
+        if rescored is None:
+            return 1
+        summary, results, header = rescored
+        label = args.label or f"rescore of {args.rescore}"
+    else:
+        # Before the run: describes the code that ran, not edits made while it ran.
+        git = git_info()
+        summary, results, header = _run_eval(
+            golden,
+            no_web_search=args.no_web_search,
+            output_dir=args.output_dir,
+            run_id=run_id,
+            delay_after_graph_sec=delay_after_graph,
+            delay_between_items_sec=delay_between_items,
+        )
+        header = {"git": git, **header}
+        label = args.label
     header = {
-        "label": args.label,
+        "label": label,
         "notes": args.notes,
-        "git": git,
         **header,
         "duration_sec": round(time.monotonic() - started, 1),
     }

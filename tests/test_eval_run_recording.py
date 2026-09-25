@@ -302,3 +302,59 @@ def test_a_recorded_run_refreshes_the_dashboard(monkeypatch, workspace):
     page = (workspace.reports / "dashboard.html").read_text(encoding="utf-8")
     [run] = load_runs(workspace.history)
     assert run["run_id"] in page
+
+
+# --- re-scoring saved runs ----------------------------------------------------
+
+
+def test_a_saved_run_can_be_rescored_without_running_the_graph(monkeypatch, workspace):
+    _run(monkeypatch, workspace, "--label", "baseline")
+    [original] = load_runs(workspace.history)
+
+    def graph_must_not_run(*args, **kwargs):
+        raise AssertionError("rescoring must not run the graph")
+
+    def stricter_judge(item, answer, context, llm):
+        verdict = dict(VERDICTS[item["question"]])
+        if item["id"] == "dk-dose-limits":
+            verdict["unsupported_claims"] = ["Grænsen er 50 mSv"]
+        return verdict
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", graph_must_not_run)
+    monkeypatch.setattr(run_eval, "judge_item", stricter_judge)
+    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gpt-4o")
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+
+    original, rescored = load_runs(workspace.history)
+    assert rescored["rescored_from"] == original["run_id"]
+    assert rescored["label"] == f"rescore of {original['run_id']}"
+    # the answers are the original run's: its models, retrieval and prompts
+    for key in ("llm_model", "retriever_k", "prompts", "embedding_model"):
+        assert rescored["config"][key] == original["config"][key]
+    assert rescored["git"] == original["git"]
+    # the judgement is new
+    assert rescored["config"]["judge_model"] == "gpt-4o"
+    assert _results(rescored)["dk-dose-limits"]["error_type"] == "unsupported_claim"
+
+
+def test_rescoring_an_unknown_run_says_so(monkeypatch, workspace, capsys):
+    assert _run(monkeypatch, workspace, "--rescore", "20990101_000000") == 1
+    assert "no saved outputs for run 20990101_000000" in capsys.readouterr().err
+
+
+def test_questions_added_after_the_run_are_skipped_when_rescoring(
+    monkeypatch, workspace, capsys
+):
+    _run(monkeypatch, workspace, "--limit", "2")
+    [original] = load_runs(workspace.history)
+
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    _, rescored = load_runs(workspace.history)
+    assert [r["id"] for r in rescored["results"]] == [
+        "dk-dose-limits",
+        "iaea-transport-index",
+    ]
+    assert rescored["dataset"]["n_items"] == 2
+    assert "out-of-scope-mri: not in the saved run" in capsys.readouterr().err

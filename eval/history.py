@@ -59,6 +59,7 @@ def build_run_record(
     notes: str | None = None,
     duration_sec: float | None = None,
     report_file: str | None = None,
+    rescored_from: str | None = None,
 ) -> dict:
     """Assemble one history record. Generated answers are left out to keep it small."""
     return {
@@ -72,6 +73,7 @@ def build_run_record(
         "config": config,
         "duration_sec": round(duration_sec, 1) if duration_sec is not None else None,
         "report_file": report_file,
+        "rescored_from": rescored_from,
         "summary": summary,
         "results": [
             {
