@@ -164,3 +164,18 @@ def test_internal_callers_can_use_any_scaleway_model(scaleway_env):
 
 def test_scaleway_answers_still_use_gemini_embeddings():
     assert get_embedding_provider("scaleway") == "gemini"
+
+
+def test_scaleway_structured_output_goes_through_tool_calling(scaleway_env):
+    # json_schema-constrained decoding on Scaleway can loop until the token limit
+    # (seen with glm-5.2 in grade_documents); tool calling answers reliably.
+    from pydantic import BaseModel
+
+    class Verdict(BaseModel):
+        binary_score: bool
+
+    structured = get_llm(provider="scaleway").with_structured_output(Verdict)
+    request = structured.first.kwargs
+
+    assert "response_format" not in request
+    assert request["tools"][0]["function"]["name"] == "Verdict"

@@ -36,7 +36,14 @@ def scaleway_chat(model: str, api_key: str | None = None) -> "object":
     if not key:
         raise APIKeyError("Scaleway")
     base_url = (os.getenv("SCW_BASE_URL") or "").strip() or _SCALEWAY_BASE_URL
-    return ChatOpenAI(model=model, temperature=0, api_key=key, base_url=base_url)
+
+    class ScalewayChat(ChatOpenAI):
+        # json_schema-constrained decoding can loop until the token limit on
+        # Scaleway (seen with glm-5.2); tool calling returns the same schema reliably.
+        def with_structured_output(self, schema=None, *, method="function_calling", **kwargs):
+            return super().with_structured_output(schema, method=method, **kwargs)
+
+    return ScalewayChat(model=model, temperature=0, api_key=key, base_url=base_url)
 
 
 def _scaleway_model(model_variant: str | None) -> str:
