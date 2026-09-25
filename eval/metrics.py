@@ -16,6 +16,10 @@ from graph.chains.truncate import (
 )
 from graph.llm_factory import get_llm
 
+# Bump when a metric's scoring changes (e.g. binary → continuous); the dashboard
+# marks runs on either side of a bump as not directly comparable.
+METRICS_VERSION = 1
+
 # Max chunks to send to per-chunk precision grader (to stay within token limits)
 _MAX_CHUNKS_PRECISION = 10
 _CHARS_PER_CHUNK_PRECISION = 350

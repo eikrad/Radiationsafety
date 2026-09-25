@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eval Run Dashboard</title>
+<style>
+/* Tokens: validated default data-viz palette (single series, status, blue
+   sequential ramp). Dark values are their own steps, not an inversion. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #6f6d68;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --series: #2a78d6;
+  --marker: #52514e;
+  --good: #0ca30c;
+  --good-text: #006300;
+  --good-tint: #e4f3e2;
+  --critical: #d03b3b;
+  --critical-text: #b42f2f;
+  --critical-tint: #fbe7e5;
+  --warning: #fab219;
+  --warning-tint: #fdf3dc;
+  --seq-0: #cde2fb; --seq-1: #9ec5f4; --seq-2: #6da7ec;
+  --seq-3: #3987e5; --seq-4: #256abf; --seq-5: #184f95;
+  --seq-ink-0: #0b0b0b; --seq-ink-1: #0b0b0b; --seq-ink-2: #0b0b0b;
+  --seq-ink-3: #0b0b0b; --seq-ink-4: #ffffff; --seq-ink-5: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #9c9a93;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --series: #3987e5;
+    --marker: #c3c2b7;
+    --good-text: #0ca30c;
+    --good-tint: #15291a;
+    --critical-text: #e66767;
+    --critical-tint: #341b1b;
+    --warning-tint: #33290f;
+    --seq-0: #0d366b; --seq-1: #104281; --seq-2: #184f95;
+    --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #6da7ec;
+    --seq-ink-0: #ffffff; --seq-ink-1: #ffffff; --seq-ink-2: #ffffff;
+    --seq-ink-3: #ffffff; --seq-ink-4: #0b0b0b; --seq-ink-5: #0b0b0b;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #9c9a93;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --series: #3987e5;
+  --marker: #c3c2b7;
+  --good-text: #0ca30c;
+  --good-tint: #15291a;
+  --critical-text: #e66767;
+  --critical-tint: #341b1b;
+  --warning-tint: #33290f;
+  --seq-0: #0d366b; --seq-1: #104281; --seq-2: #184f95;
+  --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #6da7ec;
+  --seq-ink-0: #ffffff; --seq-ink-1: #ffffff; --seq-ink-2: #ffffff;
+  --seq-ink-3: #ffffff; --seq-ink-4: #0b0b0b; --seq-ink-5: #0b0b0b;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 22px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+h3 { font-size: 14px; margin: 16px 0 6px; }
+p { margin: 0; }
+.sub, .note { color: var(--ink-2); }
+.note { font-size: 13px; margin-bottom: 12px; }
+code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.filters {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+  margin: 16px -16px 20px; padding: 10px 16px;
+  background: var(--page);
+  border-bottom: 1px solid var(--border);
+}
+label { color: var(--ink-2); font-size: 13px; }
+select {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--axis); border-radius: 6px; padding: 4px 8px;
+  max-width: 100%;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+/* Headline */
+.tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 48px; font-weight: 600; line-height: 1.1; }
+.tile .value.small { font-size: 18px; line-height: 1.4; }
+.tile .deltas { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.delta { font-variant-numeric: tabular-nums; font-weight: 600; }
+.delta.up { color: var(--good-text); }
+.delta.down { color: var(--critical-text); }
+.delta.flat { color: var(--ink-2); }
+
+/* Trends: small multiples */
+.multiples { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.panel h3 { margin: 0 0 6px; font-weight: 600; }
+.panel .latest { color: var(--ink-2); font-weight: 400; }
+.chart { display: flex; align-items: stretch; }
+.y-gutter { position: relative; width: 36px; flex-shrink: 0; }
+.y-gutter span {
+  position: absolute; right: 6px; transform: translateY(-50%);
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.plot { position: relative; flex: 1; min-width: 0; outline: none; }
+.plot:focus-visible { box-shadow: 0 0 0 2px var(--series); border-radius: 4px; }
+.plot svg { display: block; width: 100%; overflow: visible; }
+.x-axis {
+  position: relative; height: 16px; margin-left: 36px; margin-top: 4px;
+  font-size: 11px; color: var(--muted);
+}
+.x-axis span { position: absolute; white-space: nowrap; }
+.x-axis .end { right: 0; }
+.legend-markers { margin-top: 10px; font-size: 12px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.key-dash { display: inline-block; width: 14px; border-top: 2px dashed var(--marker); vertical-align: middle; margin-right: 6px; }
+.key-ring { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--series); border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
+
+.tooltip {
+  position: fixed; z-index: 20; pointer-events: none;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  padding: 8px 10px; font-size: 12px; min-width: 180px; max-width: 320px;
+}
+.tooltip[hidden] { display: none; }
+.tooltip .t-head { color: var(--ink-2); margin-bottom: 4px; }
+.tooltip .t-row { display: flex; align-items: center; gap: 8px; }
+.tooltip .t-row strong { font-variant-numeric: tabular-nums; min-width: 40px; }
+.tooltip .t-key { width: 12px; border-top: 2px solid var(--series); }
+
+/* Tables */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 8px; text-align: left; vertical-align: top; }
+thead th { color: var(--ink-2); font-weight: 500; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+tbody tr + tr td, tbody tr + tr th { border-top: 1px solid var(--grid); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+
+/* Question grid + topic table */
+.matrix th.q { font-weight: 400; min-width: 220px; max-width: 360px; }
+.matrix .qid { color: var(--muted); font-size: 11px; display: block; }
+.matrix th.run { text-align: center; font-size: 11px; line-height: 1.3; min-width: 64px; }
+.matrix th.run.selected { color: var(--ink); font-weight: 600; }
+.matrix td.cell { padding: 2px; text-align: center; }
+.cell-btn {
+  width: 100%; min-width: 44px; min-height: 30px; border: 0; border-radius: 4px;
+  font: 600 13px system-ui, sans-serif; cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.cell-btn:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
+.cell-btn.pass { background: var(--good-tint); color: var(--good-text); }
+.cell-btn.fail { background: var(--critical-tint); color: var(--critical-text); }
+.cell-btn.missing { background: transparent; color: var(--muted); }
+.cell-btn .n { display: block; font-weight: 400; font-size: 10px; opacity: 0.85; }
+.cell-btn.low-n { opacity: 0.45; font-style: italic; }
+.topic-tag {
+  display: inline-block; font-size: 11px; color: var(--ink-2);
+  border: 1px solid var(--axis); border-radius: 999px; padding: 0 6px; margin: 2px 4px 0 0;
+}
+.group-row th { color: var(--ink-2); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 12px; }
+
+/* Compare */
+.verdict { font-size: 18px; font-weight: 600; margin: 4px 0 8px; }
+.pair { color: var(--ink-2); font-size: 13px; }
+.warnings { list-style: none; padding: 0; margin: 10px 0 0; }
+.warnings li {
+  background: var(--warning-tint); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px;
+  font-size: 13px;
+}
+.warnings li::before { content: "⚠ "; }
+.flip { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.flip .status { font-weight: 600; margin-right: 6px; }
+.flip .status.fail { color: var(--critical-text); }
+.flip .status.pass { color: var(--good-text); }
+.flip .scores { font-size: 12px; color: var(--ink-2); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.previews { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 8px; }
+.previews div { font-size: 12px; background: var(--page); border-radius: 6px; padding: 8px; white-space: pre-wrap; }
+.previews .ph { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 4px; }
+.empty { color: var(--ink-2); padding: 24px 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Eval runs</h1>
+    <p class="sub" id="subtitle"></p>
+  </header>
+  <div class="filters" id="filters">
+    <label>Question set <select id="set-select"></select></label>
+    <label>Run <select id="run-select"></select></label>
+    <label>Compared with <select id="against-select">
+      <option value="baseline">Baseline</option>
+      <option value="previous">Previous run</option>
+    </select></label>
+  </div>
+  <main id="main"></main>
+</div>
+<div class="tooltip" id="tooltip" role="status" hidden></div>
+
+<script id="dashboard-data" type="application/json">__DASHBOARD_DATA__</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("dashboard-data").textContent);
+
+const METRIC_LABELS = {
+  pass_rate: "Pass rate",
+  faithfulness: "Faithfulness",
+  answer_relevance: "Answer relevance",
+  context_precision: "Context precision",
+  context_recall: "Context recall",
+};
+const DIMENSIONS = { topics: "Topic", language: "Language", source: "Source" };
+const MAX_COLUMNS = 16;
+
+const state = { setId: null, runId: null, against: "baseline", dimension: "topics" };
+
+// ---------- small DOM helpers (text only via textContent) ----------
+function el(tag, attrs, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (value == null || value === false) continue;
+    if (key === "class") node.className = value;
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const child of children.flat()) {
+    if (child == null || child === false) continue;
+    node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+function svgEl(tag, attrs) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, value] of Object.entries(attrs || {})) node.setAttribute(key, value);
+  return node;
+}
+const pct = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
+const score = (v) => (v == null ? "—" : v.toFixed(2));
+function signed(v, asPct) {
+  if (v == null) return "—";
+  const shown = asPct ? Math.round(v * 100) : Math.round(v * 100) / 100;
+  if (shown === 0) return asPct ? "±0 pp" : "±0.00";
+  const sign = shown > 0 ? "+" : "−";
+  return asPct ? `${sign}${Math.abs(shown)} pp` : `${sign}${Math.abs(shown).toFixed(2)}`;
+}
+function deltaEl(v, asPct) {
+  const cls = v == null || Math.abs(v) < 0.005 ? "flat" : v > 0 ? "up" : "down";
+  const arrow = cls === "up" ? "▲ " : cls === "down" ? "▼ " : "";
+  return el("span", { class: `delta ${cls}` }, arrow + signed(v, asPct));
+}
+function runDate(run, withTime = true) {
+  if (!run.timestamp) return run.run_id;
+  const d = new Date(run.timestamp);
+  const opts = withTime
+    ? { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }
+    : { day: "numeric", month: "short" };
+  return d.toLocaleString(undefined, opts);
+}
+// Sign test over flipped questions (computed in Python). With few flips
+// nothing is significant, which is the point: single flips are hints.
+function significanceText(sig) {
+  if (!sig || sig.flipped === 0) return "No question changed between pass and fail.";
+  const p = sig.p_value < 0.001 ? "< 0.001" : `= ${sig.p_value.toFixed(2)}`;
+  const n = `${sig.flipped} flipped question${sig.flipped === 1 ? "" : "s"}`;
+  return sig.significant
+    ? `Unlikely to be chance (sign test, p ${p}, ${n}).`
+    : `Could be chance (sign test, p ${p}, ${n}). Treat single flips as hints.`;
+}
+const runName = (run) => (run.label ? `${run.label} · ${runDate(run)}` : runDate(run));
+const shortLabel = (run) => run.label || runDate(run, false);
+const summaryValue = (run, metric) =>
+  metric === "pass_rate" ? run.summary.pass_rate : run.summary[`${metric}_mean`];
+
+// ---------- shared tooltip ----------
+const tooltip = document.getElementById("tooltip");
+function showTooltip(anchor, build) {
+  tooltip.replaceChildren(...build());
+  tooltip.hidden = false;
+  const r = anchor.getBoundingClientRect();
+  const t = tooltip.getBoundingClientRect();
+  let left = r.left + r.width / 2 - t.width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - t.width - 8));
+  let top = r.top - t.height - 8;
+  if (top < 8) top = r.bottom + 8;
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+function showTooltipAt(x, y, build) {
+  tooltip.replaceChildren(...build());
+  tooltip.hidden = false;
+  const t = tooltip.getBoundingClientRect();
+  let left = x + 14;
+  if (left + t.width > window.innerWidth - 8) left = x - t.width - 14;
+  let top = y - t.height / 2;
+  top = Math.max(8, Math.min(top, window.innerHeight - t.height - 8));
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+const hideTooltip = () => { tooltip.hidden = true; };
+
+// ---------- state ----------
+const currentSet = () => DATA.sets.find((s) => s.questions_hash === state.setId);
+const setRuns = (set) => set.run_ids.map((id) => DATA.runs[id]);
+function selectRun(runId) {
+  state.runId = runId;
+  document.getElementById("run-select").value = runId;
+  render();
+}
+
+function initFilters() {
+  const setSelect = document.getElementById("set-select");
+  setSelect.replaceChildren(
+    ...DATA.sets.map((s) =>
+      el("option", { value: s.questions_hash },
+        `${s.n_items} questions · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"} · ${s.questions_hash}`))
+  );
+  setSelect.addEventListener("change", () => {
+    state.setId = setSelect.value;
+    state.runId = null;
+    render();
+  });
+  document.getElementById("run-select").addEventListener("change", (e) => selectRun(e.target.value));
+  document.getElementById("against-select").addEventListener("change", (e) => {
+    state.against = e.target.value;
+    render();
+  });
+}
+
+function syncRunSelect(set) {
+  const runSelect = document.getElementById("run-select");
+  runSelect.replaceChildren(
+    ...setRuns(set).slice().reverse().map((run) => el("option", { value: run.run_id }, runName(run)))
+  );
+  runSelect.value = state.runId;
+}
+
+// ---------- sections ----------
+function headline(set) {
+  const run = DATA.runs[state.runId];
+  const cmp = set.comparisons[state.runId];
+  const prev = cmp.previous, base = cmp.baseline;
+  const commit = run.git && run.git.commit
+    ? `${run.git.commit}${run.git.dirty ? " + uncommitted changes" : ""}`
+    : "commit not recorded";
+  return el("section", { class: "card", "aria-labelledby": "h-headline" },
+    el("h2", { id: "h-headline", class: "sr-only" }, "Selected run"),
+    el("div", { class: "tiles" },
+      el("div", { class: "tile" },
+        el("div", { class: "label" }, "Pass rate"),
+        el("div", { class: "value" }, pct(run.summary.pass_rate)),
+        el("div", { class: "deltas" },
+          prev ? ["vs previous ", deltaEl(prev.summary_delta.pass_rate, true)] : "first run in this set",
+          base ? ["  ·  vs baseline ", deltaEl(base.summary_delta.pass_rate, true)] : null)),
+      el("div", { class: "tile" },
+        el("div", { class: "label" }, state.against === "baseline" ? "Since baseline" : "Since previous run"),
+        el("div", { class: "value small" }, cmp[state.against] ? cmp[state.against].verdict : "Nothing to compare with"),
+        cmp[state.against] ? el("div", { class: "deltas" }, significanceText(cmp[state.against].significance)) : null,
+        el("div", { class: "deltas" },
+          cmp[state.against] && cmp[state.against].warnings.length
+            ? `${cmp[state.against].warnings.length} caveat${cmp[state.against].warnings.length === 1 ? "" : "s"}, see Compare`
+            : "")),
+      el("div", { class: "tile" },
+        el("div", { class: "label" }, "Run"),
+        el("div", { class: "value small" }, runName(run)),
+        el("div", { class: "deltas" }, commit,
+          run.config && run.config.llm_model ? ` · ${run.config.llm_model}` : "",
+          run.duration_sec != null ? ` · ${Math.round(run.duration_sec / 60)} min` : ""),
+        run.notes ? el("div", { class: "deltas" }, run.notes) : null)));
+}
+
+function trends(set) {
+  const runs = setRuns(set);
+  const metrics = ["pass_rate", ...DATA.metrics];
+  const section = el("section", { class: "card", "aria-labelledby": "h-trends" },
+    el("h2", { id: "h-trends" }, "Scores over time"),
+    el("p", { class: "note" },
+      "One point per run, in run order. Hover or use ← → on a chart to read every score for a run; click to select it."));
+  if (runs.length < 2) {
+    section.append(el("p", { class: "empty" }, "Only one run on this question set so far. The trend appears from the second run."));
+  }
+  const multiples = el("div", { class: "multiples" });
+  const panels = metrics.map((metric) => {
+    const panel = el("div", { class: "panel" });
+    multiples.append(panel);
+    return { metric, panel };
+  });
+  section.append(multiples);
+
+  const markerNotes = set.markers.map((m, i) =>
+    el("span", {}, el("span", { class: "key-dash" }), `${i + 1}: ${m.reasons.join(", ")} (${runName(DATA.runs[m.run_id])})`));
+  section.append(el("div", { class: "legend-markers" },
+    el("span", {}, el("span", { class: "key-ring" }), "baseline run"),
+    markerNotes));
+
+  // Table twin for every chart value.
+  const table = el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {}, "Run"), metrics.map((m) => el("th", { class: "num" }, METRIC_LABELS[m] || m)))),
+    el("tbody", {}, runs.map((run) =>
+      el("tr", {}, el("th", {}, runName(run)),
+        metrics.map((m) => el("td", { class: "num" }, m === "pass_rate" ? pct(summaryValue(run, m)) : score(summaryValue(run, m))))))));
+  section.append(el("details", {}, el("summary", {}, "Show as table"), el("div", { class: "scroll" }, table)));
+
+  requestAnimationFrame(() => drawPanels(panels, runs, set));
+  return section;
+}
+
+const PLOT_H = 120, PAD = { top: 8, right: 10, bottom: 8, left: 6 };
+
+function drawPanels(panels, runs, set) {
+  const hovers = [];
+  const setHover = (index) => hovers.forEach((fn) => fn(index));
+  const baseIndex = runs.findIndex((r) => r.run_id === set.baseline_run_id);
+  const selectedIndex = runs.findIndex((r) => r.run_id === state.runId);
+  const markerIndexes = set.markers.map((m) => runs.findIndex((r) => r.run_id === m.run_id));
+
+  for (const { metric, panel } of panels) {
+    const latest = summaryValue(runs[runs.length - 1], metric);
+    panel.replaceChildren(
+      el("h3", {}, METRIC_LABELS[metric] || metric, " ",
+        el("span", { class: "latest" }, metric === "pass_rate" ? pct(latest) : score(latest))));
+    const gutter = el("div", { class: "y-gutter", "aria-hidden": "true" });
+    const plot = el("div", { class: "plot", tabindex: "0", role: "img",
+      "aria-label": `${METRIC_LABELS[metric] || metric} over ${runs.length} runs; latest ${metric === "pass_rate" ? pct(latest) : score(latest)}. Table below.` });
+    const chart = el("div", { class: "chart" }, gutter, plot);
+    const xAxis = el("div", { class: "x-axis", "aria-hidden": "true" });
+    panel.append(chart, xAxis);
+
+    const width = Math.max(120, plot.clientWidth);
+    const inner = { l: PAD.left, r: width - PAD.right, t: PAD.top, b: PLOT_H - PAD.bottom };
+    const xFor = (i) => runs.length === 1 ? (inner.l + inner.r) / 2 : inner.l + (i / (runs.length - 1)) * (inner.r - inner.l);
+    const yFor = (v) => inner.b - v * (inner.b - inner.t);
+    const svg = svgEl("svg", { viewBox: `0 0 ${width} ${PLOT_H}`, height: PLOT_H, "aria-hidden": "true" });
+
+    for (const tick of [0, 0.5, 1]) {
+      svg.append(svgEl("line", { x1: inner.l, x2: inner.r, y1: yFor(tick), y2: yFor(tick),
+        stroke: tick === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }));
+      gutter.append(el("span", { style: `top:${(yFor(tick) / PLOT_H) * 100}%` }, metric === "pass_rate" ? pct(tick) : tick.toFixed(1)));
+    }
+    markerIndexes.forEach((i) => {
+      if (i < 0) return;
+      svg.append(svgEl("line", { x1: xFor(i), x2: xFor(i), y1: inner.t, y2: inner.b,
+        stroke: "var(--marker)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
+    });
+    const crosshair = svgEl("line", { y1: inner.t, y2: inner.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
+    svg.append(crosshair);
+
+    const values = runs.map((r) => summaryValue(r, metric));
+    const d = values.map((v, i) => (v == null ? null : `${xFor(i).toFixed(1)} ${yFor(v).toFixed(1)}`))
+      .map((p, i, all) => (p == null ? "" : `${i === 0 || all[i - 1] == null ? "M" : "L"} ${p}`)).join(" ");
+    svg.append(svgEl("path", { d, fill: "none", stroke: "var(--series)", "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    values.forEach((v, i) => {
+      if (v == null) return;
+      svg.append(svgEl("circle", { cx: xFor(i), cy: yFor(v), r: i === selectedIndex ? 5.5 : 4,
+        fill: "var(--series)", stroke: "var(--surface)", "stroke-width": 2 }));
+      if (i === baseIndex) {
+        svg.append(svgEl("circle", { cx: xFor(i), cy: yFor(v), r: 8, fill: "none", stroke: "var(--series)", "stroke-width": 1.5 }));
+      }
+    });
+    plot.append(svg);
+
+    xAxis.append(el("span", { style: "left:0" }, shortLabel(runs[0])));
+    if (runs.length > 1) xAxis.append(el("span", { class: "end" }, shortLabel(runs[runs.length - 1])));
+
+    hovers.push((index) => {
+      if (index == null) { crosshair.setAttribute("visibility", "hidden"); return; }
+      crosshair.setAttribute("x1", xFor(index));
+      crosshair.setAttribute("x2", xFor(index));
+      crosshair.setAttribute("visibility", "visible");
+    });
+
+    const indexAt = (clientX) => {
+      const rect = svg.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * width;
+      if (runs.length === 1) return 0;
+      const i = Math.round(((x - inner.l) / (inner.r - inner.l)) * (runs.length - 1));
+      return Math.max(0, Math.min(runs.length - 1, i));
+    };
+    const tipFor = (index) => () => {
+      const run = runs[index];
+      const rows = ["pass_rate", ...DATA.metrics].map((m) =>
+        el("div", { class: "t-row" }, el("span", { class: "t-key" }),
+          el("strong", {}, m === "pass_rate" ? pct(summaryValue(run, m)) : score(summaryValue(run, m))),
+          METRIC_LABELS[m] || m));
+      const marker = set.markers.find((mk) => mk.run_id === run.run_id);
+      return [
+        el("div", { class: "t-head" }, runName(run), run.run_id === set.baseline_run_id ? " · baseline" : ""),
+        ...rows,
+        marker ? el("div", { class: "t-head" }, `⚠ ${marker.reasons.join(", ")}`) : null,
+      ].filter(Boolean);
+    };
+    plot.addEventListener("pointermove", (e) => {
+      const index = indexAt(e.clientX);
+      setHover(index);
+      showTooltipAt(e.clientX, e.clientY, tipFor(index));
+    });
+    plot.addEventListener("pointerleave", () => { setHover(null); hideTooltip(); });
+    plot.addEventListener("click", (e) => selectRun(runs[indexAt(e.clientX)].run_id));
+    let focusIndex = selectedIndex >= 0 ? selectedIndex : runs.length - 1;
+    plot.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") focusIndex = Math.max(0, focusIndex - 1);
+      else if (e.key === "ArrowRight") focusIndex = Math.min(runs.length - 1, focusIndex + 1);
+      else if (e.key === "Enter") { selectRun(runs[focusIndex].run_id); return; }
+      else return;
+      e.preventDefault();
+      setHover(focusIndex);
+      showTooltip(plot, tipFor(focusIndex));
+    });
+    plot.addEventListener("blur", () => { setHover(null); hideTooltip(); });
+  }
+}
+
+function comparison(set) {
+  const cmp = set.comparisons[state.runId][state.against];
+  const section = el("section", { class: "card", "aria-labelledby": "h-compare" },
+    el("h2", { id: "h-compare" }, "Compare runs"));
+  if (!cmp) {
+    section.append(el("p", { class: "empty" },
+      state.against === "baseline"
+        ? "This run is the baseline or came before it. Pick a later run, or compare with the previous run."
+        : "This is the first run on this question set; there is no previous run."));
+    return section;
+  }
+  const base = DATA.runs[cmp.base_run_id], run = DATA.runs[cmp.run_id];
+  section.append(
+    el("p", { class: "pair" }, `${runName(base)}  →  ${runName(run)}`,
+      cmp.commits[0] || cmp.commits[1] ? `   (${cmp.commits[0] || "?"} → ${cmp.commits[1] || "?"})` : ""),
+    el("p", { class: "verdict" }, cmp.verdict),
+    el("p", { class: "note" }, significanceText(cmp.significance)));
+  if (cmp.warnings.length) {
+    section.append(el("ul", { class: "warnings" }, cmp.warnings.map((w) => el("li", {}, w))));
+  }
+
+  const keys = ["pass_rate", ...DATA.metrics];
+  section.append(el("h3", {}, "Scores"), el("div", { class: "scroll" }, el("table", {},
+    el("thead", {}, el("tr", {}, el("th", {}, "Metric"), el("th", { class: "num" }, "Before"), el("th", { class: "num" }, "After"), el("th", { class: "num" }, "Change"))),
+    el("tbody", {}, keys.map((m) => {
+      const asPct = m === "pass_rate";
+      const fmt = asPct ? pct : score;
+      const key = asPct ? m : `${m}_mean`;
+      return el("tr", {}, el("th", {}, METRIC_LABELS[m] || m),
+        el("td", { class: "num" }, fmt(base.summary[key])),
+        el("td", { class: "num" }, fmt(run.summary[key])),
+        el("td", { class: "num" }, deltaEl(cmp.summary_delta[key], asPct)));
+    })))));
+
+  section.append(el("h3", {}, "Settings"));
+  if (cmp.config_diff === null) {
+    section.append(el("p", { class: "note" }, "Settings were not recorded for one of these runs, so they cannot be compared."));
+  } else if (cmp.config_diff.length === 0) {
+    section.append(el("p", { class: "note" }, "Same settings, prompts and models in both runs."));
+  } else {
+    section.append(el("div", { class: "scroll" }, el("table", {},
+      el("thead", {}, el("tr", {}, el("th", {}, "Setting"), el("th", {}, "Before"), el("th", {}, "After"))),
+      el("tbody", {}, cmp.config_diff.map((c) =>
+        el("tr", {}, el("th", {}, el("code", {}, c.field)), el("td", {}, el("code", {}, JSON.stringify(c.before))), el("td", {}, el("code", {}, JSON.stringify(c.after)))))))));
+  }
+
+  const flipList = (title, items, status) =>
+    items.length
+      ? [el("h3", {}, `${title} (${items.length})`), ...items.map((q) => flipCard(q, status, base, run))]
+      : [];
+  section.append(
+    ...flipList("Regressions: passed before, fail now", cmp.regressions, "fail"),
+    ...flipList("Improvements: failed before, pass now", cmp.improvements, "pass"));
+  // Score shifts without a pass/fail flip: collapsed, since with continuous
+  // scores nearly every question moves a little.
+  if (cmp.changed.length) {
+    section.append(el("details", {},
+      el("summary", {}, `Other score changes, no pass/fail flip (${cmp.changed.length})`),
+      cmp.changed.map((q) => flipCard(q, null, base, run))));
+  }
+  if (!cmp.regressions.length && !cmp.improvements.length && !cmp.changed.length) {
+    section.append(el("p", { class: "note" }, "Every question scored exactly the same in both runs."));
+  }
+  return section;
+}
+
+function flipCard(q, status, base, run) {
+  const scores = DATA.metrics.map((m) => `${METRIC_LABELS[m] || m} ${score(q.before[m])} → ${score(q.after[m])}`).join("  ·  ");
+  const before = base.results[q.id] || {}, after = run.results[q.id] || {};
+  const previews = before.preview || after.preview
+    ? el("details", {}, el("summary", {}, "Answers"),
+        el("div", { class: "previews" },
+          el("div", {}, el("span", { class: "ph" }, "Before"), before.preview || "Not available (report not on this machine)."),
+          el("div", {}, el("span", { class: "ph" }, "After"), after.preview || "Not available (report not on this machine).")))
+    : null;
+  return el("div", { class: "flip" },
+    el("div", {},
+      status ? el("span", { class: `status ${status}` }, status === "fail" ? "✗ fails" : "✓ passes") : null,
+      q.question || q.id),
+    el("div", { class: "scores" }, scores),
+    previews);
+}
+
+function visibleRuns(set) {
+  const runs = setRuns(set);
+  return runs.slice(-MAX_COLUMNS);
+}
+function runHeader(run) {
+  return el("th", { class: `run${run.run_id === state.runId ? " selected" : ""}`, scope: "col" },
+    shortLabel(run), el("br"), run.label ? runDate(run, false) : "");
+}
+function truncatedNote(set) {
+  return set.run_ids.length > MAX_COLUMNS
+    ? el("p", { class: "note" }, `Showing the latest ${MAX_COLUMNS} of ${set.run_ids.length} runs.`)
+    : null;
+}
+
+function topicTable(set) {
+  const runs = visibleRuns(set);
+  const dim = state.dimension;
+  const tags = [...new Set(runs.flatMap((r) => Object.keys(set.breakdown[r.run_id][dim])))].sort();
+  const dimSelect = el("select", { "aria-label": "Break down by" },
+    Object.entries(DIMENSIONS).map(([key, name]) => el("option", { value: key, selected: key === dim }, name)));
+  dimSelect.addEventListener("change", (e) => { state.dimension = e.target.value; render(); });
+
+  const section = el("section", { class: "card", "aria-labelledby": "h-topics" },
+    el("h2", { id: "h-topics" }, "By topic"),
+    el("p", { class: "note" },
+      "Pass rate per group; darker is higher. Greyed cells have fewer than 3 questions, so one question flipping swings them completely."),
+    el("label", {}, "Break down by ", dimSelect),
+    truncatedNote(set));
+  const table = el("table", { class: "matrix" },
+    el("thead", {}, el("tr", {}, el("th", { scope: "col" }, DIMENSIONS[dim]), runs.map(runHeader))),
+    el("tbody", {}, tags.map((tag) => el("tr", {},
+      el("th", { scope: "row" }, tag),
+      runs.map((run) => {
+        const g = set.breakdown[run.run_id][dim][tag];
+        if (!g) return el("td", { class: "cell" }, el("span", { class: "cell-btn missing" }, "—"));
+        const step = Math.round(g.pass_rate * 5);
+        const btn = el("button", {
+          type: "button",
+          class: `cell-btn${g.low_n ? " low-n" : ""}`,
+          style: `background:var(--seq-${step});color:var(--seq-ink-${step})`,
+          "aria-label": `${tag}, ${runName(run)}: pass rate ${pct(g.pass_rate)} of ${g.n} question${g.n === 1 ? "" : "s"}`,
+        }, pct(g.pass_rate), el("span", { class: "n" }, `n=${g.n}`));
+        const tip = () => [
+          el("div", { class: "t-head" }, `${tag} · ${runName(run)}`),
+          el("div", { class: "t-row" }, el("strong", {}, pct(g.pass_rate)), `pass rate, ${g.n} question${g.n === 1 ? "" : "s"}`),
+          ...Object.entries(g.means).map(([m, v]) => el("div", { class: "t-row" }, el("strong", {}, score(v)), METRIC_LABELS[m] || m)),
+        ];
+        btn.addEventListener("pointerenter", () => showTooltip(btn, tip));
+        btn.addEventListener("focus", () => showTooltip(btn, tip));
+        btn.addEventListener("pointerleave", hideTooltip);
+        btn.addEventListener("blur", hideTooltip);
+        btn.addEventListener("click", () => selectRun(run.run_id));
+        return el("td", { class: "cell" }, btn);
+      })))));
+  section.append(el("div", { class: "scroll" }, table));
+  return section;
+}
+
+function questionGrid(set) {
+  const runs = visibleRuns(set);
+  const groups = new Map();
+  for (const q of set.questions) {
+    const key = (q.topics && q.topics[0]) || "untagged";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(q);
+  }
+  const section = el("section", { class: "card", "aria-labelledby": "h-grid" },
+    el("h2", { id: "h-grid" }, "Questions"),
+    el("p", { class: "note" }, "✓ passed, ✗ failed. Hover or focus a cell for its scores; click to select that run."),
+    truncatedNote(set));
+  const body = el("tbody");
+  for (const [group, questions] of [...groups.entries()].sort()) {
+    body.append(el("tr", { class: "group-row" }, el("th", { colspan: runs.length + 1, scope: "rowgroup" }, group)));
+    for (const q of questions) {
+      body.append(el("tr", {},
+        el("th", { class: "q", scope: "row" },
+          q.question, el("span", { class: "qid" }, q.id,
+            [q.language, q.source].filter(Boolean).length ? ` · ${[q.language, q.source].filter(Boolean).join(" · ")}` : ""),
+          (q.topics || []).slice(1).map((t) => el("span", { class: "topic-tag" }, t))),
+        runs.map((run) => {
+          const r = run.results[q.id];
+          if (!r) return el("td", { class: "cell" }, el("span", { class: "cell-btn missing" }, "—"));
+          const btn = el("button", {
+            type: "button",
+            class: `cell-btn ${r.pass ? "pass" : "fail"}`,
+            "aria-label": `${q.id}, ${runName(run)}: ${r.pass ? "passed" : "failed"}`,
+          }, r.pass ? "✓" : "✗");
+          const tip = () => [
+            el("div", { class: "t-head" }, `${runName(run)} · ${r.pass ? "passed" : "failed"}`),
+            ...Object.entries(r.metrics).map(([m, v]) => el("div", { class: "t-row" }, el("strong", {}, score(v)), METRIC_LABELS[m] || m)),
+            r.retrieval_warning ? el("div", { class: "t-head" }, "⚠ answer not fully verified against trusted sources") : null,
+            r.web_search_attempted ? el("div", { class: "t-head" }, "used web search") : null,
+          ].filter(Boolean);
+          btn.addEventListener("pointerenter", () => showTooltip(btn, tip));
+          btn.addEventListener("focus", () => showTooltip(btn, tip));
+          btn.addEventListener("pointerleave", hideTooltip);
+          btn.addEventListener("blur", hideTooltip);
+          btn.addEventListener("click", () => selectRun(run.run_id));
+          return el("td", { class: "cell" }, btn);
+        })));
+    }
+  }
+  section.append(el("div", { class: "scroll" }, el("table", { class: "matrix" },
+    el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Question"), runs.map(runHeader))),
+    body)));
+  return section;
+}
+
+// ---------- render ----------
+function render() {
+  hideTooltip();
+  const main = document.getElementById("main");
+  const set = currentSet();
+  if (!set) return;
+  if (!state.runId || !set.run_ids.includes(state.runId)) state.runId = set.run_ids[set.run_ids.length - 1];
+  syncRunSelect(set);
+  document.getElementById("set-select").value = state.setId;
+  document.getElementById("against-select").value = state.against;
+  main.replaceChildren(headline(set), trends(set), comparison(set), topicTable(set), questionGrid(set));
+}
+
+const runCount = Object.keys(DATA.runs).length;
+document.getElementById("subtitle").textContent =
+  `${runCount} recorded run${runCount === 1 ? "" : "s"} across ${DATA.sets.length} question set${DATA.sets.length === 1 ? "" : "s"}.`;
+if (!DATA.sets.length) {
+  document.getElementById("filters").hidden = true;
+  document.getElementById("main").append(el("div", { class: "card" },
+    el("p", { class: "empty" }, "No runs recorded yet. Run an evaluation to start the history: "),
+    el("code", {}, "uv run python -m eval.run_eval --label baseline")));
+} else {
+  state.setId = DATA.sets[0].questions_hash;
+  initFilters();
+  render();
+  // Charts are drawn at their measured width, so redraw when the width
+  // changes; height-only resizes (a phone's address bar) keep the page as is.
+  let resizeTimer, lastWidth = window.innerWidth;
+  window.addEventListener("resize", () => {
+    if (window.innerWidth === lastWidth) return;
+    lastWidth = window.innerWidth;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(render, 150);
+  });
+}
+</script>
+</body>
+</html>
