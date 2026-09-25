@@ -79,28 +79,18 @@ def _invoke_with_retry(fn, *args, **kwargs):
 
 
 def _invoke_graph(question: str, graph, llm) -> dict:
-    """Run graph for one question; return state slice we need for metrics and report."""
+    """Run graph for one question; final answer plus first retrieval, sufficiency and node path."""
+    from eval.graph_run import run_graph
     from graph.llm_factory import get_embedding_provider
 
-    invoke_input = {
-        "question": question,
-        "generation": "",
-        "web_search": False,
-        "documents": [],
-        "web_search_attempted": False,
-        "chat_history": [],
-        "llm": llm,
-        "embedding_provider": get_embedding_provider(),
-    }
     config = {"run_name": "eval-run", "tags": ["eval", "golden"]}
-    result = graph.invoke(invoke_input, config=config)
-    return {
-        "generation": result.get("generation", ""),
-        "documents": result.get("documents", []),
-        "context_used_for_generation": result.get("context_used_for_generation") or "",
-        "retrieval_warning": result.get("retrieval_warning"),
-        "web_search_attempted": result.get("web_search_attempted", False),
-    }
+    return run_graph(
+        question,
+        graph,
+        llm=llm,
+        embedding_provider=get_embedding_provider(),
+        config=config,
+    )
 
 
 def _serialize_documents(documents: list) -> list[dict]:
