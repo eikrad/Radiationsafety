@@ -115,11 +115,18 @@ _grounded_prompt = ChatPromptTemplate.from_messages(
 )
 
 
-def judge_item(item: dict, answer: str, context: str, llm) -> dict | None:
+def judge_item(
+    item: dict, answer: str, context: str, llm, votes: int = 1
+) -> dict | None:
     """Judge one answer; returns a verdict for eval.scoring.score_item.
 
-    {"nuggets": [label per nugget], "unsupported_claims": [...], "refused": bool},
-    or None if the judge failed twice on either call (scored as judge_error).
+    {"nuggets": [label per nugget], "unsupported_claims": [...], "refused": bool,
+    "votes": {"of": n, "flagged": n, "refused": n}}, or None if the judge failed
+    twice on a nugget call or on every groundedness vote (scored as judge_error).
+
+    votes > 1 asks the groundedness question up to that many times and takes the
+    majority, stopping once it is settled: the same answer judged twice at
+    temperature 0 was flagged once and passed once.
     """
     nuggets = item.get("nuggets") or []
     if not answer.strip():
@@ -127,6 +134,7 @@ def judge_item(item: dict, answer: str, context: str, llm) -> dict | None:
             "nuggets": ["not_support"] * len(nuggets),
             "unsupported_claims": [],
             "refused": False,
+            "votes": {"of": 0, "flagged": 0, "refused": 0},
         }
 
     labels: list[str] = []
@@ -138,20 +146,47 @@ def judge_item(item: dict, answer: str, context: str, llm) -> dict | None:
                 return None
             labels += batch_labels
 
-    grounded = _with_retry(
-        lambda: (_grounded_prompt | llm.with_structured_output(Groundedness)).invoke(
-            {"question": item["question"], "context": context, "answer": answer}
-        ),
-        valid=lambda g: isinstance(g, Groundedness),
-        what=f"{item.get('id')}: groundedness",
-    )
-    if grounded is None:
+    ballots = _vote_groundedness(item, answer, context, llm, votes)
+    if not ballots:
         return None
+    flagged = [b for b in ballots if b.unsupported_claims]
+    refused = sum(b.refused for b in ballots)
+    # a tie counts as seen, like the strict pass rule
+    is_flagged = 2 * len(flagged) >= len(ballots)
     return {
         "nuggets": labels,
-        "unsupported_claims": list(grounded.unsupported_claims),
-        "refused": bool(grounded.refused),
+        "unsupported_claims": list(flagged[0].unsupported_claims) if is_flagged else [],
+        "refused": 2 * refused >= len(ballots),
+        "votes": {"of": len(ballots), "flagged": len(flagged), "refused": refused},
     }
+
+
+def _vote_groundedness(
+    item: dict, answer: str, context: str, llm, votes: int
+) -> list["Groundedness"]:
+    """Valid groundedness verdicts, asked until the majority cannot change."""
+    ballots: list[Groundedness] = []
+    for asked in range(1, votes + 1):
+        ballot = _with_retry(
+            lambda: (
+                _grounded_prompt | llm.with_structured_output(Groundedness)
+            ).invoke(
+                {"question": item["question"], "context": context, "answer": answer}
+            ),
+            valid=lambda g: isinstance(g, Groundedness),
+            what=f"{item.get('id')}: groundedness",
+        )
+        if ballot is not None:
+            ballots.append(ballot)
+        remaining = votes - asked
+        flagged = sum(bool(b.unsupported_claims) for b in ballots)
+        refused = sum(b.refused for b in ballots)
+        settled = all(
+            abs(2 * yes - len(ballots)) > remaining for yes in (flagged, refused)
+        )
+        if ballots and settled:
+            break
+    return ballots
 
 
 def _assign(question: str, answer: str, batch: list[dict], llm) -> list[str] | None:

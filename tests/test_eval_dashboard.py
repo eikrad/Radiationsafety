@@ -488,6 +488,23 @@ def test_flips_across_a_scoring_change_are_not_presented_as_regressions():
     assert [q["id"] for q in comparison["regressions"]] == ["dk-xray-license"]
 
 
+def test_a_different_judge_makes_runs_not_directly_comparable():
+    judged_once = {**CONFIG, "judge_provider": "scaleway", "judge_model": "qwen3.8-27b"}
+    # runs from before voting carry no judge_votes: they were judged once
+    majority_of_three = {**judged_once, "judge_votes": 3}
+    runs = [
+        _run("20260916_094008", ALL_PASS, config=judged_once),
+        _run("20260925_101500", ALL_PASS, config=majority_of_three),
+    ]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
+        "previous"
+    ]
+
+    assert comparison["comparable"] is False
+    assert comparison["verdict"] == "Not directly comparable: judge changed"
+
+
 def test_runs_scored_the_same_way_are_comparable():
     runs = [_run("20260916_094008", ALL_PASS), _run("20260925_101500", ALL_PASS)]
 

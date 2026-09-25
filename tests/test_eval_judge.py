@@ -56,6 +56,7 @@ def test_each_nugget_gets_a_label_in_order():
         "nuggets": ["support", "partial_support"],
         "unsupported_claims": [],
         "refused": False,
+        "votes": {"of": 1, "flagged": 0, "refused": 0},
     }
 
 
@@ -99,7 +100,8 @@ def test_a_refusal_question_skips_the_nugget_call():
     verdict = judge_item(_item(behaviour="refuse"), "Det fremgår ikke.", CONTEXT, llm)
 
     assert llm.prompts[NuggetLabels] == []
-    assert verdict == {"nuggets": [], "unsupported_claims": [], "refused": True}
+    assert verdict["refused"] is True
+    assert (verdict["nuggets"], verdict["unsupported_claims"]) == ([], [])
 
 
 def test_a_wrong_number_of_labels_is_retried_once():
@@ -134,5 +136,54 @@ def test_an_empty_answer_is_judged_without_calling_the_model():
         "nuggets": ["not_support", "not_support"],
         "unsupported_claims": [],
         "refused": False,
+        "votes": {"of": 0, "flagged": 0, "refused": 0},
     }
     assert llm.prompts == {NuggetLabels: [], Groundedness: []}
+
+
+FLAGGED = Groundedness(unsupported_claims=["Grænsen er 50 mSv"], refused=False)
+
+
+def test_the_majority_of_groundedness_votes_decides():
+    llm = FakeJudgeLLM(
+        [NuggetLabels(labels=["support", "support"])], [FLAGGED, GROUNDED, GROUNDED]
+    )
+
+    verdict = judge_item(_item(), ANSWER, CONTEXT, llm, votes=3)
+
+    assert verdict["unsupported_claims"] == []
+    assert verdict["votes"] == {"of": 3, "flagged": 1, "refused": 0}
+
+
+def test_flagged_claims_come_from_a_vote_that_flagged_them():
+    llm = FakeJudgeLLM(
+        [NuggetLabels(labels=["support", "support"])], [GROUNDED, FLAGGED, FLAGGED]
+    )
+
+    verdict = judge_item(_item(), ANSWER, CONTEXT, llm, votes=3)
+
+    assert verdict["unsupported_claims"] == ["Grænsen er 50 mSv"]
+
+
+def test_voting_stops_once_the_majority_is_clear():
+    llm = FakeJudgeLLM(
+        [NuggetLabels(labels=["support", "support"])], [GROUNDED, GROUNDED]
+    )
+
+    verdict = judge_item(_item(), ANSWER, CONTEXT, llm, votes=3)
+
+    assert len(llm.prompts[Groundedness]) == 2
+    assert verdict["votes"] == {"of": 2, "flagged": 0, "refused": 0}
+
+
+def test_a_tie_after_a_failed_vote_counts_as_flagged():
+    # strict, like the pass rule: an unsupported claim half the judges saw is kept
+    llm = FakeJudgeLLM(
+        [NuggetLabels(labels=["support", "support"])],
+        [FLAGGED, GROUNDED, ValueError("bad"), ValueError("bad")],
+    )
+
+    verdict = judge_item(_item(), ANSWER, CONTEXT, llm, votes=3)
+
+    assert verdict["unsupported_claims"] == ["Grænsen er 50 mSv"]
+    assert verdict["votes"]["of"] == 2

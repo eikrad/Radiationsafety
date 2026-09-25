@@ -70,6 +70,8 @@ Per question the judge answers two narrow questions, and everything else is deri
 1. **Nugget assignment** (answer + nuggets, no retrieved context, ≤ 10 nuggets per call): is each nugget *supported*, *partially supported* or *not supported* by the answer?
 2. **Groundedness** (answer + the context the generator saw): which claims does the context not support, and did the answer refuse?
 
+The groundedness question is asked up to `EVAL_JUDGE_VOTES` times (default 3) and the majority decides, separately for "has an unsupported claim" and "refused"; asking stops once two votes agree, so it costs about two calls per question. A tie (after a failed vote) counts as flagged, like the strict pass rule. Why: in the first Scaleway baseline, judging the same answers three times at temperature 0 with a single vote gave pass rates of 54 %, 62 % and 46 %. The report keeps each verdict's vote count and flagged claims.
+
 Two focused calls rather than one combined prompt: in GroUSE (Muller et al. 2024), Llama-3 8B passed 69 % of the judge unit tests with separate calls per metric but 40 % with all metrics in one prompt.
 
 | Metric | Meaning |
@@ -142,7 +144,7 @@ Backfill older reports (they have no header, so settings show as "not recorded")
 uv run python -m eval.history import-reports --since 20260916
 ```
 
-When a metric's definition changes, bump `METRICS_VERSION` in `eval/scoring.py`; the dashboard then marks runs on either side as not directly comparable.
+When a metric's definition changes, bump `METRICS_VERSION` in `eval/scoring.py`; the dashboard then marks runs on either side as not directly comparable. The same happens when the judge changes (provider, model or number of votes; runs from before voting count as one vote). To compare old runs under a new judge, re-score them with `--rescore RUN_ID`.
 
 ## Dashboard
 

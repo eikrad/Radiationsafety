@@ -169,7 +169,23 @@ def _incomparability(before: dict, after: dict) -> list[str]:
     )
     if None not in versions and versions[0] != versions[1]:
         reasons.append("scoring changed")
+    judges = (_judge(before), _judge(after))
+    if None not in judges and judges[0] != judges[1]:
+        reasons.append("judge changed")
     return reasons
+
+
+def _judge(run: dict) -> tuple | None:
+    """Who judged the run and how often; None if not recorded."""
+    config = run.get("config") or {}
+    if not config.get("judge_model"):
+        return None
+    # runs from before majority voting were judged once
+    return (
+        config.get("judge_provider"),
+        config["judge_model"],
+        config.get("judge_votes", 1),
+    )
 
 
 def compare_runs(base: dict, run: dict) -> dict:

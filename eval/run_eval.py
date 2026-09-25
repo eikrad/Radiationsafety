@@ -44,6 +44,10 @@ _DEFAULT_DELAY_AFTER_GRAPH_SEC = (
 )
 _DEFAULT_DELAY_BETWEEN_ITEMS_SEC = 20.0  # between items to stay under RPM
 
+# The same answer judged twice at temperature 0 was flagged once and passed
+# once; three groundedness votes (stopping once two agree) steady the verdict.
+_DEFAULT_JUDGE_VOTES = 3
+
 # Per-question scores that go into the report, history and dashboard. None
 # (not applicable, e.g. vital recall of a refusal question) is left out.
 NUMERIC_METRICS = (
@@ -145,8 +149,18 @@ def _judge_llm(
         "judge_model": _model_name(judge),
         "judge_is_generator": judge_provider == llm_provider
         and _model_name(judge) == answer_model,
+        "judge_votes": _judge_votes(),
     }
     return judge, info
+
+
+def _judge_votes() -> int:
+    """EVAL_JUDGE_VOTES: how often the groundedness question is asked (majority wins)."""
+    raw = (os.getenv("EVAL_JUDGE_VOTES") or "").strip()
+    votes = int(raw) if raw else _DEFAULT_JUDGE_VOTES
+    if votes < 1:
+        raise ValueError("EVAL_JUDGE_VOTES must be at least 1")
+    return votes
 
 
 def _warn_if_self_judged(info: dict) -> None:
@@ -159,7 +173,7 @@ def _warn_if_self_judged(info: dict) -> None:
 
 
 def score_outputs(
-    golden: list[dict], outputs: dict[str, dict], judge_llm
+    golden: list[dict], outputs: dict[str, dict], judge_llm, votes: int = 1
 ) -> list[dict]:
     """Judge and score every golden item from its saved graph output."""
     results = []
@@ -171,6 +185,7 @@ def score_outputs(
             run["generation"],
             run.get("context_used_for_generation") or "",
             judge_llm,
+            votes=votes,
         )
         scores = score_item(
             item,
@@ -303,7 +318,7 @@ def _run_eval(
             time.sleep(delay_between_items_sec)
     save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
-    results = score_outputs(golden, outputs, judge_llm)
+    results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
     return summarize(results), results, header
 
 
@@ -344,7 +359,7 @@ def _rescore(
         get_llm(), llm_provider, config.get("llm_model") or "n/a"
     )
     _warn_if_self_judged(judge_info)
-    results = score_outputs(saved, outputs, judge_llm)
+    results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
     header = {
         "git": original.get("git"),
         "dataset": dataset_fingerprint(saved),

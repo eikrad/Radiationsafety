@@ -89,7 +89,7 @@ def workspace(tmp_path, monkeypatch):
             "node_path": ["retrieve", "grade_documents", "generate"],
         }
 
-    def fake_judge(item, answer, context, llm):
+    def fake_judge(item, answer, context, llm, votes=1):
         return VERDICTS[item["question"]]
 
     monkeypatch.setattr(run_eval, "_invoke_graph", fake_graph)
@@ -103,6 +103,7 @@ def workspace(tmp_path, monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     monkeypatch.setenv("EVAL_GRADER_PROVIDER", "openai")
     monkeypatch.delenv("EVAL_JUDGE_MODEL", raising=False)
+    monkeypatch.delenv("EVAL_JUDGE_VOTES", raising=False)
 
     return SimpleNamespace(
         golden=golden,
@@ -197,7 +198,7 @@ def test_the_summary_counts_error_types_and_averages_only_applicable_scores(
 def test_questions_the_judge_could_not_score_are_left_out_of_the_pass_rate(
     monkeypatch, workspace
 ):
-    def judge_fails_on_mri(item, answer, context, llm):
+    def judge_fails_on_mri(item, answer, context, llm, votes=1):
         return None if "MRI" in item["question"] else VERDICTS[item["question"]]
 
     monkeypatch.setattr(run_eval, "judge_item", judge_fails_on_mri)
@@ -245,6 +246,31 @@ def test_the_judge_model_can_be_chosen_separately(monkeypatch, workspace):
     assert run["config"]["judge_is_generator"] is False
 
 
+def test_the_judge_votes_as_often_as_configured_and_the_run_records_it(
+    monkeypatch, workspace
+):
+    asked_with = []
+
+    def counting_judge(item, answer, context, llm, votes=1):
+        asked_with.append(votes)
+        return VERDICTS[item["question"]]
+
+    monkeypatch.setattr(run_eval, "judge_item", counting_judge)
+    monkeypatch.setenv("EVAL_JUDGE_VOTES", "5")
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["judge_votes"] == 5
+    assert set(asked_with) == {5}
+
+
+def test_the_judge_votes_three_times_by_default(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["judge_votes"] == 3
+
+
 def test_a_v1_golden_file_is_refused_with_a_migration_hint(
     monkeypatch, workspace, capsys
 ):
@@ -280,7 +306,9 @@ def test_the_report_shows_what_the_judge_flagged(monkeypatch, workspace):
         "refused": False,
     }
     monkeypatch.setattr(
-        run_eval, "judge_item", lambda item, answer, context, llm: flagged[item["question"]]
+        run_eval,
+        "judge_item",
+        lambda item, answer, context, llm, votes=1: flagged[item["question"]],
     )
     _run(monkeypatch, workspace)
 
@@ -335,7 +363,7 @@ def test_a_saved_run_can_be_rescored_without_running_the_graph(monkeypatch, work
     def graph_must_not_run(*args, **kwargs):
         raise AssertionError("rescoring must not run the graph")
 
-    def stricter_judge(item, answer, context, llm):
+    def stricter_judge(item, answer, context, llm, votes=1):
         verdict = dict(VERDICTS[item["question"]])
         if item["id"] == "dk-dose-limits":
             verdict["unsupported_claims"] = ["Grænsen er 50 mSv"]
