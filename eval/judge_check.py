@@ -71,7 +71,7 @@ def _check(fixture: dict, llm) -> dict:
 
 
 def _make_judge(spec: str):
-    """provider:model, e.g. scaleway:qwen/qwen3.5-397b-a17b:int4 or gemini:gemini-2.5-pro."""
+    """provider:model, e.g. scaleway:glm-5.2 or gemini:gemini-2.5-pro."""
     from graph.llm_factory import get_llm, scaleway_chat
 
     provider, _, model = spec.partition(":")
@@ -81,6 +81,9 @@ def _make_judge(spec: str):
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Check judge models against calibration fixtures."
     )

@@ -90,7 +90,7 @@ def test_get_embeddings_returns_gemini_by_default(monkeypatch):
 @pytest.fixture
 def scaleway_env(monkeypatch):
     monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
-    monkeypatch.setenv("SCW_MODEL", "qwen/qwen3.5-397b-a17b:int4")
+    monkeypatch.setenv("SCW_MODEL", "qwen3.8-27b")
     monkeypatch.delenv("SCW_ALLOWED_MODELS", raising=False)
     monkeypatch.delenv("SCW_BASE_URL", raising=False)
 
@@ -102,7 +102,7 @@ def _base_url(llm) -> str:
 def test_scaleway_answers_through_its_openai_compatible_endpoint(scaleway_env):
     llm = get_llm(provider="scaleway")
 
-    assert llm.model_name == "qwen/qwen3.5-397b-a17b:int4"
+    assert llm.model_name == "qwen3.8-27b"
     assert _base_url(llm) == "https://api.scaleway.ai/v1"
     assert llm.temperature == 0
 
@@ -110,7 +110,7 @@ def test_scaleway_answers_through_its_openai_compatible_endpoint(scaleway_env):
 def test_scaleway_is_selected_by_llm_provider_env(scaleway_env, monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "scaleway")
 
-    assert get_llm().model_name == "qwen/qwen3.5-397b-a17b:int4"
+    assert get_llm().model_name == "qwen3.8-27b"
 
 
 def test_scaleway_without_a_key_asks_for_one(scaleway_env, monkeypatch):
@@ -132,17 +132,17 @@ def test_scaleway_without_a_configured_model_says_which_setting_is_missing(
 def test_a_client_cannot_pick_an_unlisted_scaleway_model(scaleway_env):
     llm = get_llm(provider="scaleway", model_variant="some/expensive-model")
 
-    assert llm.model_name == "qwen/qwen3.5-397b-a17b:int4"
+    assert llm.model_name == "qwen3.8-27b"
 
 
 def test_a_client_can_pick_a_scaleway_model_from_the_allow_list(
     scaleway_env, monkeypatch
 ):
-    monkeypatch.setenv("SCW_ALLOWED_MODELS", "zai/glm-x, qwen/qwen3.5-35b-a3b:int4")
+    monkeypatch.setenv("SCW_ALLOWED_MODELS", "glm-5.2, qwen3.6-35b-a3b")
 
-    llm = get_llm(provider="scaleway", model_variant="zai/glm-x")
+    llm = get_llm(provider="scaleway", model_variant="glm-5.2")
 
-    assert llm.model_name == "zai/glm-x"
+    assert llm.model_name == "glm-5.2"
 
 
 def test_the_scaleway_endpoint_can_be_project_scoped(scaleway_env, monkeypatch):
@@ -156,9 +156,9 @@ def test_the_scaleway_endpoint_can_be_project_scoped(scaleway_env, monkeypatch):
 def test_internal_callers_can_use_any_scaleway_model(scaleway_env):
     from graph.llm_factory import scaleway_chat
 
-    judge = scaleway_chat("zai/glm-x")
+    judge = scaleway_chat("glm-5.2")
 
-    assert judge.model_name == "zai/glm-x"
+    assert judge.model_name == "glm-5.2"
     assert judge.temperature == 0
 
 

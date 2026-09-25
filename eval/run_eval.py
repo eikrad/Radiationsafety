@@ -447,6 +447,10 @@ def _markdown_header_lines(header: dict) -> list[str]:
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+
+    # Explicitly, not only as a side effect of importing ingestion later on.
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Run RAG evaluation against golden dataset."
     )
