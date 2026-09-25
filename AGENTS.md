@@ -31,7 +31,8 @@ ingestion.py             — PDF/XML loading, chunking, Chroma population
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
-eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json)
+eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json);
+                           run history (history.py → history/runs.jsonl) and local dashboard (dashboard.py)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
