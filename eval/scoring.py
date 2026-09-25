@@ -26,7 +26,8 @@ from langchain_core.documents import Document
 
 # Bump when a metric's definition changes; the dashboard then marks runs on
 # either side as not directly comparable. 1 = RAGAS-style binary metrics
-# (eval/metrics.py), 2 = evidence + nugget scoring defined in this module.
+# (eval/metrics.py, removed; see git history), 2 = evidence + nugget scoring
+# defined in this module.
 METRICS_VERSION = 2
 
 SUPPORT = "support"
