@@ -733,6 +733,9 @@ def ingest():
     print("\n🎉 Ingestion complete!")
 
 
+# Chunks returned per collection (IAEA and DK each) for one retrieval query.
+RETRIEVER_K = 3
+
 _retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
 
 
@@ -830,12 +833,12 @@ def get_retrievers(embedding_provider: str | None = None):
         collection_name=iaea_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": 3})
+    ).as_retriever(search_kwargs={"k": RETRIEVER_K})
     dk = Chroma(
         collection_name=dk_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": 3})
+    ).as_retriever(search_kwargs={"k": RETRIEVER_K})
     _retrievers_cache[ep] = (iaea, dk)
     return _retrievers_cache[ep]
 
