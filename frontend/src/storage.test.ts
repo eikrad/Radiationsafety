@@ -113,6 +113,16 @@ describe('API key storage (sessionStorage, not localStorage)', () => {
     expect(hasAnyApiKeyInStorage()).toBe(true)
   })
 
+  it('removes keys an earlier version left in localStorage instead of using them', () => {
+    localStorageMock.setItem(
+      'radiation-safety-api-keys',
+      JSON.stringify({ mistral: 'old-key', gemini: '', openai: '' })
+    )
+
+    expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })
+    expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
+  })
+
   it('loadApiKeys does not throw and returns empty keys on corrupted data', () => {
     sessionStorage.setItem('radiation-safety-api-keys', 'not-json')
     expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })

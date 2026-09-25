@@ -39,6 +39,13 @@ const DEFAULT_VARIANTS: Record<Model, string> = {
 // covers the crash/force-kill/mobile-backgrounding cases that the beforeunload/
 // pagehide handlers in App.tsx can miss.
 export function loadApiKeys(): Record<Model, string> {
+  // Earlier versions kept keys in localStorage; drop any leftover (e.g. after a
+  // crash skipped the unload cleanup) rather than reusing it.
+  try {
+    localStorage.removeItem(STORAGE_KEYS.apiKeys)
+  } catch {
+    // localStorage unavailable: nothing to clean up
+  }
   try {
     const raw = sessionStorage.getItem(STORAGE_KEYS.apiKeys)
     if (!raw) return { mistral: '', gemini: '', openai: '' }
@@ -61,7 +68,7 @@ export function saveApiKeys(keys: Record<Model, string>): void {
   }
 }
 
-/** True if at least one provider has a non-empty key in the UI (localStorage). */
+/** True if at least one provider has a non-empty key in the UI (sessionStorage). */
 export function hasAnyApiKeyInStorage(): boolean {
   const keys = loadApiKeys()
   return keys.mistral !== '' || keys.gemini !== '' || keys.openai !== ''
