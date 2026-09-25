@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { MODELS, MODEL_VARIANTS, STORAGE_KEYS, type Model } from '../constants'
 import {
   loadApiKeys,
+  saveApiKeys,
   loadDocumentSearchEnabled,
   loadModelVariants,
   loadEnforcePrivacyMode,
@@ -55,7 +56,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   function handleSave() {
     try {
-      localStorage.setItem(STORAGE_KEYS.apiKeys, JSON.stringify(keys))
+      saveApiKeys(keys)
       localStorage.setItem(STORAGE_KEYS.modelVariants, JSON.stringify(variants))
       localStorage.setItem(STORAGE_KEYS.documentSearchEnabled, String(documentSearchEnabled))
       saveEnforcePrivacyMode(enforcePrivacyMode)
