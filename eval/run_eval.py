@@ -181,11 +181,11 @@ def score_outputs(
             },
             verdict,
         )
-        results.append(_result(item, run, scores))
+        results.append(_result(item, run, scores, verdict))
     return results
 
 
-def _result(item: dict, run: dict, scores: dict) -> dict:
+def _result(item: dict, run: dict, scores: dict, verdict: dict | None) -> dict:
     generation = run.get("generation", "")
     return {
         "id": item["id"],
@@ -205,6 +205,8 @@ def _result(item: dict, run: dict, scores: dict) -> dict:
         "retrieval_warning": run.get("retrieval_warning"),
         "web_search_attempted": run.get("web_search_attempted", False),
         "node_path": run.get("node_path") or [],
+        # the raw verdict, so a failure can be checked without re-judging
+        "judge": verdict,
     }
 
 
@@ -411,6 +413,8 @@ def _write_report(
         ]
         if r.get("retrieval_warning"):
             lines.append(f"- **Warning:** {r['retrieval_warning']}")
+        for claim in (r.get("judge") or {}).get("unsupported_claims") or []:
+            lines.append(f"- **Unsupported claim:** {claim}")
         lines.append("")
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

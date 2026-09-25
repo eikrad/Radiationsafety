@@ -272,6 +272,27 @@ def test_the_report_carries_the_same_run_header(monkeypatch, workspace):
     assert "retrieval_miss" in markdown
 
 
+def test_the_report_shows_what_the_judge_flagged(monkeypatch, workspace):
+    flagged = dict(VERDICTS)
+    flagged["Hvor findes dosisgrænserne?"] = {
+        "nuggets": ["support"],
+        "unsupported_claims": ["Grænsen er 50 mSv."],
+        "refused": False,
+    }
+    monkeypatch.setattr(
+        run_eval, "judge_item", lambda item, answer, context, llm: flagged[item["question"]]
+    )
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    report = json.loads((workspace.reports / run["report_file"]).read_text())
+    dk = _results(report)["dk-dose-limits"]
+    assert dk["judge"]["unsupported_claims"] == ["Grænsen er 50 mSv."]
+    assert dk["judge"]["nuggets"] == ["support"]
+    markdown = (workspace.reports / run["report_file"]).with_suffix(".md").read_text()
+    assert "Grænsen er 50 mSv." in markdown
+
+
 def test_a_limited_run_is_recorded_with_its_own_question_count(monkeypatch, workspace):
     _run(monkeypatch, workspace, "--limit", "1")
 
