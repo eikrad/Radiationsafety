@@ -247,7 +247,9 @@ def test_web_search_deduplicates_existing_results(monkeypatch):
         (True, False, 0, True, "retry_retrieve"),
     ],
 )
-def test_generation_retry_route_matrix(enabled, attempted, retry_count, privacy_mode, expected):
+def test_generation_retry_route_matrix(
+    enabled, attempted, retry_count, privacy_mode, expected
+):
     """Route matrix for retry-after-generation decisions."""
     from graph.graph import _generation_retry_route
 
