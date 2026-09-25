@@ -108,6 +108,20 @@ def get_embedding_provider(llm_provider: str | None = None) -> str:
     return "gemini"
 
 
+def get_embedding_model_name(embedding_provider: str | None = None) -> str:
+    """Model id used for embeddings by the given provider (see get_embeddings)."""
+    ep = (
+        embedding_provider
+        if embedding_provider in ("gemini", "mistral", "ollama")
+        else get_embedding_provider()
+    )
+    if ep == "ollama":
+        return (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "nomic-embed-text"
+    if ep == "gemini":
+        return "models/gemini-embedding-001"
+    return "mistral-embed"
+
+
 def get_embeddings(embedding_provider: str | None = None):
     """Return embeddings instance for the given provider.
 
@@ -119,16 +133,16 @@ def get_embeddings(embedding_provider: str | None = None):
         if embedding_provider in ("gemini", "mistral", "ollama")
         else get_embedding_provider()
     )
+    model = get_embedding_model_name(ep)
     if ep == "ollama":
         from langchain_ollama import OllamaEmbeddings
 
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        model = (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "nomic-embed-text"
         return OllamaEmbeddings(model=model, base_url=base_url)
     if ep == "gemini":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-        return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+        return GoogleGenerativeAIEmbeddings(model=model)
     from langchain_mistralai import MistralAIEmbeddings
 
-    return MistralAIEmbeddings(model="mistral-embed")
+    return MistralAIEmbeddings(model=model)
