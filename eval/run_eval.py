@@ -10,6 +10,9 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
+from eval.dashboard import write_dashboard
+from eval.history import DEFAULT_HISTORY_PATH, append_run, build_run_record, git_info
+
 # Project root for default paths
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -132,8 +135,12 @@ def _run_eval(
     pass_rule: str = "all",
     delay_after_graph_sec: float = 0.0,
     delay_between_items_sec: float = 0.0,
-) -> tuple[dict, list[dict]]:
-    """Load golden, run graph and metrics, return summary and results for reporting."""
+) -> tuple[dict, list[dict], dict]:
+    """Load golden, run graph and metrics.
+
+    Returns summary, per-question results, and the run header (dataset
+    fingerprint + config) that says what was tested.
+    """
     golden = _load_golden(golden_path)
     if limit is not None:
         golden = golden[:limit]
@@ -141,9 +148,16 @@ def _run_eval(
     if no_web_search:
         os.environ["WEB_SEARCH_ENABLED"] = "false"
 
-    from eval.metrics import compute_all_metrics
+    from eval import metrics
+    from eval.history import dataset_fingerprint, prompt_fingerprints
+    from graph.consts import env_bool
     from graph.graph import app as graph
-    from graph.llm_factory import get_llm
+    from graph.llm_factory import (
+        get_embedding_model_name,
+        get_embedding_provider,
+        get_llm,
+    )
+    from ingestion import RETRIEVER_K
 
     golden_mtime = golden_path.stat().st_mtime
     cache: dict = {}
@@ -167,8 +181,28 @@ def _run_eval(
     graph_llm = get_llm()
     grader_provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
     grader_llm = get_llm(provider=grader_provider) if grader_provider else graph_llm
-    graph_model = getattr(graph_llm, "model", None) or "n/a"
-    grader_model = getattr(grader_llm, "model", None) or "n/a"
+    graph_model = _model_name(graph_llm)
+    grader_model = _model_name(grader_llm)
+    llm_provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+    embedding_provider = get_embedding_provider()
+    header = {
+        "dataset": dataset_fingerprint(golden),
+        "config": {
+            "llm_provider": llm_provider,
+            "llm_model": graph_model,
+            "grader_provider": grader_provider or llm_provider,
+            "grader_model": grader_model,
+            "embedding_provider": embedding_provider,
+            "embedding_model": get_embedding_model_name(embedding_provider),
+            "retriever_k": RETRIEVER_K,
+            "web_search": env_bool("WEB_SEARCH_ENABLED"),
+            "pass_rule": pass_rule,
+            "per_chunk_precision": use_per_chunk_precision,
+            "metrics_version": metrics.METRICS_VERSION,
+            "cache_used": bool(cache_dir),
+            "prompts": prompt_fingerprints(),
+        },
+    }
     print(
         f"Eval: graph model = {graph_model}, grader model = {grader_model}",
         file=sys.stderr,
@@ -203,8 +237,8 @@ def _run_eval(
                 }
         if delay_after_graph_sec > 0:
             time.sleep(delay_after_graph_sec)
-        metrics = _invoke_with_retry(
-            compute_all_metrics,
+        scores = _invoke_with_retry(
+            metrics.compute_all_metrics,
             question=question,
             generation=generation,
             documents=documents,
@@ -216,15 +250,18 @@ def _run_eval(
         )
         threshold = 0.5
         if pass_rule == "mean":
-            passed = (sum(metrics.values()) / len(metrics)) >= threshold
+            passed = (sum(scores.values()) / len(scores)) >= threshold
         else:
-            passed = all(m >= threshold for m in metrics.values())
+            passed = all(m >= threshold for m in scores.values())
         results.append(
             {
                 "id": item.get("id", ""),
                 "question": question,
+                "topics": item.get("topics") or [],
+                "language": item.get("language"),
+                "source": item.get("source"),
                 "pass": passed,
-                "metrics": metrics,
+                "metrics": scores,
                 "generation_preview": (
                     (generation[:300] + "…") if len(generation) > 300 else generation
                 ),
@@ -264,19 +301,32 @@ def _run_eval(
             sum(r["metrics"]["context_recall"] for r in results) / n if n else 0.0
         ),
     }
-    return summary, results
+    return summary, results, header
+
+
+def _model_name(llm) -> str:
+    return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
 
 def _write_report(
-    summary: dict, results: list[dict], output_dir: Path
+    summary: dict,
+    results: list[dict],
+    output_dir: Path,
+    run_id: str,
+    header: dict | None = None,
 ) -> tuple[Path, Path]:
-    """Write report_<timestamp>.json and report_<timestamp>.md; return both paths."""
+    """Write report_<run_id>.json and report_<run_id>.md; return both paths.
+
+    header: label, notes, git, dataset, config, duration_sec, stored alongside
+    the results so a report says what it tested.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    ts = run_id
     json_path = output_dir / f"report_{ts}.json"
     md_path = output_dir / f"report_{ts}.md"
+    header = header or {}
 
-    payload = {"summary": summary, "results": results, "run_id": ts}
+    payload = {"run_id": ts, **header, "summary": summary, "results": results}
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
@@ -285,6 +335,7 @@ def _write_report(
         "",
         f"**Run ID:** {ts}",
         "",
+        *_markdown_header_lines(header),
         "## Summary",
         "",
         f"- **Pass rate:** {summary['pass_rate']:.2%}",
@@ -314,6 +365,33 @@ def _write_report(
         f.write("\n".join(lines))
 
     return json_path, md_path
+
+
+def _markdown_header_lines(header: dict) -> list[str]:
+    """What the run tested, for the top of the Markdown report."""
+    if not header:
+        return []
+    git = header.get("git") or {}
+    config = header.get("config") or {}
+    dataset = header.get("dataset") or {}
+    commit = git.get("commit") or "unknown"
+    if git.get("dirty"):
+        commit += " (uncommitted changes)"
+    lines = []
+    if header.get("label"):
+        lines.append(f"**Label:** {header['label']}")
+    if header.get("notes"):
+        lines.append(f"**Notes:** {header['notes']}")
+    lines += [
+        f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
+        f"**Models:** {config.get('llm_model')} (grader: {config.get('grader_model')},"
+        f" embeddings: {config.get('embedding_model')})",
+        f"**Retrieval:** k={config.get('retriever_k')} per collection,"
+        f" web search {'on' if config.get('web_search') else 'off'}",
+        f"**Questions:** {dataset.get('n_items')} (set {dataset.get('questions_hash')})",
+        "",
+    ]
+    return lines
 
 
 def main() -> int:
@@ -374,6 +452,27 @@ def main() -> int:
         metavar="SEC",
         help="Seconds to wait between processing each golden item (env: EVAL_DELAY_BETWEEN_ITEMS_SEC; default 20)",
     )
+    parser.add_argument(
+        "--label",
+        default=None,
+        help="Short name for this run in the history and dashboard (e.g. dk-query-translation)",
+    )
+    parser.add_argument(
+        "--notes",
+        default=None,
+        help="Free-text notes on what this run tests",
+    )
+    parser.add_argument(
+        "--history-file",
+        type=Path,
+        default=DEFAULT_HISTORY_PATH,
+        help="Run history to append to (default: eval/history/runs.jsonl)",
+    )
+    parser.add_argument(
+        "--no-history",
+        action="store_true",
+        help="Do not record this run in the history",
+    )
     args = parser.parse_args()
 
     cache_dir = args.cache_dir or (
@@ -397,7 +496,11 @@ def main() -> int:
             "EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC
         )
     )
-    summary, results = _run_eval(
+    started = time.monotonic()
+    run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    # Before the run: describes the code that ran, not edits made while it ran.
+    git = git_info()
+    summary, results, header = _run_eval(
         golden_path=args.golden,
         limit=args.limit,
         no_web_search=args.no_web_search,
@@ -408,7 +511,34 @@ def main() -> int:
         delay_after_graph_sec=delay_after_graph,
         delay_between_items_sec=delay_between_items,
     )
-    json_path, md_path = _write_report(summary, results, args.output_dir)
+    header = {
+        "label": args.label,
+        "notes": args.notes,
+        "git": git,
+        **header,
+        "duration_sec": round(time.monotonic() - started, 1),
+    }
+    json_path, md_path = _write_report(
+        summary, results, args.output_dir, run_id, header
+    )
+    if not args.no_history:
+        append_run(
+            build_run_record(
+                run_id=run_id,
+                summary=summary,
+                results=results,
+                report_file=json_path.name,
+                **header,
+            ),
+            args.history_file,
+        )
+        print(f"Run recorded: {args.history_file}")
+        dashboard = write_dashboard(
+            args.output_dir / "dashboard.html",
+            args.history_file,
+            reports_dir=args.output_dir,
+        )
+        print(f"Dashboard updated: {dashboard}")
     print(f"Report written: {json_path}")
     print(f"Report written: {md_path}")
     print(f"Pass rate: {summary['pass_rate']:.2%}")
