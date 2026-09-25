@@ -18,7 +18,7 @@ describe('ResponseDisplay', () => {
       />
     )
     expect(screen.getByText('You')).toBeInTheDocument()
-    expect(screen.getByText('Assistant')).toBeInTheDocument()
+    expect(screen.getByText('AI Assistant')).toBeInTheDocument()
     expect(screen.getByText('What is radiation?')).toBeInTheDocument()
     expect(screen.getByText('Radiation is...')).toBeInTheDocument()
   })
