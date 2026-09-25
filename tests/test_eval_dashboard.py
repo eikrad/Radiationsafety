@@ -334,3 +334,43 @@ def test_the_command_writes_the_dashboard_from_the_history(tmp_path, monkeypatch
 
     data = _embedded_data(output.read_text(encoding="utf-8"))
     assert list(data["runs"]) == ["20260925_101500"]
+
+
+def _flips(regressed: int, improved: int, stable: int = 2):
+    before, after = {}, {}
+    for i in range(regressed):
+        before[f"r{i}"], after[f"r{i}"] = True, False
+    for i in range(improved):
+        before[f"i{i}"], after[f"i{i}"] = False, True
+    for i in range(stable):
+        before[f"s{i}"], after[f"s{i}"] = True, True
+    runs = [_run("20260916_094008", before), _run("20260925_101500", after)]
+    return _set(dashboard_data(runs))["comparisons"]["20260925_101500"]["previous"]
+
+
+def test_a_single_flipped_question_is_not_significant():
+    significance = _flips(regressed=1, improved=0)["significance"]
+
+    assert significance["flipped"] == 1
+    assert significance["p_value"] == 1.0
+    assert significance["significant"] is False
+
+
+def test_six_regressions_and_no_improvements_are_significant():
+    significance = _flips(regressed=6, improved=0)["significance"]
+
+    assert significance["p_value"] == 2 * 0.5**6
+    assert significance["significant"] is True
+
+
+def test_balanced_flips_are_not_significant():
+    significance = _flips(regressed=3, improved=3)["significance"]
+
+    assert significance["p_value"] == 1.0
+    assert significance["significant"] is False
+
+
+def test_no_flips_means_nothing_to_test():
+    significance = _flips(regressed=0, improved=0)["significance"]
+
+    assert significance == {"flipped": 0, "p_value": None, "significant": False}

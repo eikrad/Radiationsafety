@@ -137,7 +137,7 @@ uv run python -m eval.run_eval --no-web-search --label dk-query-translation
 uv run python -m eval.dashboard --open
 ```
 
-Metrics are still 0/1 per question, so with a small golden set one question flipping moves the pass rate by several points; check which questions flipped before reading a trend.
+Metrics are still 0/1 per question, so with a small golden set one question flipping moves the pass rate by several points; check which questions flipped before reading a trend. Every comparison therefore carries an exact two-sided **sign test** over the questions that flipped between pass and fail (regressions vs improvements; unchanged questions carry no information about direction). With few flips nothing is significant — 5 of 5 in one direction still gives p = 0.0625 — which is the intended reading: single flips are hints, not findings.
 
 
 ## LangSmith

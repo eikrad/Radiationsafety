@@ -294,6 +294,16 @@ function runDate(run, withTime = true) {
     : { day: "numeric", month: "short" };
   return d.toLocaleString(undefined, opts);
 }
+// Sign test over flipped questions (computed in Python). With few flips
+// nothing is significant, which is the point: single flips are hints.
+function significanceText(sig) {
+  if (!sig || sig.flipped === 0) return "No question changed between pass and fail.";
+  const p = sig.p_value < 0.001 ? "< 0.001" : `= ${sig.p_value.toFixed(2)}`;
+  const n = `${sig.flipped} flipped question${sig.flipped === 1 ? "" : "s"}`;
+  return sig.significant
+    ? `Unlikely to be chance (sign test, p ${p}, ${n}).`
+    : `Could be chance (sign test, p ${p}, ${n}). Treat single flips as hints.`;
+}
 const runName = (run) => (run.label ? `${run.label} · ${runDate(run)}` : runDate(run));
 const shortLabel = (run) => run.label || runDate(run, false);
 const summaryValue = (run, metric) =>
@@ -382,6 +392,7 @@ function headline(set) {
       el("div", { class: "tile" },
         el("div", { class: "label" }, state.against === "baseline" ? "Since baseline" : "Since previous run"),
         el("div", { class: "value small" }, cmp[state.against] ? cmp[state.against].verdict : "Nothing to compare with"),
+        cmp[state.against] ? el("div", { class: "deltas" }, significanceText(cmp[state.against].significance)) : null,
         el("div", { class: "deltas" },
           cmp[state.against] && cmp[state.against].warnings.length
             ? `${cmp[state.against].warnings.length} caveat${cmp[state.against].warnings.length === 1 ? "" : "s"}, see Compare`
@@ -552,7 +563,8 @@ function comparison(set) {
   section.append(
     el("p", { class: "pair" }, `${runName(base)}  →  ${runName(run)}`,
       cmp.commits[0] || cmp.commits[1] ? `   (${cmp.commits[0] || "?"} → ${cmp.commits[1] || "?"})` : ""),
-    el("p", { class: "verdict" }, cmp.verdict));
+    el("p", { class: "verdict" }, cmp.verdict),
+    el("p", { class: "note" }, significanceText(cmp.significance)));
   if (cmp.warnings.length) {
     section.append(el("ul", { class: "warnings" }, cmp.warnings.map((w) => el("li", {}, w))));
   }

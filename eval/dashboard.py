@@ -10,6 +10,7 @@ draws what dashboard_data() computed.
 
 import argparse
 import json
+import math
 import sys
 import webbrowser
 from collections import defaultdict
@@ -213,6 +214,7 @@ def compare_runs(base: dict, run: dict) -> dict:
         "regressions": regressions,
         "improvements": improvements,
         "changed": changed,
+        "significance": sign_test(len(regressions), len(improvements)),
         "summary_delta": {
             key: run["summary"][key] - base["summary"][key]
             for key in run.get("summary", {})
@@ -226,6 +228,22 @@ def compare_runs(base: dict, run: dict) -> dict:
         ],
         "warnings": warnings,
     }
+
+
+def sign_test(regressions: int, improvements: int, alpha: float = 0.05) -> dict:
+    """Exact two-sided sign test over questions that flipped between two runs.
+
+    Under "no real change" each flip is equally likely to go either way, so
+    the flips are Binomial(n, 0.5). Questions that did not flip carry no
+    information about direction and are left out. With few flips nothing
+    can be significant: 5 of 5 in one direction still gives p = 0.0625.
+    """
+    n = regressions + improvements
+    if n == 0:
+        return {"flipped": 0, "p_value": None, "significant": False}
+    tail = sum(math.comb(n, i) for i in range(min(regressions, improvements) + 1))
+    p_value = min(1.0, 2 * tail / 2**n)
+    return {"flipped": n, "p_value": p_value, "significant": p_value < alpha}
 
 
 def _plural(n: int, word: str) -> str:
