@@ -1,0 +1,401 @@
+[
+  {
+    "id": "correct-answer",
+    "purpose": "A correct, grounded answer must get full marks (GroUSE type 1).",
+    "origin": "GroUSE T1",
+    "question": "Hvor findes dosisgrænserne for erhvervsmæssig bestråling?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2",
+        "importance": "vital",
+        "evidence": [
+          "fremgår af bilag 2"
+        ]
+      }
+    ],
+    "context": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse. § 14. For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2.",
+    "answer": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2 i bekendtgørelsen (§ 14). De omfatter både effektiv dosis og ækvivalent dosis.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  },
+  {
+    "id": "correct-in-other-language",
+    "purpose": "An English answer to Danish context and a Danish nugget must count (translation is fine).",
+    "origin": "radiation-specific",
+    "question": "Where are the dose limits for occupational exposure set out?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2",
+        "importance": "vital",
+        "evidence": [
+          "fremgår af bilag 2"
+        ]
+      }
+    ],
+    "context": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse. § 14. For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2.",
+    "answer": "Under § 14 of the Danish order, the dose limits for occupational exposure (effective and equivalent dose) are set out in Annex 2.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  },
+  {
+    "id": "partial-answer",
+    "purpose": "Naming the topic but not the annex must not count as the full fact (GroUSE type 10).",
+    "origin": "GroUSE T10",
+    "question": "Hvor findes dosisgrænserne for erhvervsmæssig bestråling?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2",
+        "importance": "vital",
+        "evidence": [
+          "fremgår af bilag 2"
+        ]
+      }
+    ],
+    "context": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse. § 14. For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2.",
+    "answer": "Der gælder dosisgrænser for erhvervsmæssig bestråling, både for effektiv dosis og ækvivalent dosis. De er fastsat i bekendtgørelsen.",
+    "expect": {
+      "nuggets": [
+        [
+          "partial_support",
+          "not_support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  },
+  {
+    "id": "wrong-unit-gy-for-sv",
+    "purpose": "Gy instead of Sv changes the quantity; the fact is not stated and the claim is unsupported. The context value is constructed for the test.",
+    "origin": "radiation-specific",
+    "question": "Hvad er dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænsen for effektiv dosis er 20 mSv pr. kalenderår",
+        "importance": "vital",
+        "evidence": [
+          "20 mSv pr. kalenderår"
+        ]
+      }
+    ],
+    "context": "Bilag 2. Dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling er 20 mSv pr. kalenderår.",
+    "answer": "Dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling er 20 mGy pr. kalenderår.",
+    "expect": {
+      "nuggets": [
+        [
+          "not_support",
+          "partial_support"
+        ]
+      ],
+      "unsupported": true,
+      "refused": false
+    }
+  },
+  {
+    "id": "wrong-prefix-usv-for-msv",
+    "purpose": "µSv instead of mSv is a factor of 1000; the fact is not stated and the claim is unsupported. The context value is constructed for the test.",
+    "origin": "radiation-specific",
+    "question": "Hvad er dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænsen for effektiv dosis er 20 mSv pr. kalenderår",
+        "importance": "vital",
+        "evidence": [
+          "20 mSv pr. kalenderår"
+        ]
+      }
+    ],
+    "context": "Bilag 2. Dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling er 20 mSv pr. kalenderår.",
+    "answer": "Grænsen er 20 µSv pr. kalenderår for effektiv dosis.",
+    "expect": {
+      "nuggets": [
+        [
+          "not_support",
+          "partial_support"
+        ]
+      ],
+      "unsupported": true,
+      "refused": false
+    }
+  },
+  {
+    "id": "wrong-annex",
+    "purpose": "Citing the wrong annex is a wrong legal reference, not a paraphrase.",
+    "origin": "radiation-specific",
+    "question": "Hvor fremgår krav til strålebeskyttelseskoordinatorers kompetencer?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Kravene fremgår af bilag 8",
+        "importance": "vital",
+        "evidence": [
+          "fremgår af bilag 8"
+        ]
+      }
+    ],
+    "context": "§ 34. Krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 8. § 35. Krav til medicinsk-fysiske eksperters viden, færdigheder og kompetencer fremgår af bilag 9.",
+    "answer": "Kravene til strålebeskyttelseskoordinatorens viden, færdigheder og kompetencer står i bilag 9.",
+    "expect": {
+      "nuggets": [
+        [
+          "not_support"
+        ]
+      ],
+      "unsupported": true,
+      "refused": false
+    }
+  },
+  {
+    "id": "foreign-rule-instead-of-danish",
+    "purpose": "A rule from another regime (here an invented 30-day IAEA-style deadline) instead of the Danish rule in the context is unsupported.",
+    "origin": "radiation-specific",
+    "question": "Senest hvornår skal afmelding af en højaktiv lukket radioaktiv kilde være Sundhedsstyrelsen i hænde efter overdragelse?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Senest 21 dage efter overdragelsen",
+        "importance": "vital",
+        "evidence": [
+          "senest 21 dage efter overdragelsen"
+        ]
+      }
+    ],
+    "context": "Stk. 2. Hvis en registreringspligtig lukket radioaktiv kilde, jf. stk. 1, nr. 1, overdrages, skal den afmeldes hos Sundhedsstyrelsen. For en højaktiv lukket radioaktiv kilde skal afmeldingen være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen.",
+    "answer": "Efter IAEA's internationale anbefalinger skal overdragelsen af en højaktiv kilde meddeles myndigheden inden for 30 dage.",
+    "expect": {
+      "nuggets": [
+        [
+          "not_support"
+        ]
+      ],
+      "unsupported": true,
+      "refused": false
+    }
+  },
+  {
+    "id": "correct-plus-fabrication",
+    "purpose": "A correct answer with an invented extra obligation must still flag the invention (GroUSE type 16 / FM7).",
+    "origin": "GroUSE T16",
+    "question": "Senest hvornår skal afmelding af en højaktiv lukket radioaktiv kilde være Sundhedsstyrelsen i hænde efter overdragelse?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Senest 21 dage efter overdragelsen",
+        "importance": "vital",
+        "evidence": [
+          "senest 21 dage efter overdragelsen"
+        ]
+      }
+    ],
+    "context": "For en højaktiv lukket radioaktiv kilde skal afmeldingen være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen.",
+    "answer": "Afmeldingen skal være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen. Derudover skal overdragelsen indberettes til Euratom-registret inden for 7 dage.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": true,
+      "refused": false
+    }
+  },
+  {
+    "id": "correct-plus-supported-extra",
+    "purpose": "Extra facts that are in the context are supported and must not be flagged.",
+    "origin": "GroUSE T8 (adapted: no relevance metric)",
+    "question": "Hvor findes dosisgrænserne for erhvervsmæssig bestråling?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2",
+        "importance": "vital",
+        "evidence": [
+          "fremgår af bilag 2"
+        ]
+      }
+    ],
+    "context": "Bekendtgørelse om ioniserende stråling og strålebeskyttelse. § 14. For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2. Stk. 2. I særlige tilfælde kan Sundhedsstyrelsen godkende, at en stråleudsat arbejdstager over 18 år modtager en effektiv dosis på op til 50 mSv pr. år.",
+    "answer": "Dosisgrænserne fremgår af bilag 2. I særlige tilfælde kan Sundhedsstyrelsen godkende op til 50 mSv pr. år for en stråleudsat arbejdstager over 18 år.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  },
+  {
+    "id": "correct-refusal",
+    "purpose": "Declining when the context is off-topic is a refusal with nothing unsupported (GroUSE types 2 and 5).",
+    "origin": "GroUSE T2/T5",
+    "question": "Hvad er SAR-grænsen for en 3 T MR-scanner?",
+    "expected_behavior": "refuse",
+    "nuggets": [],
+    "context": "§ 90. En virksomhed, der er omfattet af krav om tilladelse til udledning af radioaktivt materiale, skal overvåge udledningen og mindst én gang årligt indberette resultaterne herfra til Sundhedsstyrelsen.",
+    "answer": "Kilderne indeholder ingen oplysninger om SAR-grænser for MR-scannere, så jeg kan ikke besvare spørgsmålet ud fra dem.",
+    "expect": {
+      "nuggets": [],
+      "unsupported": false,
+      "refused": true
+    }
+  },
+  {
+    "id": "refusal-with-related-context",
+    "purpose": "Declining (the sources say nothing about fees) while adding related information from the context is a refusal with nothing unsupported (GroUSE type 3).",
+    "origin": "GroUSE T3",
+    "question": "Hvad koster det at få en tilladelse fra Sundhedsstyrelsen til brug af strålekilder?",
+    "expected_behavior": "refuse",
+    "nuggets": [],
+    "context": "§ 26. Brug af strålekilder eller stråleudsættelse kræver, afhængig af art, omfang og kompleksitet af brugen eller stråleudsættelsen, tilladelse fra eller underretning til Sundhedsstyrelsen eller er undtaget fra krav om tilladelse fra eller underretning til Sundhedsstyrelsen.",
+    "answer": "Kilderne oplyser ikke, hvad en tilladelse koster. De beskriver kun, at brug af strålekilder afhængig af art, omfang og kompleksitet kræver tilladelse fra eller underretning til Sundhedsstyrelsen.",
+    "expect": {
+      "nuggets": [],
+      "unsupported": false,
+      "refused": true
+    }
+  },
+  {
+    "id": "wrong-refusal",
+    "purpose": "Refusing although the context answers the question must be seen as a refusal and the fact as missing (GroUSE type 11).",
+    "origin": "GroUSE T11",
+    "question": "Senest hvornår skal afmelding af en højaktiv lukket radioaktiv kilde være Sundhedsstyrelsen i hænde efter overdragelse?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Senest 21 dage efter overdragelsen",
+        "importance": "vital",
+        "evidence": [
+          "senest 21 dage efter overdragelsen"
+        ]
+      }
+    ],
+    "context": "For en højaktiv lukket radioaktiv kilde skal afmeldingen være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen.",
+    "answer": "Det fremgår ikke af de tilgængelige kilder, hvornår afmeldingen skal ske. Kontakt Sundhedsstyrelsen.",
+    "expect": {
+      "nuggets": [
+        [
+          "not_support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": true
+    }
+  },
+  {
+    "id": "answer-from-own-knowledge",
+    "purpose": "Answering an off-topic question from model knowledge is not a refusal and the claims are unsupported (GroUSE FM2).",
+    "origin": "GroUSE FM2",
+    "question": "Hvad er SAR-grænsen for en 3 T MR-scanner?",
+    "expected_behavior": "refuse",
+    "nuggets": [],
+    "context": "§ 90. En virksomhed, der er omfattet af krav om tilladelse til udledning af radioaktivt materiale, skal overvåge udledningen og mindst én gang årligt indberette resultaterne herfra til Sundhedsstyrelsen.",
+    "answer": "For helkropseksponering i normal driftstilstand er SAR-grænsen 2 W/kg, og i første niveau 4 W/kg.",
+    "expect": {
+      "nuggets": [],
+      "unsupported": true,
+      "refused": false
+    }
+  },
+  {
+    "id": "absurd-context-followed",
+    "purpose": "The judge must compare with the context, not with its own knowledge: an answer that repeats an absurd (deliberately false, constructed) context value is supported (GroUSE type 6).",
+    "origin": "GroUSE T6",
+    "question": "Hvad er dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Dosisgrænsen for effektiv dosis er 2000 mSv pr. kalenderår",
+        "importance": "vital",
+        "evidence": [
+          "2000 mSv pr. kalenderår"
+        ]
+      }
+    ],
+    "context": "Bilag 2. Dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling er 2000 mSv pr. kalenderår.",
+    "answer": "Ifølge bilag 2 er dosisgrænsen for effektiv dosis ved erhvervsmæssig bestråling 2000 mSv pr. kalenderår.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  },
+  {
+    "id": "heavy-paraphrase",
+    "purpose": "A correct answer in entirely different words must count (meaning, not wording).",
+    "origin": "Nugget Recall (semantic assignment)",
+    "question": "Hvor ofte skal eftersyn og radiologisk kontrol foretages for brug af åbne radioaktive kilder med tilladelse?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Højst 13 måneder mellem eftersyn og radiologisk kontrol",
+        "importance": "vital",
+        "evidence": [
+          "ikke være længere end 13 måneder"
+        ]
+      }
+    ],
+    "context": "§ 89. Der skal udføres eftersyn og, hvor relevant, radiologisk kontrol af anlæg og udstyr til brug af åbne radioaktive kilder med de intervaller, der er angivet i stk. 2-3. Stk. 2. For brug af åbne radioaktive kilder, der er omfattet af krav om tilladelse, jf. §§ 7 og 8, må intervallet mellem eftersyn og radiologisk kontrol ikke være længere end 13 måneder.",
+    "answer": "Med tilladelse skal anlæg og udstyr efterses og kontrolleres radiologisk mindst én gang for hver 13. måned; der må aldrig gå mere end 13 måneder imellem.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  },
+  {
+    "id": "advice-to-consult-authority",
+    "purpose": "General advice to contact the authority is not a factual claim and must not be flagged.",
+    "origin": "radiation-specific",
+    "question": "Senest hvornår skal afmelding af en højaktiv lukket radioaktiv kilde være Sundhedsstyrelsen i hænde efter overdragelse?",
+    "expected_behavior": "answer",
+    "nuggets": [
+      {
+        "text": "Senest 21 dage efter overdragelsen",
+        "importance": "vital",
+        "evidence": [
+          "senest 21 dage efter overdragelsen"
+        ]
+      }
+    ],
+    "context": "For en højaktiv lukket radioaktiv kilde skal afmeldingen være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen.",
+    "answer": "Afmeldingen skal være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen. Er du i tvivl om den konkrete sag, så kontakt Sundhedsstyrelsen.",
+    "expect": {
+      "nuggets": [
+        [
+          "support"
+        ]
+      ],
+      "unsupported": false,
+      "refused": false
+    }
+  }
+]

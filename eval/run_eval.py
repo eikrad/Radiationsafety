@@ -1,31 +1,66 @@
-"""Run evaluation: load golden dataset, invoke graph, compute metrics, write report."""
+"""Run evaluation (scoring v2): run the graph per golden item, judge, score, report.
+
+Per question:
+1. run the graph, capturing the first retrieval and the grade_documents verdict
+   (eval/graph_run.py);
+2. ask the judge two narrow questions (eval/judge.py);
+3. derive all metrics and the error type deterministically (eval/scoring.py).
+
+Full graph outputs are saved to <output-dir>/outputs_<run_id>.json so a run
+can be re-scored without re-running the graph.
+"""
 
 import argparse
 import json
 import os
 import sys
 import time
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from langchain_core.documents import Document
-
 from eval.dashboard import write_dashboard
-from eval.history import DEFAULT_HISTORY_PATH, append_run, build_run_record, git_info
+from eval.golden import GoldenError, golden_warnings, load_golden
+from eval.graph_run import load_outputs, save_outputs
+from eval.history import (
+    DEFAULT_HISTORY_PATH,
+    append_run,
+    build_run_record,
+    dataset_fingerprint,
+    git_info,
+    load_runs,
+)
+from eval.judge import judge_item
+from eval.scoring import METRICS_VERSION, score_item
 
-# Project root for default paths
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-_CACHE_FILENAME = "eval_cache.json"
 
 _MAX_RATE_LIMIT_RETRIES = 4
 _INITIAL_BACKOFF_SEC = 30
 
 # Default delays for eval to stay under LLM rate limits (Mistral free tier ~1 RPS, ~30 RPM)
 _DEFAULT_DELAY_AFTER_GRAPH_SEC = (
-    5.0  # after graph.invoke, before metrics (4+ LLM calls)
+    5.0  # after graph.invoke, before judging (2+ LLM calls)
 )
 _DEFAULT_DELAY_BETWEEN_ITEMS_SEC = 20.0  # between items to stay under RPM
+
+# The same answer judged twice at temperature 0 was flagged once and passed
+# once; three groundedness votes (stopping once two agree) steady the verdict.
+_DEFAULT_JUDGE_VOTES = 3
+
+# Per-question scores that go into the report, history and dashboard. None
+# (not applicable, e.g. vital recall of a refusal question) is left out.
+NUMERIC_METRICS = (
+    "evidence_recall_initial",
+    "evidence_recall_context",
+    "vital_recall",
+    "vital_recall_lenient",
+    "all_recall",
+    "grounded_vital_recall",
+    "context_utilization",
+    "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
+    "grade_documents_correct",
+)
 
 
 def _is_rate_limit_error(e: BaseException) -> bool:
@@ -50,18 +85,6 @@ def _delay_sec(env_name: str, default: float) -> float:
         return default
 
 
-def _load_golden(path: Path) -> list[dict]:
-    """Load and validate golden JSON. Each item must have 'question'; optional id, expected_answer, key_facts."""
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, list):
-        raise ValueError("Golden file must be a JSON array")
-    for i, item in enumerate(data):
-        if not isinstance(item, dict) or "question" not in item:
-            raise ValueError(f"Item {i}: must be an object with 'question'")
-    return data
-
-
 def _invoke_with_retry(fn, *args, **kwargs):
     """Call fn; on 429 / rate limit, back off and retry up to _MAX_RATE_LIMIT_RETRIES."""
     last_error = None
@@ -79,77 +102,177 @@ def _invoke_with_retry(fn, *args, **kwargs):
 
 
 def _invoke_graph(question: str, graph, llm) -> dict:
-    """Run graph for one question; return state slice we need for metrics and report."""
+    """Run graph for one question; final answer plus first retrieval, sufficiency and node path."""
+    from eval.graph_run import run_graph
     from graph.llm_factory import get_embedding_provider
 
-    invoke_input = {
-        "question": question,
-        "generation": "",
-        "web_search": False,
-        "documents": [],
-        "web_search_attempted": False,
-        "chat_history": [],
-        "llm": llm,
-        "embedding_provider": get_embedding_provider(),
-    }
     config = {"run_name": "eval-run", "tags": ["eval", "golden"]}
-    result = graph.invoke(invoke_input, config=config)
+    return run_graph(
+        question,
+        graph,
+        llm=llm,
+        embedding_provider=get_embedding_provider(),
+        config=config,
+    )
+
+
+def _model_name(llm) -> str:
+    return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
+
+
+def _judge_llm(
+    default_llm, llm_provider: str, answer_model: str
+) -> tuple[object, dict]:
+    """The judge model and how it was chosen.
+
+    EVAL_GRADER_PROVIDER picks the provider, EVAL_JUDGE_MODEL the model. With
+    neither set, default_llm (the answering model) judges; that is recorded and
+    warned about, because a model grading its own answers is lenient.
+    answer_model is the model that wrote the answers being judged (for a
+    re-score: the original run's model, not today's default).
+    """
+    from graph.llm_factory import get_llm, scaleway_chat
+
+    provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
+    model = (os.getenv("EVAL_JUDGE_MODEL") or "").strip() or None
+    if not provider and not model:
+        judge = default_llm
+    elif provider == "scaleway":
+        if not model:
+            raise ValueError("Set EVAL_JUDGE_MODEL to a Scaleway model id")
+        judge = scaleway_chat(model)
+    else:
+        judge = get_llm(provider=provider or llm_provider, model_variant=model)
+    judge_provider = provider or llm_provider
+    info = {
+        "judge_provider": judge_provider,
+        "judge_model": _model_name(judge),
+        "judge_is_generator": judge_provider == llm_provider
+        and _model_name(judge) == answer_model,
+        "judge_votes": _judge_votes(),
+    }
+    return judge, info
+
+
+def _judge_votes() -> int:
+    """EVAL_JUDGE_VOTES: how often the groundedness question is asked (majority wins)."""
+    raw = (os.getenv("EVAL_JUDGE_VOTES") or "").strip()
+    votes = int(raw) if raw else _DEFAULT_JUDGE_VOTES
+    if votes < 1:
+        raise ValueError("EVAL_JUDGE_VOTES must be at least 1")
+    return votes
+
+
+def _warn_if_self_judged(info: dict) -> None:
+    if info["judge_is_generator"]:
+        print(
+            "Warning: the judge is the answering model (set EVAL_GRADER_PROVIDER / "
+            "EVAL_JUDGE_MODEL); self-judged scores tend to be lenient.",
+            file=sys.stderr,
+        )
+
+
+def score_outputs(
+    golden: list[dict], outputs: dict[str, dict], judge_llm, votes: int = 1
+) -> list[dict]:
+    """Judge and score every golden item from its saved graph output."""
+    results = []
+    for item in golden:
+        run = outputs[item["id"]]
+        verdict = _invoke_with_retry(
+            judge_item,
+            item,
+            run["generation"],
+            run.get("context_used_for_generation") or "",
+            judge_llm,
+            votes=votes,
+        )
+        scores = score_item(
+            item,
+            {
+                "initial_documents": run.get("initial_documents") or [],
+                "context": run.get("context_used_for_generation") or "",
+                "sufficient": run.get("sufficient"),
+            },
+            verdict,
+        )
+        results.append(_result(item, run, scores, verdict))
+    return results
+
+
+def _result(item: dict, run: dict, scores: dict, verdict: dict | None) -> dict:
+    generation = run.get("generation", "")
     return {
-        "generation": result.get("generation", ""),
-        "documents": result.get("documents", []),
-        "context_used_for_generation": result.get("context_used_for_generation") or "",
-        "retrieval_warning": result.get("retrieval_warning"),
-        "web_search_attempted": result.get("web_search_attempted", False),
+        "id": item["id"],
+        "question": item["question"],
+        "topics": item.get("topics") or [],
+        "language": item.get("language"),
+        "source": item.get("source"),
+        "expected_behavior": item["expected_behavior"],
+        "pass": scores["pass"],
+        "error_type": scores["error_type"],
+        "refused": scores["refused"],
+        "unsupported_claims": scores["unsupported_claims"],
+        "metrics": _metrics(scores),
+        "generation_preview": (
+            (generation[:300] + "…") if len(generation) > 300 else generation
+        ),
+        "retrieval_warning": run.get("retrieval_warning"),
+        "web_search_attempted": run.get("web_search_attempted", False),
+        "node_path": run.get("node_path") or [],
+        # the raw verdict, so a failure can be checked without re-judging
+        "judge": verdict,
     }
 
 
-def _serialize_documents(documents: list) -> list[dict]:
-    """Serialize Document list to JSON-serializable list of dicts."""
-    out = []
-    for d in documents:
-        meta = getattr(d, "metadata", None) or {}
-        out.append(
-            {
-                "page_content": getattr(d, "page_content", "") or "",
-                "metadata": dict(meta),
-            }
-        )
-    return out
+def _metrics(scores: dict) -> dict[str, float]:
+    """Per-question scores on a 0-1 scale; metrics that do not apply are left out."""
+    values = dict(scores)
+    if values.get("unsupported_claims") is not None:
+        values["unsupported_claim"] = values["unsupported_claims"] > 0
+    return {
+        name: float(values[name])
+        for name in NUMERIC_METRICS
+        if values.get(name) is not None
+    }
 
 
-def _deserialize_documents(data: list[dict]) -> list[Document]:
-    """Deserialize list of dicts back to Document list."""
-    return [
-        Document(page_content=x.get("page_content", ""), metadata=x.get("metadata", {}))
-        for x in data
-    ]
+def summarize(results: list[dict]) -> dict:
+    """Pass rate over judged questions, mean of each metric where it applies,
+    and how many questions failed for which reason."""
+    judged = [r for r in results if r["pass"] is not None]
+    summary = {
+        "n": len(results),
+        "judged": len(judged),
+        "pass_rate": (
+            sum(1 for r in judged if r["pass"]) / len(judged) if judged else None
+        ),
+        "pass_rule": "v2-strict",
+        "error_counts": dict(Counter(r["error_type"] for r in results)),
+    }
+    for name in NUMERIC_METRICS:
+        values = [r["metrics"][name] for r in results if name in r["metrics"]]
+        summary[f"{name}_mean"] = sum(values) / len(values) if values else None
+    return summary
 
 
 def _run_eval(
-    golden_path: Path,
-    limit: int | None,
+    golden: list[dict],
     no_web_search: bool,
     output_dir: Path,
-    cache_dir: Path | None,
-    use_per_chunk_precision: bool,
-    pass_rule: str = "all",
+    run_id: str,
     delay_after_graph_sec: float = 0.0,
     delay_between_items_sec: float = 0.0,
 ) -> tuple[dict, list[dict], dict]:
-    """Load golden, run graph and metrics.
+    """Run the graph for each item, save outputs, judge and score.
 
     Returns summary, per-question results, and the run header (dataset
     fingerprint + config) that says what was tested.
     """
-    golden = _load_golden(golden_path)
-    if limit is not None:
-        golden = golden[:limit]
-
     if no_web_search:
         os.environ["WEB_SEARCH_ENABLED"] = "false"
 
-    from eval import metrics
-    from eval.history import dataset_fingerprint, prompt_fingerprints
+    from eval.history import prompt_fingerprints
     from graph.consts import env_bool
     from graph.graph import app as graph
     from graph.llm_factory import (
@@ -159,153 +282,91 @@ def _run_eval(
     )
     from ingestion import RETRIEVER_K
 
-    golden_mtime = golden_path.stat().st_mtime
-    cache: dict = {}
-    cache_path = None
-    if cache_dir:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / _CACHE_FILENAME
-        if cache_path.exists():
-            try:
-                with open(cache_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                if (
-                    data.get("golden_path") == str(golden_path.resolve())
-                    and data.get("golden_mtime") == golden_mtime
-                ):
-                    cache = data.get("entries", {})
-            except (json.JSONDecodeError, OSError):
-                pass
-
-    # Graph uses main provider; grading can use a different provider via EVAL_GRADER_PROVIDER
     graph_llm = get_llm()
-    grader_provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
-    grader_llm = get_llm(provider=grader_provider) if grader_provider else graph_llm
-    graph_model = _model_name(graph_llm)
-    grader_model = _model_name(grader_llm)
     llm_provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+    judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     embedding_provider = get_embedding_provider()
     header = {
         "dataset": dataset_fingerprint(golden),
         "config": {
             "llm_provider": llm_provider,
-            "llm_model": graph_model,
-            "grader_provider": grader_provider or llm_provider,
-            "grader_model": grader_model,
+            "llm_model": _model_name(graph_llm),
+            **judge_info,
             "embedding_provider": embedding_provider,
             "embedding_model": get_embedding_model_name(embedding_provider),
             "retriever_k": RETRIEVER_K,
             "web_search": env_bool("WEB_SEARCH_ENABLED"),
-            "pass_rule": pass_rule,
-            "per_chunk_precision": use_per_chunk_precision,
-            "metrics_version": metrics.METRICS_VERSION,
-            "cache_used": bool(cache_dir),
+            "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
     }
     print(
-        f"Eval: graph model = {graph_model}, grader model = {grader_model}",
+        f"Eval: answer model = {header['config']['llm_model']}, "
+        f"judge = {judge_info['judge_provider']}/{judge_info['judge_model']}",
         file=sys.stderr,
     )
-    results = []
+    _warn_if_self_judged(judge_info)
+
+    outputs: dict[str, dict] = {}
     for item in golden:
-        question = item["question"]
-        item_id = item.get("id", "") or str(hash(question))
-        expected_answer = item.get("expected_answer")
-        key_facts = item.get("key_facts")
-        if cache_dir and item_id in cache:
-            entry = cache[item_id]
-            generation = entry.get("generation", "")
-            documents = _deserialize_documents(entry.get("documents", []))
-            context_used_for_generation = entry.get("context_used_for_generation") or ""
-            retrieval_warning = entry.get("retrieval_warning")
-            web_search_attempted = entry.get("web_search_attempted", False)
-        else:
-            run = _invoke_with_retry(_invoke_graph, question, graph, graph_llm)
-            generation = run["generation"]
-            documents = run["documents"]
-            context_used_for_generation = run.get("context_used_for_generation") or ""
-            retrieval_warning = run["retrieval_warning"]
-            web_search_attempted = run["web_search_attempted"]
-            if cache_dir:
-                cache[item_id] = {
-                    "generation": generation,
-                    "documents": _serialize_documents(documents),
-                    "context_used_for_generation": context_used_for_generation,
-                    "retrieval_warning": retrieval_warning,
-                    "web_search_attempted": web_search_attempted,
-                }
+        outputs[item["id"]] = _invoke_with_retry(
+            _invoke_graph, item["question"], graph, graph_llm
+        )
         if delay_after_graph_sec > 0:
             time.sleep(delay_after_graph_sec)
-        scores = _invoke_with_retry(
-            metrics.compute_all_metrics,
-            question=question,
-            generation=generation,
-            documents=documents,
-            context_used_for_generation=context_used_for_generation,
-            expected_answer=expected_answer,
-            key_facts=key_facts,
-            llm=grader_llm,
-            use_per_chunk_precision=use_per_chunk_precision,
-        )
-        threshold = 0.5
-        if pass_rule == "mean":
-            passed = (sum(scores.values()) / len(scores)) >= threshold
-        else:
-            passed = all(m >= threshold for m in scores.values())
-        results.append(
-            {
-                "id": item.get("id", ""),
-                "question": question,
-                "topics": item.get("topics") or [],
-                "language": item.get("language"),
-                "source": item.get("source"),
-                "pass": passed,
-                "metrics": scores,
-                "generation_preview": (
-                    (generation[:300] + "…") if len(generation) > 300 else generation
-                ),
-                "retrieval_warning": retrieval_warning,
-                "web_search_attempted": web_search_attempted,
-            }
-        )
         if delay_between_items_sec > 0 and item is not golden[-1]:
             time.sleep(delay_between_items_sec)
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
-    if cache_dir and cache_path is not None:
-        try:
-            payload = {
-                "golden_path": str(golden_path.resolve()),
-                "golden_mtime": golden_mtime,
-                "entries": cache,
-            }
-            with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2, ensure_ascii=False)
-        except OSError:
-            pass
+    results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
+    return summarize(results), results, header
 
-    n = len(results)
-    summary = {
-        "pass_rate": sum(1 for r in results if r["pass"]) / n if n else 0.0,
-        "pass_rule": pass_rule,
-        "faithfulness_mean": (
-            sum(r["metrics"]["faithfulness"] for r in results) / n if n else 0.0
-        ),
-        "answer_relevance_mean": (
-            sum(r["metrics"]["answer_relevance"] for r in results) / n if n else 0.0
-        ),
-        "context_precision_mean": (
-            sum(r["metrics"]["context_precision"] for r in results) / n if n else 0.0
-        ),
-        "context_recall_mean": (
-            sum(r["metrics"]["context_recall"] for r in results) / n if n else 0.0
-        ),
+
+def _rescore(
+    run_id: str, golden: list[dict], output_dir: Path, history_file: Path
+) -> tuple[dict, list[dict], dict] | None:
+    """Judge and score a saved run again with today's judge and scoring.
+
+    The answers, and therefore the answering model, retrieval settings, prompts
+    and git state, are the original run's; only the judgement is new.
+    Returns None (after printing why) if the run cannot be found.
+    """
+    outputs_path = output_dir / f"outputs_{run_id}.json"
+    if not outputs_path.exists():
+        print(
+            f"There are no saved outputs for run {run_id} in {output_dir}",
+            file=sys.stderr,
+        )
+        return None
+    outputs = load_outputs(outputs_path)
+    original = next((r for r in load_runs(history_file) if r["run_id"] == run_id), None)
+    if original is None:
+        report = output_dir / f"report_{run_id}.json"
+        original = json.loads(report.read_text("utf-8")) if report.exists() else {}
+    config = dict(original.get("config") or {})
+
+    saved = [item for item in golden if item["id"] in outputs]
+    for item in golden:
+        if item["id"] not in outputs:
+            print(
+                f"Warning: {item['id']}: not in the saved run, skipped", file=sys.stderr
+            )
+
+    from graph.llm_factory import get_llm
+
+    llm_provider = config.get("llm_provider") or os.getenv("LLM_PROVIDER", "gemini")
+    judge_llm, judge_info = _judge_llm(
+        get_llm(), llm_provider, config.get("llm_model") or "n/a"
+    )
+    _warn_if_self_judged(judge_info)
+    results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
+    header = {
+        "git": original.get("git"),
+        "dataset": dataset_fingerprint(saved),
+        "config": {**config, **judge_info, "metrics_version": METRICS_VERSION},
+        "rescored_from": run_id,
     }
-    return summary, results, header
-
-
-def _model_name(llm) -> str:
-    return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
+    return summarize(results), results, header
 
 
 def _write_report(
@@ -321,45 +382,54 @@ def _write_report(
     the results so a report says what it tested.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    ts = run_id
-    json_path = output_dir / f"report_{ts}.json"
-    md_path = output_dir / f"report_{ts}.md"
+    json_path = output_dir / f"report_{run_id}.json"
+    md_path = output_dir / f"report_{run_id}.md"
     header = header or {}
 
-    payload = {"run_id": ts, **header, "summary": summary, "results": results}
+    payload = {"run_id": run_id, **header, "summary": summary, "results": results}
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
+    pass_rate = summary["pass_rate"]
     lines = [
         "# Evaluation report",
         "",
-        f"**Run ID:** {ts}",
+        f"**Run ID:** {run_id}",
         "",
         *_markdown_header_lines(header),
         "## Summary",
         "",
-        f"- **Pass rate:** {summary['pass_rate']:.2%}",
-        f"- **Faithfulness (mean):** {summary['faithfulness_mean']:.3f}",
-        f"- **Answer relevance (mean):** {summary['answer_relevance_mean']:.3f}",
-        f"- **Context precision (mean):** {summary['context_precision_mean']:.3f}",
-        f"- **Context recall (mean):** {summary['context_recall_mean']:.3f}",
+        (
+            f"- **Pass rate:** {pass_rate:.0%} of {summary['judged']} judged questions"
+            if pass_rate is not None
+            else "- **Pass rate:** no question could be judged"
+        ),
+        "- **Outcomes:** "
+        + ", ".join(f"{k} {v}" for k, v in sorted(summary["error_counts"].items())),
+        *[
+            f"- **{name}:** {summary[f'{name}_mean']:.2f}"
+            for name in NUMERIC_METRICS
+            if summary.get(f"{name}_mean") is not None
+        ],
         "",
         "## Per-question results",
         "",
     ]
     for r in results:
-        status = "PASS" if r["pass"] else "FAIL"
-        lines.append(f"### {r['id'] or '(no id)'} — {status}")
-        lines.append("")
-        lines.append(
-            f"- **Question:** {r['question'][:200]}{'…' if len(r['question']) > 200 else ''}"
-        )
-        lines.append(
-            f"- **Metrics:** faithfulness={r['metrics']['faithfulness']:.2f}, answer_relevance={r['metrics']['answer_relevance']:.2f}, context_precision={r['metrics']['context_precision']:.2f}, context_recall={r['metrics']['context_recall']:.2f}"
-        )
-        lines.append(f"- **Generation (preview):** {r['generation_preview'][:150]}…")
+        status = {True: "PASS", False: "FAIL", None: "NOT JUDGED"}[r["pass"]]
+        lines += [
+            f"### {r['id']} — {status} ({r['error_type']})",
+            "",
+            f"- **Question:** {r['question'][:200]}{'…' if len(r['question']) > 200 else ''}",
+            "- **Scores:** "
+            + ", ".join(f"{k}={v:.2f}" for k, v in r["metrics"].items()),
+            f"- **Path:** {' → '.join(r['node_path'])}",
+            f"- **Answer (preview):** {r['generation_preview'][:150]}…",
+        ]
         if r.get("retrieval_warning"):
             lines.append(f"- **Warning:** {r['retrieval_warning']}")
+        for claim in (r.get("judge") or {}).get("unsupported_claims") or []:
+            lines.append(f"- **Unsupported claim:** {claim}")
         lines.append("")
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -384,8 +454,9 @@ def _markdown_header_lines(header: dict) -> list[str]:
         lines.append(f"**Notes:** {header['notes']}")
     lines += [
         f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
-        f"**Models:** {config.get('llm_model')} (grader: {config.get('grader_model')},"
-        f" embeddings: {config.get('embedding_model')})",
+        f"**Models:** {config.get('llm_model')} (judge: "
+        f"{config.get('judge_provider')}/{config.get('judge_model')}, "
+        f"embeddings: {config.get('embedding_model')})",
         f"**Retrieval:** k={config.get('retriever_k')} per collection,"
         f" web search {'on' if config.get('web_search') else 'off'}",
         f"**Questions:** {dataset.get('n_items')} (set {dataset.get('questions_hash')})",
@@ -395,6 +466,10 @@ def _markdown_header_lines(header: dict) -> list[str]:
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+
+    # Explicitly, not only as a side effect of importing ingestion later on.
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Run RAG evaluation against golden dataset."
     )
@@ -422,35 +497,18 @@ def main() -> int:
         help="Directory for report outputs",
     )
     parser.add_argument(
-        "--cache-dir",
-        type=Path,
-        default=None,
-        help="Cache directory for graph outputs (env: EVAL_CACHE_DIR); re-run only metrics when cache hit",
-    )
-    parser.add_argument(
-        "--per-chunk-precision",
-        action="store_true",
-        help="Use per-chunk context precision (Option A) instead of sufficiency (Option B)",
-    )
-    parser.add_argument(
-        "--pass-rule",
-        choices=("all", "mean"),
-        default="all",
-        help="Pass when all metrics >= 0.5 (all) or mean of metrics >= 0.5 (mean); default: all",
-    )
-    parser.add_argument(
         "--delay-after-graph",
         type=float,
         default=None,
         metavar="SEC",
-        help="Seconds to wait after graph invoke before running metrics (env: EVAL_DELAY_AFTER_GRAPH_SEC; default 5)",
+        help="Seconds to wait after each graph run (env: EVAL_DELAY_AFTER_GRAPH_SEC; default 5)",
     )
     parser.add_argument(
         "--delay-between-items",
         type=float,
         default=None,
         metavar="SEC",
-        help="Seconds to wait between processing each golden item (env: EVAL_DELAY_BETWEEN_ITEMS_SEC; default 20)",
+        help="Seconds to wait between golden items (env: EVAL_DELAY_BETWEEN_ITEMS_SEC; default 20)",
     )
     parser.add_argument(
         "--label",
@@ -473,17 +531,30 @@ def main() -> int:
         action="store_true",
         help="Do not record this run in the history",
     )
-    args = parser.parse_args()
-
-    cache_dir = args.cache_dir or (
-        os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"])
+    parser.add_argument(
+        "--rescore",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "Judge and score a saved run again (outputs_<RUN_ID>.json in --output-dir) "
+            "with the current golden set, judge and scoring, without running the graph"
+        ),
     )
-    if cache_dir is not None and not isinstance(cache_dir, Path):
-        cache_dir = Path(cache_dir)
+    args = parser.parse_args()
 
     if not args.golden.exists():
         print(f"Golden file not found: {args.golden}", file=sys.stderr)
         return 1
+    try:
+        golden = load_golden(args.golden)
+    except GoldenError as err:
+        print(err, file=sys.stderr)
+        return 1
+    for warning in golden_warnings(golden):
+        print(f"Warning: {warning}", file=sys.stderr)
+    if args.limit is not None:
+        golden = golden[: args.limit]
+
     delay_after_graph = (
         args.delay_after_graph
         if args.delay_after_graph is not None
@@ -498,23 +569,28 @@ def main() -> int:
     )
     started = time.monotonic()
     run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    # Before the run: describes the code that ran, not edits made while it ran.
-    git = git_info()
-    summary, results, header = _run_eval(
-        golden_path=args.golden,
-        limit=args.limit,
-        no_web_search=args.no_web_search,
-        output_dir=args.output_dir,
-        cache_dir=cache_dir,
-        use_per_chunk_precision=args.per_chunk_precision,
-        pass_rule=args.pass_rule,
-        delay_after_graph_sec=delay_after_graph,
-        delay_between_items_sec=delay_between_items,
-    )
+    if args.rescore:
+        rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
+        if rescored is None:
+            return 1
+        summary, results, header = rescored
+        label = args.label or f"rescore of {args.rescore}"
+    else:
+        # Before the run: describes the code that ran, not edits made while it ran.
+        git = git_info()
+        summary, results, header = _run_eval(
+            golden,
+            no_web_search=args.no_web_search,
+            output_dir=args.output_dir,
+            run_id=run_id,
+            delay_after_graph_sec=delay_after_graph,
+            delay_between_items_sec=delay_between_items,
+        )
+        header = {"git": git, **header}
+        label = args.label
     header = {
-        "label": args.label,
+        "label": label,
         "notes": args.notes,
-        "git": git,
         **header,
         "duration_sec": round(time.monotonic() - started, 1),
     }
@@ -541,7 +617,8 @@ def main() -> int:
         print(f"Dashboard updated: {dashboard}")
     print(f"Report written: {json_path}")
     print(f"Report written: {md_path}")
-    print(f"Pass rate: {summary['pass_rate']:.2%}")
+    if summary["pass_rate"] is not None:
+        print(f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged")
     return 0
 
 

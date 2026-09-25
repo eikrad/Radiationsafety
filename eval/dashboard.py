@@ -77,6 +77,8 @@ def _run_view(run: dict, reports_dir: Path | None) -> dict:
         "results": {
             r["id"]: {
                 "pass": r.get("pass"),
+                "error_type": r.get("error_type"),
+                "expected_behavior": r.get("expected_behavior", "answer"),
                 "metrics": r.get("metrics", {}),
                 "web_search_attempted": r.get("web_search_attempted"),
                 "retrieval_warning": r.get("retrieval_warning"),
@@ -167,16 +169,36 @@ def _incomparability(before: dict, after: dict) -> list[str]:
     )
     if None not in versions and versions[0] != versions[1]:
         reasons.append("scoring changed")
+    judges = (_judge(before), _judge(after))
+    if None not in judges and judges[0] != judges[1]:
+        reasons.append("judge changed")
     return reasons
+
+
+def _judge(run: dict) -> tuple | None:
+    """Who judged the run and how often; None if not recorded."""
+    config = run.get("config") or {}
+    if not config.get("judge_model"):
+        return None
+    # runs from before majority voting were judged once
+    return (
+        config.get("judge_provider"),
+        config["judge_model"],
+        config.get("judge_votes", 1),
+    )
 
 
 def compare_runs(base: dict, run: dict) -> dict:
     """How `run` differs from `base`: flipped questions, score and setting changes."""
     base_results = {r["id"]: r for r in base.get("results", [])}
-    regressions, improvements, changed = [], [], []
+    regressions, improvements, changed, unjudged = [], [], [], []
     for result in run.get("results", []):
         before = base_results.get(result["id"])
         if before is None:
+            continue
+        # pass None = the judge could not score it; that is no evidence either way
+        if before.get("pass") is None or result.get("pass") is None:
+            unjudged.append(result["id"])
             continue
         entry = {
             "id": result["id"],
@@ -191,7 +213,8 @@ def compare_runs(base: dict, run: dict) -> dict:
         elif entry["before"] != entry["after"]:
             changed.append(entry)
 
-    warnings = _incomparability(base, run)
+    reasons = _incomparability(base, run)
+    warnings = list(reasons)
     base_config, run_config = base.get("config") or {}, run.get("config") or {}
     if base_config and run_config:
         config_diff = _diff(_flatten(base_config), _flatten(run_config))
@@ -207,13 +230,19 @@ def compare_runs(base: dict, run: dict) -> dict:
     return {
         "base_run_id": base["run_id"],
         "run_id": run["run_id"],
+        "comparable": not reasons,
+        # Across a scoring or grading-target change, pass/fail flips reflect the
+        # new rules as much as the system, so no regression/improvement verdict.
         "verdict": (
-            f"{_plural(len(regressions), 'regression')}, "
+            f"Not directly comparable: {', '.join(reasons)}"
+            if reasons
+            else f"{_plural(len(regressions), 'regression')}, "
             f"{_plural(len(improvements), 'improvement')}"
         ),
         "regressions": regressions,
         "improvements": improvements,
         "changed": changed,
+        "unjudged": unjudged,
         "significance": sign_test(len(regressions), len(improvements)),
         "summary_delta": {
             key: run["summary"][key] - base["summary"][key]
@@ -295,12 +324,22 @@ def tag_breakdown(run: dict) -> dict:
 
 
 def _group_stats(results: list[dict]) -> dict:
+    """Pass rate over judged questions; each metric averaged where it applies
+    (e.g. vital recall is undefined for questions that should be refused)."""
     n = len(results)
+    judged = [r for r in results if r.get("pass") is not None]
     names = list(dict.fromkeys(m for r in results for m in r.get("metrics", {})))
+    means = {}
+    for m in names:
+        values = [r["metrics"][m] for r in results if m in r.get("metrics", {})]
+        means[m] = sum(values) / len(values)
     return {
         "n": n,
-        "pass_rate": sum(1 for r in results if r.get("pass")) / n,
-        "means": {m: sum(r["metrics"].get(m, 0.0) for r in results) / n for m in names},
+        "judged": len(judged),
+        "pass_rate": (
+            sum(1 for r in judged if r["pass"]) / len(judged) if judged else None
+        ),
+        "means": means,
         "low_n": n < LOW_N,
     }
 
