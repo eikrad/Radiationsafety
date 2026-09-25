@@ -26,6 +26,28 @@ def test_health(client: TestClient):
     assert data["graph_loaded"] is True
 
 
+def test_config_privacy_controller_unset_by_default(client: TestClient, monkeypatch):
+    """Without PRIVACY_CONTROLLER_NAME/CONTACT set, /config returns null for both."""
+    monkeypatch.delenv("PRIVACY_CONTROLLER_NAME", raising=False)
+    monkeypatch.delenv("PRIVACY_CONTROLLER_CONTACT", raising=False)
+    res = client.get("/config")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_controller_name"] is None
+    assert data["privacy_controller_contact"] is None
+
+
+def test_config_privacy_controller_reads_env(client: TestClient, monkeypatch):
+    """When an operator sets PRIVACY_CONTROLLER_NAME/CONTACT, /config surfaces them."""
+    monkeypatch.setenv("PRIVACY_CONTROLLER_NAME", "Acme Hospital Physics Dept.")
+    monkeypatch.setenv("PRIVACY_CONTROLLER_CONTACT", "privacy@acme.example")
+    res = client.get("/config")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_controller_name"] == "Acme Hospital Physics Dept."
+    assert data["privacy_controller_contact"] == "privacy@acme.example"
+
+
 def test_metrics_returns_prometheus_style(client: TestClient):
     """Metrics endpoint returns Prometheus-style text with graph_loaded and uptime."""
     res = client.get("/metrics")

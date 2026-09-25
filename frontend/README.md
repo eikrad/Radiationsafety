@@ -9,8 +9,9 @@ See the [root README](../README.md) for the full project overview and [docs/arch
 ```
 src/
   App.tsx                   — top-level app: chat state, model/history handling
-  constants.ts              — API base path, model list, model variants, localStorage keys
-  storage.ts                — localStorage helpers (API keys, model variant, privacy-mode flag)
+  constants.ts              — API base path, model list, model variants, storage keys
+  storage.ts                — browser storage helpers: API keys in sessionStorage; model variants,
+                              privacy-mode and document-search flags in localStorage
   types.ts                  — shared TypeScript types (Message, QueryResponse, ...)
   components/
     QueryForm.tsx            — question input + submit
@@ -20,6 +21,9 @@ src/
     DocumentsPanel.tsx       — document management entry point
     DocumentListSidebar.tsx  — list of ingested document sources
     DocumentUpdatesModal.tsx — check-for-updates / re-ingest UI
+    PrivacyNoticeModal.tsx   — in-app privacy notice (controller from GET /config, see .env.example)
+  content/
+    privacy-notice.md        — text of the privacy notice
 e2e/                        — Playwright end-to-end specs (mocked API)
 ```
 

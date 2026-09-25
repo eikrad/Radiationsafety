@@ -226,7 +226,10 @@ flowchart LR
     REPLACE --> INGEST[Re-ingest into Chroma]
 ```
 
-`RETSINFO_RESOLVER_MODE` (`shadow` default, or `guarded`/`enforce`) controls whether the ELI-based resolver's result is only logged for comparison (`shadow`) or actually used to update the source URL. `RETSINFO_API_KEY` is an optional subscription key for retsinformation.dk's Harvest API (the harvest step works without it, just at a lower rate limit). Both are read directly from the environment in `document_updates.py`.
+- `RETSINFO_API_KEY` (optional) — subscription key sent to the retsinformation.dk Harvest API for higher rate limits; the harvest works unauthenticated without it.
+- `RETSINFO_RESOLVER_MODE` (optional, default `shadow`) — controls how much the ELI resolver (`retsinformation_eli.py`) is trusted relative to the legacy probe/search resolver used elsewhere in `document_updates.py`:
+  - `shadow` (default): the legacy resolver stays authoritative; the ELI resolver still runs and its result is recorded as `resolution_evidence` for comparison, but never applied.
+  - `guarded` / `enforce`: the ELI resolver's result is used directly whenever it resolves a URL.
 
 ---
 
