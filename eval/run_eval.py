@@ -47,7 +47,7 @@ NUMERIC_METRICS = (
     "all_recall",
     "grounded_vital_recall",
     "context_utilization",
-    "unsupported_claims",
+    "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
     "grade_documents_correct",
 )
 
@@ -177,17 +177,26 @@ def _result(item: dict, run: dict, scores: dict) -> dict:
         "pass": scores["pass"],
         "error_type": scores["error_type"],
         "refused": scores["refused"],
-        "metrics": {
-            name: float(scores[name])
-            for name in NUMERIC_METRICS
-            if scores.get(name) is not None
-        },
+        "unsupported_claims": scores["unsupported_claims"],
+        "metrics": _metrics(scores),
         "generation_preview": (
             (generation[:300] + "…") if len(generation) > 300 else generation
         ),
         "retrieval_warning": run.get("retrieval_warning"),
         "web_search_attempted": run.get("web_search_attempted", False),
         "node_path": run.get("node_path") or [],
+    }
+
+
+def _metrics(scores: dict) -> dict[str, float]:
+    """Per-question scores on a 0-1 scale; metrics that do not apply are left out."""
+    values = dict(scores)
+    if values.get("unsupported_claims") is not None:
+        values["unsupported_claim"] = values["unsupported_claims"] > 0
+    return {
+        name: float(values[name])
+        for name in NUMERIC_METRICS
+        if values.get(name) is not None
     }
 
 

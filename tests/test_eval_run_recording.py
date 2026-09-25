@@ -167,6 +167,9 @@ def test_each_question_carries_its_error_type_and_scores(monkeypatch, workspace)
     assert dk["metrics"]["vital_recall"] == 1.0
     assert dk["metrics"]["evidence_recall_context"] == 1.0
     assert dk["metrics"]["grade_documents_correct"] == 1.0
+    # share of answers with an unsupported claim (0/1), so trends stay on a 0-1 scale
+    assert dk["metrics"]["unsupported_claim"] == 0.0
+    assert dk["unsupported_claims"] == 0
     transport = results["iaea-transport-index"]
     assert (transport["pass"], transport["error_type"]) == (False, "retrieval_miss")
     assert transport["metrics"]["grade_documents_correct"] == 0.0

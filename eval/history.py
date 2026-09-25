@@ -83,6 +83,7 @@ def build_run_record(
                 "expected_behavior": r.get("expected_behavior", "answer"),
                 "pass": r.get("pass"),
                 "error_type": r.get("error_type"),
+                "unsupported_claims": r.get("unsupported_claims"),
                 "metrics": r.get("metrics", {}),
                 "web_search_attempted": r.get("web_search_attempted"),
                 "retrieval_warning": bool(r.get("retrieval_warning")),
