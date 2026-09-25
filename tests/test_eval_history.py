@@ -1,5 +1,6 @@
 """Tests for eval run history: fingerprints, run records, the history file."""
 
+import json
 import subprocess
 
 import pytest
@@ -9,6 +10,7 @@ from eval.history import (
     build_run_record,
     dataset_fingerprint,
     git_info,
+    import_reports,
     load_runs,
     prompt_fingerprints,
 )
@@ -192,3 +194,54 @@ def test_editing_one_prompt_changes_only_its_fingerprint(tmp_path):
     assert set(after) == {"generation.py", "missing_query_chain.py"}
     assert after["generation.py"] != before["generation.py"]
     assert after["missing_query_chain.py"] == before["missing_query_chain.py"]
+
+
+def _old_report(reports, run_id: str, n_questions: int = 2) -> None:
+    """A report as run_eval wrote it before runs carried a header."""
+    results = [_result(f"q{i}", True) for i in range(n_questions)]
+    payload = {"summary": {"pass_rate": 1.0}, "results": results, "run_id": run_id}
+    reports.mkdir(exist_ok=True)
+    (reports / f"report_{run_id}.json").write_text(json.dumps(payload))
+
+
+def test_old_reports_since_a_date_are_backfilled(tmp_path):
+    reports, history = tmp_path / "reports", tmp_path / "runs.jsonl"
+    _old_report(reports, "20260310_101657", n_questions=1)
+    _old_report(reports, "20260916_094008", n_questions=13)
+    _old_report(reports, "20260916_104838", n_questions=13)
+
+    assert import_reports(reports, history, since="20260916") == 2
+
+    runs = load_runs(history)
+    assert [r["run_id"] for r in runs] == ["20260916_094008", "20260916_104838"]
+    first = runs[0]
+    assert first["label"] == "imported"
+    assert first["report_file"] == "report_20260916_094008.json"
+    assert first["dataset"]["n_items"] == 13
+    assert first["dataset"]["content_hash"] is None
+    assert first["git"] is None
+    assert runs[0]["dataset"]["questions_hash"] == runs[1]["dataset"]["questions_hash"]
+
+
+def test_backfilling_twice_does_not_duplicate_runs(tmp_path):
+    reports, history = tmp_path / "reports", tmp_path / "runs.jsonl"
+    _old_report(reports, "20260916_094008")
+
+    import_reports(reports, history)
+
+    assert import_reports(reports, history) == 0
+    assert len(load_runs(history)) == 1
+
+
+def test_a_report_with_a_run_header_keeps_it_when_backfilled(tmp_path):
+    reports, history = tmp_path / "reports", tmp_path / "runs.jsonl"
+    record = _record("20260925_101500")
+    reports.mkdir()
+    (reports / "report_20260925_101500.json").write_text(json.dumps(record))
+
+    import_reports(reports, history)
+
+    [run] = load_runs(history)
+    assert run["label"] == "baseline"
+    assert run["config"]["retriever_k"] == 3
+    assert run["dataset"] == record["dataset"]

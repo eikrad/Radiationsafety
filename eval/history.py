@@ -2,11 +2,17 @@
 
 Each record holds what was tested and the scores, so runs can be compared over
 time. Full reports with generated answers stay in eval/reports/ (gitignored).
+
+CLI:
+    uv run python -m eval.history import-reports [--since YYYYMMDD]
+        Backfill history from existing report_*.json files.
 """
 
+import argparse
 import hashlib
 import json
 import subprocess
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -149,3 +155,72 @@ def prompt_fingerprints(chains_dir: Path = _CHAINS_DIR) -> dict[str, str]:
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()[:12]
         for path in sorted(chains_dir.glob("*.py"))
     }
+
+
+def import_reports(
+    reports_dir: Path,
+    path: Path = DEFAULT_HISTORY_PATH,
+    since: str | None = None,
+) -> int:
+    """Append report_*.json runs not yet in the history; returns how many.
+
+    since: skip runs whose id sorts before it (e.g. "20260916").
+    Reports written before runs carried a header are labelled "imported", with
+    git and config unknown and no content_hash (grading targets were not saved).
+    """
+    known = {r.get("run_id") for r in load_runs(path)}
+    imported = 0
+    for report in sorted(reports_dir.glob("report_*.json")):
+        try:
+            data = json.loads(report.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        run_id = data.get("run_id")
+        if not run_id or run_id in known or (since and run_id < since):
+            continue
+        results = data.get("results", [])
+        dataset = data.get("dataset")
+        if dataset is None:
+            dataset = {**dataset_fingerprint(results), "content_hash": None}
+        append_run(
+            build_run_record(
+                run_id=run_id,
+                summary=data.get("summary", {}),
+                results=results,
+                dataset=dataset,
+                config=data.get("config") or {},
+                git=data.get("git"),
+                label=data.get("label") or "imported",
+                notes=data.get("notes"),
+                duration_sec=data.get("duration_sec"),
+                report_file=report.name,
+            ),
+            path,
+        )
+        known.add(run_id)
+        imported += 1
+    return imported
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Manage the eval run history.")
+    sub = parser.add_subparsers(dest="command", required=True)
+    backfill = sub.add_parser(
+        "import-reports", help="Backfill the history from existing report JSON files"
+    )
+    backfill.add_argument(
+        "--reports-dir", type=Path, default=_PROJECT_ROOT / "eval" / "reports"
+    )
+    backfill.add_argument("--history-file", type=Path, default=DEFAULT_HISTORY_PATH)
+    backfill.add_argument(
+        "--since", default=None, help="Only runs from this date on (YYYYMMDD)"
+    )
+    args = parser.parse_args()
+
+    n = import_reports(args.reports_dir, args.history_file, since=args.since)
+    print(f"Imported {n} run(s) into {args.history_file}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
