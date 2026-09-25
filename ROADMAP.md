@@ -26,15 +26,33 @@ the history instead of maintained separately. Phase 2's cost and latency can
 be added to the run header when implemented. When Phase 1 lands, bump
 `METRICS_VERSION` so the dashboard marks the scoring change.
 
+## Done — Scoring v2 (supersedes Phase 1 below)
+
+Metrics were redesigned after reading the RAG evaluation literature (notes in
+the second brain): golden items carry nuggets (vital/okay facts) with verbatim
+evidence quotes; an independent judge answers two narrow questions (nugget
+assignment, groundedness); everything else is deterministic: evidence recall
+in the first retrieval and in the context, strict and lenient vital-fact
+recall, grounded recall, context utilization, `grade_documents` accuracy, and
+a per-question error type that separates retrieval from generation failures.
+Graded rather than binary scores come from nugget fractions instead of asking
+the LLM for a number. Judge candidates are checked with `eval.judge_check`
+against 16 calibration fixtures; saved runs can be re-scored without running
+the graph. See `eval/README.md`.
+
 ### Next
 
-1. **Golden set v2**: about 40 questions tagged by topic (medical, industrial,
+1. **Choose the judge**: run `eval.judge_check` for the Scaleway candidates and
+   record a baseline with the winner.
+2. **Golden set v2**: about 40 questions tagged by topic (medical, industrial,
    research, transport, waste, emergency, occupational, general), language and
-   source, including English questions about Danish law.
-2. **Phase 1 — continuous scoring** (below).
-3. Record a baseline run, then **Danish retrieval queries** for the Danish law
-   collection (translate the query when the question is not in Danish, and the
-   reverse for IAEA).
+   source, including English questions about Danish law and a few questions
+   the sources do not answer (`expected_behavior: refuse`).
+3. **Retrieval experiments**, each a labelled run, cheapest first: more chunks
+   per collection (`retriever_k`), BM25 fused with the dense retriever (RRF),
+   the Danish translation of non-Danish questions as an extra query (RRF), and
+   HyDE in Danish; a re-ranker only if evidence is retrieved but ranked too
+   low.
 
 ---
 
@@ -345,7 +363,7 @@ be developed together or in sequence.
 
 | Braintrust Feature              | Phase | Status  |
 |---------------------------------|-------|---------|
-| Continuous 0–1 scoring          | 1     | planned |
+| Continuous 0–1 scoring          | 1     | done (scoring v2: nugget fractions) |
 | Score distributions in reports  | 1     | planned |
 | Cost tracking per run           | 2     | planned |
 | Latency tracking per node       | 2     | planned |
@@ -361,3 +379,5 @@ be developed together or in sequence.
 | Corrections → golden dataset    | 6     | planned |
 | Experiment history & comparison| —     | done    |
 | Per-topic score breakdown       | —     | done    |
+| Retrieval vs generation errors  | —     | done    |
+| Judge calibration unit tests    | —     | done    |
