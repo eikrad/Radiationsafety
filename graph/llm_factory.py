@@ -2,7 +2,7 @@
 
 import os
 
-ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai", "ollama"})
+ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai", "ollama", "scaleway"})
 
 
 class APIKeyError(Exception):
@@ -21,6 +21,41 @@ _GEMINI_MODELS = frozenset(
 )
 _OPENAI_MODELS = frozenset({"gpt-4o-mini", "gpt-4o"})
 
+_SCALEWAY_BASE_URL = "https://api.scaleway.ai/v1"
+
+
+def scaleway_chat(model: str, api_key: str | None = None) -> "object":
+    """Chat model on Scaleway Generative APIs (OpenAI-compatible, hosted in the EU).
+
+    No allow-list: for internal callers such as the eval judge. Requests coming
+    from API clients go through get_llm, which restricts the model choice.
+    """
+    from langchain_openai import ChatOpenAI
+
+    key = api_key or os.getenv("SCW_SECRET_KEY")
+    if not key:
+        raise APIKeyError("Scaleway")
+    base_url = (os.getenv("SCW_BASE_URL") or "").strip() or _SCALEWAY_BASE_URL
+    return ChatOpenAI(model=model, temperature=0, api_key=key, base_url=base_url)
+
+
+def _scaleway_model(model_variant: str | None) -> str:
+    """SCW_MODEL, or a client-requested variant only if listed in SCW_ALLOWED_MODELS."""
+    default = (os.getenv("SCW_MODEL") or "").strip()
+    allowed = {
+        m.strip()
+        for m in (os.getenv("SCW_ALLOWED_MODELS") or "").split(",")
+        if m.strip()
+    }
+    if model_variant and model_variant in allowed:
+        return model_variant
+    if not default:
+        raise ValueError(
+            "Set SCW_MODEL in .env to a Scaleway model id "
+            "(list them with GET https://api.scaleway.ai/v1/models)"
+        )
+    return default
+
 
 def get_llm(
     provider: str | None = None,
@@ -30,7 +65,7 @@ def get_llm(
     """Return chat LLM based on provider and optional api_key/model override.
 
     Args:
-        provider: One of 'mistral', 'gemini', 'openai'. If None, uses LLM_PROVIDER env.
+        provider: One of 'mistral', 'gemini', 'openai', 'ollama', 'scaleway'. If None, uses LLM_PROVIDER env.
         api_key: Override API key. If None, falls back to env (MISTRAL_API_KEY, etc.).
         model_variant: Specific model ID (e.g. gemini-2.5-flash-lite, gpt-4o-mini).
 
@@ -71,6 +106,8 @@ def get_llm(
             temperature=0,
             google_api_key=key,
         )
+    elif prov == "scaleway":
+        return scaleway_chat(_scaleway_model(model_variant), api_key=api_key)
     elif prov == "openai":
         from langchain_openai import ChatOpenAI
 
