@@ -154,3 +154,11 @@ def test_a_run_that_crashes_is_not_recorded(monkeypatch, workspace):
     with pytest.raises(RuntimeError):
         _run(monkeypatch, workspace)
     assert not workspace.history.exists()
+
+
+def test_a_recorded_run_refreshes_the_dashboard(monkeypatch, workspace):
+    _run(monkeypatch, workspace, "--label", "baseline")
+
+    page = (workspace.reports / "dashboard.html").read_text(encoding="utf-8")
+    [run] = load_runs(workspace.history)
+    assert run["run_id"] in page

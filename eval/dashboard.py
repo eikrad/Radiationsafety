@@ -8,9 +8,19 @@ All comparison logic lives here in Python (tested); the page's script only
 draws what dashboard_data() computed.
 """
 
+import argparse
 import json
+import sys
+import webbrowser
 from collections import defaultdict
 from pathlib import Path
+
+from eval.history import DEFAULT_HISTORY_PATH, load_runs
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_REPORTS_DIR = _PROJECT_ROOT / "eval" / "reports"
+_TEMPLATE = Path(__file__).with_name("dashboard_template.html")
+_DATA_PLACEHOLDER = "__DASHBOARD_DATA__"
 
 # Topic/language/source groups with fewer questions than this say little on
 # their own; the dashboard greys them out.
@@ -275,3 +285,70 @@ def _group_stats(results: list[dict]) -> dict:
         "means": {m: sum(r["metrics"].get(m, 0.0) for r in results) / n for m in names},
         "low_n": n < LOW_N,
     }
+
+
+def render_html(data: dict) -> str:
+    """The dashboard page with `data` embedded as JSON.
+
+    "<" is escaped so no text in the history (a question, a label) can close
+    the data's <script> element and inject markup.
+    """
+    payload = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
+    return _TEMPLATE.read_text(encoding="utf-8").replace(_DATA_PLACEHOLDER, payload)
+
+
+def write_dashboard(
+    output: Path,
+    history_file: Path = DEFAULT_HISTORY_PATH,
+    reports_dir: Path | None = _REPORTS_DIR,
+    baseline_run_id: str | None = None,
+) -> Path:
+    data = dashboard_data(
+        load_runs(history_file),
+        reports_dir=reports_dir,
+        baseline_run_id=baseline_run_id,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(render_html(data), encoding="utf-8")
+    return output
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Write a local HTML dashboard comparing eval runs."
+    )
+    parser.add_argument("--history-file", type=Path, default=DEFAULT_HISTORY_PATH)
+    parser.add_argument(
+        "--reports-dir",
+        type=Path,
+        default=_REPORTS_DIR,
+        help="Local full reports, for answer previews",
+    )
+    parser.add_argument(
+        "--baseline",
+        default=None,
+        metavar="RUN_ID",
+        help="Compare runs against this run (default: latest run labelled 'baseline')",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=_REPORTS_DIR / "dashboard.html",
+        help="Where to write the page (default: eval/reports/dashboard.html)",
+    )
+    parser.add_argument(
+        "--open", action="store_true", help="Open the page in the browser"
+    )
+    args = parser.parse_args()
+
+    path = write_dashboard(
+        args.output, args.history_file, args.reports_dir, args.baseline
+    )
+    print(f"Dashboard written: {path}")
+    if args.open:
+        webbrowser.open(path.resolve().as_uri())
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

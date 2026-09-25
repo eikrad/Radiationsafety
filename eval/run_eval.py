@@ -10,6 +10,7 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
+from eval.dashboard import write_dashboard
 from eval.history import DEFAULT_HISTORY_PATH, append_run, build_run_record, git_info
 
 # Project root for default paths
@@ -532,6 +533,12 @@ def main() -> int:
             args.history_file,
         )
         print(f"Run recorded: {args.history_file}")
+        dashboard = write_dashboard(
+            args.output_dir / "dashboard.html",
+            args.history_file,
+            reports_dir=args.output_dir,
+        )
+        print(f"Dashboard updated: {dashboard}")
     print(f"Report written: {json_path}")
     print(f"Report written: {md_path}")
     print(f"Pass rate: {summary['pass_rate']:.2%}")

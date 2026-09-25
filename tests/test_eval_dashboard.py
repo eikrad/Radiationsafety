@@ -2,8 +2,9 @@
 
 import json
 
-from eval.dashboard import dashboard_data
-from eval.history import build_run_record
+from eval import dashboard
+from eval.dashboard import dashboard_data, render_html
+from eval.history import append_run, build_run_record
 
 METRICS = ("faithfulness", "answer_relevance", "context_precision", "context_recall")
 
@@ -284,3 +285,52 @@ def test_the_grid_lists_each_questions_outcome_per_run():
     assert (
         data["runs"]["20260925_101500"]["results"]["dk-xray-license"]["pass"] is False
     )
+
+
+def _embedded_data(page: str) -> dict:
+    start = page.index('<script id="dashboard-data" type="application/json">')
+    start = page.index(">", start) + 1
+    end = page.index("</script>", start)
+    return json.loads(page[start:end])
+
+
+def test_the_page_carries_the_dashboard_data():
+    runs = [_run("20260916_094008", ALL_PASS), _run("20260925_101500", ALL_PASS)]
+    data = dashboard_data(runs)
+
+    page = render_html(data)
+
+    assert _embedded_data(page) == data
+
+
+def test_a_question_containing_a_script_tag_cannot_break_the_page():
+    run = _run("20260925_101500", {"dk-dose-limits": True})
+    run["results"][0]["question"] = "What about </script><script>alert(1)</script>?"
+    data = dashboard_data([run])
+
+    page = render_html(data)
+
+    assert page.count("</script>") == page.count("<script")
+    assert _embedded_data(page) == data
+
+
+def test_an_empty_history_still_renders_a_page():
+    page = render_html(dashboard_data([]))
+
+    assert _embedded_data(page)["sets"] == []
+    assert "<title>" in page
+
+
+def test_the_command_writes_the_dashboard_from_the_history(tmp_path, monkeypatch):
+    history = tmp_path / "runs.jsonl"
+    append_run(_run("20260925_101500", ALL_PASS, label="baseline"), history)
+    output = tmp_path / "out" / "dashboard.html"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["dashboard", "--history-file", str(history), "--output", str(output)],
+    )
+
+    assert dashboard.main() == 0
+
+    data = _embedded_data(output.read_text(encoding="utf-8"))
+    assert list(data["runs"]) == ["20260925_101500"]
