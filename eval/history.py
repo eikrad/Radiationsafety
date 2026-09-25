@@ -6,11 +6,13 @@ time. Full reports with generated answers stay in eval/reports/ (gitignored).
 
 import hashlib
 import json
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HISTORY_PATH = _PROJECT_ROOT / "eval" / "history" / "runs.jsonl"
+_CHAINS_DIR = _PROJECT_ROOT / "graph" / "chains"
 SCHEMA_VERSION = 1
 
 
@@ -112,3 +114,38 @@ def load_runs(path: Path = DEFAULT_HISTORY_PATH) -> list[dict]:
             except json.JSONDecodeError:
                 continue
     return sorted(runs, key=lambda r: r.get("run_id", ""))
+
+
+def _git(repo: Path, *args: str) -> str | None:
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip()
+
+
+def git_info(repo: Path = _PROJECT_ROOT) -> dict:
+    """Commit and branch the run used, and whether tracked files had uncommitted
+    changes (then the commit alone does not say what ran). Nulls outside git."""
+    status = _git(repo, "status", "--porcelain", "--untracked-files=no")
+    return {
+        "commit": _git(repo, "rev-parse", "--short", "HEAD"),
+        "branch": _git(repo, "rev-parse", "--abbrev-ref", "HEAD"),
+        "dirty": bool(status) if status is not None else None,
+    }
+
+
+def prompt_fingerprints(chains_dir: Path = _CHAINS_DIR) -> dict[str, str]:
+    """Hash of each chain module, where the prompts live. Tells which prompt
+    changed between two runs even when one ran on uncommitted code."""
+    return {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+        for path in sorted(chains_dir.glob("*.py"))
+    }

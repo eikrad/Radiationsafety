@@ -1,6 +1,17 @@
 """Tests for eval run history: fingerprints, run records, the history file."""
 
-from eval.history import append_run, build_run_record, dataset_fingerprint, load_runs
+import subprocess
+
+import pytest
+
+from eval.history import (
+    append_run,
+    build_run_record,
+    dataset_fingerprint,
+    git_info,
+    load_runs,
+    prompt_fingerprints,
+)
 
 GOLDEN = [
     {
@@ -129,3 +140,55 @@ def test_a_corrupt_history_line_does_not_hide_the_other_runs(tmp_path):
 
 def test_no_history_file_means_no_runs(tmp_path):
     assert load_runs(tmp_path / "missing.jsonl") == []
+
+
+def _git(repo, *args):
+    subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+
+@pytest.fixture
+def repo(tmp_path):
+    _git(tmp_path, "init", "-q", "-b", "staging")
+    _git(tmp_path, "config", "user.email", "t@example.com")
+    _git(tmp_path, "config", "user.name", "t")
+    (tmp_path / "generation.py").write_text("system = 'v1'\n")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-q", "-m", "init")
+    return tmp_path
+
+
+def test_a_run_on_committed_code_names_its_commit_and_branch(repo):
+    info = git_info(repo)
+
+    assert info["branch"] == "staging"
+    assert len(info["commit"]) >= 7
+    assert info["dirty"] is False
+
+
+def test_a_run_on_uncommitted_changes_is_marked_dirty(repo):
+    (repo / "generation.py").write_text("system = 'v2'\n")
+
+    assert git_info(repo)["dirty"] is True
+
+
+def test_untracked_files_do_not_mark_a_run_dirty(repo):
+    (repo / "notes.txt").write_text("scratch")
+
+    assert git_info(repo)["dirty"] is False
+
+
+def test_outside_a_git_repo_the_run_is_still_recorded_without_git_info(tmp_path):
+    assert git_info(tmp_path) == {"commit": None, "branch": None, "dirty": None}
+
+
+def test_editing_one_prompt_changes_only_its_fingerprint(tmp_path):
+    (tmp_path / "generation.py").write_text("system = 'v1'\n")
+    (tmp_path / "missing_query_chain.py").write_text("system = 'q1'\n")
+    before = prompt_fingerprints(tmp_path)
+
+    (tmp_path / "generation.py").write_text("system = 'v2'\n")
+    after = prompt_fingerprints(tmp_path)
+
+    assert set(after) == {"generation.py", "missing_query_chain.py"}
+    assert after["generation.py"] != before["generation.py"]
+    assert after["missing_query_chain.py"] == before["missing_query_chain.py"]
