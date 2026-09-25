@@ -37,6 +37,8 @@ dependencies = [
     "langdetect>=1.0.9",
     "redis>=8.0.0",
     "langchain-ollama>=1.1.0",
+    "transformers>=5.10.0",
+    "accelerate>=1.15.0",
 ]
 
 [project.optional-dependencies]
