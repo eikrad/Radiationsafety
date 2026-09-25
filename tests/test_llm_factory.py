@@ -1,8 +1,11 @@
 """LLM and embeddings factory tests."""
 
+import json
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import BaseModel
 
 from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
@@ -166,16 +169,75 @@ def test_scaleway_answers_still_use_gemini_embeddings():
     assert get_embedding_provider("scaleway") == "gemini"
 
 
-def test_scaleway_structured_output_goes_through_tool_calling(scaleway_env):
+class _Verdict(BaseModel):
+    passed: bool
+    missing_info: str = ""
+
+
+@pytest.fixture
+def scaleway_replies(scaleway_env, monkeypatch):
+    """Answer Scaleway chat requests with a canned reply; keep the request bodies."""
+    import httpx
+
+    sent: list[dict] = []
+    reply = {}
+
+    def send(self, request, **_):
+        sent.append(json.loads(request.content))
+        message = {"role": "assistant", "content": reply.get("content")}
+        if "tool_args" in reply:
+            message["tool_calls"] = [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "_Verdict",
+                        "arguments": json.dumps(reply["tool_args"]),
+                    },
+                }
+            ]
+        body = {
+            "id": "x",
+            "object": "chat.completion",
+            "created": 0,
+            "model": "qwen3.8-27b",
+            "choices": [{"index": 0, "message": message, "finish_reason": "stop"}],
+        }
+        return httpx.Response(200, json=body, request=request)
+
+    monkeypatch.setattr(httpx.Client, "send", send)
+    return SimpleNamespace(sent=sent, reply=reply)
+
+
+def _ask_for_verdict():
+    return get_llm(provider="scaleway").with_structured_output(_Verdict).invoke("ok?")
+
+
+def test_scaleway_structured_output_goes_through_tool_calling(scaleway_replies):
     # json_schema-constrained decoding on Scaleway can loop until the token limit
     # (seen with glm-5.2 in grade_documents); tool calling answers reliably.
-    from pydantic import BaseModel
+    scaleway_replies.reply["tool_args"] = {"passed": False, "missing_info": "annex 2"}
 
-    class Verdict(BaseModel):
-        binary_score: bool
-
-    structured = get_llm(provider="scaleway").with_structured_output(Verdict)
-    request = structured.first.kwargs
-
+    assert _ask_for_verdict() == _Verdict(passed=False, missing_info="annex 2")
+    [request] = scaleway_replies.sent
     assert "response_format" not in request
-    assert request["tools"][0]["function"]["name"] == "Verdict"
+    assert request["tools"][0]["function"]["name"] == "_Verdict"
+
+
+def test_a_structured_reply_written_as_text_is_still_understood(scaleway_replies):
+    # gemma-4 on Scaleway sometimes ignores the forced tool call and writes the
+    # JSON as a fenced block instead
+    scaleway_replies.reply["content"] = (
+        '```json\n{\n "passed": true,\n "missing_info": ""\n}\n```'
+    )
+
+    assert _ask_for_verdict() == _Verdict(passed=True)
+
+
+def test_an_unreadable_structured_reply_fails_loudly_instead_of_returning_none(
+    scaleway_replies,
+):
+    scaleway_replies.reply["content"] = "I think the answer is fine."
+
+    with pytest.raises(ValueError, match="_Verdict"):
+        _ask_for_verdict()
