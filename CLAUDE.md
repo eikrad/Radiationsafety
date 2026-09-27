@@ -9,8 +9,8 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: chosen by `EMBEDDING_PROVIDER`, independently of the answering LLM: Gemini (default, `GOOGLE_API_KEY`) or Scaleway (`SCW_EMBED_MODEL`, collections `-scw-<model>`); Ollama privacy mode always embeds locally (`-ollama` collections). `ingestion.py --reembed-from gemini` embeds the existing chunks with another model
-- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, `scaleway`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
+- **Embeddings**: chosen by `EMBEDDING_PROVIDER`, independently of the answering LLM: Scaleway (default, `SCW_EMBED_MODEL`, collections `-scw-<model>`) or Gemini (`GOOGLE_API_KEY`); Ollama privacy mode always embeds locally (`-ollama` collections). `ingestion.py --reembed-from gemini` embeds the existing chunks with another model
+- **LLM for generation**: configurable — `scaleway` (default, `SCW_MODEL`), `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
@@ -24,7 +24,7 @@ graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
-graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral/Ollama)
+graph/llm_factory.py     — LLM and embedding provider selection (Scaleway default; Gemini/OpenAI/Mistral/Ollama)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population

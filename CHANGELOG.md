@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased - 2026-09-27
+
+### Changed
+- **⚠️ Breaking: Scaleway is the default provider** for answers (`gemma-4-26b-a4b-it`) and
+  retrieval embeddings (`bge-multilingual-gemma2`), EU-hosted, instead of Gemini. On the golden
+  set, BGE embeddings found more of the relevant passages than Gemini (evidence recall 0.90 vs
+  0.81, pass rate 79 % vs 71 %). A setup without `LLM_PROVIDER` / `EMBEDDING_PROVIDER` now needs
+  `SCW_SECRET_KEY` and the Scaleway collections
+  (`EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini`); set both to
+  `gemini` to keep the previous behaviour. Gemini, OpenAI, Mistral and Ollama stay available.
+- The UI offers Scaleway first, with its models from the server's `.env`, and a Scaleway key
+  field in Settings. The privacy notice no longer says every question goes to Google.
+
 ## Unreleased - 2026-09-09
 
 ### Security

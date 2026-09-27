@@ -15,9 +15,9 @@ dates of birth, and any other detail that could identify the person before sendi
 ### What is processed when you ask a question
 
 - **Your question (free text).** Not stored on the server. Sent, for that one request only, to
-  the language model you selected for generation, to Google (Gemini) for retrieval embedding,
-  and — only if enabled by the operator — to LangSmith (tracing) or Brave (web-search
-  fallback).
+  the language model you selected for generation, to the embedding provider the operator
+  configured for retrieval (by default Scaleway, in the EU), and — only if enabled by the
+  operator — to LangSmith (tracing) or Brave (web-search fallback).
 - **Chat history.** Held only in your browser and sent back with each follow-up question. The
   server does not store it.
 - **Your IP address.** Used only to enforce per-client rate limits. Kept in memory (or in
@@ -33,9 +33,11 @@ below.
 
 ### Where your question can go, depending on configuration
 
-- **Google (Gemini):** always receives your question, to generate the retrieval embedding —
-  regardless of which model answers you. If the operator selected Gemini for generation, it
-  also receives your question for that.
+- **Scaleway (default):** receives your question to generate the retrieval embedding —
+  regardless of which model answers you — and, when Scaleway is the selected model, to
+  generate the answer. This is the default for both.
+- **Google (Gemini):** only if the operator configured Gemini for retrieval embeddings, or
+  Gemini answers your question (configured by the operator or selected by you).
 - **OpenAI or Mistral:** only if the operator configured one of these for generation, or you
   selected it yourself.
 - **Brave Search:** only if the operator enabled the web-search fallback *and* retrieval or
@@ -46,9 +48,10 @@ below.
 - **Local (Ollama / Privacy Mode):** if you select this option, nothing above applies — the
   question is answered fully on the operator's own machine, and no data leaves it.
 
-Google, OpenAI, Mistral, Brave, and LangChain (LangSmith) are based in, or process data in, the
-United States. Transfers to them rely on their respective certifications under the EU-US Data
-Privacy Framework, backed by Standard Contractual Clauses.
+Scaleway is based in France and runs its Generative APIs in the EU, so with the default setup
+your question does not leave the EU. Google, OpenAI, Mistral, Brave, and LangChain (LangSmith)
+are based in, or process data in, the United States. Transfers to them rely on their respective
+certifications under the EU-US Data Privacy Framework, backed by Standard Contractual Clauses.
 
 ### Your rights
 

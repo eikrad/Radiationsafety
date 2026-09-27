@@ -8,7 +8,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 ## Features
 
 - **RAG over IAEA and Danish sources** — covers IAEA GSR, SSG, SSR, TECDOC standards and Danish Bekendtgørelser
-- **Multi-provider LLM** — choose Gemini, OpenAI, Mistral, or fully-local Ollama (privacy mode, zero data leaves your machine)
+- **Multi-provider LLM** — Scaleway (EU-hosted, default), Gemini, OpenAI, Mistral, or fully-local Ollama (privacy mode, zero data leaves your machine)
 - **Grounded answers** — every answer is verified against retrieved source documents; unverified web results are flagged
 - **Web search fallback** — Brave Search kicks in when local documents don't cover the query
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
@@ -63,8 +63,8 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 |-------|------------|
 | Backend API | FastAPI + Python |
 | AI pipeline | LangGraph + LangChain |
-| Embeddings | Google Gemini (default) or Scaleway (`EMBEDDING_PROVIDER`); local Ollama in privacy mode |
-| LLM for answers | Gemini / OpenAI / Mistral / Scaleway / Ollama (configurable via `LLM_PROVIDER`) |
+| Embeddings | Scaleway `bge-multilingual-gemma2` (default) or Google Gemini (`EMBEDDING_PROVIDER`); local Ollama in privacy mode |
+| LLM for answers | Scaleway (default, Gemma 4) / Gemini / OpenAI / Mistral / Ollama (configurable via `LLM_PROVIDER`) |
 | Vector database | Chroma |
 | Document processing | Docling HybridChunker |
 | Frontend | React + TypeScript (Vite) |
@@ -86,17 +86,17 @@ Documents are embedded once into a local Chroma database. The same vector store 
 flowchart LR
     PDFS[Local PDFs\ndocuments/] --> INGEST
     URLS[document_sources.yaml\nURLs] --> INGEST
-    INGEST([ingestion.py\nGemini embeddings]) --> CHROMA
+    INGEST([ingestion.py\nembeddings]) --> CHROMA
     CHROMA[(Chroma\nradiation-iaea · radiation-dk-law)] -->|similarity search| PIPELINE[LangGraph pipeline]
 ```
 
-`GOOGLE_API_KEY` is required to run ingestion. See [docs/architecture.md](docs/architecture.md) for the full ingestion and document-update workflow.
+Ingestion needs the key of the embedding provider (`SCW_SECRET_KEY` by default). See [docs/architecture.md](docs/architecture.md) for the full ingestion and document-update workflow.
 
 ## Running with Docker
 
 The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
 
-1. Copy `.env.example` to `.env`. Set **`GOOGLE_API_KEY`** (required for ingestion and retrieval). Optionally set `LLM_PROVIDER` and the matching key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
+1. Copy `.env.example` to `.env`. Set **`SCW_SECRET_KEY`** (Scaleway: default for answers and embeddings). Optionally set another `LLM_PROVIDER` and its key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
 2. Start the stack:
    ```bash
    docker compose up --build
@@ -112,8 +112,9 @@ The `chroma_data` volume persists between restarts — you only need to run inge
 ## Setup (local)
 
 1. Copy `.env.example` to `.env` and configure:
-   - **`GOOGLE_API_KEY`** — required for all cloud providers (Gemini embeddings are always used for retrieval)
-   - **`LLM_PROVIDER`** — `gemini` (default), `openai`, `mistral`, or `ollama`; set the matching API key
+   - **`SCW_SECRET_KEY`** — Scaleway, the default for answers (`SCW_MODEL`) and embeddings (`SCW_EMBED_MODEL`); `.env.example` sets the measured defaults
+   - **`LLM_PROVIDER`** — `scaleway` (default), `gemini`, `openai`, `mistral`, or `ollama`; set the matching API key
+   - **`EMBEDDING_PROVIDER`** — `scaleway` (default) or `gemini` (`GOOGLE_API_KEY`); independent of the answering model
    - Optional: `WEB_SEARCH_ENABLED=true` + `BRAVE_SEARCH_API_KEY` for web search fallback
    - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing
 
@@ -122,13 +123,13 @@ The `chroma_data` volume persists between restarts — you only need to run inge
    uv sync
    ```
 
-3. Run ingestion (one-time; requires `GOOGLE_API_KEY`):
+3. Run ingestion (one-time; uses the configured embedding provider):
    ```bash
    uv run python ingestion.py
    ```
-   Changing `LLM_PROVIDER` later does **not** require re-running ingestion — retrieval uses the embeddings chosen by `EMBEDDING_PROVIDER` (default Gemini) regardless of which model generates answers.
+   Changing `LLM_PROVIDER` later does **not** require re-running ingestion — retrieval uses the embeddings chosen by `EMBEDDING_PROVIDER` (default Scaleway) regardless of which model generates answers.
 
-   To use Scaleway embeddings (EU-hosted) instead, set `EMBEDDING_PROVIDER=scaleway`, `SCW_SECRET_KEY` and `SCW_EMBED_MODEL` (e.g. `qwen3-embedding-8b`), then embed the existing chunks again without re-parsing the documents:
+   To switch embeddings (e.g. from Gemini to Scaleway), embed the existing chunks again without re-parsing the documents:
    ```bash
    EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini
    ```
@@ -189,7 +190,7 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 5. Start backend and frontend as usual, select **Ollama (Local)** in the UI dropdown.
 
-Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist with the cloud Gemini collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
+Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist with the cloud collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
 
 ## Evaluation
 
@@ -221,12 +222,14 @@ See [docs/production-readiness.md](docs/production-readiness.md) for the full ru
 
 | Collection | Content | Embeddings |
 |---|---|---|
-| `radiation-iaea` | IAEA standards and TECDOC documents | Gemini |
-| `radiation-dk-law` | Danish Bekendtgørelser (retsinformation.dk XML) | Gemini |
+| `radiation-iaea-scw-<model>` | IAEA standards and TECDOC documents | Scaleway (default: `bge-multilingual-gemma2`) |
+| `radiation-dk-law-scw-<model>` | Danish Bekendtgørelser (retsinformation.dk XML) | Scaleway |
+| `radiation-iaea` | Same content | Gemini |
+| `radiation-dk-law` | Same content | Gemini |
 | `radiation-iaea-ollama` | Same content | Ollama local |
 | `radiation-dk-law-ollama` | Same content | Ollama local |
 
-Cloud providers (Gemini, OpenAI, Mistral) all use the Gemini-embedded collections. The LLM for generation only receives retrieved text — never the raw vectors. Switching the generation provider requires no re-ingestion.
+Cloud providers (Scaleway, Gemini, OpenAI, Mistral) all retrieve from the collections of `EMBEDDING_PROVIDER`. The LLM for generation only receives retrieved text — never the raw vectors. Switching the generation provider requires no re-ingestion.
 
 ## Contributing
 

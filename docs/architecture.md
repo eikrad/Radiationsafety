@@ -10,7 +10,7 @@ The system has three main layers:
 
 1. **API** (`api/main.py`) — validates inputs, enforces rate limits, resolves LLM provider, and invokes the graph.
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
-3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings (or local embeddings in Ollama mode).
+3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded by the configured embedding provider (Scaleway by default, Gemini optional; local embeddings in Ollama mode).
 
 The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API. Key components live in `frontend/src/components/`: `QueryForm` (question input), `ResponseDisplay` (answer + sources + warnings), `DocumentsPanel` + `DocumentListSidebar` + `DocumentUpdatesModal` (document management UI), `ModelSelector` (LLM provider picker), and `SettingsModal` (API keys, preferences).
 
@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
+    LG --> LLM[LLM Provider\nScaleway / Gemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -179,7 +179,7 @@ flowchart TD
         C2[Danish XML\nRecursiveCharacterTextSplitter\n2500 chars per chunk / 200 overlap]
     end
 
-    CHUNK --> EMBED[Gemini Embeddings\nbatch size 200]
+    CHUNK --> EMBED[Embeddings\nScaleway or Gemini]
     EMBED --> CHROMA
 
     subgraph CHROMA [Chroma .chroma/]
@@ -190,8 +190,8 @@ flowchart TD
 
 ### Key ingestion facts
 
-- **Embeddings are always Gemini** for cloud providers — `GOOGLE_API_KEY` is required for both ingestion and query time.
-- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
+- **Embeddings follow `EMBEDDING_PROVIDER`** (Scaleway by default, Gemini optional), independently of the answering model; each provider/model has its own collections.
+- Changing `LLM_PROVIDER` (Scaleway / Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
@@ -252,9 +252,10 @@ flowchart LR
 
 | Provider | `LLM_PROVIDER` value | Key required | Notes |
 |---|---|---|---|
-| Gemini | `gemini` | `GOOGLE_API_KEY` | Default; also used for embeddings |
-| OpenAI | `openai` | `OPENAI_API_KEY` | Reuses Gemini embedding collections |
-| Mistral | `mistral` | `MISTRAL_API_KEY` | Reuses Gemini embedding collections |
+| Scaleway | `scaleway` | `SCW_SECRET_KEY` | Default; models from `SCW_MODEL` / `SCW_ALLOWED_MODELS`, embeddings `SCW_EMBED_MODEL` |
+| Gemini | `gemini` | `GOOGLE_API_KEY` | Optional; also as `EMBEDDING_PROVIDER=gemini` |
+| OpenAI | `openai` | `OPENAI_API_KEY` | Retrieves with `EMBEDDING_PROVIDER` |
+| Mistral | `mistral` | `MISTRAL_API_KEY` | Retrieves with `EMBEDDING_PROVIDER` |
 | Ollama | `ollama` | None | Fully local — see [Privacy Mode](#privacy-mode-ollama) below |
 
 The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
