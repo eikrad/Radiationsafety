@@ -241,3 +241,120 @@ def test_an_unreadable_structured_reply_fails_loudly_instead_of_returning_none(
 
     with pytest.raises(ValueError, match="_Verdict"):
         _ask_for_verdict()
+
+
+# --- Embeddings chosen separately from the answer model ----------------------
+
+
+@pytest.fixture
+def scaleway_embedding_env(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "scaleway")
+    monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
+    monkeypatch.setenv("SCW_EMBED_MODEL", "qwen3-embedding-8b")
+    monkeypatch.delenv("EMBED_QUERY_INSTRUCTION", raising=False)
+    monkeypatch.delenv("SCW_BASE_URL", raising=False)
+
+
+def test_the_embedding_provider_is_chosen_independently_of_the_answer_model(
+    scaleway_embedding_env,
+):
+    assert get_embedding_provider("gemini") == "scaleway"
+    assert get_embedding_provider("scaleway") == "scaleway"
+    assert get_embedding_provider("mistral") == "scaleway"
+
+
+def test_privacy_mode_keeps_local_embeddings_whatever_is_configured(
+    scaleway_embedding_env,
+):
+    assert get_embedding_provider("ollama") == "ollama"
+
+
+def test_an_unknown_embedding_provider_names_the_valid_ones(monkeypatch):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "cohere")
+
+    with pytest.raises(ValueError, match="gemini, ollama, scaleway"):
+        get_embedding_provider("gemini")
+
+
+@pytest.fixture
+def embedding_requests(scaleway_embedding_env, monkeypatch):
+    """Answer Scaleway embedding requests with small vectors; keep the request bodies."""
+    import base64
+    import struct
+
+    import httpx
+
+    sent: list[dict] = []
+
+    def send(self, request, **_):
+        body = json.loads(request.content)
+        sent.append({"url": str(request.url), **body})
+        inputs = body["input"] if isinstance(body["input"], list) else [body["input"]]
+        vector = [0.25, 0.5, 0.75]
+        if body.get("encoding_format") == "base64":
+            vector = base64.b64encode(struct.pack("<3f", *vector)).decode()
+        data = [
+            {"object": "embedding", "index": i, "embedding": vector}
+            for i in range(len(inputs))
+        ]
+        reply = {"object": "list", "data": data, "model": body["model"], "usage": {}}
+        return httpx.Response(200, json=reply, request=request)
+
+    monkeypatch.setattr(httpx.Client, "send", send)
+    return sent
+
+
+def _embedded_texts(request: dict) -> list:
+    return (
+        request["input"] if isinstance(request["input"], list) else [request["input"]]
+    )
+
+
+def test_questions_carry_the_models_instruction_and_documents_stay_plain(
+    embedding_requests,
+):
+    from graph.llm_factory import get_embeddings
+
+    embeddings = get_embeddings("scaleway")
+    embeddings.embed_documents(["Dosisgrænserne fremgår af bilag 2."])
+    embeddings.embed_query("Hvor findes dosisgrænserne?")
+
+    documents, query = embedding_requests
+    assert documents["url"].startswith("https://api.scaleway.ai/v1/")
+    assert documents["model"] == "qwen3-embedding-8b"
+    # raw text, not tiktoken ids: Scaleway embeds strings
+    assert _embedded_texts(documents) == ["Dosisgrænserne fremgår af bilag 2."]
+    [question] = _embedded_texts(query)
+    assert question.startswith("Instruct: ")
+    assert question.endswith("\nQuery:Hvor findes dosisgrænserne?")
+
+
+def test_bge_gets_its_own_instruction_format(embedding_requests, monkeypatch):
+    from graph.llm_factory import get_embeddings
+
+    monkeypatch.setenv("SCW_EMBED_MODEL", "bge-multilingual-gemma2")
+    get_embeddings("scaleway").embed_query("Hvor findes dosisgrænserne?")
+
+    [question] = _embedded_texts(embedding_requests[0])
+    assert question.startswith("<instruct>")
+    assert question.endswith("\n<query>Hvor findes dosisgrænserne?")
+
+
+def test_the_query_instruction_can_be_switched_off(embedding_requests, monkeypatch):
+    from graph.llm_factory import get_embeddings
+
+    monkeypatch.setenv("EMBED_QUERY_INSTRUCTION", "false")
+    get_embeddings("scaleway").embed_query("Hvor findes dosisgrænserne?")
+
+    assert _embedded_texts(embedding_requests[0]) == ["Hvor findes dosisgrænserne?"]
+
+
+def test_scaleway_embeddings_need_a_configured_model(
+    scaleway_embedding_env, monkeypatch
+):
+    from graph.llm_factory import get_embedding_model_name, get_embeddings
+
+    assert get_embedding_model_name("scaleway") == "qwen3-embedding-8b"
+    monkeypatch.delenv("SCW_EMBED_MODEL")
+    with pytest.raises(ValueError, match="SCW_EMBED_MODEL"):
+        get_embeddings("scaleway")
