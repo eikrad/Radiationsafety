@@ -17,14 +17,38 @@ test.beforeEach(async ({ page }) => {
 
 // --- Mocked UI Tests (always run) ---
 
-test('all-four-models-in-dropdown: selector shows all providers', async ({ page }) => {
+test('all-models-in-dropdown: selector shows all providers', async ({ page }) => {
   await page.route('/api/config', (r) => r.fulfill({ json: { server_has_llm_key: true } }))
   await page.goto('/')
   const options = await page.getByRole('combobox').locator('option').allTextContents()
+  expect(options).toContain('Scaleway (EU)')
   expect(options).toContain('Mistral')
   expect(options).toContain('Gemini')
   expect(options).toContain('OpenAI')
   expect(options).toContain('Ollama (Local)')
+})
+
+test('scaleway-is-the-default: a first visit answers with Scaleway and the server models', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('radiation-safety-model'))
+  await page.route('/api/config', (r) =>
+    r.fulfill({
+      json: {
+        server_has_llm_key: true,
+        scaleway_models: ['gemma-4-26b-a4b-it', 'deepseek-v4-flash-0731', 'qwen3.8-27b'],
+      },
+    })
+  )
+  await page.goto('/')
+  await expect(page.getByRole('combobox')).toHaveValue('scaleway')
+
+  await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  const request = page.waitForRequest('/api/query')
+  await page.getByRole('button', { name: 'Ask' }).click()
+  expect((await request).postDataJSON().model).toBe('scaleway')
+
+  await page.getByRole('button', { name: /settings/i }).click()
+  const models = await page.locator('#variant-scaleway option').allTextContents()
+  expect(models).toEqual(['Gemma 4 26B (default)', 'DeepSeek V4 Flash', 'Qwen3.8 27B'])
 })
 
 test('api-key-hint-when-no-key: shows hint when no keys configured', async ({ page }) => {

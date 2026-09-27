@@ -29,6 +29,8 @@ export function loadDocumentSearchEnabled(): boolean {
 }
 
 const DEFAULT_VARIANTS: Record<Model, string> = {
+  // 'default' = the server's SCW_MODEL
+  scaleway: 'default',
   mistral: 'default',
   gemini: 'gemini-2.5-pro',
   openai: 'gpt-4o-mini',
@@ -48,15 +50,16 @@ export function loadApiKeys(): Record<Model, string> {
   }
   try {
     const raw = sessionStorage.getItem(STORAGE_KEYS.apiKeys)
-    if (!raw) return { mistral: '', gemini: '', openai: '' }
+    if (!raw) return { scaleway: '', mistral: '', gemini: '', openai: '' }
     const parsed = JSON.parse(raw) as Record<string, string>
     return {
+      scaleway: parsed.scaleway ?? '',
       mistral: parsed.mistral ?? '',
       gemini: parsed.gemini ?? '',
       openai: parsed.openai ?? '',
     }
   } catch {
-    return { mistral: '', gemini: '', openai: '' }
+    return { scaleway: '', mistral: '', gemini: '', openai: '' }
   }
 }
 
@@ -71,7 +74,7 @@ export function saveApiKeys(keys: Record<Model, string>): void {
 /** True if at least one provider has a non-empty key in the UI (sessionStorage). */
 export function hasAnyApiKeyInStorage(): boolean {
   const keys = loadApiKeys()
-  return keys.mistral !== '' || keys.gemini !== '' || keys.openai !== ''
+  return Object.values(keys).some((key) => key !== '')
 }
 
 export function loadModelVariants(): Record<Model, string> {
@@ -80,6 +83,7 @@ export function loadModelVariants(): Record<Model, string> {
     if (!raw) return { ...DEFAULT_VARIANTS }
     const parsed = JSON.parse(raw) as Record<string, string>
     return {
+      scaleway: parsed.scaleway ?? DEFAULT_VARIANTS.scaleway,
       mistral: parsed.mistral ?? DEFAULT_VARIANTS.mistral,
       gemini: parsed.gemini ?? DEFAULT_VARIANTS.gemini,
       openai: parsed.openai ?? DEFAULT_VARIANTS.openai,
