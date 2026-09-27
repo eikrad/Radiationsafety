@@ -8,20 +8,13 @@
     "language": "da",
     "source": "dk-law",
     "expected_behavior": "answer",
-    "expected_answer": "Bekendtgørelsen gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer. For strålingsgeneratorer gælder den kun for brug af generatorer med spændingsforskel større end 5 kV.",
+    "expected_answer": "Bekendtgørelsen gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer.",
     "nuggets": [
       {
         "text": "Bekendtgørelsen gælder for brug af strålekilder og stråleudsættelse i planlagte, eksisterende og nødbestrålingssituationer",
         "importance": "vital",
         "evidence": [
           "gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer"
-        ]
-      },
-      {
-        "text": "For strålingsgeneratorer gælder den kun ved en spændingsforskel over 5 kV",
-        "importance": "okay",
-        "evidence": [
-          "der opererer med en spændingsforskel, der er større end 5 kV"
         ]
       }
     ]
@@ -55,7 +48,7 @@
     "language": "da",
     "source": "dk-law",
     "expected_behavior": "answer",
-    "expected_answer": "For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2.",
+    "expected_answer": "For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2 (§ 14). I særlige tilfælde kan Sundhedsstyrelsen godkende op til 50 mSv pr. år – som effektiv dosis (stk. 2) eller til øjelinsen (stk. 3) – hvis gennemsnittet over enhver 5-årsperiode højst er 20 mSv pr. år.",
     "nuggets": [
       {
         "text": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2",
@@ -72,10 +65,17 @@
         ]
       },
       {
-        "text": "Sundhedsstyrelsen kan i særlige tilfælde godkende op til 50 mSv effektiv dosis på et år",
+        "text": "Sundhedsstyrelsen kan i særlige tilfælde godkende op til 50 mSv effektiv dosis pr. år, hvis gennemsnittet over 5 år højst er 20 mSv pr. år",
         "importance": "okay",
         "evidence": [
           "modtager en effektiv dosis på op til 50 mSv pr. år"
+        ]
+      },
+      {
+        "text": "Tilsvarende kan Sundhedsstyrelsen i særlige tilfælde godkende op til 50 mSv pr. år til øjelinsen (5-års-gennemsnit højst 20 mSv pr. år)",
+        "importance": "okay",
+        "evidence": [
+          "ækvivalent dosis til øjelinsen på op til 50 mSv pr. år"
         ]
       }
     ]
@@ -211,29 +211,44 @@
     ]
   },
   {
-    "id": "bek-stoffer-koordinator-ekspert",
-    "question": "Hvor fremgår krav til strålebeskyttelseskoordinatorens og den medicinsk-fysiske eksperts viden og kompetencer?",
+    "id": "bek-stoffer-koordinator-radiografi",
+    "question": "Hvilke krav er der til strålebeskyttelseskoordinatorens uddannelse og erfaring ved industriel radiografi?",
     "topics": [
-      "general",
-      "medical"
+      "industrial",
+      "occupational"
     ],
     "language": "da",
     "source": "dk-law",
     "expected_behavior": "answer",
-    "expected_answer": "Krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 8. Krav til medicinsk-fysiske eksperters viden, færdigheder og kompetencer fremgår af bilag 9.",
+    "expected_answer": "Ifølge bilag 8 til bekendtgørelse om radioaktive stoffer skal koordinatoren have et kursus i strålebeskyttelse forbundet med industriel radiografi godkendt af Sundhedsstyrelsen, et repetitionskursus mindst hvert 5. år (også godkendt af Sundhedsstyrelsen) og tidssvarende erfaring med anvendelse af højaktive lukkede radioaktive kilder til industriel radiografi.",
     "nuggets": [
       {
-        "text": "Krav til strålebeskyttelseskoordinatorens viden, færdigheder og kompetencer fremgår af bilag 8",
+        "text": "Kursus i strålebeskyttelse forbundet med industriel radiografi, godkendt af Sundhedsstyrelsen",
         "importance": "vital",
         "evidence": [
-          "krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 8"
+          "Kursus i strålebeskyttelse forbundet med industriel radiografi godkendt af Sundhedsstyrelsen"
         ]
       },
       {
-        "text": "Krav til den medicinsk-fysiske eksperts viden, færdigheder og kompetencer fremgår af bilag 9",
+        "text": "Repetitionskursus mindst hvert 5. år",
         "importance": "vital",
         "evidence": [
-          "krav til medicinsk-fysiske eksperters viden, færdigheder og kompetencer fremgår af bilag 9"
+          "industriel radiografi godkendt af Sundhedsstyrelsen. - 3.3.2. Repetitionskursus mindst hvert 5. år",
+          "industriel radiografi godkendt af Sundhedsstyrelsen. 3.3.2. Repetitionskursus mindst hvert 5. år"
+        ]
+      },
+      {
+        "text": "Tidssvarende erfaring med højaktive lukkede radioaktive kilder til industriel radiografi",
+        "importance": "vital",
+        "evidence": [
+          "erfaring med anvendelse af højaktive lukkede radioaktive kilder til industriel radiografi"
+        ]
+      },
+      {
+        "text": "Kravene til koordinatorens viden, færdigheder og kompetencer står i bilag 8",
+        "importance": "okay",
+        "evidence": [
+          "krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 8"
         ]
       }
     ]
