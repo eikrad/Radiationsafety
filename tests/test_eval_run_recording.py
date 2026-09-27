@@ -101,6 +101,8 @@ def workspace(tmp_path, monkeypatch):
         ),
     )
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    # pinned: these tests are about recording, not about the default embeddings
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
     monkeypatch.setenv("EVAL_GRADER_PROVIDER", "openai")
     monkeypatch.delenv("EVAL_JUDGE_MODEL", raising=False)
     monkeypatch.delenv("EVAL_JUDGE_VOTES", raising=False)

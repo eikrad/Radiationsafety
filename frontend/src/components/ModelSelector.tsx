@@ -7,6 +7,7 @@ interface ModelSelectorProps {
 }
 
 const MODEL_LABELS: Record<Model, string> = {
+  scaleway: 'Scaleway (EU)',
   mistral: 'Mistral',
   gemini: 'Gemini',
   openai: 'OpenAI',

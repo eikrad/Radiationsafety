@@ -6,6 +6,10 @@ import re
 
 ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai", "ollama", "scaleway"})
 
+# Answers and embeddings when LLM_PROVIDER / EMBEDDING_PROVIDER are unset: EU-hosted,
+# and it retrieved best on the golden set (eval/README.md). Model ids come from .env.
+DEFAULT_PROVIDER = "scaleway"
+
 
 class APIKeyError(Exception):
     """Raised when a valid API key is required but not provided."""
@@ -115,7 +119,8 @@ def get_llm(
     """Return chat LLM based on provider and optional api_key/model override.
 
     Args:
-        provider: One of 'mistral', 'gemini', 'openai', 'ollama', 'scaleway'. If None, uses LLM_PROVIDER env.
+        provider: One of 'mistral', 'gemini', 'openai', 'ollama', 'scaleway'. If None, uses
+            LLM_PROVIDER, else DEFAULT_PROVIDER.
         api_key: Override API key. If None, falls back to env (MISTRAL_API_KEY, etc.).
         model_variant: Specific model ID (e.g. gemini-2.5-flash-lite, gpt-4o-mini).
 
@@ -125,9 +130,9 @@ def get_llm(
     Raises:
         APIKeyError: When provider requires an API key but none is available.
     """
-    prov = (provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    prov = (provider or os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     if prov not in ALLOWED_PROVIDERS:
-        prov = "gemini"
+        prov = DEFAULT_PROVIDER
 
     if prov == "ollama":
         from langchain_ollama import ChatOllama
@@ -190,16 +195,15 @@ def get_embedding_provider(llm_provider: str | None = None) -> str:
     """Return which embedding backend to use for retrieval.
 
     Ollama (privacy mode) always embeds locally. Otherwise EMBEDDING_PROVIDER
-    picks the backend independently of the answering model; unset, cloud
-    providers share Gemini embeddings. Each backend has its own Chroma
+    picks the backend independently of the answering model; unset, Scaleway. Each backend has its own Chroma
     collections (ingestion.get_collection_names).
     """
-    prov = (llm_provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
+    prov = (llm_provider or os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     if prov == "ollama":
         return "ollama"
     configured = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
     if not configured:
-        return "gemini"
+        return DEFAULT_PROVIDER
     if configured not in EMBEDDING_PROVIDERS:
         raise ValueError(
             f"EMBEDDING_PROVIDER={configured!r} is not supported; "

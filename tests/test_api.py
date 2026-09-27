@@ -603,3 +603,28 @@ def test_documents_sync_danish(client: TestClient):
     assert res.status_code == 200
     assert res.json()["mode"] == "shadow"
     assert res.json()["checked_count"] == 1
+
+
+def test_config_lists_the_scaleway_models_a_client_may_pick(
+    client: TestClient, monkeypatch
+):
+    """The dropdown's Scaleway models come from .env: the default first, then the allow-list."""
+    monkeypatch.setenv("SCW_MODEL", "gemma-4-26b-a4b-it")
+    monkeypatch.setenv(
+        "SCW_ALLOWED_MODELS", "deepseek-v4-flash-0731, gemma-4-26b-a4b-it,qwen3.8-27b"
+    )
+    data = client.get("/config").json()
+
+    assert data["scaleway_models"] == [
+        "gemma-4-26b-a4b-it",
+        "deepseek-v4-flash-0731",
+        "qwen3.8-27b",
+    ]
+
+
+def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkeypatch):
+    for name in ("MISTRAL_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
+
+    assert client.get("/config").json()["server_has_llm_key"] is True

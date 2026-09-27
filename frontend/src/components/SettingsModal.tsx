@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { MODELS, MODEL_VARIANTS, STORAGE_KEYS, type Model } from '../constants'
+import { MODELS, MODEL_VARIANTS, STORAGE_KEYS, scalewayModelLabel, type Model } from '../constants'
 import {
   loadApiKeys,
   saveApiKeys,
@@ -12,19 +12,33 @@ import {
 interface SettingsModalProps {
   isOpen: boolean
   onClose: () => void
+  /** From GET /api/config: the server's default Scaleway model first, then the allowed ones. */
+  scalewayModels?: string[]
 }
 
 const MODEL_LABELS: Record<Model, string> = {
+  scaleway: 'Scaleway API Key',
   mistral: 'Mistral API Key',
   gemini: 'Gemini API Key',
   openai: 'OpenAI API Key',
   ollama: 'Ollama (Local)',
 }
 
-export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+/** Model choices per provider; Scaleway's come from the server, the default first. */
+function variantOptions(model: Model, scalewayModels: string[]): { id: string; label: string }[] {
+  if (model !== 'scaleway') return MODEL_VARIANTS[model]
+  return scalewayModels.map((id, i) =>
+    i === 0
+      ? { id: 'default', label: `${scalewayModelLabel(id)} (default)` }
+      : { id, label: scalewayModelLabel(id) }
+  )
+}
+
+export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: SettingsModalProps) {
   const [keys, setKeys] = useState<Record<Model, string>>(loadApiKeys())
   const [variants, setVariants] = useState<Record<Model, string>>(loadModelVariants())
   const [showKeys, setShowKeys] = useState<Record<Model, boolean>>({
+    scaleway: false,
     mistral: false,
     gemini: false,
     openai: false,
@@ -151,7 +165,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       </button>
                     </div>
                   </div>
-                  {MODEL_VARIANTS[model].length > 1 && (
+                  {variantOptions(model, scalewayModels).length > 1 && (
                     <div className="settings-field settings-model-variant">
                       <label htmlFor={`variant-${model}`}>Model</label>
                       <select
@@ -159,7 +173,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         value={variants[model]}
                         onChange={(e) => handleVariantChange(model, e.target.value)}
                       >
-                        {MODEL_VARIANTS[model].map((v) => (
+                        {variantOptions(model, scalewayModels).map((v) => (
                           <option key={v.id} value={v.id}>
                             {v.label}
                           </option>

@@ -5,6 +5,7 @@ import {
   loadApiKeys,
   saveApiKeys,
   hasAnyApiKeyInStorage,
+  loadModelVariants,
 } from './storage'
 
 // Mock localStorage for Node environment
@@ -98,12 +99,12 @@ describe('API key storage (sessionStorage, not localStorage)', () => {
   })
 
   it('loadApiKeys returns empty keys when sessionStorage is empty', () => {
-    expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '' })
   })
 
   it('saveApiKeys writes to sessionStorage, not localStorage', () => {
     saveApiKeys({ mistral: 'm-key', gemini: 'g-key', openai: '' })
-    expect(loadApiKeys()).toEqual({ mistral: 'm-key', gemini: 'g-key', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: 'm-key', gemini: 'g-key', openai: '' })
     expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
   })
 
@@ -119,12 +120,29 @@ describe('API key storage (sessionStorage, not localStorage)', () => {
       JSON.stringify({ mistral: 'old-key', gemini: '', openai: '' })
     )
 
-    expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '' })
     expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
   })
 
   it('loadApiKeys does not throw and returns empty keys on corrupted data', () => {
     sessionStorage.setItem('radiation-safety-api-keys', 'not-json')
-    expect(loadApiKeys()).toEqual({ mistral: '', gemini: '', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '' })
+  })
+})
+
+describe('Scaleway key and model storage', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    localStorageMock.clear()
+  })
+
+  it('keeps a Scaleway key for the session like the other providers', () => {
+    saveApiKeys({ ...loadApiKeys(), scaleway: 'scw-key' })
+    expect(loadApiKeys().scaleway).toBe('scw-key')
+    expect(hasAnyApiKeyInStorage()).toBe(true)
+  })
+
+  it('uses the server default Scaleway model until one is picked', () => {
+    expect(loadModelVariants().scaleway).toBe('default')
   })
 })

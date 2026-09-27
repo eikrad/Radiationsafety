@@ -32,6 +32,7 @@ from eval.history import (
 )
 from eval.judge import judge_item
 from eval.scoring import METRICS_VERSION, score_item
+from graph.llm_factory import DEFAULT_PROVIDER
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -315,7 +316,7 @@ def _run_eval(
     from ingestion import RETRIEVER_K
 
     graph_llm = get_llm()
-    llm_provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+    llm_provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     header = {
         "dataset": dataset_fingerprint(golden),
@@ -451,7 +452,9 @@ def _rescore(
 
     from graph.llm_factory import get_llm
 
-    llm_provider = config.get("llm_provider") or os.getenv("LLM_PROVIDER", "gemini")
+    llm_provider = (
+        config.get("llm_provider") or os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER
+    )
     judge_llm, judge_info = _judge_llm(
         get_llm(), llm_provider, config.get("llm_model") or "n/a"
     )

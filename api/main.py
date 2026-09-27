@@ -134,7 +134,7 @@ class QueryRequest(BaseModel):
 
     question: str
     chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
-    model: str | None = None  # "mistral" | "gemini" | "openai"
+    model: str | None = None  # "scaleway" | "mistral" | "gemini" | "openai" | "ollama"
     model_variant: str | None = None  # e.g. "gemini-2.5-flash-lite", "gpt-4o-mini"
     api_keys: dict[str, str] | None = (
         None  # {"mistral": "...", "gemini": "...", "openai": "..."}
@@ -330,16 +330,26 @@ def metrics() -> str:
     return "\n".join(lines) + "\n"
 
 
+def _scaleway_models() -> list[str]:
+    ids = [(os.getenv("SCW_MODEL") or "").strip()]
+    ids += (os.getenv("SCW_ALLOWED_MODELS") or "").split(",")
+    return list(dict.fromkeys(m.strip() for m in ids if m.strip()))
+
+
 @api_router.get("/config")
 def config():
     """Return client-relevant config; e.g. whether server has LLM keys so the client can hide the API-key hint."""
     server_has_llm_key = bool(
-        (os.getenv("MISTRAL_API_KEY") or "").strip()
+        (os.getenv("SCW_SECRET_KEY") or "").strip()
+        or (os.getenv("MISTRAL_API_KEY") or "").strip()
         or (os.getenv("GOOGLE_API_KEY") or "").strip()
         or (os.getenv("OPENAI_API_KEY") or "").strip()
     )
     return {
         "server_has_llm_key": server_has_llm_key,
+        # The Scaleway models a client may pick: SCW_MODEL (the default) first,
+        # then SCW_ALLOWED_MODELS. Ids live only in .env, since Scaleway renames them.
+        "scaleway_models": _scaleway_models(),
         # Who to name as the GDPR controller in the in-app privacy notice. Unset
         # (the default) means: nobody has configured this deployment as a shared
         # instance, so the notice falls back to the solo-local-use explanation.
@@ -675,12 +685,12 @@ def _resolve_model_and_key(
     api_keys: dict[str, str] | None,
 ) -> tuple[str, str | None]:
     """Resolve model (whitelist) and api_key for the request. Returns (model, api_key)."""
-    from graph.llm_factory import ALLOWED_PROVIDERS
+    from graph.llm_factory import ALLOWED_PROVIDERS, DEFAULT_PROVIDER
 
-    provider_from_env = (os.getenv("LLM_PROVIDER") or "gemini").strip()
+    provider_from_env = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).strip()
     prov = (model or provider_from_env).lower()
     if prov not in ALLOWED_PROVIDERS:
-        prov = "gemini"
+        prov = DEFAULT_PROVIDER
     key = None
     if api_keys and isinstance(api_keys, dict):
         key = api_keys.get(prov) or api_keys.get(prov.strip())

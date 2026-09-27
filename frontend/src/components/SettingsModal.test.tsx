@@ -82,3 +82,28 @@ describe('SettingsModal - Privacy Mode', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('SettingsModal - Scaleway', () => {
+  beforeEach(() => {
+    localStorageMock.clear()
+  })
+
+  it('has a Scaleway API key field', () => {
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} />)
+    expect(screen.getByLabelText('Scaleway API Key')).toBeInTheDocument()
+  })
+
+  it('offers the Scaleway models the server allows, by readable name', () => {
+    render(
+      <SettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        scalewayModels={['gemma-4-26b-a4b-it', 'deepseek-v4-flash-0731', 'some-new-model']}
+      />
+    )
+    const select = document.getElementById('variant-scaleway') as HTMLSelectElement
+    const labels = Array.from(select.options).map((o) => o.textContent)
+    expect(labels).toEqual(['Gemma 4 26B (default)', 'DeepSeek V4 Flash', 'some-new-model'])
+    expect(select.value).toBe('default')
+  })
+})
