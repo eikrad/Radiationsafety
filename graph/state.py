@@ -25,13 +25,16 @@ class GraphState(TypedDict):
     web_search: bool
     documents: list[Document]
     web_search_attempted: bool  # Prevent infinite web search loop
+    # Whether this request may search the web (the user's choice; never in privacy mode).
+    # Absent = only the server setting WEB_SEARCH_ENABLED decides (eval, scripts).
+    web_search_allowed: NotRequired[bool]
     chat_history: list[tuple[str, str]]  # (question, answer) pairs for follow-ups
     retrieval_warning: NotRequired[
         str
     ]  # Set when web search didn't yield good results or Mistral embeddings missing
     embedding_provider: NotRequired[
         str
-    ]  # "gemini" | "mistral"; from request model (gemini/openai → gemini)
+    ]  # "scaleway" | "gemini" | "ollama"; see llm_factory.get_embedding_provider
     llm: NotRequired[
         BaseChatModel
     ]  # Chat model for generation/grading; uses env fallback if absent

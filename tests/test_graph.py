@@ -276,3 +276,43 @@ def test_route_after_grade_generation_privacy_mode_never_web_search(monkeypatch)
         "privacy_mode": True,
     }
     assert route_after_grade_generation(state) == "end"
+
+
+# --- Web search only when the server offers it and the request asks for it ---
+
+
+def test_a_request_without_web_search_is_answered_from_the_documents_only(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    from graph.consts import GENERATE
+    from graph.graph import decide_to_generate, route_after_grade_generation
+
+    state = {
+        "web_search": True,  # retrieval was not sufficient
+        "web_search_allowed": False,
+        "generation_passed_grading": False,
+        "web_search_attempted": False,
+        "retry_after_generation_count": 2,
+    }
+    assert decide_to_generate(state) == GENERATE
+    assert route_after_grade_generation(state) == "end"
+
+
+def test_a_request_that_allows_web_search_may_use_it(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    from graph.consts import RETRIEVE_MISSING
+    from graph.graph import decide_to_generate
+
+    assert (
+        decide_to_generate({"web_search": True, "web_search_allowed": True})
+        == RETRIEVE_MISSING
+    )
+
+
+def test_a_request_cannot_turn_on_web_search_the_server_does_not_offer(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
+    from graph.consts import GENERATE
+    from graph.graph import decide_to_generate
+
+    assert (
+        decide_to_generate({"web_search": True, "web_search_allowed": True}) == GENERATE
+    )
