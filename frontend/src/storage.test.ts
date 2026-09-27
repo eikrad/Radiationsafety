@@ -6,6 +6,7 @@ import {
   saveApiKeys,
   hasAnyApiKeyInStorage,
   loadModelVariants,
+  loadWebSearchEnabled,
 } from './storage'
 
 // Mock localStorage for Node environment
@@ -144,5 +145,13 @@ describe('Scaleway key and model storage', () => {
 
   it('uses the server default Scaleway model until one is picked', () => {
     expect(loadModelVariants().scaleway).toBe('default')
+  })
+})
+
+describe('Web search setting', () => {
+  beforeEach(() => localStorageMock.clear())
+
+  it('is off until the user switches it on', () => {
+    expect(loadWebSearchEnabled()).toBe(false)
   })
 })

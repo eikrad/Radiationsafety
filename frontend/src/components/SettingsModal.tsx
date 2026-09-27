@@ -7,6 +7,8 @@ import {
   loadModelVariants,
   loadEnforcePrivacyMode,
   saveEnforcePrivacyMode,
+  loadWebSearchEnabled,
+  saveWebSearchEnabled,
 } from '../storage'
 
 interface SettingsModalProps {
@@ -14,6 +16,8 @@ interface SettingsModalProps {
   onClose: () => void
   /** From GET /api/config: the server's default Scaleway model first, then the allowed ones. */
   scalewayModels?: string[]
+  /** From GET /api/config: the server offers the web-search fallback. */
+  webSearchAvailable?: boolean
 }
 
 const MODEL_LABELS: Record<Model, string> = {
@@ -34,7 +38,12 @@ function variantOptions(model: Model, scalewayModels: string[]): { id: string; l
   )
 }
 
-export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: SettingsModalProps) {
+export function SettingsModal({
+  isOpen,
+  onClose,
+  scalewayModels = [],
+  webSearchAvailable = false,
+}: SettingsModalProps) {
   const [keys, setKeys] = useState<Record<Model, string>>(loadApiKeys())
   const [variants, setVariants] = useState<Record<Model, string>>(loadModelVariants())
   const [showKeys, setShowKeys] = useState<Record<Model, boolean>>({
@@ -45,6 +54,9 @@ export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: Settings
   })
   const [documentSearchEnabled, setDocumentSearchEnabled] = useState(loadDocumentSearchEnabled())
   const [enforcePrivacyMode, setEnforcePrivacyMode] = useState(loadEnforcePrivacyMode())
+  const [webSearchEnabled, setWebSearchEnabled] = useState(loadWebSearchEnabled())
+  // Privacy mode keeps everything local: web search is always off then.
+  const webSearchLocked = enforcePrivacyMode || !webSearchAvailable
 
   useEffect(() => {
     if (!isOpen) return
@@ -53,6 +65,7 @@ export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: Settings
       setVariants(loadModelVariants())
       setDocumentSearchEnabled(loadDocumentSearchEnabled())
       setEnforcePrivacyMode(loadEnforcePrivacyMode())
+      setWebSearchEnabled(loadWebSearchEnabled())
     })
   }, [isOpen])
 
@@ -74,6 +87,7 @@ export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: Settings
       localStorage.setItem(STORAGE_KEYS.modelVariants, JSON.stringify(variants))
       localStorage.setItem(STORAGE_KEYS.documentSearchEnabled, String(documentSearchEnabled))
       saveEnforcePrivacyMode(enforcePrivacyMode)
+      saveWebSearchEnabled(webSearchEnabled && !enforcePrivacyMode)
       onClose()
     } catch (e) {
       console.error('Failed to save settings:', e)
@@ -108,6 +122,27 @@ export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: Settings
             </label>
             <p id="privacy-mode-desc" className="settings-field-desc">
               Run fully local with Ollama. No API keys required. No data leaves your machine.
+            </p>
+          </div>
+        </div>
+        <div className="settings-field-block">
+          <div className="settings-field">
+            <label className="settings-toggle-label">
+              <input
+                type="checkbox"
+                checked={webSearchEnabled && !webSearchLocked}
+                disabled={webSearchLocked}
+                onChange={(e) => setWebSearchEnabled(e.target.checked)}
+                aria-describedby="web-search-desc"
+              />
+              <span>Web search fallback</span>
+            </label>
+            <p id="web-search-desc" className="settings-field-desc">
+              {enforcePrivacyMode
+                ? 'Always off in Privacy Mode.'
+                : !webSearchAvailable
+                  ? 'Not offered by this server (WEB_SEARCH_ENABLED and BRAVE_SEARCH_API_KEY in .env).'
+                  : 'When the IAEA and Danish documents do not answer a question, search the web. A search query derived from your question goes to Brave Search (USA).'}
             </p>
           </div>
         </div>

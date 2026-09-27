@@ -107,3 +107,40 @@ describe('SettingsModal - Scaleway', () => {
     expect(select.value).toBe('default')
   })
 })
+
+describe('SettingsModal - Web search', () => {
+  beforeEach(() => {
+    localStorageMock.clear()
+  })
+
+  const toggle = () => screen.getByRole('checkbox', { name: /web search/i }) as HTMLInputElement
+
+  it('offers a web search switch that is off by default', () => {
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} webSearchAvailable={true} />)
+    expect(toggle().checked).toBe(false)
+    expect(toggle().disabled).toBe(false)
+  })
+
+  it('remembers when the user switches web search on', async () => {
+    const user = userEvent.setup()
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} webSearchAvailable={true} />)
+    await user.click(toggle())
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(localStorageMock.getItem('radiation-safety-web-search-enabled')).toBe('true')
+  })
+
+  it('greys web search out and keeps it off in privacy mode', async () => {
+    localStorageMock.setItem('radiation-safety-web-search-enabled', 'true')
+    const user = userEvent.setup()
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} webSearchAvailable={true} />)
+    await user.click(screen.getByRole('checkbox', { name: /privacy/i }))
+    expect(toggle().disabled).toBe(true)
+    expect(toggle().checked).toBe(false)
+  })
+
+  it('greys web search out when the server does not offer it', () => {
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} webSearchAvailable={false} />)
+    expect(toggle().disabled).toBe(true)
+    expect(screen.getByText(/not offered by this server/i)).toBeInTheDocument()
+  })
+})

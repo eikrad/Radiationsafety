@@ -18,6 +18,23 @@ export function saveEnforcePrivacyMode(enabled: boolean): void {
   }
 }
 
+/** The user's web-search choice; off until switched on. Privacy mode overrides it. */
+export function loadWebSearchEnabled(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.webSearchEnabled) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function saveWebSearchEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.webSearchEnabled, String(enabled))
+  } catch {
+    // Silently fail if localStorage is unavailable
+  }
+}
+
 export function loadDocumentSearchEnabled(): boolean {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.documentSearchEnabled)

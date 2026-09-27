@@ -51,6 +51,26 @@ test('scaleway-is-the-default: a first visit answers with Scaleway and the serve
   expect(models).toEqual(['Gemma 4 26B (default)', 'DeepSeek V4 Flash', 'Qwen3.8 27B'])
 })
 
+test('web-search-opt-in: questions go without web search until the user switches it on', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('radiation-safety-web-search-enabled'))
+  await page.route('/api/config', (r) =>
+    r.fulfill({ json: { server_has_llm_key: true, web_search_available: true } })
+  )
+  await page.goto('/')
+  const ask = async () => {
+    await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+    const request = page.waitForRequest('/api/query')
+    await page.getByRole('button', { name: 'Ask' }).click()
+    return (await request).postDataJSON()
+  }
+  expect((await ask()).web_search).toBe(false)
+
+  await page.getByRole('button', { name: /settings/i }).click()
+  await page.getByRole('checkbox', { name: /web search/i }).check()
+  await page.getByRole('button', { name: 'Save' }).click()
+  expect((await ask()).web_search).toBe(true)
+})
+
 test('api-key-hint-when-no-key: shows hint when no keys configured', async ({ page }) => {
   await page.route('/api/config', (r) => r.fulfill({ json: { server_has_llm_key: false } }))
   await page.goto('/')
