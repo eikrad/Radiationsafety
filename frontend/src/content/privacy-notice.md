@@ -48,10 +48,14 @@ below.
 - **Local (Ollama / Privacy Mode):** if you select this option, nothing above applies — the
   question is answered fully on the operator's own machine, and no data leaves it.
 
-Scaleway is based in France and runs its Generative APIs in the EU, so with the default setup
-your question does not leave the EU. Google, OpenAI, Mistral, Brave, and LangChain (LangSmith)
-are based in, or process data in, the United States. Transfers to them rely on their respective
-certifications under the EU-US Data Privacy Framework, backed by Standard Contractual Clauses.
+Scaleway and Mistral are based in France and process your question in the EU. LangSmith is run
+by LangChain, a US company; it stores traces in the EU when the operator uses its EU region, and
+in the United States otherwise. Google, OpenAI, and Brave are based in, or process data in, the
+United States. Transfers to US providers rely on their respective certifications under the EU-US
+Data Privacy Framework, backed by Standard Contractual Clauses.
+
+With the default setup your question stays in the EU — unless Gemini or OpenAI answers it, the
+web-search fallback sends a search query to Brave, or tracing uses LangSmith's US region.
 
 ### Your rights
 
