@@ -15,6 +15,22 @@ def _env_no_api_calls(monkeypatch):
     monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("SCW_SECRET_KEY", "test-key")
+    monkeypatch.setenv("SCW_MODEL", "gemma-4-26b-a4b-it")
+    monkeypatch.setenv("SCW_EMBED_MODEL", "bge-multilingual-gemma2")
+    # A developer's .env (loaded at import) must not change what the tests see:
+    # the defaults are what CI and a fresh checkout get.
+    for name in (
+        "LLM_PROVIDER",
+        "EMBEDDING_PROVIDER",
+        "SCW_ALLOWED_MODELS",
+        "SCW_BASE_URL",
+        "EMBED_QUERY_INSTRUCTION",
+        "EVAL_GRADER_PROVIDER",
+        "EVAL_JUDGE_MODEL",
+        "EVAL_JUDGE_VOTES",
+    ):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("ADMIN_TOKEN", "test-admin-token")
     monkeypatch.delenv("ADMIN_AUTH_BYPASS", raising=False)
 
