@@ -761,7 +761,25 @@ def ingest():
     print("\n🎉 Ingestion complete!")
 
 
-def reembed_from(source_provider: str, target: str | None = None) -> None:
+def reembed_target() -> str:
+    """The provider a re-embed writes to: EMBEDDING_PROVIDER, never guessed.
+
+    Deliberately not get_embedding_provider(): with LLM_PROVIDER=ollama that
+    returns ollama (privacy mode), and a re-embed meant for another provider
+    would replace the local collections.
+    """
+    from graph.llm_factory import EMBEDDING_PROVIDERS
+
+    target = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
+    if target not in EMBEDDING_PROVIDERS:
+        raise ValueError(
+            "Set EMBEDDING_PROVIDER to the embeddings to build "
+            f"({', '.join(EMBEDDING_PROVIDERS)}), e.g. EMBEDDING_PROVIDER=scaleway"
+        )
+    return target
+
+
+def reembed_from(source_provider: str, target: str) -> None:
     """Embed the chunks of another provider's collections again with `target`.
 
     Copies text, metadata and ids unchanged, so embedding models are compared
@@ -771,7 +789,6 @@ def reembed_from(source_provider: str, target: str | None = None) -> None:
     """
     import chromadb
 
-    target = target or get_embedding_provider()
     sources, targets = get_collection_names(source_provider), get_collection_names(
         target
     )
@@ -937,6 +954,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     if args.reembed_from:
-        reembed_from(args.reembed_from)
+        reembed_from(args.reembed_from, target=reembed_target())
     else:
         ingest()

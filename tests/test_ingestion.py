@@ -233,3 +233,21 @@ def test_the_user_facing_warning_for_missing_scaleway_embeddings_names_scaleway(
 
     assert "Scaleway" in msg
     assert "GOOGLE_API_KEY" not in msg
+
+
+def test_reembedding_targets_the_configured_embeddings_not_the_answer_model(
+    monkeypatch,
+):
+    # LLM_PROVIDER=ollama (privacy mode) once redirected a Scaleway re-embed into
+    # the local Ollama collections and replaced them
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "scaleway")
+
+    assert ingestion.reembed_target() == "scaleway"
+
+
+def test_reembedding_without_a_configured_target_refuses_to_guess(monkeypatch):
+    monkeypatch.delenv("EMBEDDING_PROVIDER", raising=False)
+
+    with pytest.raises(ValueError, match="EMBEDDING_PROVIDER"):
+        ingestion.reembed_target()
