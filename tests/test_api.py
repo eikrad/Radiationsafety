@@ -631,7 +631,8 @@ def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkey
 
 
 def _graph_input(mock_graph) -> dict:
-    return mock_graph.invoke.call_args.args[0]
+    graph_input: dict = mock_graph.invoke.call_args.args[0]
+    return graph_input
 
 
 def test_web_search_is_off_unless_the_question_asks_for_it(client, mock_graph):
