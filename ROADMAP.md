@@ -47,9 +47,13 @@ the graph. See `eval/README.md`.
    a few questions the sources do not answer (`expected_behavior: refuse`).
    The judge is chosen: `qwen3.8-27b` on Scaleway (16/16 fixtures) with three
    groundedness votes.
-2. **Scaleway embeddings**: `qwen3-embedding-8b` and `bge-multilingual-gemma2`
-   in their own Chroma collections, compared with Gemini by evidence recall in
-   a retrieval-only eval; then drop Gemini.
+2. **Drop Gemini**: evidence recall on the 24 reviewed questions (retrieval
+   only, identical chunks, k=3): `bge-multilingual-gemma2` with query
+   instruction 0.90, Gemini 0.81, `qwen3-embedding-8b` 0.76 (0.67 without
+   instruction), BGE without instruction 0.25, Ollama `nomic-embed-text` 0.56.
+   BGE vs Gemini: 3 questions better (the IAEA medical/occupational misses),
+   1 worse — sign test p = 0.62, so a direction, not a proof. Next: a full run
+   with BGE embeddings, then make Scaleway the default and remove Gemini.
 3. **Retrieval experiments**, each a labelled run, cheapest first: more chunks
    per collection (`retriever_k`), BM25 fused with the dense retriever (RRF),
    the Danish translation of non-Danish questions as an extra query (RRF), and
