@@ -407,3 +407,85 @@ def test_questions_added_after_the_run_are_skipped_when_rescoring(
     ]
     assert rescored["dataset"]["n_items"] == 2
     assert "out-of-scope-mri: not in the saved run" in capsys.readouterr().err
+
+
+# --- Retrieval-only runs: compare embeddings without answering or judging -----
+
+
+@pytest.fixture
+def retrieval_only(monkeypatch, workspace):
+    """First retrieval returns the Danish annex for every question."""
+    asked = []
+
+    def fake_retrieve(question, embedding_provider):
+        asked.append((question, embedding_provider))
+        return [Document(page_content=ANNEX_2)]
+
+    def must_not_run(*_, **__):
+        raise AssertionError("retrieval-only runs neither answer nor judge")
+
+    monkeypatch.setattr(run_eval, "_retrieve_initial", fake_retrieve)
+    monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
+    monkeypatch.setattr(run_eval, "judge_item", must_not_run)
+    return SimpleNamespace(asked=asked)
+
+
+def test_a_retrieval_only_run_scores_the_first_retrieval_without_answering_or_judging(
+    monkeypatch, workspace, retrieval_only
+):
+    assert _run(monkeypatch, workspace, "--retrieval-only", "--label", "emb") == 0
+
+    [run] = load_runs(workspace.history)
+    results = _results(run)
+    assert results["dk-dose-limits"]["metrics"] == {"evidence_recall_initial": 1.0}
+    assert results["iaea-transport-index"]["metrics"] == {
+        "evidence_recall_initial": 0.0
+    }
+    # the refusal question has no evidence to find
+    assert results["out-of-scope-mri"]["metrics"] == {}
+    assert run["summary"]["evidence_recall_initial_mean"] == 0.5
+    assert run["summary"]["pass_rate"] is None
+    assert [q for q, _ in retrieval_only.asked] == [g["question"] for g in GOLDEN[:2]]
+
+
+def test_a_retrieval_only_run_records_the_embedding_settings(
+    monkeypatch, workspace, retrieval_only
+):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "scaleway")
+    monkeypatch.setenv("SCW_EMBED_MODEL", "bge-multilingual-gemma2")
+    monkeypatch.setenv("EMBED_QUERY_INSTRUCTION", "false")
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    [run] = load_runs(workspace.history)
+    config = run["config"]
+    assert config["retrieval_only"] is True
+    assert config["embedding_provider"] == "scaleway"
+    assert config["embedding_model"] == "bge-multilingual-gemma2"
+    assert config["embedding_query_instruction"] is False
+    assert config["retriever_k"] == 3
+    assert "llm_model" not in config and "judge_model" not in config
+    assert {ep for _, ep in retrieval_only.asked} == {"scaleway"}
+
+
+def test_a_full_run_records_whether_questions_carried_an_instruction(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    # Gemini embeddings take no instruction
+    assert run["config"]["embedding_query_instruction"] is False
+    assert run["config"]["retrieval_only"] is False
+
+
+def test_a_retrieval_only_run_refuses_when_privacy_mode_overrides_the_embeddings(
+    monkeypatch, workspace, retrieval_only, capsys
+):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "scaleway")
+    monkeypatch.setenv("SCW_EMBED_MODEL", "qwen3-embedding-8b")
+
+    assert _run(monkeypatch, workspace, "--retrieval-only") == 1
+    assert "LLM_PROVIDER=ollama" in capsys.readouterr().err
+    assert retrieval_only.asked == []
+    assert load_runs(workspace.history) == []

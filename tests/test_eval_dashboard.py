@@ -505,6 +505,20 @@ def test_a_different_judge_makes_runs_not_directly_comparable():
     assert comparison["verdict"] == "Not directly comparable: judge changed"
 
 
+def test_a_retrieval_only_run_is_not_compared_with_a_full_run_as_like_for_like():
+    runs = [
+        _run("20260916_094008", ALL_PASS),
+        _run("20260925_101500", ALL_PASS, config={**CONFIG, "retrieval_only": True}),
+    ]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
+        "previous"
+    ]
+
+    assert comparison["comparable"] is False
+    assert comparison["verdict"] == "Not directly comparable: retrieval only"
+
+
 def test_runs_scored_the_same_way_are_comparable():
     runs = [_run("20260916_094008", ALL_PASS), _run("20260925_101500", ALL_PASS)]
 
