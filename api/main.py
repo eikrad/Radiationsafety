@@ -30,6 +30,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from api.rate_limit import enforce_rate_limit, env_float, env_int
+from graph.consts import env_bool
 
 load_dotenv()
 
@@ -139,6 +140,9 @@ class QueryRequest(BaseModel):
     api_keys: dict[str, str] | None = (
         None  # {"mistral": "...", "gemini": "...", "openai": "..."}
     )
+    # Opt-in per question; only used if the server offers web search (see /config)
+    # and never in privacy mode.
+    web_search: bool = False
 
 
 class SourceInfo(BaseModel):
@@ -350,6 +354,9 @@ def config():
         # The Scaleway models a client may pick: SCW_MODEL (the default) first,
         # then SCW_ALLOWED_MODELS. Ids live only in .env, since Scaleway renames them.
         "scaleway_models": _scaleway_models(),
+        # The server offers the web-search fallback; each user switches it on themselves.
+        "web_search_available": bool(env_bool("WEB_SEARCH_ENABLED"))
+        and bool((os.getenv("BRAVE_SEARCH_API_KEY") or "").strip()),
         # Who to name as the GDPR controller in the in-app privacy notice. Unset
         # (the default) means: nobody has configured this deployment as a shared
         # instance, so the notice falls back to the solo-local-use explanation.
@@ -756,6 +763,7 @@ def query(req: QueryRequest, request: Request):
             "web_search": False,
             "documents": [],
             "web_search_attempted": False,
+            "web_search_allowed": req.web_search and not is_ollama,
             "chat_history": chat_history,
             "llm": llm,
             "embedding_provider": embedding_provider,

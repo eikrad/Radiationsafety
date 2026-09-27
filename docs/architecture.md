@@ -142,6 +142,7 @@ Key fields:
 | `trusted_documents` | `list` | Vector DB chunks only (for verification) |
 | `chat_history` | `list[tuple]` | Previous (question, answer) pairs |
 | `web_search` | `bool` | Flag: should web search run? |
+| `web_search_allowed` | `bool` | This request may search the web: the user switched it on and it is not privacy mode. Web search runs only if `WEB_SEARCH_ENABLED` also offers it; absent (eval) = server setting alone |
 | `reflection` | `str` | LLM hint about what was missing (from grader) |
 | `routing_outcome` | `str` | Final path taken through the graph |
 | `retrieval_warning` | `str` | User-facing warning (language-aware) |

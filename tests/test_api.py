@@ -628,3 +628,46 @@ def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkey
     monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
 
     assert client.get("/config").json()["server_has_llm_key"] is True
+
+
+def _graph_input(mock_graph) -> dict:
+    graph_input: dict = mock_graph.invoke.call_args.args[0]
+    return graph_input
+
+
+def test_web_search_is_off_unless_the_question_asks_for_it(client, mock_graph):
+    client.post("/query", json={"question": "What is ALARA?", "model": "mistral"})
+
+    assert _graph_input(mock_graph)["web_search_allowed"] is False
+
+
+def test_a_question_can_switch_web_search_on(client, mock_graph):
+    client.post(
+        "/query",
+        json={"question": "What is ALARA?", "model": "mistral", "web_search": True},
+    )
+
+    assert _graph_input(mock_graph)["web_search_allowed"] is True
+
+
+def test_privacy_mode_never_searches_the_web_even_if_asked(client, mock_graph):
+    with patch("graph.llm_factory.get_llm"):
+        client.post(
+            "/query",
+            json={"question": "What is ALARA?", "model": "ollama", "web_search": True},
+        )
+
+    assert _graph_input(mock_graph)["web_search_allowed"] is False
+
+
+@pytest.mark.parametrize(
+    ("enabled", "key", "available"),
+    [("true", "brave-key", True), ("true", "", False), ("false", "brave-key", False)],
+)
+def test_config_says_whether_the_server_offers_web_search(
+    client, monkeypatch, enabled, key, available
+):
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", enabled)
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", key)
+
+    assert client.get("/config").json()["web_search_available"] is available

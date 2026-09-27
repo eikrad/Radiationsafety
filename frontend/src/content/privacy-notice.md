@@ -40,7 +40,8 @@ below.
   Gemini answers your question (configured by the operator or selected by you).
 - **OpenAI or Mistral:** only if the operator configured one of these for generation, or you
   selected it yourself.
-- **Brave Search:** only if the operator enabled the web-search fallback *and* retrieval or
+- **Brave Search:** only if the operator offers the web-search fallback, *you* switched it on
+  in Settings (it is off by default and always off in Privacy Mode), *and* retrieval or
   generation needed it for your specific question. What's sent is a search query derived from
   your question, not the raw text.
 - **LangSmith:** only if the operator enabled tracing. When enabled, it receives your full

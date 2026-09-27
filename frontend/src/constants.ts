@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
   modelVariants: 'radiation-safety-model-variants',
   /** When true, Documents panel shows "Search URL" (find document URL via web search). Beta. */
   documentSearchEnabled: 'radiation-safety-document-search-enabled',
+  /** When true, questions may fall back to web search (if the server offers it). Off by default. */
+  webSearchEnabled: 'radiation-safety-web-search-enabled',
   /** When true, restrict to Ollama only (privacy mode enforced). */
   enforcePrivacyMode: 'radiationsafety_enforce_privacy_mode',
 } as const

@@ -6,7 +6,13 @@ import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
 import { API_BASE, DEFAULT_MODEL, MODELS, STORAGE_KEYS, type Model } from './constants'
-import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage, loadEnforcePrivacyMode } from './storage'
+import {
+  loadApiKeys,
+  loadModelVariants,
+  hasAnyApiKeyInStorage,
+  loadEnforcePrivacyMode,
+  loadWebSearchEnabled,
+} from './storage'
 import type { Message, QueryResponse } from './types'
 import './App.css'
 
@@ -31,6 +37,8 @@ export default function App() {
   const [serverHasLlmKey, setServerHasLlmKey] = useState<boolean | null>(null)
   /** From GET /api/config: Scaleway models the server allows, its default first. */
   const [scalewayModels, setScalewayModels] = useState<string[]>([])
+  /** From GET /api/config: the server offers the web-search fallback. */
+  const [webSearchAvailable, setWebSearchAvailable] = useState(false)
   /** From GET /api/config: set only if the operator configured PRIVACY_CONTROLLER_NAME/CONTACT. */
   const [privacyController, setPrivacyController] = useState<{
     name: string | null
@@ -63,12 +71,14 @@ export default function App() {
         (data: {
           server_has_llm_key?: boolean
           scaleway_models?: string[]
+          web_search_available?: boolean
           privacy_controller_name?: string | null
           privacy_controller_contact?: string | null
         }) => {
           if (cancelled) return
           setServerHasLlmKey(Boolean(data.server_has_llm_key))
           setScalewayModels(data.scaleway_models ?? [])
+          setWebSearchAvailable(Boolean(data.web_search_available))
           setPrivacyController({
             name: data.privacy_controller_name ?? null,
             contact: data.privacy_controller_contact ?? null,
@@ -111,6 +121,8 @@ export default function App() {
       chat_history: chatHistory,
       model,
       model_variant: variants[model] !== 'default' ? variants[model] : undefined,
+      // Opt-in, and never in privacy mode (the server enforces both too).
+      web_search: loadWebSearchEnabled() && !enforcePrivacyMode && model !== 'ollama',
     }
     if (apiKeys[model]) {
       payload.api_keys = { [model]: apiKeys[model] }
@@ -223,6 +235,7 @@ export default function App() {
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
           scalewayModels={scalewayModels}
+          webSearchAvailable={webSearchAvailable}
         />
         <PrivacyNoticeModal
           isOpen={privacyNoticeOpen}

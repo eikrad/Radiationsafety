@@ -29,9 +29,16 @@ from graph.nodes import (
 from graph.state import GenerationRoute, GraphState, RouteAfterMissing
 
 
+def web_search_enabled(state: GraphState) -> bool:
+    """The server offers web search (WEB_SEARCH_ENABLED) and this request allows it."""
+    return bool(env_bool("WEB_SEARCH_ENABLED")) and state.get(
+        "web_search_allowed", True
+    )
+
+
 def decide_to_generate(state: GraphState) -> str:
     """Route to RETRIEVE_MISSING (then maybe WEB_SEARCH) if docs insufficient and fallback enabled, else GENERATE."""
-    if state["web_search"] and env_bool("WEB_SEARCH_ENABLED"):
+    if state["web_search"] and web_search_enabled(state):
         return RETRIEVE_MISSING
     return GENERATE
 
@@ -68,7 +75,7 @@ def route_after_grade_generation(state: GraphState) -> GenerationRoute:
     if state.get("generation_passed_grading"):
         return "useful"
     return _generation_retry_route(
-        web_search_enabled=bool(env_bool("WEB_SEARCH_ENABLED")),
+        web_search_enabled=web_search_enabled(state),
         web_search_attempted=state.get("web_search_attempted", False),
         retry_count=state.get("retry_after_generation_count") or 0,
         privacy_mode=bool(state.get("privacy_mode", False)),
