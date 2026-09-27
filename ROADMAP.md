@@ -56,7 +56,13 @@ the graph. See `eval/README.md`.
    BGE embeddings passed 79 % vs 71 % with Gemini. Scaleway is now the default
    for answers and embeddings; Gemini stays as an optional provider and can be
    removed later if it goes unused.
-3. **Retrieval experiments**, each a labelled run, cheapest first: more chunks
+3. **Web search: Brave → Linkup?** Brave (US) keeps search queries up to 90
+   days; Linkup (Paris) says it runs in EU data centres with zero data
+   retention by default ($5 per 1,000 searches). First measure whether web
+   search helps at all on the golden set (full runs with and without); if it
+   does, swap `BraveSearch` in `graph/nodes/web_search.py` for Linkup after
+   checking its DPA. Web search is now opt-in per user and off by default.
+4. **Retrieval experiments**, each a labelled run, cheapest first: more chunks
    per collection (`retriever_k`), BM25 fused with the dense retriever (RRF),
    the Danish translation of non-Danish questions as an extra query (RRF), and
    HyDE in Danish; a re-ranker only if evidence is retrieved but ranked too

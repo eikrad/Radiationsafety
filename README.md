@@ -10,7 +10,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **RAG over IAEA and Danish sources** — covers IAEA GSR, SSG, SSR, TECDOC standards and Danish Bekendtgørelser
 - **Multi-provider LLM** — Scaleway (EU-hosted, default), Gemini, OpenAI, Mistral, or fully-local Ollama (privacy mode, zero data leaves your machine)
 - **Grounded answers** — every answer is verified against retrieved source documents; unverified web results are flagged
-- **Web search fallback** — Brave Search kicks in when local documents don't cover the query
+- **Web search fallback (opt-in)** — Brave Search kicks in when local documents don't cover the query; off until a user switches it on in Settings, never in privacy mode
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
 - **Evaluation harness** — RAGAS-style scoring (faithfulness, relevance, precision, recall) against a golden Q&A dataset
@@ -115,7 +115,7 @@ The `chroma_data` volume persists between restarts — you only need to run inge
    - **`SCW_SECRET_KEY`** — Scaleway, the default for answers (`SCW_MODEL`) and embeddings (`SCW_EMBED_MODEL`); `.env.example` sets the measured defaults
    - **`LLM_PROVIDER`** — `scaleway` (default), `gemini`, `openai`, `mistral`, or `ollama`; set the matching API key
    - **`EMBEDDING_PROVIDER`** — `scaleway` (default) or `gemini` (`GOOGLE_API_KEY`); independent of the answering model
-   - Optional: `WEB_SEARCH_ENABLED=true` + `BRAVE_SEARCH_API_KEY` for web search fallback
+   - Optional: `WEB_SEARCH_ENABLED=true` + `BRAVE_SEARCH_API_KEY` to offer the web search fallback; each user then switches it on in Settings (off by default)
    - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing
 
 2. Install dependencies:
