@@ -230,6 +230,7 @@ def test_topic_breakdown_counts_questions_and_flags_thin_topics():
 
     assert breakdown["topics"]["medical"] == {
         "n": 1,
+        "judged": 1,
         "pass_rate": 1.0,
         "means": dict.fromkeys(METRICS, 1.0),
         "low_n": True,
@@ -374,3 +375,141 @@ def test_no_flips_means_nothing_to_test():
     significance = _flips(regressed=0, improved=0)["significance"]
 
     assert significance == {"flipped": 0, "p_value": None, "significant": False}
+
+
+# --- scoring v2: unjudged questions, metrics that do not apply --------------
+
+
+def _v2_run(run_id, outcomes, questions_hash="set-a"):
+    """outcomes: {qid: (pass, error_type, metrics)}"""
+    results = [
+        {
+            "id": qid,
+            "question": f"Question {qid}?",
+            **QUESTIONS.get(qid, {}),
+            "pass": passed,
+            "error_type": error_type,
+            "metrics": metrics,
+        }
+        for qid, (passed, error_type, metrics) in outcomes.items()
+    ]
+    judged = [r for r in results if r["pass"] is not None]
+    summary = {
+        "pass_rate": (sum(r["pass"] for r in judged) / len(judged) if judged else None),
+        "error_counts": {},
+    }
+    return build_run_record(
+        run_id=run_id,
+        summary=summary,
+        results=results,
+        dataset={"questions_hash": questions_hash, "content_hash": "c2", "n_items": 3},
+        config={**CONFIG, "metrics_version": 2},
+        git={"commit": "abc1234", "branch": "staging", "dirty": False},
+    )
+
+
+PASS = (True, "ok", {"vital_recall": 1.0})
+MISS = (False, "retrieval_miss", {"vital_recall": 0.0})
+UNJUDGED = (None, "judge_error", {})
+
+
+def test_a_question_the_judge_could_not_score_is_neither_regression_nor_improvement():
+    runs = [
+        _v2_run("20260926_090000", {"dk-dose-limits": PASS, "dk-xray-license": MISS}),
+        _v2_run(
+            "20260926_100000", {"dk-dose-limits": UNJUDGED, "dk-xray-license": UNJUDGED}
+        ),
+    ]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260926_100000"][
+        "previous"
+    ]
+
+    assert comparison["regressions"] == []
+    assert comparison["improvements"] == []
+    assert comparison["unjudged"] == ["dk-dose-limits", "dk-xray-license"]
+    assert comparison["significance"]["flipped"] == 0
+
+
+def test_topic_pass_rates_count_only_judged_questions():
+    run = _v2_run(
+        "20260926_090000",
+        {
+            "dk-dose-limits": PASS,
+            "dk-xray-license": UNJUDGED,
+            "en-transport-index": MISS,
+        },
+    )
+
+    breakdown = _set(dashboard_data([run]))["breakdown"]["20260926_090000"]
+
+    assert breakdown["source"]["dk-law"]["pass_rate"] == 1.0
+    assert breakdown["source"]["dk-law"]["judged"] == 1
+    assert breakdown["topics"]["medical"]["pass_rate"] is None
+
+
+def test_a_metric_that_does_not_apply_is_not_averaged_as_zero():
+    refusal = (True, "ok", {"grade_documents_correct": 1.0})
+    run = _v2_run(
+        "20260926_090000",
+        {"dk-dose-limits": PASS, "dk-xray-license": refusal},
+    )
+
+    breakdown = _set(dashboard_data([run]))["breakdown"]["20260926_090000"]
+
+    assert breakdown["source"]["dk-law"]["means"]["vital_recall"] == 1.0
+
+
+def test_the_grid_shows_why_a_question_failed():
+    run = _v2_run("20260926_090000", {"dk-dose-limits": MISS})
+
+    result = dashboard_data([run])["runs"]["20260926_090000"]["results"][
+        "dk-dose-limits"
+    ]
+
+    assert result["error_type"] == "retrieval_miss"
+
+
+def test_flips_across_a_scoring_change_are_not_presented_as_regressions():
+    rescored = {**CONFIG, "metrics_version": 2}
+    runs = [
+        _run("20260916_094008", ALL_PASS),
+        _run(
+            "20260925_101500", {**ALL_PASS, "dk-xray-license": False}, config=rescored
+        ),
+    ]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
+        "previous"
+    ]
+
+    assert comparison["comparable"] is False
+    assert comparison["verdict"] == "Not directly comparable: scoring changed"
+    assert [q["id"] for q in comparison["regressions"]] == ["dk-xray-license"]
+
+
+def test_a_different_judge_makes_runs_not_directly_comparable():
+    judged_once = {**CONFIG, "judge_provider": "scaleway", "judge_model": "qwen3.8-27b"}
+    # runs from before voting carry no judge_votes: they were judged once
+    majority_of_three = {**judged_once, "judge_votes": 3}
+    runs = [
+        _run("20260916_094008", ALL_PASS, config=judged_once),
+        _run("20260925_101500", ALL_PASS, config=majority_of_three),
+    ]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
+        "previous"
+    ]
+
+    assert comparison["comparable"] is False
+    assert comparison["verdict"] == "Not directly comparable: judge changed"
+
+
+def test_runs_scored_the_same_way_are_comparable():
+    runs = [_run("20260916_094008", ALL_PASS), _run("20260925_101500", ALL_PASS)]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
+        "previous"
+    ]
+
+    assert comparison["comparable"] is True

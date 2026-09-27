@@ -187,7 +187,10 @@ summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
 .cell-btn:focus-visible { outline: 2px solid var(--series); outline-offset: 1px; }
 .cell-btn.pass { background: var(--good-tint); color: var(--good-text); }
 .cell-btn.fail { background: var(--critical-tint); color: var(--critical-text); }
-.cell-btn.missing { background: transparent; color: var(--muted); }
+.cell-btn.missing { background: transparent; color: var(--muted); font-weight: 400; font-size: 11px; }
+.cell-btn.unjudged { background: var(--warning-tint); color: var(--ink-2); }
+.failures { list-style: none; padding: 0; margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
+.failures strong { color: var(--ink); font-variant-numeric: tabular-nums; display: inline-block; min-width: 1.5em; }
 .cell-btn .n { display: block; font-weight: 400; font-size: 10px; opacity: 0.85; }
 .cell-btn.low-n { opacity: 0.45; font-style: italic; }
 .topic-tag {
@@ -242,10 +245,33 @@ const DATA = JSON.parse(document.getElementById("dashboard-data").textContent);
 
 const METRIC_LABELS = {
   pass_rate: "Pass rate",
+  // scoring v2 (eval/scoring.py)
+  vital_recall: "Vital facts in answer",
+  vital_recall_lenient: "Vital facts (partial = ½)",
+  all_recall: "All facts in answer",
+  grounded_vital_recall: "Grounded vital facts",
+  context_utilization: "Retrieved facts used",
+  evidence_recall_initial: "Evidence in 1st retrieval",
+  evidence_recall_context: "Evidence in context",
+  unsupported_claim: "Answers with unsupported claim",
+  grade_documents_correct: "Sufficiency grader right",
+  // scoring v1
   faithfulness: "Faithfulness",
   answer_relevance: "Answer relevance",
   context_precision: "Context precision",
   context_recall: "Context recall",
+};
+// For these a rise is bad news, so deltas are coloured the other way round.
+const LOWER_IS_BETTER = new Set(["unsupported_claim"]);
+// Why a question failed (eval/scoring.py error types), in reading order.
+const ERROR_LABELS = {
+  retrieval_miss: "retrieval: evidence not found",
+  generator_miss: "generation: vital fact missing",
+  unsupported_claim: "generation: unsupported claim",
+  wrong_refusal: "refused although evidence was there",
+  missed_refusal: "answered a question it should refuse",
+  judge_error: "not judged",
+  ok: "passed",
 };
 const DIMENSIONS = { topics: "Topic", language: "Language", source: "Source" };
 const MAX_COLUMNS = 16;
@@ -281,9 +307,11 @@ function signed(v, asPct) {
   const sign = shown > 0 ? "+" : "−";
   return asPct ? `${sign}${Math.abs(shown)} pp` : `${sign}${Math.abs(shown).toFixed(2)}`;
 }
-function deltaEl(v, asPct) {
-  const cls = v == null || Math.abs(v) < 0.005 ? "flat" : v > 0 ? "up" : "down";
-  const arrow = cls === "up" ? "▲ " : cls === "down" ? "▼ " : "";
+function deltaEl(v, asPct, lowerIsBetter = false) {
+  const flat = v == null || Math.abs(v) < 0.005;
+  const arrow = flat ? "" : v > 0 ? "▲ " : "▼ ";
+  const good = !flat && (v > 0) !== lowerIsBetter;
+  const cls = flat ? "flat" : good ? "up" : "down";
   return el("span", { class: `delta ${cls}` }, arrow + signed(v, asPct));
 }
 function runDate(run, withTime = true) {
@@ -308,6 +336,14 @@ const runName = (run) => (run.label ? `${run.label} · ${runDate(run)}` : runDat
 const shortLabel = (run) => run.label || runDate(run, false);
 const summaryValue = (run, metric) =>
   metric === "pass_rate" ? run.summary.pass_rate : run.summary[`${metric}_mean`];
+// Metrics the latest run of a set reports (v1 and v2 runs use different ones).
+function shownMetrics(runs) {
+  const latest = runs[runs.length - 1];
+  const order = Object.keys(METRIC_LABELS);
+  const rank = (m) => (order.includes(m) ? order.indexOf(m) : order.length);
+  const shown = DATA.metrics.filter((m) => summaryValue(latest, m) != null);
+  return ["pass_rate", ...shown.sort((a, b) => rank(a) - rank(b))];
+}
 
 // ---------- shared tooltip ----------
 const tooltip = document.getElementById("tooltip");
@@ -387,16 +423,19 @@ function headline(set) {
         el("div", { class: "label" }, "Pass rate"),
         el("div", { class: "value" }, pct(run.summary.pass_rate)),
         el("div", { class: "deltas" },
-          prev ? ["vs previous ", deltaEl(prev.summary_delta.pass_rate, true)] : "first run in this set",
-          base ? ["  ·  vs baseline ", deltaEl(base.summary_delta.pass_rate, true)] : null)),
+          prev ? ["vs previous ", passDelta(prev)] : "first run in this set",
+          base ? ["  ·  vs baseline ", passDelta(base)] : null)),
       el("div", { class: "tile" },
         el("div", { class: "label" }, state.against === "baseline" ? "Since baseline" : "Since previous run"),
         el("div", { class: "value small" }, cmp[state.against] ? cmp[state.against].verdict : "Nothing to compare with"),
-        cmp[state.against] ? el("div", { class: "deltas" }, significanceText(cmp[state.against].significance)) : null,
+        cmp[state.against] && cmp[state.against].comparable !== false
+          ? el("div", { class: "deltas" }, significanceText(cmp[state.against].significance))
+          : null,
         el("div", { class: "deltas" },
           cmp[state.against] && cmp[state.against].warnings.length
             ? `${cmp[state.against].warnings.length} caveat${cmp[state.against].warnings.length === 1 ? "" : "s"}, see Compare`
             : "")),
+      failureTile(run),
       el("div", { class: "tile" },
         el("div", { class: "label" }, "Run"),
         el("div", { class: "value small" }, runName(run)),
@@ -406,9 +445,28 @@ function headline(set) {
         run.notes ? el("div", { class: "deltas" }, run.notes) : null)));
 }
 
+// A pass-rate change across a scoring change is not a change of the system.
+function passDelta(cmp) {
+  return cmp.comparable === false
+    ? el("span", { class: "delta flat" }, "different scoring")
+    : deltaEl(cmp.summary_delta.pass_rate, true);
+}
+
+function failureTile(run) {
+  const counts = run.summary.error_counts;
+  if (!counts) return null;  // runs scored before v2 have no error types
+  const failed = Object.keys(ERROR_LABELS).filter((k) => k !== "ok" && counts[k]);
+  return el("div", { class: "tile" },
+    el("div", { class: "label" }, "Why questions failed"),
+    failed.length
+      ? el("ul", { class: "failures" },
+          failed.map((k) => el("li", {}, el("strong", {}, String(counts[k])), " ", ERROR_LABELS[k])))
+      : el("div", { class: "value small" }, "No failures"));
+}
+
 function trends(set) {
   const runs = setRuns(set);
-  const metrics = ["pass_rate", ...DATA.metrics];
+  const metrics = shownMetrics(runs);
   const section = el("section", { class: "card", "aria-labelledby": "h-trends" },
     el("h2", { id: "h-trends" }, "Scores over time"),
     el("p", { class: "note" },
@@ -516,7 +574,7 @@ function drawPanels(panels, runs, set) {
     };
     const tipFor = (index) => () => {
       const run = runs[index];
-      const rows = ["pass_rate", ...DATA.metrics].map((m) =>
+      const rows = panels.map((p) => p.metric).map((m) =>
         el("div", { class: "t-row" }, el("span", { class: "t-key" }),
           el("strong", {}, m === "pass_rate" ? pct(summaryValue(run, m)) : score(summaryValue(run, m))),
           METRIC_LABELS[m] || m));
@@ -564,12 +622,20 @@ function comparison(set) {
     el("p", { class: "pair" }, `${runName(base)}  →  ${runName(run)}`,
       cmp.commits[0] || cmp.commits[1] ? `   (${cmp.commits[0] || "?"} → ${cmp.commits[1] || "?"})` : ""),
     el("p", { class: "verdict" }, cmp.verdict),
-    el("p", { class: "note" }, significanceText(cmp.significance)));
+    cmp.comparable === false
+      ? el("p", { class: "note" }, "Pass/fail rules or grading targets differ between these runs, so " +
+          "flipped questions say as much about the new rules as about the system. " +
+          "Compare with a run scored the same way, or label one as the new baseline.")
+      : el("p", { class: "note" }, significanceText(cmp.significance)));
   if (cmp.warnings.length) {
     section.append(el("ul", { class: "warnings" }, cmp.warnings.map((w) => el("li", {}, w))));
   }
 
-  const keys = ["pass_rate", ...DATA.metrics];
+  const order = Object.keys(METRIC_LABELS);
+  const rank = (m) => (order.includes(m) ? order.indexOf(m) : order.length);
+  const keys = ["pass_rate", ...DATA.metrics
+    .filter((m) => summaryValue(base, m) != null || summaryValue(run, m) != null)
+    .sort((a, b) => rank(a) - rank(b))];
   section.append(el("h3", {}, "Scores"), el("div", { class: "scroll" }, el("table", {},
     el("thead", {}, el("tr", {}, el("th", {}, "Metric"), el("th", { class: "num" }, "Before"), el("th", { class: "num" }, "After"), el("th", { class: "num" }, "Change"))),
     el("tbody", {}, keys.map((m) => {
@@ -579,7 +645,7 @@ function comparison(set) {
       return el("tr", {}, el("th", {}, METRIC_LABELS[m] || m),
         el("td", { class: "num" }, fmt(base.summary[key])),
         el("td", { class: "num" }, fmt(run.summary[key])),
-        el("td", { class: "num" }, deltaEl(cmp.summary_delta[key], asPct)));
+        el("td", { class: "num" }, deltaEl(cmp.summary_delta[key], asPct, LOWER_IS_BETTER.has(m))));
     })))));
 
   section.append(el("h3", {}, "Settings"));
@@ -598,15 +664,28 @@ function comparison(set) {
     items.length
       ? [el("h3", {}, `${title} (${items.length})`), ...items.map((q) => flipCard(q, status, base, run))]
       : [];
-  section.append(
+  const flips = [
     ...flipList("Regressions: passed before, fail now", cmp.regressions, "fail"),
-    ...flipList("Improvements: failed before, pass now", cmp.improvements, "pass"));
+    ...flipList("Improvements: failed before, pass now", cmp.improvements, "pass"),
+  ];
+  if (cmp.comparable === false && flips.length) {
+    section.append(el("details", {},
+      el("summary", {}, `Pass/fail changes under different rules, for reference only (${cmp.regressions.length + cmp.improvements.length})`),
+      flips));
+  } else {
+    section.append(...flips);
+  }
   // Score shifts without a pass/fail flip: collapsed, since with continuous
   // scores nearly every question moves a little.
   if (cmp.changed.length) {
     section.append(el("details", {},
       el("summary", {}, `Other score changes, no pass/fail flip (${cmp.changed.length})`),
       cmp.changed.map((q) => flipCard(q, null, base, run))));
+  }
+  if (cmp.unjudged && cmp.unjudged.length) {
+    section.append(el("p", { class: "note" },
+      `${cmp.unjudged.length} question${cmp.unjudged.length === 1 ? " was" : "s were"} not judged in one of the runs and ` +
+      `${cmp.unjudged.length === 1 ? "is" : "are"} left out of this comparison: ${cmp.unjudged.join(", ")}.`));
   }
   if (!cmp.regressions.length && !cmp.improvements.length && !cmp.changed.length) {
     section.append(el("p", { class: "note" }, "Every question scored exactly the same in both runs."));
@@ -615,8 +694,11 @@ function comparison(set) {
 }
 
 function flipCard(q, status, base, run) {
-  const scores = DATA.metrics.map((m) => `${METRIC_LABELS[m] || m} ${score(q.before[m])} → ${score(q.after[m])}`).join("  ·  ");
+  const scores = DATA.metrics
+    .filter((m) => q.before[m] != null || q.after[m] != null)
+    .map((m) => `${METRIC_LABELS[m] || m} ${score(q.before[m])} → ${score(q.after[m])}`).join("  ·  ");
   const before = base.results[q.id] || {}, after = run.results[q.id] || {};
+  const why = after.error_type && after.error_type !== "ok" ? ERROR_LABELS[after.error_type] || after.error_type : null;
   const previews = before.preview || after.preview
     ? el("details", {}, el("summary", {}, "Answers"),
         el("div", { class: "previews" },
@@ -627,6 +709,7 @@ function flipCard(q, status, base, run) {
     el("div", {},
       status ? el("span", { class: `status ${status}` }, status === "fail" ? "✗ fails" : "✓ passes") : null,
       q.question || q.id),
+    why ? el("div", { class: "scores" }, `Now: ${why}`) : null,
     el("div", { class: "scores" }, scores),
     previews);
 }
@@ -666,6 +749,9 @@ function topicTable(set) {
       runs.map((run) => {
         const g = set.breakdown[run.run_id][dim][tag];
         if (!g) return el("td", { class: "cell" }, el("span", { class: "cell-btn missing" }, "—"));
+        if (g.pass_rate == null) {
+          return el("td", { class: "cell" }, el("span", { class: "cell-btn missing" }, "not judged"));
+        }
         const step = Math.round(g.pass_rate * 5);
         const btn = el("button", {
           type: "button",
@@ -689,6 +775,13 @@ function topicTable(set) {
   return section;
 }
 
+// passed / failed (with the reason, for runs scored with v2) / not judged
+function outcome(r) {
+  if (r.pass == null) return "not judged";
+  if (r.pass) return "passed";
+  return r.error_type ? `failed: ${ERROR_LABELS[r.error_type] || r.error_type}` : "failed";
+}
+
 function questionGrid(set) {
   const runs = visibleRuns(set);
   const groups = new Map();
@@ -699,7 +792,7 @@ function questionGrid(set) {
   }
   const section = el("section", { class: "card", "aria-labelledby": "h-grid" },
     el("h2", { id: "h-grid" }, "Questions"),
-    el("p", { class: "note" }, "✓ passed, ✗ failed. Hover or focus a cell for its scores; click to select that run."),
+    el("p", { class: "note" }, "✓ passed, ✗ failed, ? not judged. Hover or focus a cell for its scores and why it failed; click to select that run."),
     truncatedNote(set));
   const body = el("tbody");
   for (const [group, questions] of [...groups.entries()].sort()) {
@@ -715,11 +808,11 @@ function questionGrid(set) {
           if (!r) return el("td", { class: "cell" }, el("span", { class: "cell-btn missing" }, "—"));
           const btn = el("button", {
             type: "button",
-            class: `cell-btn ${r.pass ? "pass" : "fail"}`,
-            "aria-label": `${q.id}, ${runName(run)}: ${r.pass ? "passed" : "failed"}`,
-          }, r.pass ? "✓" : "✗");
+            class: `cell-btn ${r.pass == null ? "unjudged" : r.pass ? "pass" : "fail"}`,
+            "aria-label": `${q.id}, ${runName(run)}: ${outcome(r)}`,
+          }, r.pass == null ? "?" : r.pass ? "✓" : "✗");
           const tip = () => [
-            el("div", { class: "t-head" }, `${runName(run)} · ${r.pass ? "passed" : "failed"}`),
+            el("div", { class: "t-head" }, `${runName(run)} · ${outcome(r)}`),
             ...Object.entries(r.metrics).map(([m, v]) => el("div", { class: "t-row" }, el("strong", {}, score(v)), METRIC_LABELS[m] || m)),
             r.retrieval_warning ? el("div", { class: "t-head" }, "⚠ answer not fully verified against trusted sources") : null,
             r.web_search_attempted ? el("div", { class: "t-head" }, "used web search") : null,
