@@ -36,7 +36,7 @@ def throttle_llm_if_needed() -> None:
     - Gemini: when LLM_PROVIDER=gemini, use GEMINI_MIN_DELAY_SEC (e.g. 4–6 for flash-lite free tier ~15 RPM, ~12 for pro ~5 RPM). Applied before every LLM call.
     - Mistral: when WEB_SEARCH_ENABLED is true, use MISTRAL_MIN_DELAY_SEC.
     """
-    prov = (os.getenv("LLM_PROVIDER") or "gemini").lower()
+    prov = (os.getenv("LLM_PROVIDER") or "").lower()
     if prov == "gemini":
         delay = _parse_delay_sec("GEMINI_MIN_DELAY_SEC")
         if delay > 0:

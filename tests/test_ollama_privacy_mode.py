@@ -108,9 +108,11 @@ class TestOllamaEmbeddingProvider:
 
         assert get_embedding_provider() == "ollama"
 
-    def test_cloud_providers_still_use_gemini(self):
-        """Cloud providers (gemini, openai, mistral) should still map to 'gemini' embeddings."""
+    def test_cloud_providers_use_the_chosen_cloud_embeddings(self, monkeypatch):
+        """Cloud providers (gemini, openai, mistral) retrieve with EMBEDDING_PROVIDER, not locally."""
         from graph.llm_factory import get_embedding_provider
+
+        monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
 
         assert get_embedding_provider("gemini") == "gemini"
         assert get_embedding_provider("openai") == "gemini"

@@ -10,9 +10,9 @@ from pydantic import BaseModel
 from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
 
-def test_get_llm_returns_gemini_by_default(monkeypatch):
-    """Default provider is gemini (2.5 Pro) when LLM_PROVIDER not set."""
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+def test_get_llm_returns_gemini_2_5_pro_when_chosen(monkeypatch):
+    """LLM_PROVIDER=gemini answers with Gemini 2.5 Pro unless GEMINI_MODEL says otherwise."""
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
     monkeypatch.delenv("GEMINI_MODEL", raising=False)
     llm = get_llm()
@@ -55,22 +55,25 @@ def test_get_llm_raises_api_key_error_when_openai_key_missing(monkeypatch):
     assert "OpenAI" in str(exc_info.value)
 
 
-def test_get_embedding_provider_gemini_and_openai_use_gemini(monkeypatch):
-    """Gemini and OpenAI LLM providers both use 'gemini' embedding provider."""
+def test_chosen_gemini_embeddings_serve_every_cloud_answer_model(monkeypatch):
+    """EMBEDDING_PROVIDER=gemini: Gemini and OpenAI answers both retrieve with Gemini."""
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
     assert get_embedding_provider() == "gemini"
     assert get_embedding_provider("openai") == "gemini"
     assert get_embedding_provider("gemini") == "gemini"
 
 
-def test_get_embedding_provider_mistral_uses_gemini_embeddings(monkeypatch):
-    """Mistral LLM uses 'gemini' embedding provider so it can use the shared vector store."""
+def test_chosen_gemini_embeddings_serve_mistral_answers(monkeypatch):
+    """Mistral answers retrieve from the shared vector store of the chosen embeddings."""
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
     assert get_embedding_provider("mistral") == "gemini"
 
 
-def test_get_embeddings_returns_gemini_by_default(monkeypatch):
-    """Default embeddings are Google when LLM_PROVIDER not set."""
+def test_get_embeddings_returns_gemini_when_chosen(monkeypatch):
+    """EMBEDDING_PROVIDER=gemini returns Google embeddings."""
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
     fake_emb = type(
         "GoogleGenerativeAIEmbeddings", (), {"__module__": "langchain_google_genai"}
     )()
@@ -163,10 +166,6 @@ def test_internal_callers_can_use_any_scaleway_model(scaleway_env):
 
     assert judge.model_name == "glm-5.2"
     assert judge.temperature == 0
-
-
-def test_scaleway_answers_still_use_gemini_embeddings():
-    assert get_embedding_provider("scaleway") == "gemini"
 
 
 class _Verdict(BaseModel):
@@ -358,3 +357,44 @@ def test_scaleway_embeddings_need_a_configured_model(
     monkeypatch.delenv("SCW_EMBED_MODEL")
     with pytest.raises(ValueError, match="SCW_EMBED_MODEL"):
         get_embeddings("scaleway")
+
+
+# --- Scaleway is the default provider -----------------------------------------
+
+
+@pytest.fixture
+def nothing_configured(monkeypatch):
+    for name in (
+        "LLM_PROVIDER",
+        "EMBEDDING_PROVIDER",
+        "SCW_ALLOWED_MODELS",
+        "SCW_BASE_URL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
+    monkeypatch.setenv("SCW_MODEL", "gemma-4-26b-a4b-it")
+    monkeypatch.setenv("SCW_EMBED_MODEL", "bge-multilingual-gemma2")
+
+
+def test_without_a_configured_provider_scaleway_answers(nothing_configured):
+    llm = get_llm()
+
+    assert llm.model_name == "gemma-4-26b-a4b-it"
+    assert _base_url(llm) == "https://api.scaleway.ai/v1"
+
+
+def test_without_a_configured_provider_scaleway_embeds(nothing_configured):
+    from graph.llm_factory import get_embedding_model_name
+
+    assert get_embedding_provider() == "scaleway"
+    # whichever model answers
+    assert get_embedding_provider("gemini") == "scaleway"
+    assert get_embedding_model_name() == "bge-multilingual-gemma2"
+
+
+def test_gemini_stays_available_when_chosen(nothing_configured, monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
+
+    assert get_embedding_provider() == "gemini"
+    assert type(get_llm()).__name__ == "ChatGoogleGenerativeAI"
