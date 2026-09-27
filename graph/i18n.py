@@ -71,6 +71,11 @@ WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL: dict[str, str] = {
     "de": "Vektor-Store noch nicht erstellt. GOOGLE_API_KEY in .env setzen, dann: uv run python ingestion.py",
     "da": "Vektorstore er endnu ikke bygget. Sæt GOOGLE_API_KEY i .env, derefter: uv run python ingestion.py",
 }
+WARNING_EMBEDDINGS_NOT_BUILT_SCALEWAY: dict[str, str] = {
+    "en": "Scaleway embeddings are not built yet. Run: EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini",
+    "de": "Scaleway-Embeddings sind noch nicht erstellt. Ausführen: EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini",
+    "da": "Scaleway-embeddings er endnu ikke bygget. Kør: EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini",
+}
 # Privacy Mode: Ollama local embeddings not built yet.
 WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA: dict[str, str] = {
     "en": "Local embeddings are not built yet. Run: LLM_PROVIDER=ollama uv run python ingestion.py",
@@ -110,6 +115,11 @@ def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:
         return (
             WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA.get(lang)
             or WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA["en"]
+        )
+    if embedding_provider == "scaleway":
+        return (
+            WARNING_EMBEDDINGS_NOT_BUILT_SCALEWAY.get(lang)
+            or WARNING_EMBEDDINGS_NOT_BUILT_SCALEWAY["en"]
         )
     if embedding_provider == "mistral":
         return (

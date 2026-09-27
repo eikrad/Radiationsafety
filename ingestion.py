@@ -30,7 +30,12 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 from tqdm import tqdm
 
-from graph.llm_factory import get_embedding_provider, get_embeddings
+from graph.llm_factory import (
+    get_embedding_model_name,
+    get_embedding_provider,
+    get_embeddings,
+    query_instruction_template,
+)
 
 load_dotenv()
 
@@ -105,7 +110,14 @@ def _gemini_batch_delay_sec() -> float:
 
 
 def get_collection_names(embedding_provider: str) -> tuple[str, str]:
-    """Return (iaea_collection_name, dk_collection_name) for the given embedding provider."""
+    """Return (iaea_collection_name, dk_collection_name) for the given embedding provider.
+
+    Scaleway collections carry the model id (SCW_EMBED_MODEL), so several
+    Scaleway models can be built side by side and compared.
+    """
+    if embedding_provider == "scaleway":
+        suffix = f"-scw-{get_embedding_model_name('scaleway')}"
+        return (f"{IAEA_COLLECTION}{suffix}", f"{DK_LAW_COLLECTION}{suffix}")
     if embedding_provider == "mistral":
         return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
     if embedding_provider == "ollama":
@@ -554,18 +566,32 @@ def load_dk_law_docs():
     return all_docs
 
 
+# Scaleway embeddings: chunks per request (1000 short texts were accepted; chunks
+# run up to 512 tokens, so stay well below).
+SCALEWAY_BATCH_SIZE = 64
+
+
 def _add_documents_rate_limited(
-    documents, collection_name, embeddings, persist_directory
+    documents, collection_name, embeddings, persist_directory, embedding_provider=None
 ):
-    """Add docs. Gemini: batches + optional delay. Ollama: batches with small delay to avoid overload."""
-    ep = get_embedding_provider()
+    """Add docs. Gemini: batches + optional delay. Ollama and Scaleway: batches with retry."""
+    ep = embedding_provider or get_embedding_provider()
     if ep == "gemini":
         _add_documents_gemini_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
     elif ep == "ollama":
-        _add_documents_ollama_rate_limited(
-            documents, collection_name, embeddings, persist_directory
+        # small batches and a pause: a local embedding model is easily overloaded
+        _add_documents_batched(
+            documents, collection_name, embeddings, persist_directory, 10, 0.3
+        )
+    elif ep == "scaleway":
+        _add_documents_batched(
+            documents,
+            collection_name,
+            embeddings,
+            persist_directory,
+            SCALEWAY_BATCH_SIZE,
         )
     else:
         with tqdm(
@@ -583,14 +609,17 @@ def _add_documents_rate_limited(
             pbar.update(1)
 
 
-def _add_documents_ollama_rate_limited(
-    documents, collection_name, embeddings, persist_directory
+def _add_documents_batched(
+    documents,
+    collection_name,
+    embeddings,
+    persist_directory,
+    batch_size: int,
+    pause_sec: float = 0.0,
+    max_retries: int = 3,
 ):
-    """Add documents in batches with retry logic to handle Ollama connection issues."""
-    batch_size = 10  # Conservative batch size for local embedding model
+    """Add documents in batches, retrying a failed batch (connection errors, rate limits)."""
     vectorstore = None
-    max_retries = 3
-
     num_batches = (len(documents) + batch_size - 1) // batch_size
 
     with tqdm(
@@ -616,9 +645,8 @@ def _add_documents_ollama_rate_limited(
                         vectorstore.add_documents(batch)
                     pbar.update(1)
                     pbar.set_postfix({"chunks": len(batch)})
-                    # Small delay between batches to prevent Ollama overload
-                    if i + batch_size < len(documents):
-                        time.sleep(0.3)
+                    if pause_sec > 0 and i + batch_size < len(documents):
+                        time.sleep(pause_sec)
                     break  # Success, exit retry loop
                 except Exception as e:
                     if attempt < max_retries - 1:
@@ -733,30 +761,76 @@ def ingest():
     print("\n🎉 Ingestion complete!")
 
 
+def reembed_from(source_provider: str, target: str | None = None) -> None:
+    """Embed the chunks of another provider's collections again with `target`.
+
+    Copies text, metadata and ids unchanged, so embedding models are compared
+    on exactly the same chunks (a full ingestion re-parses the PDFs, and a
+    different docling version could chunk differently). An earlier copy is
+    replaced.
+    """
+    import chromadb
+
+    target = target or get_embedding_provider()
+    sources, targets = get_collection_names(source_provider), get_collection_names(
+        target
+    )
+    if sources == targets:
+        raise ValueError(f"{source_provider} and {target} use the same collections")
+    client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
+    print(f"\n🔁 Re-embedding {', '.join(sources)} → {', '.join(targets)}\n")
+    _clear_chroma_collections(target)
+    embeddings = get_embeddings(target)
+    for src, dst in zip(sources, targets, strict=True):
+        stored = client.get_collection(src).get(include=["documents", "metadatas"])
+        if not stored["ids"]:
+            raise ValueError(f"Collection {src} is empty; run ingestion first")
+        documents = [
+            Document(page_content=text, metadata=meta or {}, id=doc_id)
+            for doc_id, text, meta in zip(
+                stored["ids"], stored["documents"], stored["metadatas"], strict=True
+            )
+        ]
+        _add_documents_rate_limited(
+            documents, dst, embeddings, str(_CHROMA_DIR), embedding_provider=target
+        )
+        tqdm.write(f"✅ Re-embedded {len(documents)} chunks into {dst}")
+
+
 # Chunks returned per collection (IAEA and DK each) for one retrieval query.
 RETRIEVER_K = 3
 
-_retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
+_retrievers_cache: dict[tuple, tuple] | None = (
+    None  # keyed by collections + query instruction
+)
 
 
 def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, str]:
-    """Return (ready, message). If not ready (collections missing or empty), message explains how to build them.
-
-    Applies to both gemini (Gemini/OpenAI) and mistral embedding providers.
-    """
-    if embedding_provider not in ("gemini", "mistral", "ollama"):
+    """Return (ready, message). If not ready (collections missing or empty), message explains how to build them."""
+    if embedding_provider not in ("gemini", "mistral", "ollama", "scaleway"):
         return True, ""
-    iaea_name, dk_name = get_collection_names(embedding_provider)
     if embedding_provider == "ollama":
         default_msg = (
             "Local embeddings are not built yet. Run: "
             "LLM_PROVIDER=ollama uv run python ingestion.py"
+        )
+    elif embedding_provider == "scaleway":
+        try:
+            model = get_embedding_model_name("scaleway")
+        except ValueError as e:
+            return False, str(e)
+        default_msg = (
+            f"Scaleway embeddings ({model}) are not built yet. Run: "
+            f"EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL={model} "
+            "uv run python ingestion.py --reembed-from gemini "
+            "(or without --reembed-from for a full ingestion)"
         )
     else:
         default_msg = (
             "Embeddings are not built yet. Set GOOGLE_API_KEY in .env (or export it), "
             "then run: uv run python ingestion.py"
         )
+    iaea_name, dk_name = get_collection_names(embedding_provider)
     try:
         import chromadb
 
@@ -814,20 +888,28 @@ def clear_retrievers_cache() -> None:
 
 
 def get_retrievers(embedding_provider: str | None = None):
-    """Return retriever instances for both collections (for use in graph). Cached per embedding_provider.
+    """Return retriever instances for both collections (for use in graph).
 
-    When embedding_provider is None, uses get_embedding_provider() (currently always 'gemini').
-    Retrieval always uses Gemini embeddings; the same collections are used regardless of LLM for generation.
+    Cached per collection pair and query instruction, so two Scaleway models
+    (or the instruction switched off) never share a cached retriever.
     """
     global _retrievers_cache
     if _retrievers_cache is None:
         _retrievers_cache = {}
     ep = (
-        embedding_provider if embedding_provider in ("gemini", "mistral") else None
+        embedding_provider
+        if embedding_provider in ("gemini", "mistral", "ollama", "scaleway")
+        else None
     ) or get_embedding_provider()
-    if ep in _retrievers_cache:
-        return _retrievers_cache[ep]
     iaea_name, dk_name = get_collection_names(ep)
+    template = (
+        query_instruction_template(get_embedding_model_name(ep))
+        if ep == "scaleway"
+        else None
+    )
+    key = (iaea_name, dk_name, template)
+    if key in _retrievers_cache:
+        return _retrievers_cache[key]
     embeddings = get_embeddings(ep)
     iaea = Chroma(
         collection_name=iaea_name,
@@ -839,9 +921,22 @@ def get_retrievers(embedding_provider: str | None = None):
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
     ).as_retriever(search_kwargs={"k": RETRIEVER_K})
-    _retrievers_cache[ep] = (iaea, dk)
-    return _retrievers_cache[ep]
+    _retrievers_cache[key] = (iaea, dk)
+    return _retrievers_cache[key]
 
 
 if __name__ == "__main__":
-    ingest()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=ingest.__doc__.splitlines()[0])
+    parser.add_argument(
+        "--reembed-from",
+        metavar="PROVIDER",
+        help="Copy the chunks of this provider's collections (e.g. gemini) and embed "
+        "them with the configured EMBEDDING_PROVIDER instead of re-parsing the documents",
+    )
+    args = parser.parse_args()
+    if args.reembed_from:
+        reembed_from(args.reembed_from)
+    else:
+        ingest()

@@ -43,8 +43,8 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
             if "dimension" in str(e).lower() and "embedding" in str(e).lower():
                 return RuntimeError(
                     "Embedding dimension mismatch: the Chroma collection was built with a different "
-                    "embedding model. Re-run full ingestion (set GOOGLE_API_KEY in .env, then "
-                    "uv run python ingestion.py) so the vector store uses Gemini embeddings."
+                    f"embedding model than the configured one ({ep}). Rebuild it with the same "
+                    "settings: uv run python ingestion.py (for Scaleway: add --reembed-from gemini)."
                 )
             return e
         except Exception:
