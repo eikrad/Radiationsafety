@@ -63,8 +63,8 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 |-------|------------|
 | Backend API | FastAPI + Python |
 | AI pipeline | LangGraph + LangChain |
-| Embeddings | Google Gemini (always required) |
-| LLM for answers | Gemini / OpenAI / Mistral / Ollama (configurable via `LLM_PROVIDER`) |
+| Embeddings | Google Gemini (default) or Scaleway (`EMBEDDING_PROVIDER`); local Ollama in privacy mode |
+| LLM for answers | Gemini / OpenAI / Mistral / Scaleway / Ollama (configurable via `LLM_PROVIDER`) |
 | Vector database | Chroma |
 | Document processing | Docling HybridChunker |
 | Frontend | React + TypeScript (Vite) |
@@ -126,7 +126,13 @@ The `chroma_data` volume persists between restarts — you only need to run inge
    ```bash
    uv run python ingestion.py
    ```
-   Changing `LLM_PROVIDER` later does **not** require re-running ingestion — the same Gemini-embedded vector store is used for retrieval regardless of which model generates answers.
+   Changing `LLM_PROVIDER` later does **not** require re-running ingestion — retrieval uses the embeddings chosen by `EMBEDDING_PROVIDER` (default Gemini) regardless of which model generates answers.
+
+   To use Scaleway embeddings (EU-hosted) instead, set `EMBEDDING_PROVIDER=scaleway`, `SCW_SECRET_KEY` and `SCW_EMBED_MODEL` (e.g. `qwen3-embedding-8b`), then embed the existing chunks again without re-parsing the documents:
+   ```bash
+   EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini
+   ```
+   Each embedding model gets its own collections (`radiation-iaea-scw-<model>`, …), so switching back needs no rebuild.
 
 4. Start the backend:
    ```bash
@@ -187,7 +193,7 @@ Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist w
 
 ## Evaluation
 
-The evaluation harness lives in `eval/`. It runs the RAG pipeline against a golden Q&A dataset and scores outputs with RAGAS-style metrics (faithfulness, answer relevance, context precision, context recall), writing reports to `eval/reports/`.
+The evaluation harness lives in `eval/`. It runs the RAG pipeline against a golden set of questions whose facts (nuggets) and source passages (evidence) are known, has an independent LLM judge assign the facts, scores retrieval deterministically, and records every run for a local dashboard. `--retrieval-only` compares embeddings or retrieval settings by evidence recall alone. See [eval/README.md](eval/README.md).
 
 ```bash
 uv run python -m eval.run_eval

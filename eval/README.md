@@ -27,12 +27,24 @@ The harness uses your `.env` for the LLMs (no API keys in golden data). Ensure i
 | `--history-file PATH` | Run history to append to (default: `eval/history/runs.jsonl`) |
 | `--no-history` | Do not record the run (e.g. quick debugging runs) |
 | `--rescore RUN_ID` | Judge and score a saved run again (see [Re-scoring](#re-scoring)) without running the graph |
+| `--retrieval-only` | Score only the first retrieval (see [Comparing embeddings](#comparing-embeddings)): no answer model, no judge |
 
 **Rate limits:** by default the runner waits **5 s** after each graph run and **20 s** between items so eval stays under typical free-tier limits. Set the env vars above or use `--delay-after-graph 0 --delay-between-items 0` to disable delays.
 
+## Comparing embeddings
+
+```bash
+EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL=qwen3-embedding-8b LLM_PROVIDER=scaleway \
+  uv run python -m eval.run_eval --retrieval-only --label emb-qwen3
+```
+
+Runs the graph's first retrieval for every answerable question and scores **evidence recall** only: no answer model, no judge, so a comparison takes seconds, costs only the query embeddings and carries no judge noise. The metric is the same `evidence_recall_initial` as in a full run; there is no pass rate. The run records the embedding model and whether questions carried the model's instruction (`EMBED_QUERY_INSTRUCTION=false` measures the instruction's effect without re-ingestion). A retrieval-only run refuses to start when `LLM_PROVIDER=ollama` would override `EMBEDDING_PROVIDER`.
+
+Build the collections for a new embedding model first with `EMBEDDING_PROVIDER=… uv run python ingestion.py --reembed-from gemini`: it embeds the existing chunks, so every model is compared on identical chunks and the golden evidence quotes stay valid.
+
 ## Environment
 
-- **Retrieval**: the graph uses **Gemini embeddings**; set **`GOOGLE_API_KEY`** in `.env` and run ingestion once.
+- **Retrieval**: the embeddings chosen by `EMBEDDING_PROVIDER` (default Gemini, `GOOGLE_API_KEY`); their collections must be built. `LLM_PROVIDER=ollama` always retrieves with local embeddings.
 - **Answers**: the graph uses `LLM_PROVIDER` and its key (`gemini`, `openai`, `mistral`, `scaleway`, `ollama`).
 - **Judge**: `EVAL_GRADER_PROVIDER` picks the judge's provider and `EVAL_JUDGE_MODEL` its model. For Scaleway both are needed, e.g. `EVAL_GRADER_PROVIDER=scaleway` and `EVAL_JUDGE_MODEL=<model id>` (plus `SCW_SECRET_KEY`). **Use a different model than the one that writes the answers**: a model judging its own answers is lenient. Without either variable the answering model judges; the run records `judge_is_generator: true` and prints a warning. Check a judge with [`judge_check`](#checking-the-judge) before trusting it.
 - **Eval delays** (optional): `EVAL_DELAY_AFTER_GRAPH_SEC`, `EVAL_DELAY_BETWEEN_ITEMS_SEC`.

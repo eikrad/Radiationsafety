@@ -9,8 +9,8 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: Gemini for cloud providers (`GOOGLE_API_KEY` required for ingestion and retrieval); Ollama privacy mode uses local embeddings instead (separate `-ollama` Chroma collections)
-- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
+- **Embeddings**: chosen by `EMBEDDING_PROVIDER`, independently of the answering LLM: Gemini (default, `GOOGLE_API_KEY`) or Scaleway (`SCW_EMBED_MODEL`, collections `-scw-<model>`); Ollama privacy mode always embeds locally (`-ollama` collections). `ingestion.py --reembed-from gemini` embeds the existing chunks with another model
+- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, `scaleway`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
@@ -85,7 +85,7 @@ RETRIEVE → GRADE_DOCUMENTS
 - **Frontend**: `npm -C frontend run test`, `npm -C frontend run build`
 - **Linting**: pre-commit hooks (`.pre-commit-config.yaml`)
 - **Environment variables**: always update `.env.example` when adding new variables
-- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` — do not rename without re-ingestion
+- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` (Gemini) — do not rename without re-ingestion; other embeddings use suffixed pairs (`-ollama`, `-scw-<model>`)
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
 
 ### Branching workflow
