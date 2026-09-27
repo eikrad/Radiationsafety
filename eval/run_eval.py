@@ -116,6 +116,40 @@ def _invoke_graph(question: str, graph, llm) -> dict:
     )
 
 
+def _retrieve_initial(question: str, embedding_provider: str) -> list:
+    """The graph's first retrieval for a question: both collections, merged."""
+    from graph.nodes.retrieve import retrieve
+
+    out = retrieve(
+        {
+            "question": question,
+            "chat_history": [],
+            "embedding_provider": embedding_provider,
+        }
+    )
+    if not out.get("documents") and out.get("retrieval_warning"):
+        raise RuntimeError(out["retrieval_warning"])
+    return out.get("documents") or []
+
+
+def _embedding_config() -> dict:
+    """Which embeddings retrieve, and whether questions carry the model's instruction."""
+    from graph.llm_factory import (
+        get_embedding_model_name,
+        get_embedding_provider,
+        query_instruction_template,
+    )
+
+    provider = get_embedding_provider()
+    model = get_embedding_model_name(provider)
+    return {
+        "embedding_provider": provider,
+        "embedding_model": model,
+        "embedding_query_instruction": provider == "scaleway"
+        and query_instruction_template(model) is not None,
+    }
+
+
 def _model_name(llm) -> str:
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
@@ -248,7 +282,9 @@ def summarize(results: list[dict]) -> dict:
             sum(1 for r in judged if r["pass"]) / len(judged) if judged else None
         ),
         "pass_rule": "v2-strict",
-        "error_counts": dict(Counter(r["error_type"] for r in results)),
+        "error_counts": dict(
+            Counter(r["error_type"] for r in results if r["error_type"])
+        ),
     }
     for name in NUMERIC_METRICS:
         values = [r["metrics"][name] for r in results if name in r["metrics"]]
@@ -275,25 +311,20 @@ def _run_eval(
     from eval.history import prompt_fingerprints
     from graph.consts import env_bool
     from graph.graph import app as graph
-    from graph.llm_factory import (
-        get_embedding_model_name,
-        get_embedding_provider,
-        get_llm,
-    )
+    from graph.llm_factory import get_llm
     from ingestion import RETRIEVER_K
 
     graph_llm = get_llm()
     llm_provider = os.getenv("LLM_PROVIDER", "gemini").lower()
     judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
-    embedding_provider = get_embedding_provider()
     header = {
         "dataset": dataset_fingerprint(golden),
         "config": {
+            "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
             **judge_info,
-            "embedding_provider": embedding_provider,
-            "embedding_model": get_embedding_model_name(embedding_provider),
+            **_embedding_config(),
             "retriever_k": RETRIEVER_K,
             "web_search": env_bool("WEB_SEARCH_ENABLED"),
             "metrics_version": METRICS_VERSION,
@@ -319,6 +350,72 @@ def _run_eval(
     save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
     results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
+    return summarize(results), results, header
+
+
+def _run_retrieval_only(
+    golden: list[dict], output_dir: Path, run_id: str
+) -> tuple[dict, list[dict], dict]:
+    """Score only the first retrieval: evidence recall, no answer, no judge.
+
+    For comparing embeddings and retrieval settings cheaply and without judge
+    noise. evidence_recall_initial means the same as in a full run; there is
+    no pass rate, since nothing was answered.
+    """
+    from ingestion import RETRIEVER_K
+
+    embedding = _embedding_config()
+    header = {
+        "dataset": dataset_fingerprint(golden),
+        "config": {
+            "retrieval_only": True,
+            **embedding,
+            "retriever_k": RETRIEVER_K,
+            "metrics_version": METRICS_VERSION,
+        },
+    }
+    print(
+        f"Eval (retrieval only): embeddings = {embedding['embedding_model']}, "
+        f"query instruction {'on' if embedding['embedding_query_instruction'] else 'off'}",
+        file=sys.stderr,
+    )
+    outputs, results = {}, []
+    for item in golden:
+        # refusal questions have no evidence to find: nothing to retrieve for
+        documents = (
+            _invoke_with_retry(
+                _retrieve_initial, item["question"], embedding["embedding_provider"]
+            )
+            if item.get("nuggets")
+            else []
+        )
+        outputs[item["id"]] = {"initial_documents": documents}
+        recall = score_item(item, {"initial_documents": documents}, None)[
+            "evidence_recall_initial"
+        ]
+        results.append(
+            {
+                "id": item["id"],
+                "question": item["question"],
+                "topics": item.get("topics") or [],
+                "language": item.get("language"),
+                "source": item.get("source"),
+                "expected_behavior": item["expected_behavior"],
+                "pass": None,
+                "error_type": None,
+                "refused": None,
+                "unsupported_claims": None,
+                "metrics": (
+                    {"evidence_recall_initial": recall} if recall is not None else {}
+                ),
+                "generation_preview": "",
+                "retrieval_warning": None,
+                "web_search_attempted": False,
+                "node_path": ["retrieve"],
+                "judge": None,
+            }
+        )
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
     return summarize(results), results, header
 
 
@@ -452,11 +549,17 @@ def _markdown_header_lines(header: dict) -> list[str]:
         lines.append(f"**Label:** {header['label']}")
     if header.get("notes"):
         lines.append(f"**Notes:** {header['notes']}")
+    models = (
+        f"**Embeddings:** {config.get('embedding_model')} (retrieval only, query "
+        f"instruction {'on' if config.get('embedding_query_instruction') else 'off'})"
+        if config.get("retrieval_only")
+        else f"**Models:** {config.get('llm_model')} (judge: "
+        f"{config.get('judge_provider')}/{config.get('judge_model')}, "
+        f"embeddings: {config.get('embedding_model')})"
+    )
     lines += [
         f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
-        f"**Models:** {config.get('llm_model')} (judge: "
-        f"{config.get('judge_provider')}/{config.get('judge_model')}, "
-        f"embeddings: {config.get('embedding_model')})",
+        models,
         f"**Retrieval:** k={config.get('retriever_k')} per collection,"
         f" web search {'on' if config.get('web_search') else 'off'}",
         f"**Questions:** {dataset.get('n_items')} (set {dataset.get('questions_hash')})",
@@ -532,6 +635,14 @@ def main() -> int:
         help="Do not record this run in the history",
     )
     parser.add_argument(
+        "--retrieval-only",
+        action="store_true",
+        help=(
+            "Score only the first retrieval (evidence recall) with the configured "
+            "embeddings; no answer model, no judge. For comparing embeddings."
+        ),
+    )
+    parser.add_argument(
         "--rescore",
         metavar="RUN_ID",
         default=None,
@@ -575,6 +686,25 @@ def main() -> int:
             return 1
         summary, results, header = rescored
         label = args.label or f"rescore of {args.rescore}"
+    elif args.retrieval_only:
+        configured = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
+        if (
+            configured not in ("", "ollama")
+            and os.getenv("LLM_PROVIDER", "").lower() == "ollama"
+        ):
+            print(
+                f"LLM_PROVIDER=ollama (privacy mode) always embeds locally, so "
+                f"EMBEDDING_PROVIDER={configured} would not be measured. Set "
+                "LLM_PROVIDER to a cloud provider for this run.",
+                file=sys.stderr,
+            )
+            return 1
+        git = git_info()
+        summary, results, header = _run_retrieval_only(
+            golden, output_dir=args.output_dir, run_id=run_id
+        )
+        header = {"git": git, **header}
+        label = args.label
     else:
         # Before the run: describes the code that ran, not edits made while it ran.
         git = git_info()
@@ -619,6 +749,10 @@ def main() -> int:
     print(f"Report written: {md_path}")
     if summary["pass_rate"] is not None:
         print(f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged")
+    if summary.get("evidence_recall_initial_mean") is not None:
+        print(
+            f"Evidence recall (first retrieval): {summary['evidence_recall_initial_mean']:.2f}"
+        )
     return 0
 
 

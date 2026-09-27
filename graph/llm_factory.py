@@ -183,41 +183,111 @@ def get_llm(
         return ChatMistralAI(temperature=0, api_key=key)
 
 
+EMBEDDING_PROVIDERS = ("gemini", "ollama", "scaleway")
+
+
 def get_embedding_provider(llm_provider: str | None = None) -> str:
     """Return which embedding backend to use for retrieval.
 
-    Cloud providers (gemini, openai, mistral) share Gemini embeddings.
-    Ollama uses local embeddings (separate Chroma collections).
+    Ollama (privacy mode) always embeds locally. Otherwise EMBEDDING_PROVIDER
+    picks the backend independently of the answering model; unset, cloud
+    providers share Gemini embeddings. Each backend has its own Chroma
+    collections (ingestion.get_collection_names).
     """
     prov = (llm_provider or os.getenv("LLM_PROVIDER", "gemini")).lower()
     if prov == "ollama":
         return "ollama"
-    return "gemini"
+    configured = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
+    if not configured:
+        return "gemini"
+    if configured not in EMBEDDING_PROVIDERS:
+        raise ValueError(
+            f"EMBEDDING_PROVIDER={configured!r} is not supported; "
+            f"use one of {', '.join(EMBEDDING_PROVIDERS)}"
+        )
+    return configured
+
+
+_KNOWN_EMBEDDING_PROVIDERS = ("gemini", "mistral", "ollama", "scaleway")
+
+# Query-side instructions for instruction-aware embedding models; documents are
+# embedded without one. Written in English as the model cards advise, also for
+# Danish text (Qwen3 Embedding, Zhang et al. 2025: ~1-5 % retrieval lost without).
+_QUERY_TASK = (
+    "Given a question about radiation protection, retrieve passages from IAEA "
+    "safety standards and Danish regulations that answer it"
+)
+_QUERY_TEMPLATES = {
+    "qwen3-embedding": "Instruct: {task}\nQuery:{query}",
+    "bge-multilingual-gemma2": "<instruct>{task}\n<query>{query}",
+}
 
 
 def get_embedding_model_name(embedding_provider: str | None = None) -> str:
     """Model id used for embeddings by the given provider (see get_embeddings)."""
     ep = (
         embedding_provider
-        if embedding_provider in ("gemini", "mistral", "ollama")
+        if embedding_provider in _KNOWN_EMBEDDING_PROVIDERS
         else get_embedding_provider()
     )
     if ep == "ollama":
         return (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "nomic-embed-text"
     if ep == "gemini":
         return "models/gemini-embedding-001"
+    if ep == "scaleway":
+        model = (os.getenv("SCW_EMBED_MODEL") or "").strip()
+        if not model:
+            raise ValueError(
+                "Set SCW_EMBED_MODEL to a Scaleway embedding model id "
+                "(list them with GET https://api.scaleway.ai/v1/models)"
+            )
+        return model
     return "mistral-embed"
+
+
+def query_instruction_template(model: str) -> str | None:
+    """The query format for an instruction-aware model, or None (plain queries).
+
+    EMBED_QUERY_INSTRUCTION=false turns it off, e.g. to measure its effect.
+    """
+    if (os.getenv("EMBED_QUERY_INSTRUCTION") or "").strip().lower() in (
+        "0",
+        "false",
+        "no",
+    ):
+        return None
+    for prefix, template in _QUERY_TEMPLATES.items():
+        if model.startswith(prefix):
+            return template
+    return None
+
+
+def _with_query_instruction(embeddings, template: str | None):
+    """Embeddings that prefix questions (not documents) with the model's instruction."""
+    if template is None:
+        return embeddings
+    from langchain_core.embeddings import Embeddings
+
+    class QueryInstructionEmbeddings(Embeddings):
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            return embeddings.embed_documents(texts)
+
+        def embed_query(self, text: str) -> list[float]:
+            return embeddings.embed_query(template.format(task=_QUERY_TASK, query=text))
+
+    return QueryInstructionEmbeddings()
 
 
 def get_embeddings(embedding_provider: str | None = None):
     """Return embeddings instance for the given provider.
 
     Args:
-        embedding_provider: 'gemini' | 'mistral' | 'ollama'. If None, uses get_embedding_provider().
+        embedding_provider: 'gemini' | 'mistral' | 'ollama' | 'scaleway'. If None,
+            uses get_embedding_provider().
     """
     ep = (
         embedding_provider
-        if embedding_provider in ("gemini", "mistral", "ollama")
+        if embedding_provider in _KNOWN_EMBEDDING_PROVIDERS
         else get_embedding_provider()
     )
     model = get_embedding_model_name(ep)
@@ -230,6 +300,21 @@ def get_embeddings(embedding_provider: str | None = None):
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
         return GoogleGenerativeAIEmbeddings(model=model)
+    if ep == "scaleway":
+        from langchain_openai import OpenAIEmbeddings
+
+        key = os.getenv("SCW_SECRET_KEY")
+        if not key:
+            raise APIKeyError("Scaleway")
+        base_url = (os.getenv("SCW_BASE_URL") or "").strip() or _SCALEWAY_BASE_URL
+        # raw text, not tiktoken ids: only OpenAI's own API accepts token ids
+        plain = OpenAIEmbeddings(
+            model=model,
+            api_key=key,
+            base_url=base_url,
+            check_embedding_ctx_length=False,
+        )
+        return _with_query_instruction(plain, query_instruction_template(model))
     from langchain_mistralai import MistralAIEmbeddings
 
     return MistralAIEmbeddings(model=model)
