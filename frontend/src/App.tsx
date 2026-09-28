@@ -36,6 +36,8 @@ export default function App() {
   const [scalewayModels, setScalewayModels] = useState<string[]>([])
   /** From GET /api/config: per provider, whether the server can answer with it. */
   const [providers, setProviders] = useState<ProvidersStatus>({})
+  /** Set once /api/config has been applied (or failed), exposed as data-config for tests. */
+  const [configLoaded, setConfigLoaded] = useState(false)
   /** From GET /api/config: set only if the operator configured PRIVACY_CONTROLLER_NAME/CONTACT. */
   const [privacyController, setPrivacyController] = useState<{
     name: string | null
@@ -84,6 +86,9 @@ export default function App() {
       )
       .catch(() => {
         if (!cancelled) setServerHasLlmKey(false)
+      })
+      .finally(() => {
+        if (!cancelled) setConfigLoaded(true)
       })
     return () => { cancelled = true }
   }, [])
@@ -164,7 +169,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" data-config={configLoaded ? 'loaded' : 'pending'}>
       {documentsOpen && (
         <DocumentsPanel onClose={() => setDocumentsOpen(false)} />
       )}
