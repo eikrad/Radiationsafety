@@ -1,4 +1,22 @@
 services:
+  # One-shot: hands the index directory to the backend's uid 1000, so it works when
+  # Docker created the directory (as root) or files were copied in as another user.
+  # Only this short-lived container gets root and CHOWN; the backend stays unprivileged.
+  chroma-permissions:
+    image: busybox:1.37
+    user: root
+    command: ["chown", "-R", "1000:1000", "/data"]
+    volumes:
+      - ${CHROMA_DIR:-./.chroma}:/data
+    network_mode: none
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+
   backend:
     build:
       context: .
@@ -6,8 +24,14 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    depends_on:
+      chroma-permissions:
+        condition: service_completed_successfully
     volumes:
-      - chroma_data:/app/.chroma
+      # The vector index on the host, shared with local runs (uv run python ingestion.py).
+      # chroma-permissions makes it writable for the backend's uid 1000. CHROMA_DIR
+      # (from .env or the shell) points it elsewhere, e.g. /srv/radiationsafety/chroma.
+      - ${CHROMA_DIR:-./.chroma}:/app/.chroma
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -39,6 +63,3 @@ services:
       - /var/run
     stop_grace_period: 10s
     restart: unless-stopped
-
-volumes:
-  chroma_data:
