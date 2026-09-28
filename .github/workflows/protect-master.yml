@@ -10,14 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check source branch is staging (or the release PR)
+        # Passed via env, not inlined: a branch name is attacker-controlled text.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           # release-please opens its release PR from release-please--branches--master--components--…
-          case "${{ github.head_ref }}" in release-please--branches--master*)
+          case "$HEAD_REF" in release-please--branches--master*)
             echo "✅ Release PR from release-please — allowed to merge into master."
             exit 0;;
           esac
-          if [ "${{ github.head_ref }}" != "staging" ]; then
-            echo "❌ PRs into master must come from 'staging', not '${{ github.head_ref }}'."
+          if [ "$HEAD_REF" != "staging" ]; then
+            echo "❌ PRs into master must come from 'staging', not '$HEAD_REF'."
             echo "   Workflow: feature branch → staging → master"
             exit 1
           fi
