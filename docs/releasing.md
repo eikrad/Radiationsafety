@@ -43,14 +43,18 @@ Pull requests opened with the workflow's own `GITHUB_TOKEN` do not trigger other
 workflows, so CI would never run on the release PR and its required checks would wait
 forever. The workflow therefore uses a token stored as the `RELEASE_PLEASE_TOKEN` secret:
 
-1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens**
-   → Generate new token.
-2. Repository access: **Only select repositories** → this repository.
-3. Permissions: **Contents: Read and write**, **Pull requests: Read and write**
-   (Metadata: Read-only is added automatically).
+1. Open **https://github.com/settings/personal-access-tokens/new**. (By hand: your profile
+   picture, top right → **Settings** → **Developer settings**, at the bottom of the left
+   sidebar → Personal access tokens → **Fine-grained tokens** → Generate new token. These
+   are your *account* settings; the repository's Settings tab has no Developer settings.)
+2. Repository access: **Only select repositories** → this repository. One token can cover
+   several repositories: select each one that uses release-please and store the same token
+   in each of them.
+3. Permissions → Repository permissions: **Contents: Read and write**, **Pull requests: Read
+   and write** (Metadata: Read-only is added automatically).
 4. Choose an expiry and put a reminder in your calendar; the release workflow fails once
    it has expired.
-5. In this repository: Settings → Secrets and variables → Actions → New repository secret,
+5. In this repository (its **Settings** tab) → Secrets and variables → Actions → New repository secret,
    name `RELEASE_PLEASE_TOKEN`, value the token.
 
 ## Changing the next version by hand
