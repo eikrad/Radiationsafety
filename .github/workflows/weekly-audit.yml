@@ -23,7 +23,7 @@ jobs:
           python-version: "3.12"
 
       - name: Sync Python dependencies
-        run: uv sync --all-extras --quiet
+        run: uv sync --quiet
 
       - name: Export locked requirements for audit
         run: uv export --format requirements-txt --no-hashes --output-file /tmp/reqs.txt

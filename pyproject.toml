@@ -41,7 +41,8 @@ dependencies = [
     "accelerate>=1.15.0",
 ]
 
-[project.optional-dependencies]
+# A dependency group, not an extra: plain `uv sync` installs it.
+[dependency-groups]
 dev = [
     "black>=26.5.0",
     "isort>=8.0.1",
