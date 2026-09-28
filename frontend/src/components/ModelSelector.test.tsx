@@ -45,8 +45,9 @@ describe('ModelSelector providers', () => {
   it('offers Scaleway first, as the default provider', () => {
     render(<ModelSelector value="scaleway" onChange={vi.fn()} />)
     const select = screen.getByRole('combobox') as HTMLSelectElement
-    expect(select.options[0].value).toBe('scaleway')
-    expect(select.options[0].textContent).toMatch(/Scaleway/)
+    const first = select.options.item(0)
+    expect(first?.value).toBe('scaleway')
+    expect(first?.textContent).toMatch(/Scaleway/)
     expect(Array.from(select.options).map((o) => o.value)).toContain('gemini')
   })
 })
