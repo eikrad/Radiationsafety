@@ -137,3 +137,41 @@ test('invalid-api-key-shows-error: wrong key returns error message', async ({ pa
   await expect(page.locator('p.error')).toBeVisible({ timeout: 15000 })
   await expect(page.locator('p.error')).toContainText(/API key/i)
 })
+
+test('provider-needs-setup: the server reason is shown and Settings opens on that provider', async ({ page }) => {
+  const reason = 'Scaleway has no answer model on this server: set SCW_MODEL.'
+  await page.addInitScript(() => localStorage.setItem('radiation-safety-model', 'scaleway'))
+  await page.route('/api/config', (r) =>
+    r.fulfill({
+      json: {
+        server_has_llm_key: true,
+        providers: { scaleway: { server_key: true, issue: reason }, gemini: { server_key: true, issue: null } },
+      },
+    })
+  )
+  await page.route('/api/query', (r) => r.fulfill({ status: 503, json: { detail: reason } }))
+  await page.goto('/')
+  await expect(page.getByRole('combobox')).toContainText('Scaleway (EU) – needs setup')
+
+  await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  await page.getByRole('button', { name: 'Ask' }).click()
+
+  await expect(page.locator('.error')).toHaveText(reason)
+  const scaleway = page.getByRole('region', { name: 'Scaleway (EU)' })
+  await expect(scaleway.getByText('Active')).toBeVisible()
+  await expect(scaleway.getByText('Needs setup')).toBeVisible()
+})
+
+test('server-error-names-the-provider: a plain 500 does not blame Ollama for Scaleway', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('radiation-safety-model', 'scaleway'))
+  await page.route('/api/config', (r) => r.fulfill({ json: { server_has_llm_key: true } }))
+  await page.route('/api/query', (r) =>
+    r.fulfill({ status: 500, contentType: 'text/plain', body: 'Internal Server Error' })
+  )
+  await page.goto('/')
+  await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  await page.getByRole('button', { name: 'Ask' }).click()
+
+  await expect(page.locator('.error')).toContainText('Scaleway')
+  await expect(page.locator('.error')).not.toContainText('Ollama')
+})

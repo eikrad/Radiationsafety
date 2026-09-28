@@ -6,6 +6,7 @@ import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
 import { API_BASE, DEFAULT_MODEL, MODELS, STORAGE_KEYS, type Model } from './constants'
+import { describeQueryError } from './queryError'
 import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage, loadEnforcePrivacyMode } from './storage'
 import type { Message, ProvidersStatus, QueryResponse } from './types'
 import './App.css'
@@ -125,25 +126,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      let data: QueryResponse & { detail?: string | unknown }
+      let data: QueryResponse | null = null
       try {
-        data = (await res.json()) as QueryResponse & { detail?: string | unknown }
+        data = (await res.json()) as QueryResponse
       } catch {
-        throw new Error(
-          res.status >= 500
-            ? `Server error (${res.status}). Check if the backend is running and Ollama is available.`
-            : `Unexpected response from server (HTTP ${res.status}).`
-        )
+        // Not JSON (e.g. a proxy error page); describeQueryError explains by status.
       }
-      if (!res.ok) {
-        const detail = data.detail
-        const msg =
-          typeof detail === 'string'
-            ? detail
-            : Array.isArray(detail)
-              ? detail.map((e) => (e as { msg?: string }).msg ?? String(e)).join('; ')
-              : 'Request failed'
-        throw new Error(msg)
+      if (!res.ok || !data) {
+        const view = describeQueryError(res.status, data, model)
+        if (view.openSettings) setSettingsOpen(true)
+        throw new Error(view.message)
       }
       const newMessages: Message[] = [
         ...messages,
@@ -162,10 +154,6 @@ export default function App() {
       const msg =
         err instanceof Error ? err.message : 'Failed to get answer. Is the backend running?'
       setError(msg)
-      const msgLower = msg.toLowerCase()
-      if (msgLower.includes('api key') || msgLower.includes('rate limit') || msgLower.includes('quota')) {
-        setSettingsOpen(true)
-      }
     } finally {
       setLoading(false)
     }
