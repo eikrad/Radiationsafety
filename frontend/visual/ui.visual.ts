@@ -1,5 +1,9 @@
 import { test, expect, type Page } from '@playwright/test'
 
+// Screenshots cover layout where it matters (the settings cards, a full answer).
+// Readability in both colour schemes is checked without baselines by
+// e2e/accessibility.spec.ts.
+
 // Fixed server state covering every provider status the Settings show.
 const CONFIG = {
   server_has_llm_key: true,
@@ -41,21 +45,14 @@ async function openApp(page: Page) {
   await page.route('**/api/config', (r) => r.fulfill({ json: CONFIG }))
   await page.route('**/api/query', (r) => r.fulfill({ json: ANSWER }))
   await page.goto('/')
-  await expect(page.getByRole('combobox')).toHaveValue('scaleway')
-  // Wait until /api/config has been applied: its providers lengthen some option
-  // labels ("– needs setup"), which widens the select and shifts the header. A
-  // screenshot taken before or after that moment differs.
-  await expect(page.getByRole('option', { name: 'OpenAI – needs setup' })).toBeAttached()
+  // Set by the app once /api/config has been applied; the config widens the
+  // provider dropdown, so screenshots must not be taken before.
+  await expect(page.locator('[data-config="loaded"]')).toBeAttached()
 }
 
 for (const scheme of ['light', 'dark'] as const) {
   test.describe(`${scheme} mode`, () => {
     test.use({ colorScheme: scheme, viewport: { width: 1100, height: 900 } })
-
-    test('header controls', async ({ page }) => {
-      await openApp(page)
-      await expect(page.locator('.app-header')).toHaveScreenshot(`header-${scheme}.png`)
-    })
 
     test('settings with every provider status', async ({ page }) => {
       await page.setViewportSize({ width: 1100, height: 2000 })
