@@ -345,8 +345,13 @@ def config():
         or (os.getenv("GOOGLE_API_KEY") or "").strip()
         or (os.getenv("OPENAI_API_KEY") or "").strip()
     )
+    from graph.provider_status import providers_status
+
     return {
         "server_has_llm_key": server_has_llm_key,
+        # Per provider: server_key (the server holds its key) and issue (the server
+        # configuration that stops it from answering, else null).
+        "providers": providers_status(),
         # The Scaleway models a client may pick: SCW_MODEL (the default) first,
         # then SCW_ALLOWED_MODELS. Ids live only in .env, since Scaleway renames them.
         "scaleway_models": _scaleway_models(),

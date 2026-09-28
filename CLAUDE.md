@@ -25,6 +25,7 @@ graph/nodes/             — retrieve, grade_documents, grade_generation, retrie
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
 graph/llm_factory.py     — LLM and embedding provider selection (Scaleway default; Gemini/OpenAI/Mistral/Ollama)
+graph/provider_status.py — per-provider readiness for GET /config (answer model, embedding key, search index)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
