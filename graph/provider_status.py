@@ -39,6 +39,12 @@ def provider_issue(provider: str) -> str | None:
     if key_env and not _is_set(key_env):
         label = _EMBEDDING_LABELS.get(embedding_provider, embedding_provider)
         return f"Document search uses {label} embeddings, which need {key_env} on the server."
+    if embedding_provider == "scaleway" and not _is_set("SCW_EMBED_MODEL"):
+        return (
+            "Document search uses Scaleway embeddings (EMBEDDING_PROVIDER is unset or "
+            "scaleway), which need SCW_EMBED_MODEL on the server. To use Gemini "
+            "embeddings instead, set EMBEDDING_PROVIDER=gemini."
+        )
     from ingestion import check_embedding_collections_ready
 
     ready, message = check_embedding_collections_ready(embedding_provider)

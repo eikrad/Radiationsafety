@@ -85,3 +85,15 @@ def test_reports_which_answer_keys_the_server_holds(
     assert providers["openai"]["server_key"] is False
     assert providers["gemini"]["server_key"] is True
     assert providers["ollama"]["server_key"] is False
+
+
+def test_explains_that_search_needs_a_scaleway_embedding_model(
+    client: TestClient, chroma_dir, monkeypatch
+):
+    monkeypatch.delenv("SCW_EMBED_MODEL")
+
+    issue = client.get("/config").json()["providers"]["gemini"]["issue"]
+
+    assert "Document search uses Scaleway embeddings" in issue
+    assert "SCW_EMBED_MODEL" in issue
+    assert "EMBEDDING_PROVIDER" in issue
