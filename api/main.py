@@ -173,6 +173,25 @@ class SetSourceUrlBody(BaseModel):
     url: str
 
 
+def _is_timeout(exc: BaseException) -> bool:
+    """Whether a provider call gave up on its time limit (any client library)."""
+    import httpx
+
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        name = type(current).__name__
+        if (
+            isinstance(current, (TimeoutError, httpx.TimeoutException))
+            or ("Timeout" in name and "Error" in name)
+            or name == "DeadlineExceeded"  # google-api-core (Gemini)
+        ):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
 def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
     """Return a user-friendly error message for Ollama failures."""
     import os
@@ -803,6 +822,21 @@ def query(req: QueryRequest, request: Request):
             raise HTTPException(
                 status_code=429,
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
+            ) from e
+        if _is_timeout(e):
+            from graph.llm_factory import request_timeout
+
+            limit = (
+                "its time limit"
+                if is_ollama
+                else f"{request_timeout():.0f} s (LLM_REQUEST_TIMEOUT_SEC)"
+            )
+            raise HTTPException(
+                status_code=504,
+                detail=(
+                    f"{model.capitalize()} did not answer within {limit}. "
+                    "Try again, or pick another provider."
+                ),
             ) from e
         if is_ollama:
             raise HTTPException(
