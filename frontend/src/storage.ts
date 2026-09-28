@@ -34,6 +34,16 @@ const DEFAULT_VARIANTS: Record<Model, string> = {
   mistral: 'default',
   gemini: 'gemini-2.5-pro',
   openai: 'gpt-4o-mini',
+  ollama: 'default',
+}
+
+/** Ollama runs locally and never takes a key; its entry stays empty. */
+const NO_API_KEYS: Record<Model, string> = {
+  scaleway: '',
+  mistral: '',
+  gemini: '',
+  openai: '',
+  ollama: '',
 }
 
 // API keys use sessionStorage, not localStorage: they must not outlive the tab.
@@ -50,20 +60,21 @@ export function loadApiKeys(): Record<Model, string> {
   }
   try {
     const raw = sessionStorage.getItem(STORAGE_KEYS.apiKeys)
-    if (!raw) return { scaleway: '', mistral: '', gemini: '', openai: '' }
+    if (!raw) return { ...NO_API_KEYS }
     const parsed = JSON.parse(raw) as Record<string, string>
     return {
       scaleway: parsed.scaleway ?? '',
       mistral: parsed.mistral ?? '',
       gemini: parsed.gemini ?? '',
       openai: parsed.openai ?? '',
+      ollama: '',
     }
   } catch {
-    return { scaleway: '', mistral: '', gemini: '', openai: '' }
+    return { ...NO_API_KEYS }
   }
 }
 
-export function saveApiKeys(keys: Record<Model, string>): void {
+export function saveApiKeys(keys: Partial<Record<Model, string>>): void {
   try {
     sessionStorage.setItem(STORAGE_KEYS.apiKeys, JSON.stringify(keys))
   } catch {
@@ -87,6 +98,7 @@ export function loadModelVariants(): Record<Model, string> {
       mistral: parsed.mistral ?? DEFAULT_VARIANTS.mistral,
       gemini: parsed.gemini ?? DEFAULT_VARIANTS.gemini,
       openai: parsed.openai ?? DEFAULT_VARIANTS.openai,
+      ollama: DEFAULT_VARIANTS.ollama,
     }
   } catch {
     return { ...DEFAULT_VARIANTS }

@@ -116,6 +116,31 @@ def test_query_api_key_error_when_openai_selected_no_key(
     assert "API key" in data["detail"]
 
 
+def test_query_explains_a_missing_scaleway_model_instead_of_a_500(
+    client: TestClient, monkeypatch
+):
+    """A provider the server has not configured answers 503 with a JSON reason."""
+    monkeypatch.delenv("SCW_MODEL", raising=False)
+    res = client.post(
+        "/query",
+        json={"question": "What is radiation?", "model": "scaleway"},
+    )
+    assert res.status_code == 503
+    assert "SCW_MODEL" in res.json()["detail"]
+
+
+def test_query_explains_an_unsupported_embedding_provider(
+    client: TestClient, monkeypatch
+):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "word2vec")
+    res = client.post(
+        "/query",
+        json={"question": "What is radiation?", "model": "gemini"},
+    )
+    assert res.status_code == 503
+    assert "EMBEDDING_PROVIDER" in res.json()["detail"]
+
+
 def test_query_non_question_short_circuit(client: TestClient):
     """Thank you / acknowledgments bypass graph and return friendly response."""
     res = client.post("/query", json={"question": "Thank you"})

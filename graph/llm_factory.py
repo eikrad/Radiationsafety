@@ -22,6 +22,13 @@ class APIKeyError(Exception):
         )
 
 
+class ProviderConfigError(ValueError):
+    """Raised when the server lacks configuration a provider needs (e.g. SCW_MODEL).
+
+    Unlike APIKeyError, the user cannot fix this in Settings; the operator must.
+    """
+
+
 _GEMINI_MODELS = frozenset(
     {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"}
 )
@@ -104,8 +111,9 @@ def _scaleway_model(model_variant: str | None) -> str:
     if model_variant and model_variant in allowed:
         return model_variant
     if not default:
-        raise ValueError(
-            "Set SCW_MODEL in .env to a Scaleway model id "
+        raise ProviderConfigError(
+            "Scaleway has no answer model on this server: set SCW_MODEL in the "
+            "server's .env to a Scaleway model id "
             "(list them with GET https://api.scaleway.ai/v1/models)"
         )
     return default
@@ -205,7 +213,7 @@ def get_embedding_provider(llm_provider: str | None = None) -> str:
     if not configured:
         return DEFAULT_PROVIDER
     if configured not in EMBEDDING_PROVIDERS:
-        raise ValueError(
+        raise ProviderConfigError(
             f"EMBEDDING_PROVIDER={configured!r} is not supported; "
             f"use one of {', '.join(EMBEDDING_PROVIDERS)}"
         )
@@ -241,7 +249,7 @@ def get_embedding_model_name(embedding_provider: str | None = None) -> str:
     if ep == "scaleway":
         model = (os.getenv("SCW_EMBED_MODEL") or "").strip()
         if not model:
-            raise ValueError(
+            raise ProviderConfigError(
                 "Set SCW_EMBED_MODEL to a Scaleway embedding model id "
                 "(list them with GET https://api.scaleway.ai/v1/models)"
             )

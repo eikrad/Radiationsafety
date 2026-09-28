@@ -99,12 +99,18 @@ describe('API key storage (sessionStorage, not localStorage)', () => {
   })
 
   it('loadApiKeys returns empty keys when sessionStorage is empty', () => {
-    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '', ollama: '' })
   })
 
   it('saveApiKeys writes to sessionStorage, not localStorage', () => {
     saveApiKeys({ mistral: 'm-key', gemini: 'g-key', openai: '' })
-    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: 'm-key', gemini: 'g-key', openai: '' })
+    expect(loadApiKeys()).toEqual({
+      scaleway: '',
+      mistral: 'm-key',
+      gemini: 'g-key',
+      openai: '',
+      ollama: '',
+    })
     expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
   })
 
@@ -120,13 +126,13 @@ describe('API key storage (sessionStorage, not localStorage)', () => {
       JSON.stringify({ mistral: 'old-key', gemini: '', openai: '' })
     )
 
-    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '', ollama: '' })
     expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
   })
 
   it('loadApiKeys does not throw and returns empty keys on corrupted data', () => {
     sessionStorage.setItem('radiation-safety-api-keys', 'not-json')
-    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '' })
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '', ollama: '' })
   })
 })
 

@@ -345,8 +345,13 @@ def config():
         or (os.getenv("GOOGLE_API_KEY") or "").strip()
         or (os.getenv("OPENAI_API_KEY") or "").strip()
     )
+    from graph.provider_status import providers_status
+
     return {
         "server_has_llm_key": server_has_llm_key,
+        # Per provider: server_key (the server holds its key) and issue (the server
+        # configuration that stops it from answering, else null).
+        "providers": providers_status(),
         # The Scaleway models a client may pick: SCW_MODEL (the default) first,
         # then SCW_ALLOWED_MODELS. Ids live only in .env, since Scaleway renames them.
         "scaleway_models": _scaleway_models(),
@@ -736,19 +741,29 @@ def query(req: QueryRequest, request: Request):
             used_web_search_label=None,
             privacy_mode=is_ollama,
         )
-    try:
-        from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
+    from graph.llm_factory import (
+        APIKeyError,
+        ProviderConfigError,
+        get_embedding_provider,
+        get_llm,
+    )
 
+    try:
         llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
+        embedding_provider = get_embedding_provider(model)
     except APIKeyError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except ProviderConfigError as e:
+        # The operator must fix this on the server; the user can pick another provider.
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception as e:
         if is_ollama:
             raise HTTPException(
                 status_code=503, detail=_ollama_error_detail(e, model_variant)
             ) from e
-        raise
-    embedding_provider = get_embedding_provider(model)
+        raise HTTPException(
+            status_code=500, detail=str(e) or "Internal server error"
+        ) from e
     try:
         invoke_input = {
             "question": req.question,
