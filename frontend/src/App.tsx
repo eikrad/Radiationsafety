@@ -21,6 +21,8 @@ function loadStoredModel(): Model {
 
 export default function App() {
   const [loading, setLoading] = useState(false)
+  /** The question on its way to /query, shown at once until the answer replaces it. */
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [error, setError] = useState('')
   const [model, setModel] = useState<Model>(loadStoredModel)
@@ -34,6 +36,8 @@ export default function App() {
   const [scalewayModels, setScalewayModels] = useState<string[]>([])
   /** From GET /api/config: per provider, whether the server can answer with it. */
   const [providers, setProviders] = useState<ProvidersStatus>({})
+  /** Set once /api/config has been applied (or failed), exposed as data-config for tests. */
+  const [configLoaded, setConfigLoaded] = useState(false)
   /** From GET /api/config: set only if the operator configured PRIVACY_CONTROLLER_NAME/CONTACT. */
   const [privacyController, setPrivacyController] = useState<{
     name: string | null
@@ -83,6 +87,9 @@ export default function App() {
       .catch(() => {
         if (!cancelled) setServerHasLlmKey(false)
       })
+      .finally(() => {
+        if (!cancelled) setConfigLoaded(true)
+      })
     return () => { cancelled = true }
   }, [])
 
@@ -102,6 +109,7 @@ export default function App() {
 
   async function handleSubmit(question: string) {
     setLoading(true)
+    setPendingQuestion(question)
     setError('')
     const chatHistory: [string, string][] = []
     for (let i = 0; i < messages.length - 1; i++) {
@@ -156,11 +164,12 @@ export default function App() {
       setError(msg)
     } finally {
       setLoading(false)
+      setPendingQuestion(null)
     }
   }
 
   return (
-    <div className="app">
+    <div className="app" data-config={configLoaded ? 'loaded' : 'pending'}>
       {documentsOpen && (
         <DocumentsPanel onClose={() => setDocumentsOpen(false)} />
       )}
@@ -254,7 +263,7 @@ export default function App() {
             </button>
           </div>
         )}
-        <ResponseDisplay messages={messages} />
+        <ResponseDisplay messages={messages} pendingQuestion={pendingQuestion} />
       </div>
       <div className="input-area">
         {error && (() => {

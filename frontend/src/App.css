@@ -521,13 +521,13 @@
 .header-center p {
   margin: 0;
   font-size: 0.9rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .header-center .ai-disclosure {
   margin-top: 0.3rem;
   font-size: 0.75rem;
-  color: #a0a0a0;
+  color: var(--text-subtle);
 }
 
 .header-right {
@@ -983,7 +983,7 @@
 }
 
 .settings-badge--active {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
 }
 
@@ -1147,7 +1147,7 @@
 
 .followup-label {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .followup-chip {
@@ -1172,12 +1172,12 @@
 }
 
 .error {
-  color: #e74c3c;
+  color: var(--error);
   margin-bottom: 1rem;
 }
 
 .error-rate-limit {
-  color: #f59e0b;
+  color: var(--warning-text);
 }
 
 .error-hint {
@@ -1215,7 +1215,7 @@
 .response-display h3 {
   font-size: 0.85rem;
   margin-bottom: 0.5rem;
-  color: #aaa;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1223,7 +1223,91 @@
 .response-display h4 {
   font-size: 0.8rem;
   margin: 0.75rem 0 0.25rem;
-  color: #888;
+  color: var(--text-subtle);
+}
+
+/* Placeholder for the answer while /query runs (QueryProgress) */
+.query-progress {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  line-height: 1.6;
+}
+
+.query-progress-dots {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.query-progress-dots span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: query-progress-pulse 1.2s ease-in-out infinite;
+}
+
+.query-progress-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.query-progress-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes query-progress-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.query-progress-elapsed {
+  margin-left: auto;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-subtle);
+}
+
+.query-progress-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+}
+
+.button-spinner {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: 0.4em;
+  vertical-align: -0.05em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spin 0.8s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .query-progress-dots span,
+  .button-spinner {
+    animation: none;
+  }
+  .query-progress-dots span {
+    opacity: 0.6;
+  }
 }
 
 .message-warning {
@@ -1239,7 +1323,7 @@
 .message-meta {
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .message-text {
@@ -1321,26 +1405,20 @@
 }
 
 .response-display .source {
-  color: #646cff;
+  color: var(--link);
 }
 
 .response-display .source-link {
-  color: #646cff;
+  color: var(--link);
   text-decoration: underline;
   word-break: break-all;
 }
 
 .response-display .doc-type {
-  color: #888;
+  color: var(--text-subtle);
 }
 
 @media (prefers-color-scheme: light) {
-  .header-center p {
-    color: #666;
-  }
-  .header-center .ai-disclosure {
-    color: #888;
-  }
   .api-keys-hint {
     background: #e8e8f0;
     border-color: #c4c4d4;
