@@ -82,7 +82,7 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 - `PYTHONDONTWRITEBYTECODE=1` and `PYTHONUNBUFFERED=1` are set.
 - Compose applies `no-new-privileges: true` and `cap_drop: [ALL]` to backend and frontend containers.
 - `/tmp` is a `tmpfs` mount (not persisted).
-- Chroma data lives in a named volume (`chroma_data`) mounted at `/app/.chroma`.
+- Chroma data lives on the host in `.chroma/` (or `CHROMA_DIR`), bind-mounted at `/app/.chroma`. A one-shot `chroma-permissions` service (busybox, `cap_drop: ALL` + `cap_add: CHOWN`, no network) makes it writable for uid 1000 (`appuser`) before the backend starts.
 - Backend healthcheck is active; frontend service waits for backend healthy before starting.
 
 ---

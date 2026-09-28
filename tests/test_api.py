@@ -672,3 +672,12 @@ def test_query_explains_a_provider_that_did_not_answer_in_time(
     detail = res.json()["detail"]
     assert "scaleway" in detail.lower()
     assert "did not answer" in detail
+
+
+def test_api_reports_the_installed_package_version(client: TestClient):
+    """/openapi.json shows the release that runs, as bumped by release-please."""
+    from importlib.metadata import version
+
+    assert client.get("/openapi.json").json()["info"]["version"] == version(
+        "radiationsafety"
+    )

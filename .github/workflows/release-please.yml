@@ -1,0 +1,71 @@
+name: Release
+
+# On every merge to master, release-please keeps a release PR up to date: the
+# next version (from Conventional Commit prefixes) in pyproject.toml and
+# frontend/package.json, plus the CHANGELOG entry. Merging that PR tags the
+# release and publishes a GitHub release.
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          # A PAT or GitHub App token, not GITHUB_TOKEN: pull requests opened with
+          # GITHUB_TOKEN do not trigger workflows, so CI would never run on the
+          # release PR. See docs/releasing.md.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # release-please edits pyproject.toml and package.json but not the lockfiles,
+      # which also record the project version.
+      - name: Check out the release PR
+        if: steps.release.outputs.pr
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      - uses: astral-sh/setup-uv@v7
+        if: steps.release.outputs.pr
+      - uses: actions/setup-node@v7
+        if: steps.release.outputs.pr
+        with:
+          node-version: "22"
+      - name: Sync lockfiles with the new version
+        if: steps.release.outputs.pr
+        run: |
+          uv lock
+          npm --prefix frontend install --package-lock-only --ignore-scripts
+          if git diff --quiet; then
+            echo "Lockfiles already match."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: sync lockfiles with the release version"
+          git push
+
+      # The release commit lands on master only; bring it back so staging shows
+      # the released version and the next release PR starts from it.
+      - name: Open a PR to merge the release back into staging
+        if: steps.release.outputs.release_created
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: |
+          gh pr create --repo "${{ github.repository }}" --base staging --head master \
+            --title "chore: merge release ${{ steps.release.outputs.tag_name }} back into staging" \
+            --body "Brings the version bump and CHANGELOG of ${{ steps.release.outputs.tag_name }} from master into staging." \
+            || echo "A back-merge PR is already open."
