@@ -94,20 +94,24 @@ Ingestion needs the key of the embedding provider (`SCW_SECRET_KEY` by default).
 
 ## Running with Docker
 
-The image does not ship the vector DB (`.chroma` is too large for the repo). Run ingestion once, then use the app.
+The image does not ship the vector DB (`.chroma` is too large for the repo). The backend
+mounts the project's `.chroma/` directory, so Docker and local runs share one index.
 
 1. Copy `.env.example` to `.env`. Set **`SCW_SECRET_KEY`** (Scaleway: default for answers and embeddings). Optionally set another `LLM_PROVIDER` and its key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
 2. Start the stack:
    ```bash
    docker compose up --build
    ```
-3. Run ingestion once (fills the persisted `chroma_data` volume):
+3. If `.chroma/` is empty, build the index once, either locally (`uv run python ingestion.py`) or in the container:
    ```bash
    docker compose run --rm backend python ingestion.py
    ```
-4. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend.
+   Both write to `.chroma/` on the host. After a local ingestion, run `docker compose restart backend` so the running container picks it up. Do not ingest locally while the container is writing to the index.
+4. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend. Settings show per provider whether its search index is built.
 
-The `chroma_data` volume persists between restarts — you only need to run ingestion once per environment. Changing `LLM_PROVIDER` does not require re-ingestion.
+Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDER` does not require re-ingestion.
+
+**On a server:** `.chroma/` is not in git, so a fresh clone starts without an index. Copy yours (`rsync -a .chroma/ server:path/to/Radiationsafety/.chroma/`, no API cost) or run the ingestion there. You do not need to create the directory or fix its owner: a one-shot `chroma-permissions` service hands it to the backend's uid 1000 before the backend starts (only that short-lived container gets root and `CHOWN`). If your user on the server is not uid 1000, the files then belong to uid 1000, so ingest in the container rather than with `uv run` there. To keep the index elsewhere, set `CHROMA_DIR=/srv/radiationsafety/chroma` in `.env`. The embedding settings on the server (`EMBEDDING_PROVIDER`, `SCW_EMBED_MODEL`) must match collections in the copied index.
 
 ## Setup (local)
 
