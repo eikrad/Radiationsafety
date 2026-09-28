@@ -73,6 +73,31 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
     return structured_with_raw | RunnableLambda(resolve)
 
 
+# The OpenAI client alone waits up to 600 s per attempt and retries twice, so a
+# stalled provider call could hold a /query open for half an hour.
+_DEFAULT_REQUEST_TIMEOUT_SEC = 60.0
+_DEFAULT_OLLAMA_TIMEOUT_SEC = 300.0  # local models on a CPU answer slowly
+_DEFAULT_MAX_RETRIES = 1
+
+
+def _env_number(name: str, default: float) -> float:
+    try:
+        value = float((os.getenv(name) or "").strip())
+    except ValueError:
+        return default
+    return value if value >= 0 else default
+
+
+def request_timeout() -> float:
+    """Seconds a single cloud LLM or embedding call may take (LLM_REQUEST_TIMEOUT_SEC)."""
+    return _env_number("LLM_REQUEST_TIMEOUT_SEC", _DEFAULT_REQUEST_TIMEOUT_SEC)
+
+
+def max_retries() -> int:
+    """Retries after a failed or timed-out call (LLM_MAX_RETRIES)."""
+    return int(_env_number("LLM_MAX_RETRIES", _DEFAULT_MAX_RETRIES))
+
+
 def scaleway_chat(model: str, api_key: str | None = None) -> "object":
     """Chat model on Scaleway Generative APIs (OpenAI-compatible, hosted in the EU).
 
@@ -97,7 +122,14 @@ def scaleway_chat(model: str, api_key: str | None = None) -> "object":
             )
             return with_text_fallback(structured, schema, include_raw)
 
-    return ScalewayChat(model=model, temperature=0, api_key=key, base_url=base_url)
+    return ScalewayChat(
+        model=model,
+        temperature=0,
+        api_key=key,
+        base_url=base_url,
+        timeout=request_timeout(),
+        max_retries=max_retries(),
+    )
 
 
 def _scaleway_model(model_variant: str | None) -> str:
@@ -148,7 +180,13 @@ def get_llm(
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         env_model = (os.getenv("OLLAMA_MODEL") or "").strip()
         model = model_variant or env_model or "llama3.1:8b"
-        return ChatOllama(model=model, temperature=0, base_url=base_url)
+        timeout = _env_number("OLLAMA_REQUEST_TIMEOUT_SEC", _DEFAULT_OLLAMA_TIMEOUT_SEC)
+        return ChatOllama(
+            model=model,
+            temperature=0,
+            base_url=base_url,
+            client_kwargs={"timeout": timeout},
+        )
 
     if prov == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
@@ -168,6 +206,8 @@ def get_llm(
             model=model,
             temperature=0,
             google_api_key=key,
+            timeout=request_timeout(),
+            max_retries=max_retries(),
         )
     elif prov == "scaleway":
         return scaleway_chat(_scaleway_model(model_variant), api_key=api_key)
@@ -186,6 +226,8 @@ def get_llm(
             model=model,
             temperature=0,
             api_key=key,
+            timeout=request_timeout(),
+            max_retries=max_retries(),
         )
     else:
         from langchain_mistralai import ChatMistralAI
@@ -193,7 +235,12 @@ def get_llm(
         key = api_key or os.getenv("MISTRAL_API_KEY")
         if not key:
             raise APIKeyError("Mistral")
-        return ChatMistralAI(temperature=0, api_key=key)
+        return ChatMistralAI(
+            temperature=0,
+            api_key=key,
+            timeout=int(request_timeout()),
+            max_retries=max_retries(),
+        )
 
 
 EMBEDDING_PROVIDERS = ("gemini", "ollama", "scaleway")
@@ -325,6 +372,8 @@ def get_embeddings(embedding_provider: str | None = None):
             api_key=key,
             base_url=base_url,
             check_embedding_ctx_length=False,
+            timeout=request_timeout(),
+            max_retries=max_retries(),
         )
         return _with_query_instruction(plain, query_instruction_template(model))
     from langchain_mistralai import MistralAIEmbeddings
