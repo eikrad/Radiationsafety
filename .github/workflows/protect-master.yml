@@ -11,11 +11,11 @@ jobs:
     steps:
       - name: Check source branch is staging (or the release PR)
         run: |
-          # release-please opens its release PR from this branch (.github/workflows/release-please.yml).
-          if [ "${{ github.head_ref }}" = "release-please--branches--master" ]; then
+          # release-please opens its release PR from release-please--branches--master--components--…
+          case "${{ github.head_ref }}" in release-please--branches--master*)
             echo "✅ Release PR from release-please — allowed to merge into master."
-            exit 0
-          fi
+            exit 0;;
+          esac
           if [ "${{ github.head_ref }}" != "staging" ]; then
             echo "❌ PRs into master must come from 'staging', not '${{ github.head_ref }}'."
             echo "   Workflow: feature branch → staging → master"
