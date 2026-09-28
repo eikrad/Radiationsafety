@@ -1,12 +1,24 @@
+import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Message } from '../types'
+import { QueryProgress } from './QueryProgress'
 
 interface ResponseDisplayProps {
   messages: Message[]
+  /** A question sent but not yet answered; shown at once, with progress below it. */
+  pendingQuestion?: string | null
 }
 
-export function ResponseDisplay({ messages }: ResponseDisplayProps) {
-  if (messages.length === 0) return null
+export function ResponseDisplay({ messages, pendingQuestion = null }: ResponseDisplayProps) {
+  const end = useRef<HTMLDivElement>(null)
+
+  // Follow the conversation: bring each new question and answer into view.
+  useEffect(() => {
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    end.current?.scrollIntoView?.({ block: 'end', behavior: reduceMotion ? 'auto' : 'smooth' })
+  }, [messages.length, pendingQuestion])
+
+  if (messages.length === 0 && !pendingQuestion) return null
 
   return (
     <div className="response-display">
@@ -51,6 +63,16 @@ export function ResponseDisplay({ messages }: ResponseDisplayProps) {
           )}
         </div>
       ))}
+      {pendingQuestion && (
+        <>
+          <div className="message message-user">
+            <h3>You</h3>
+            <p className="message-text">{pendingQuestion}</p>
+          </div>
+          <QueryProgress />
+        </>
+      )}
+      <div ref={end} />
     </div>
   )
 }

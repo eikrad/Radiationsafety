@@ -21,6 +21,8 @@ function loadStoredModel(): Model {
 
 export default function App() {
   const [loading, setLoading] = useState(false)
+  /** The question on its way to /query, shown at once until the answer replaces it. */
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [error, setError] = useState('')
   const [model, setModel] = useState<Model>(loadStoredModel)
@@ -102,6 +104,7 @@ export default function App() {
 
   async function handleSubmit(question: string) {
     setLoading(true)
+    setPendingQuestion(question)
     setError('')
     const chatHistory: [string, string][] = []
     for (let i = 0; i < messages.length - 1; i++) {
@@ -156,6 +159,7 @@ export default function App() {
       setError(msg)
     } finally {
       setLoading(false)
+      setPendingQuestion(null)
     }
   }
 
@@ -254,7 +258,7 @@ export default function App() {
             </button>
           </div>
         )}
-        <ResponseDisplay messages={messages} />
+        <ResponseDisplay messages={messages} pendingQuestion={pendingQuestion} />
       </div>
       <div className="input-area">
         {error && (() => {
