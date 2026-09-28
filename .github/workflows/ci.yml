@@ -19,7 +19,13 @@ jobs:
       - run: uv run black --check .
       - run: uv run isort --check .
       - run: uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip
-      - run: uv run pytest tests/ -n auto -v
+      - run: uv run pytest tests/ -n auto -v --cov
+      - name: Backend coverage summary
+        if: success() || failure()
+        run: |
+          echo "## Backend coverage" >> "$GITHUB_STEP_SUMMARY"
+          uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" \
+            || echo "No coverage data (tests did not run)." >> "$GITHUB_STEP_SUMMARY"
 
       # Frontend
       - uses: actions/setup-node@v7
@@ -33,40 +39,32 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
-      - run: npm run test
+      - name: Frontend unit tests with coverage
         working-directory: frontend
+        shell: bash
+        run: |
+          npm run test:coverage | tee coverage.txt
+          {
+            echo "## Frontend coverage (unit tests; e2e not measured)"
+            echo '```'
+            sed -n '/Coverage summary/,/^=*$/p' coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Playwright E2E (UI-only, mocked API)
         working-directory: frontend
         run: npx playwright install --with-deps chromium && npm run test:e2e
 
   docker-integration:
+    # Runs on every push/PR: frontend code, package.json or a type error can
+    # break the image build just as well as a Dockerfile change.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
 
-      # Check if Docker-relevant files changed
-      - name: Check if Docker files changed
-        id: docker-changed
-        run: |
-          if git diff origin/master...HEAD --name-only 2>/dev/null | grep -E "Dockerfile|docker-compose|\.dockerignore"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "✅ Docker files detected in this PR"
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "⏭️  Skipping Docker tests (no Docker files changed)"
-          fi
-
-      # Only run if Docker files changed
-      - name: Build Docker Images
-        if: steps.docker-changed.outputs.changed == 'true'
-        run: |
-          docker compose build
-          echo "✅ Docker images built successfully"
+      - name: Build Docker images
+        run: docker compose build
 
       - name: Create CI env file
-        if: steps.docker-changed.outputs.changed == 'true'
         run: |
           # docker-compose.yml requires `env_file: .env` to exist for `docker compose up` to
           # even start — it doesn't need to contain real secrets since the backend only
@@ -74,44 +72,26 @@ jobs:
           # so /health responds before any provider key is touched. A placeholder is enough.
           cp .env.example .env
           echo "GOOGLE_API_KEY=ci-test-key-not-real" >> .env
-          echo "✅ Created CI-safe .env from .env.example"
 
-      - name: Test Docker Compose Startup
-        if: steps.docker-changed.outputs.changed == 'true'
+      - name: Start the stack and wait until it answers
+        timeout-minutes: 3
         run: |
-          # Start containers
           docker compose up -d
-          echo "Waiting for services to start..."
-          sleep 10
+          # The frontend starts only once the backend is healthy (depends_on).
+          for _ in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://localhost:8000/health \
+              && curl -fsS -o /dev/null http://localhost:8080/ \
+              && curl -fsS -o /dev/null http://localhost:8080/api/health; then
+              echo "✅ Backend, frontend and the nginx /api proxy answer"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ Stack did not come up"
+          docker compose ps
+          docker compose logs
+          exit 1
 
-          # Check if containers are running
-          BACKEND_STATUS=$(docker compose ps backend --format "{{.State}}")
-          FRONTEND_STATUS=$(docker compose ps frontend --format "{{.State}}")
-
-          echo "Backend status: $BACKEND_STATUS"
-          echo "Frontend status: $FRONTEND_STATUS"
-
-          # Verify health
-          if [ "$BACKEND_STATUS" != "running" ]; then
-            echo "❌ Backend container failed to start"
-            docker compose logs backend
-            exit 1
-          fi
-
-          if [ "$FRONTEND_STATUS" != "running" ]; then
-            echo "❌ Frontend container failed to start"
-            docker compose logs frontend
-            exit 1
-          fi
-
-          # Health check: backend should respond
-          HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/health || echo "000")
-          if [ "$HEALTH" != "200" ]; then
-            echo "❌ Backend health check failed (HTTP $HEALTH)"
-            docker compose logs backend
-            exit 1
-          fi
-
-          echo "✅ All containers running and healthy"
-          docker compose down
-        timeout-minutes: 2
+      - name: Stop the stack
+        if: always()
+        run: docker compose down

@@ -53,7 +53,22 @@ dev = [
     "ruff>=0.15.0",
     "mypy>=2.2.0",
     "pre-commit>=4.6.0",
+    "pytest-cov>=7.1.0",
 ]
+
+[tool.coverage.run]
+# Application code only; tests, eval and scripts are not measured.
+source = [
+    "api",
+    "graph",
+    "ingestion",
+    "ingestion_fetch",
+    "document_updates",
+    "build_document_sources",
+]
+
+[tool.coverage.report]
+skip_empty = true
 
 [tool.black]
 line-length = 88
