@@ -15,10 +15,13 @@
   --border: #444;
   --divider: #333;
   --text-muted: #b4b4b4;
-  --text-subtle: #8c8c8c;
+  --text-subtle: #9a9a9a;
   --accent: #646cff;
   --accent-soft: #3a3a5c;
   --accent-soft-text: #b4b4ff;
+  --accent-strong: #4f56e8; /* behind white text: 5.5:1 */
+  --link: #9ba0ff;
+  --error: #f87171;
   --warning-bg: rgba(245, 158, 11, 0.12);
   --warning-border: rgba(245, 158, 11, 0.45);
   --warning-text: #fbbf24;
@@ -85,9 +88,11 @@ button:focus-visible {
     --border: #ccc;
     --divider: #ddd;
     --text-muted: #4a5563;
-    --text-subtle: #5f6b7a;
+    --text-subtle: #56606d;
     --accent-soft: #e4e5ff;
     --accent-soft-text: #3f46c9;
+    --link: #3f46c9;
+    --error: #b42318;
     --warning-bg: #fef3c7;
     --warning-border: #f59e0b;
     --warning-text: #92400e;
