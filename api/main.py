@@ -5,6 +5,7 @@ import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -67,6 +68,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Radiation Safety RAG API",
+    # The installed package's version, which release-please bumps in pyproject.toml.
+    version=package_version("radiationsafety"),
     lifespan=lifespan,
 )
 app.add_middleware(

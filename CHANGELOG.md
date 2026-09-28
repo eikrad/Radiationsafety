@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased - 2026-09-27
+<!-- Versions from 0.5.0 on are written by release-please from Conventional Commit
+     messages (see docs/releasing.md). Notes that commits cannot carry,
+     such as upgrade steps, are added by hand below the generated entry. -->
+
+## 0.5.0 upgrade notes
+
+Read these before upgrading from 0.4.x. The generated list of features and fixes
+for 0.5.0 is above.
 
 ### Changed
 - **⚠️ Breaking: Scaleway is the default provider** for answers (`gemma-4-26b-a4b-it`) and
@@ -15,7 +22,28 @@ All notable changes to this project are documented in this file.
 - The UI offers Scaleway first, with its models from the server's `.env`, and a Scaleway key
   field in Settings. The privacy notice no longer says every question goes to Google.
 
-## Unreleased - 2026-09-09
+### Privacy and compliance (#94)
+- **Fixed a Privacy Mode leak:** with `LLM_PROVIDER=ollama`, the generation-retry path
+  could still fall back to Brave web search after two failed retries. It now ends
+  instead, and `web_search` refuses to run in Privacy Mode as a second guard.
+- LangSmith tracing is off by default; when enabled, the EU endpoint is the documented
+  default.
+- The header shows a persistent AI disclosure and a not-legal/clinical-advice notice
+  (EU AI Act Art. 50(1)); a new Privacy notice names the controller from the optional
+  `PRIVACY_CONTROLLER_NAME` / `PRIVACY_CONTROLLER_CONTACT` variables.
+- `X-Forwarded-For` is trusted only with `TRUST_PROXY_HEADERS=true`; before, any client
+  could spoof it to get around rate limits.
+- API keys entered in the browser live in `sessionStorage` instead of `localStorage`.
+- Three Danish bekendtgørelser in force since 1 January 2026 (BEK 1386–1388) are staged;
+  run `uv run python ingestion.py` to embed them.
+
+### Setup checks (#115)
+- Settings show per provider whether the server can answer with it and, if not, what is
+  missing (e.g. `SCW_MODEL`, `SCW_EMBED_MODEL`, an unbuilt search index). A misconfigured
+  provider now returns a 503 with that reason instead of a bare 500.
+- **Check your `.env` after upgrading:** with `EMBEDDING_PROVIDER` unset, every cloud
+  provider searches with Scaleway embeddings. Set `EMBEDDING_PROVIDER=gemini` to keep
+  using an existing Gemini index.
 
 ### Security
 - **`cryptography` 49.0.0 → 50.0.1 (⚠️ major version bump)** — fixes
