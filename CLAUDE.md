@@ -83,7 +83,8 @@ RETRIEVE → GRADE_DOCUMENTS
 ## 3. Development Conventions
 
 - **Python**: `uv` for dependencies, `uv run pytest tests/ -v` for tests
-- **Frontend**: `npm -C frontend run test`, `npm -C frontend run build`
+- **Frontend**: `npm -C frontend run test`, `npm -C frontend run build` (type-checks first)
+- **Visual tests**: `npm -C frontend run test:visual:docker`; after an intended UI change, `npm -C frontend run test:visual:update` and commit the PNGs in `frontend/visual/__screenshots__/`
 - **Linting**: pre-commit hooks (`.pre-commit-config.yaml`)
 - **Environment variables**: always update `.env.example` when adding new variables
 - **Commit messages**: Conventional Commits (`feat:`, `fix:`, `feat!:`, `docs:`, `chore:` …), enforced in PRs; release-please derives versions and the CHANGELOG from them (see `docs/releasing.md`). Never edit version numbers by hand
