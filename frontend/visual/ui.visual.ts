@@ -42,6 +42,10 @@ async function openApp(page: Page) {
   await page.route('**/api/query', (r) => r.fulfill({ json: ANSWER }))
   await page.goto('/')
   await expect(page.getByRole('combobox')).toHaveValue('scaleway')
+  // Wait until /api/config has been applied: its providers lengthen some option
+  // labels ("– needs setup"), which widens the select and shifts the header. A
+  // screenshot taken before or after that moment differs.
+  await expect(page.getByRole('option', { name: 'OpenAI – needs setup' })).toBeAttached()
 }
 
 for (const scheme of ['light', 'dark'] as const) {
