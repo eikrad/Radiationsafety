@@ -1,24 +1,46 @@
 name: CI
 on:
+  # Branches get CI through their pull request; pushes only for the long-lived ones.
   push:
+    branches: [master, staging]
   pull_request:
+
+# A newer push to the same branch or PR supersedes the running check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# The jobs are independent and run in parallel; `test` gathers them for the
+# required status check on staging.
 jobs:
-  test:
+  backend-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
-      # Backend
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
       - run: uv sync
       - run: uv run pre-commit run --all-files
       - run: uv run ruff check .
       - run: uv run black --check .
       - run: uv run isort --check .
       - run: uv run mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip
+
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync
       - run: uv run pytest tests/ -n auto -v --cov
       - name: Backend coverage summary
         if: success() || failure()
@@ -27,20 +49,22 @@ jobs:
           uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" \
             || echo "No coverage data (tests did not run)." >> "$GITHUB_STEP_SUMMARY"
 
-      # Frontend
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: "frontend/package-lock.json"
       - run: npm ci
-        working-directory: frontend
       - run: npm run lint
-        working-directory: frontend
       - run: npm run build
-        working-directory: frontend
-      - name: Frontend unit tests with coverage
-        working-directory: frontend
+      - name: Unit tests with coverage
         shell: bash
         run: |
           npm run test:coverage | tee coverage.txt
@@ -50,9 +74,48 @@ jobs:
             sed -n '/Coverage summary/,/^=*$/p' coverage.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Playwright E2E (UI-only, mocked API)
+
+  e2e:
+    name: e2e (UI-only, mocked API)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
         working-directory: frontend
-        run: npx playwright install --with-deps chromium && npm run test:e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  visual:
+    name: visual (screenshot comparison)
+    runs-on: ubuntu-latest
+    # Same image as `npm run test:visual:docker`, so baselines match pixel for pixel.
+    # Keep the tag in step with @playwright/test in frontend/package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --ipc=host
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - run: npm ci
+      - run: npm run test:visual
+        env:
+          HOME: /root
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-diffs
+          path: frontend/test-results/
+          retention-days: 7
 
   docker-integration:
     # Runs on every push/PR: frontend code, package.json or a type error can
@@ -95,3 +158,17 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down
+
+  test:
+    # The required status check on staging: passes only if every job above passed.
+    if: always()
+    needs: [backend-lint, backend-tests, frontend, e2e, visual, docker-integration]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All CI jobs passed
+        run: |
+          echo '${{ toJSON(needs) }}'
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            echo "❌ At least one CI job did not pass"
+            exit 1
+          fi
