@@ -39,8 +39,9 @@ export function QueryForm({ onSubmit, loading, disabled }: QueryFormProps) {
         rows={3}
         disabled={disabled || loading}
       />
-      <button type="submit" disabled={disabled || loading}>
-        {loading ? 'Searching...' : 'Ask'}
+      <button type="submit" disabled={disabled || loading} aria-busy={loading}>
+        {loading && <span className="button-spinner" aria-hidden="true" />}
+        {loading ? 'Searching…' : 'Ask'}
       </button>
     </form>
   )
