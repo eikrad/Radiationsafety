@@ -655,6 +655,25 @@ def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkey
     assert client.get("/config").json()["server_has_llm_key"] is True
 
 
+def test_query_explains_a_provider_that_did_not_answer_in_time(
+    client: TestClient, mock_graph
+):
+    """A provider call that times out becomes a 504 naming the provider, not a bare 500."""
+    import httpx
+    import openai
+
+    mock_graph.invoke.side_effect = openai.APITimeoutError(
+        request=httpx.Request("POST", "https://api.scaleway.ai/v1/chat/completions")
+    )
+    res = client.post(
+        "/query", json={"question": "What is ALARA?", "model": "scaleway"}
+    )
+    assert res.status_code == 504
+    detail = res.json()["detail"]
+    assert "scaleway" in detail.lower()
+    assert "did not answer" in detail
+
+
 def test_api_reports_the_installed_package_version(client: TestClient):
     """/openapi.json shows the release that runs, as bumped by release-please."""
     from importlib.metadata import version
