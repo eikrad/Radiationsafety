@@ -342,17 +342,12 @@ class TestFrontendConstants:
     def test_model_selector_has_ollama_label(self):
         from pathlib import Path
 
-        selector_path = (
-            Path(__file__).resolve().parent.parent
-            / "frontend"
-            / "src"
-            / "components"
-            / "ModelSelector.tsx"
+        # The dropdown's labels live in constants.PROVIDER_LABELS
+        constants_path = (
+            Path(__file__).resolve().parent.parent / "frontend" / "src" / "constants.ts"
         )
-        content = selector_path.read_text()
-        # Should have a label for ollama
-        assert "ollama" in content.lower()
-        assert "Local" in content or "local" in content
+        content = constants_path.read_text()
+        assert "ollama: 'Ollama (Local)'" in content
 
     def test_settings_modal_has_ollama_privacy_hint(self):
         from pathlib import Path
