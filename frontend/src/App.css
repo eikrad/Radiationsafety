@@ -521,13 +521,13 @@
 .header-center p {
   margin: 0;
   font-size: 0.9rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .header-center .ai-disclosure {
   margin-top: 0.3rem;
   font-size: 0.75rem;
-  color: #a0a0a0;
+  color: var(--text-subtle);
 }
 
 .header-right {
@@ -983,7 +983,7 @@
 }
 
 .settings-badge--active {
-  background: var(--accent);
+  background: var(--accent-strong);
   color: #fff;
 }
 
@@ -1147,7 +1147,7 @@
 
 .followup-label {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .followup-chip {
@@ -1172,12 +1172,12 @@
 }
 
 .error {
-  color: #e74c3c;
+  color: var(--error);
   margin-bottom: 1rem;
 }
 
 .error-rate-limit {
-  color: #f59e0b;
+  color: var(--warning-text);
 }
 
 .error-hint {
@@ -1215,7 +1215,7 @@
 .response-display h3 {
   font-size: 0.85rem;
   margin-bottom: 0.5rem;
-  color: #aaa;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1223,7 +1223,7 @@
 .response-display h4 {
   font-size: 0.8rem;
   margin: 0.75rem 0 0.25rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 /* Placeholder for the answer while /query runs (QueryProgress) */
@@ -1323,7 +1323,7 @@
 .message-meta {
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .message-text {
@@ -1405,26 +1405,20 @@
 }
 
 .response-display .source {
-  color: #646cff;
+  color: var(--link);
 }
 
 .response-display .source-link {
-  color: #646cff;
+  color: var(--link);
   text-decoration: underline;
   word-break: break-all;
 }
 
 .response-display .doc-type {
-  color: #888;
+  color: var(--text-subtle);
 }
 
 @media (prefers-color-scheme: light) {
-  .header-center p {
-    color: #666;
-  }
-  .header-center .ai-disclosure {
-    color: #888;
-  }
   .api-keys-hint {
     background: #e8e8f0;
     border-color: #c4c4d4;

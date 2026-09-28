@@ -34,6 +34,40 @@ function deferredQuery() {
   return { response, respond }
 }
 
+describe('loading the server config', () => {
+  let config: ReturnType<typeof deferredQuery>
+
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', memoryStorage())
+    vi.stubGlobal('sessionStorage', memoryStorage())
+    config = deferredQuery()
+    vi.stubGlobal('fetch', vi.fn(() => config.response))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  // Tests and tools wait for this marker instead of guessing when /api/config
+  // has changed the page (e.g. widened the provider dropdown).
+  it('marks the page once the config has been applied', async () => {
+    const { container } = render(<App />)
+    expect(container.querySelector('[data-config="loaded"]')).toBeNull()
+
+    config.respond({ server_has_llm_key: true, providers: {} })
+
+    await waitFor(() => expect(container.querySelector('[data-config="loaded"]')).not.toBeNull())
+  })
+
+  it('marks the page even when the config cannot be loaded', async () => {
+    const { container } = render(<App />)
+
+    config.respond({ detail: 'down' }, 502)
+
+    await waitFor(() => expect(container.querySelector('[data-config="loaded"]')).not.toBeNull())
+  })
+})
+
 describe('asking a question', () => {
   let query: ReturnType<typeof deferredQuery>
 
