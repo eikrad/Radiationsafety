@@ -213,6 +213,8 @@ CI runs the test suite on push and on pull requests (see badge above).
 - **Backend**: `uv sync` (includes the dev tools) then `uv run pytest tests/ -v`
 - **Frontend (unit)**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
 - **Frontend (E2E)**: `cd frontend && npx playwright install --with-deps chromium && npm run test:e2e` — UI-only Playwright tests against a mocked API (see `frontend/e2e/`)
+- **Frontend (visual)**: `cd frontend && npm run test:visual:docker` — screenshot comparisons of header, settings and an answer in light and dark mode (see `frontend/visual/`). They run in the Playwright Docker image so fonts match CI; after an intended UI change, refresh the baselines with `npm run test:visual:update` and commit the new PNGs.
+- **Coverage**: `uv run pytest tests/ --cov` and `cd frontend && npm run test:coverage`; CI writes both to the run summary
 
 ## Security
 
