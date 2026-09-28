@@ -766,19 +766,6 @@
   font-size: 0.85em;
 }
 
-.settings-fields {
-  padding: 0 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.settings-field-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
 /* Beats `.settings-field label` (display: block) so the checkbox sits beside its text */
 .settings-field .settings-toggle-label {
   display: flex;
@@ -912,6 +899,129 @@
 
 .settings-cancel:hover {
   border-color: var(--accent);
+}
+
+.settings-section {
+  padding: 1.25rem 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.settings-section + .settings-section {
+  border-top: 1px solid var(--divider);
+  margin-top: 1.25rem;
+}
+
+.settings-section-title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+.settings-section .settings-hint {
+  padding: 0;
+  margin-top: -0.4rem;
+}
+
+.settings-provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-provider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.settings-provider--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.settings-provider--locked {
+  opacity: 0.6;
+}
+
+.settings-provider-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.settings-provider-header h4 {
+  margin: 0 auto 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.settings-provider .settings-field-desc {
+  margin: 0;
+}
+
+.settings-field .settings-field-desc {
+  margin-top: 0.4rem;
+}
+
+.settings-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.settings-badge--active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.settings-badge--ready {
+  color: var(--success-text);
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+.settings-badge--needs-setup {
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+}
+
+.settings-badge--key-required {
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+.settings-provider-issue {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-left: 3px solid var(--warning-border);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.settings-actions {
+  margin-top: 1.25rem;
+}
+
+.model-selector--needs-setup {
+  border-color: var(--warning-border);
 }
 
 /* Documents / updates modal */

@@ -22,6 +22,9 @@
   --warning-bg: rgba(245, 158, 11, 0.12);
   --warning-border: rgba(245, 158, 11, 0.45);
   --warning-text: #fbbf24;
+  --success-bg: rgba(34, 197, 94, 0.12);
+  --success-border: rgba(34, 197, 94, 0.4);
+  --success-text: #4ade80;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -88,6 +91,9 @@ button:focus-visible {
     --warning-bg: #fef3c7;
     --warning-border: #f59e0b;
     --warning-text: #92400e;
+    --success-bg: #dcfce7;
+    --success-border: #86efac;
+    --success-text: #166534;
   }
   a:hover {
     color: #747bff;

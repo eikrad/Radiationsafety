@@ -4,6 +4,15 @@ export type Model = (typeof MODELS)[number]
 /** Provider selected until the user picks another (EU-hosted; see backend DEFAULT_PROVIDER). */
 export const DEFAULT_MODEL: Model = 'scaleway'
 
+/** Display names for the providers, shared by the header dropdown and Settings. */
+export const PROVIDER_LABELS: Record<Model, string> = {
+  scaleway: 'Scaleway (EU)',
+  mistral: 'Mistral',
+  gemini: 'Gemini',
+  openai: 'OpenAI',
+  ollama: 'Ollama (Local)',
+}
+
 /** Base path for backend API (Vite dev proxy and production nginx use /api). */
 export const API_BASE = '/api'
 

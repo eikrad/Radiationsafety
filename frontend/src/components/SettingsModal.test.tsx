@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { SettingsModal } from './SettingsModal'
@@ -90,7 +90,8 @@ describe('SettingsModal - Scaleway', () => {
 
   it('has a Scaleway API key field', () => {
     render(<SettingsModal isOpen={true} onClose={vi.fn()} />)
-    expect(screen.getByLabelText('Scaleway API Key')).toBeInTheDocument()
+    const scaleway = screen.getByRole('region', { name: 'Scaleway (EU)' })
+    expect(within(scaleway).getByLabelText('API key')).toBeInTheDocument()
   })
 
   it('offers the Scaleway models the server allows, by readable name', () => {
@@ -105,5 +106,65 @@ describe('SettingsModal - Scaleway', () => {
     const labels = Array.from(select.options).map((o) => o.textContent)
     expect(labels).toEqual(['Gemma 4 26B (default)', 'DeepSeek V4 Flash', 'some-new-model'])
     expect(select.value).toBe('default')
+  })
+})
+
+describe('SettingsModal - providers', () => {
+  beforeEach(() => {
+    localStorageMock.clear()
+  })
+
+  function providerSections() {
+    const list = screen.getByRole('region', { name: 'Providers' })
+    return within(list)
+      .getAllByRole('region')
+      .map((r) => r.getAttribute('aria-label'))
+  }
+
+  it('shows each provider in its own section', () => {
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} />)
+    expect(providerSections()).toEqual(
+      expect.arrayContaining(['Scaleway (EU)', 'Mistral', 'Gemini', 'OpenAI', 'Ollama (Local)'])
+    )
+  })
+
+  it('lists the active provider first and marks it as active', () => {
+    render(<SettingsModal isOpen={true} onClose={vi.fn()} activeModel="gemini" />)
+    expect(providerSections()[0]).toBe('Gemini')
+    expect(within(screen.getByRole('region', { name: 'Gemini' })).getByText('Active')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: 'OpenAI' })).queryByText('Active')).toBeNull()
+  })
+
+  it('explains what the server is missing for a provider', () => {
+    render(
+      <SettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        providers={{ scaleway: { server_key: true, issue: 'Scaleway has no answer model on this server: set SCW_MODEL.' } }}
+      />
+    )
+    const scaleway = screen.getByRole('region', { name: 'Scaleway (EU)' })
+    expect(within(scaleway).getByText('Needs setup')).toBeInTheDocument()
+    expect(within(scaleway).getByText(/set SCW_MODEL/)).toBeInTheDocument()
+  })
+
+  it('says a browser key is optional when the server holds one', () => {
+    render(
+      <SettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        providers={{
+          gemini: { server_key: true, issue: null },
+          openai: { server_key: false, issue: null },
+        }}
+      />
+    )
+    expect(within(screen.getByRole('region', { name: 'Gemini' })).getByText('Ready')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Gemini' })).getByText(/optional/i)
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'OpenAI' })).getByText('Key required')
+    ).toBeInTheDocument()
   })
 })

@@ -7,7 +7,7 @@ import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
 import { API_BASE, DEFAULT_MODEL, MODELS, STORAGE_KEYS, type Model } from './constants'
 import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage, loadEnforcePrivacyMode } from './storage'
-import type { Message, QueryResponse } from './types'
+import type { Message, ProvidersStatus, QueryResponse } from './types'
 import './App.css'
 
 function loadStoredModel(): Model {
@@ -31,6 +31,8 @@ export default function App() {
   const [serverHasLlmKey, setServerHasLlmKey] = useState<boolean | null>(null)
   /** From GET /api/config: Scaleway models the server allows, its default first. */
   const [scalewayModels, setScalewayModels] = useState<string[]>([])
+  /** From GET /api/config: per provider, whether the server can answer with it. */
+  const [providers, setProviders] = useState<ProvidersStatus>({})
   /** From GET /api/config: set only if the operator configured PRIVACY_CONTROLLER_NAME/CONTACT. */
   const [privacyController, setPrivacyController] = useState<{
     name: string | null
@@ -63,12 +65,14 @@ export default function App() {
         (data: {
           server_has_llm_key?: boolean
           scaleway_models?: string[]
+          providers?: ProvidersStatus
           privacy_controller_name?: string | null
           privacy_controller_contact?: string | null
         }) => {
           if (cancelled) return
           setServerHasLlmKey(Boolean(data.server_has_llm_key))
           setScalewayModels(data.scaleway_models ?? [])
+          setProviders(data.providers ?? {})
           setPrivacyController({
             name: data.privacy_controller_name ?? null,
             contact: data.privacy_controller_contact ?? null,
@@ -197,7 +201,12 @@ export default function App() {
           <div className="header-right">
             <div className="model-selector-wrap">
               {enforcePrivacyMode && <span className="privacy-badge" title="Privacy Mode: fully local">🔒</span>}
-              <ModelSelector value={model} onChange={setModel} enforcePrivacyMode={enforcePrivacyMode} />
+              <ModelSelector
+                value={model}
+                onChange={setModel}
+                enforcePrivacyMode={enforcePrivacyMode}
+                providers={providers}
+              />
             </div>
             <button
               type="button"
@@ -223,6 +232,8 @@ export default function App() {
           isOpen={settingsOpen}
           onClose={() => setSettingsOpen(false)}
           scalewayModels={scalewayModels}
+          activeModel={model}
+          providers={providers}
         />
         <PrivacyNoticeModal
           isOpen={privacyNoticeOpen}
