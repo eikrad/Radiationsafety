@@ -741,19 +741,29 @@ def query(req: QueryRequest, request: Request):
             used_web_search_label=None,
             privacy_mode=is_ollama,
         )
-    try:
-        from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
+    from graph.llm_factory import (
+        APIKeyError,
+        ProviderConfigError,
+        get_embedding_provider,
+        get_llm,
+    )
 
+    try:
         llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
+        embedding_provider = get_embedding_provider(model)
     except APIKeyError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except ProviderConfigError as e:
+        # The operator must fix this on the server; the user can pick another provider.
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception as e:
         if is_ollama:
             raise HTTPException(
                 status_code=503, detail=_ollama_error_detail(e, model_variant)
             ) from e
-        raise
-    embedding_provider = get_embedding_provider(model)
+        raise HTTPException(
+            status_code=500, detail=str(e) or "Internal server error"
+        ) from e
     try:
         invoke_input = {
             "question": req.question,
