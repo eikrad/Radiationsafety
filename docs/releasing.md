@@ -43,7 +43,9 @@ Pull requests opened with the workflow's own `GITHUB_TOKEN` do not trigger other
 workflows, so CI would never run on the release PR and its required checks would wait
 forever. The workflow therefore uses a token stored as the `RELEASE_PLEASE_TOKEN` secret:
 
-1. Open **https://github.com/settings/personal-access-tokens/new**. (By hand: your profile
+1. Open [the new fine-grained token page](https://github.com/settings/personal-access-tokens/new)
+   (or [your fine-grained tokens](https://github.com/settings/personal-access-tokens) →
+   Generate new token). (By hand: your profile
    picture, top right → **Settings** → **Developer settings**, at the bottom of the left
    sidebar → Personal access tokens → **Fine-grained tokens** → Generate new token. These
    are your *account* settings; the repository's Settings tab has no Developer settings.)
