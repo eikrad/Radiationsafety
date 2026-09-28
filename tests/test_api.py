@@ -653,3 +653,12 @@ def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkey
     monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
 
     assert client.get("/config").json()["server_has_llm_key"] is True
+
+
+def test_api_reports_the_installed_package_version(client: TestClient):
+    """/openapi.json shows the release that runs, as bumped by release-please."""
+    from importlib.metadata import version
+
+    assert client.get("/openapi.json").json()["info"]["version"] == version(
+        "radiationsafety"
+    )

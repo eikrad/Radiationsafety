@@ -9,8 +9,13 @@ jobs:
   require-staging:
     runs-on: ubuntu-latest
     steps:
-      - name: Check source branch is staging
+      - name: Check source branch is staging (or the release PR)
         run: |
+          # release-please opens its release PR from this branch (.github/workflows/release-please.yml).
+          if [ "${{ github.head_ref }}" = "release-please--branches--master" ]; then
+            echo "✅ Release PR from release-please — allowed to merge into master."
+            exit 0
+          fi
           if [ "${{ github.head_ref }}" != "staging" ]; then
             echo "❌ PRs into master must come from 'staging', not '${{ github.head_ref }}'."
             echo "   Workflow: feature branch → staging → master"
