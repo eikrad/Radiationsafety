@@ -95,39 +95,41 @@ export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: Settings
           Keys are stored only in your browser and are never sent to our servers except for LLM API
           calls. They are cleared when you close the tab or leave the page.
         </p>
-        <div className="settings-field-block">
-          <div className="settings-field">
-            <label className="settings-toggle-label">
-              <input
-                type="checkbox"
-                checked={enforcePrivacyMode}
-                onChange={(e) => setEnforcePrivacyMode(e.target.checked)}
-                aria-describedby="privacy-mode-desc"
-              />
-              <span>🔒 Privacy Mode</span>
-            </label>
-            <p id="privacy-mode-desc" className="settings-field-desc">
-              Run fully local with Ollama. No API keys required. No data leaves your machine.
-            </p>
+        <div className="settings-fields">
+          <div className="settings-field-block">
+            <div className="settings-field">
+              <label className="settings-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={enforcePrivacyMode}
+                  onChange={(e) => setEnforcePrivacyMode(e.target.checked)}
+                  aria-describedby="privacy-mode-desc"
+                />
+                <span>🔒 Privacy Mode</span>
+              </label>
+              <p id="privacy-mode-desc" className="settings-field-desc">
+                Run fully local with Ollama. No API keys required. No data leaves your machine.
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="settings-field-block settings-beta-feature">
-          <div className="settings-field">
-            <label className="settings-toggle-label">
-              <input
-                type="checkbox"
-                checked={documentSearchEnabled}
-                onChange={(e) => setDocumentSearchEnabled(e.target.checked)}
-                aria-describedby="document-search-desc"
-              />
-              <span>
-                Search for new documents <span className="settings-beta-badge" aria-hidden>Beta</span>
-              </span>
-            </label>
-            <p id="document-search-desc" className="settings-field-desc">
-              When enabled, the Documents panel shows a “Search URL” action to find document URLs via
-              web search (IAEA or retsinformation.dk). This feature is experimental.
-            </p>
+          <div className="settings-field-block">
+            <div className="settings-field">
+              <label className="settings-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={documentSearchEnabled}
+                  onChange={(e) => setDocumentSearchEnabled(e.target.checked)}
+                  aria-describedby="document-search-desc"
+                />
+                <span>
+                  Search for new documents <span className="settings-beta-badge" aria-hidden>Beta</span>
+                </span>
+              </label>
+              <p id="document-search-desc" className="settings-field-desc">
+                When enabled, the Documents panel shows a “Search URL” action to find document URLs via
+                web search (IAEA or retsinformation.dk). This feature is experimental.
+              </p>
+            </div>
           </div>
         </div>
         <div className="settings-fields">
@@ -166,9 +168,10 @@ export function SettingsModal({ isOpen, onClose, scalewayModels = [] }: Settings
                     </div>
                   </div>
                   {variantOptions(model, scalewayModels).length > 1 && (
-                    <div className="settings-field settings-model-variant">
+                    <div className="settings-field">
                       <label htmlFor={`variant-${model}`}>Model</label>
                       <select
+                        className="settings-select"
                         id={`variant-${model}`}
                         value={variants[model]}
                         onChange={(e) => handleVariantChange(model, e.target.value)}

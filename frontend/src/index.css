@@ -7,6 +7,22 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
 
+  /* Theme tokens for controls and dialogs; light values below */
+  --surface: #1a1a1a;
+  --surface-raised: #212121;
+  --control-bg: #252525;
+  --control-bg-hover: #333;
+  --border: #444;
+  --divider: #333;
+  --text-muted: #b4b4b4;
+  --text-subtle: #8c8c8c;
+  --accent: #646cff;
+  --accent-soft: #3a3a5c;
+  --accent-soft-text: #b4b4ff;
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.45);
+  --warning-text: #fbbf24;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -58,6 +74,20 @@ button:focus-visible {
   :root {
     color: #213547;
     background-color: #ffffff;
+
+    --surface: #f9f9f9;
+    --surface-raised: #ffffff;
+    --control-bg: #ffffff;
+    --control-bg-hover: #ececec;
+    --border: #ccc;
+    --divider: #ddd;
+    --text-muted: #4a5563;
+    --text-subtle: #5f6b7a;
+    --accent-soft: #e4e5ff;
+    --accent-soft-text: #3f46c9;
+    --warning-bg: #fef3c7;
+    --warning-border: #f59e0b;
+    --warning-text: #92400e;
   }
   a:hover {
     color: #747bff;
