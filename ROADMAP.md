@@ -62,6 +62,48 @@ the graph. See `eval/README.md`.
    HyDE in Danish; a re-ranker only if evidence is retrieved but ranked too
    low.
 
+## Retrieval Improvement — grounded in the eval (2026-09-29)
+
+Ten retrieval and evaluation papers were read in full and checked against the
+code (notes and ranking in the second brain:
+`Concepts/Retrieval-Improvement-Grounded-in-Evaluation`). The rule: a retrieval
+change is adopted only if it wins on the retrieval-only eval at an equal amount
+of retrieved text, with the sign test on paired questions. Order, cheapest and
+most enabling first:
+
+1. **Eval first** — [#128](https://github.com/eikrad/Radiationsafety/issues/128):
+   evidence recall at a fixed text budget (chunking changes chunk length), MRR
+   (not implemented yet; needed for the re-ranking decision), and evidence
+   position in the generator context. So far evidence recall predicts answers:
+   19/21 questions with full evidence passed, 0/3 without.
+2. **Fix the sufficiency grader's input** —
+   [#129](https://github.com/eikrad/Radiationsafety/issues/129):
+   `truncate.py` shows the grader 420 characters of each ~2500-character
+   chunk. It caught 0 of 3 insufficient retrievals. Also: an IAEA value where
+   a Danish rule applies counts as insufficient. Add labelled insufficient
+   cases by removing evidence chunks. No hard abstention.
+3. **Structure-aware Danish chunking** —
+   [#130](https://github.com/eikrad/Radiationsafety/issues/130): keep
+   `Paragraf`/`Stk` boundaries from the XML and prepend
+   `law › Kapitel › §` to each chunk. Late chunking does not fit the
+   API-hosted embedder, and semantic chunking gains little on real documents.
+4. **BM25 + dense via RRF** —
+   [#131](https://github.com/eikrad/Radiationsafety/issues/131): with a
+   Danish/English stemming analyzer; RRF rather than tuned weights. Keep the
+   Danish translation query: lexical matching fails across languages.
+5. **Context order by jurisdiction** —
+   [#132](https://github.com/eikrad/Radiationsafety/issues/132): Danish
+   chunks currently sit at positions 4–6 behind IAEA; measure the position
+   effect on the current generator.
+6. **Grow the golden set with LLM-proposed, human-confirmed evidence** —
+   [#133](https://github.com/eikrad/Radiationsafety/issues/133): check judge
+   agreement on the 24 existing questions first (Danish and English
+   separately); the judge's "not relevant" counts as unjudged.
+
+Still deferred: re-ranking (only if MRR shows evidence ranked low), HyDE,
+propositions / sentence-level indexing, eRAG as a routine metric (about 430
+extra calls per run).
+
 ---
 
 ## Phase 1 — Continuous Scoring
