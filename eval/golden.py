@@ -11,10 +11,20 @@ A nugget is judged against the answer by the LLM judge; its evidence quotes are
 matched verbatim against retrieved chunks, so they must be copied from the
 source document in its own language. Several quotes are alternatives (the same
 fact stated in two documents), not parts of one fact.
+
+CLI:
+    uv run python -m eval.golden --check-index
+        Check every evidence quote against the chunks of the configured search
+        index: a quote that is in no chunk can never match (misquoted, or split
+        across a chunk boundary after re-chunking).
 """
 
+import argparse
 import json
+import sys
 from pathlib import Path
+
+from eval.scoring import normalize
 
 TOPICS = (
     "medical",
@@ -31,6 +41,9 @@ BEHAVIOURS = ("answer", "refuse")
 
 # A quote longer than this is more likely to straddle two chunks and never match.
 MAX_QUOTE_CHARS = 150
+# A quote in more chunks than this probably also matches the wrong passage.
+MAX_QUOTE_MATCHES = 3
+_DEFAULT_GOLDEN = Path(__file__).resolve().parent / "data" / "golden.json"
 
 
 class GoldenError(ValueError):
@@ -148,3 +161,82 @@ def _nugget_problems(nugget, n: int) -> list[str]:
     if any(not (isinstance(q, str) and q.strip()) for q in evidence):
         problems.append(f"nugget {n} has an empty evidence quote")
     return problems
+
+
+def check_evidence_in_index(
+    items: list[dict], chunks: list[str]
+) -> tuple[list[str], list[str]]:
+    """Match every evidence quote against the index's chunk texts.
+
+    Errors: a vital nugget none of whose quotes is in any chunk; its evidence
+    can never be found, so every retrieval variant scores a miss. Warnings: an
+    alternative quote in no chunk, and a quote in so many chunks that it does
+    not tell the right passage apart.
+    """
+    haystacks = [normalize(c) for c in chunks]
+    errors, warnings = [], []
+    for item in items:
+        for n, nugget in enumerate(item.get("nuggets") or [], start=1):
+            where = f"{item['id']}: {nugget['importance']} nugget {n}"
+            counts = {
+                q: sum(normalize(q) in h for h in haystacks) for q in nugget["evidence"]
+            }
+            if nugget["importance"] == "vital" and not any(counts.values()):
+                errors.append(
+                    f"{where}: no evidence quote is in any chunk "
+                    "(misquoted, or split across a chunk boundary)"
+                )
+                continue
+            for quote, count in counts.items():
+                if count == 0:
+                    warnings.append(f"{where}: quote {quote!r} is in no chunk")
+                elif count > MAX_QUOTE_MATCHES:
+                    warnings.append(
+                        f"{where}: quote {quote!r} is in {count} chunks; "
+                        "a more specific quote tells the right passage apart"
+                    )
+    return errors, warnings
+
+
+def main() -> int:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    parser = argparse.ArgumentParser(description="Validate the golden set.")
+    parser.add_argument("--golden", type=Path, default=_DEFAULT_GOLDEN)
+    parser.add_argument(
+        "--check-index",
+        action="store_true",
+        help="Also check every evidence quote against the configured search index",
+    )
+    args = parser.parse_args()
+    try:
+        items = load_golden(args.golden)
+    except GoldenError as err:
+        print(err, file=sys.stderr)
+        return 1
+    errors, warnings = [], golden_warnings(items)
+    if args.check_index:
+        from graph.llm_factory import get_embedding_provider
+        from ingestion import load_chunk_texts
+
+        collections = load_chunk_texts(get_embedding_provider())
+        missing = [name for name, texts in collections.items() if texts is None]
+        if missing:
+            print(f"Collections not built: {', '.join(missing)}", file=sys.stderr)
+            return 1
+        chunks = [t for texts in collections.values() for t in texts or []]
+        index_errors, index_warnings = check_evidence_in_index(items, chunks)
+        errors += index_errors
+        warnings += index_warnings
+        print(f"Checked against {len(chunks)} chunks in {', '.join(collections)}")
+    for warning in warnings:
+        print(f"Warning: {warning}")
+    for error in errors:
+        print(f"Error: {error}")
+    print(f"{len(items)} items, {len(errors)} error(s), {len(warnings)} warning(s)")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

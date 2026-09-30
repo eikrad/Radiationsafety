@@ -4,7 +4,12 @@ import json
 
 import pytest
 
-from eval.golden import GoldenError, golden_warnings, load_golden
+from eval.golden import (
+    GoldenError,
+    check_evidence_in_index,
+    golden_warnings,
+    load_golden,
+)
 
 ANSWERABLE = {
     "id": "dk-dose-limits",
@@ -141,3 +146,64 @@ def test_long_evidence_quotes_load_but_are_flagged(tmp_path):
 
     assert warning.startswith("dk-dose-limits: vital nugget 1 evidence quote is 200")
     assert "chunk boundary" in warning
+
+
+# --- evidence quotes against the search index ---------------------------------
+
+TWO_QUOTES = {
+    **ANSWERABLE,
+    "nuggets": [
+        {
+            "text": "Annex 2",
+            "importance": "vital",
+            "evidence": ["fremgår af bilag 2", "anført i bilag 2"],
+        },
+        {"text": "per year", "importance": "okay", "evidence": ["pr. kalenderår"]},
+    ],
+}
+
+
+def test_a_vital_nugget_whose_quotes_are_in_no_chunk_is_an_error():
+    errors, _ = check_evidence_in_index([TWO_QUOTES], ["nothing relevant here"])
+
+    assert errors == [
+        "dk-dose-limits: vital nugget 1: no evidence quote is in any chunk "
+        "(misquoted, or split across a chunk boundary)"
+    ]
+
+
+def test_one_matching_alternative_is_enough_but_the_others_are_reported():
+    chunks = ["Grænserne fremgår af Bilag 2 og gælder pr. kalenderår."]
+
+    errors, warnings = check_evidence_in_index([TWO_QUOTES], chunks)
+
+    assert errors == []
+    assert warnings == [
+        "dk-dose-limits: vital nugget 1: quote 'anført i bilag 2' is in no chunk"
+    ]
+
+
+def test_a_quote_found_in_many_chunks_is_reported_as_unspecific():
+    chunks = ["fremgår af bilag 2 (a)"] * 4 + ["anført i bilag 2", "pr. kalenderår"]
+
+    _, warnings = check_evidence_in_index([TWO_QUOTES], chunks)
+
+    assert warnings == [
+        "dk-dose-limits: vital nugget 1: quote 'fremgår af bilag 2' is in 4 chunks; "
+        "a more specific quote tells the right passage apart"
+    ]
+
+
+def test_a_missing_quote_for_an_okay_nugget_is_only_a_warning():
+    chunks = ["fremgår af bilag 2", "anført i bilag 2"]
+
+    errors, warnings = check_evidence_in_index([TWO_QUOTES], chunks)
+
+    assert errors == []
+    assert warnings == [
+        "dk-dose-limits: okay nugget 2: quote 'pr. kalenderår' is in no chunk"
+    ]
+
+
+def test_questions_to_refuse_have_nothing_to_check():
+    assert check_evidence_in_index([REFUSAL], []) == ([], [])
