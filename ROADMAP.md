@@ -104,6 +104,32 @@ Still deferred: re-ranking (only if MRR shows evidence ranked low), HyDE,
 propositions / sentence-level indexing, eRAG as a routine metric (about 430
 extra calls per run).
 
+**Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
+a retrieval change can fix at most 2–3 questions, too few flips for the sign
+test. So the measurement comes first, then cheap and reversible changes, then
+the costly ones:
+
+1. **Eval harness** (#128, done): retrieval-only runs rank the evidence 20
+   deep and derive recall@k, MRR and recall at a text budget from one list;
+   compared by rank changes (more signal than recall@3 flips). Guards: index
+   fingerprint, no recorded runs on uncommitted code, `golden --check-index`,
+   pooling report for human-confirmed evidence (#133 without an LLM).
+2. **Golden set v2**: English questions about Danish law, questions to
+   refuse, harder questions (annex values, cross-references); then one
+   baseline (retrieval-only twice to confirm determinism, full run twice).
+3. **Graders see whole chunks** (#129, #136).
+4. **BM25 + RRF** behind a switch, off by default (#131); the Danish
+   translation query as a second variant once the golden set has English
+   questions about Danish law.
+5. **Structure-aware chunking** as a parallel index, never replacing the
+   current one (#130).
+6. **k and context order** decided from the rank data plus a full run
+   stratified by evidence presence (#132).
+
+Each step states its adoption rule before the measurement; parameters are not
+tuned (RRF k = 60, fixed header format). A change that wins is switched on by
+default in its own small PR.
+
 ---
 
 ## Phase 1 — Continuous Scoring

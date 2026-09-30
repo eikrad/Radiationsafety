@@ -527,3 +527,79 @@ def test_runs_scored_the_same_way_are_comparable():
     ]
 
     assert comparison["comparable"] is True
+
+
+# --- retrieval-only runs are compared by where the evidence ranks ----------------
+
+RETRIEVAL = {**CONFIG, "retrieval_only": True, "metrics_version": 2}
+
+
+def _retrieval_run(run_id: str, reciprocal_ranks: dict[str, float], **kwargs):
+    results = [
+        {
+            "id": qid,
+            "question": f"Question {qid}?",
+            "pass": None,
+            "metrics": {"evidence_recall_initial": 1.0, "reciprocal_rank": rr},
+        }
+        for qid, rr in reciprocal_ranks.items()
+    ]
+    return build_run_record(
+        run_id=run_id,
+        summary={"pass_rate": None},
+        results=results,
+        dataset={"questions_hash": "set-a", "content_hash": "c", "n_items": 3},
+        config=RETRIEVAL,
+        git={"commit": "abc1234", "branch": "staging", "dirty": False},
+        **kwargs,
+    )
+
+
+def _compare(before, after):
+    return _set(dashboard_data([before, after]))["comparisons"][after["run_id"]][
+        "previous"
+    ]
+
+
+def test_evidence_ranked_higher_or_lower_counts_as_improvement_or_regression():
+    before = _retrieval_run(
+        "20260930_100000",
+        {"dk-dose-limits": 0.5, "dk-xray-license": 1.0, "en-transport-index": 0.2},
+    )
+    after = _retrieval_run(
+        "20260930_110000",
+        {"dk-dose-limits": 1.0, "dk-xray-license": 1.0, "en-transport-index": 0.1},
+    )
+
+    comparison = _compare(before, after)
+
+    assert comparison["basis"] == "evidence rank"
+    assert [q["id"] for q in comparison["improvements"]] == ["dk-dose-limits"]
+    assert [q["id"] for q in comparison["regressions"]] == ["en-transport-index"]
+    assert comparison["unjudged"] == []
+    assert comparison["significance"]["flipped"] == 2
+    assert comparison["verdict"] == (
+        "Evidence ranked higher for 1 question, lower for 1 question"
+    )
+
+
+def test_six_questions_with_better_ranked_evidence_are_significant():
+    ids = [f"q{i}" for i in range(6)]
+    before = _retrieval_run("20260930_100000", dict.fromkeys(ids, 0.25))
+    after = _retrieval_run("20260930_110000", dict.fromkeys(ids, 0.5))
+
+    assert _compare(before, after)["significance"]["significant"] is True
+
+
+def test_retrieval_runs_without_ranks_fall_back_to_nothing_to_compare():
+    """Runs from before rank metrics carry only evidence recall."""
+    before = _retrieval_run("20260930_100000", {"dk-dose-limits": 0.5})
+    after = _retrieval_run("20260930_110000", {"dk-dose-limits": 1.0})
+    for run in (before, after):
+        for r in run["results"]:
+            del r["metrics"]["reciprocal_rank"]
+
+    comparison = _compare(before, after)
+
+    assert comparison["basis"] == "pass/fail"
+    assert comparison["regressions"] == comparison["improvements"] == []

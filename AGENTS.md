@@ -34,7 +34,8 @@ document_updates.py      — checks for newer versions (retsinformation.dk, IAEA
 eval/                    — evaluation: run_eval.py (runner, --rescore), golden.py + data/golden.json
                            (nuggets + verbatim evidence), judge.py + judge_check.py (LLM judge and its
                            calibration fixtures), scoring.py (deterministic metrics, error types),
-                           history.py → history/runs.jsonl, dashboard.py (local HTML dashboard)
+                           history.py → history/runs.jsonl, dashboard.py (local HTML dashboard),
+                           pool.py (unlabelled retrieved chunks for human review)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
