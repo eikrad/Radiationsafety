@@ -671,3 +671,17 @@ def test_the_run_header_names_the_embeddings(monkeypatch, workspace, capsys):
     _run(monkeypatch, workspace)
 
     assert "embeddings = gemini/models/gemini-embedding-001" in capsys.readouterr().err
+
+
+def test_a_warning_shown_with_an_answer_is_counted(monkeypatch, workspace):
+    answered = run_eval._invoke_graph
+
+    def warned(question, graph, llm):
+        return {**answered(question, graph, llm), "retrieval_warning": "not verified"}
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", warned)
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert _results(run)["dk-dose-limits"]["metrics"]["warning_shown"] == 1.0
+    assert run["summary"]["warning_shown_mean"] == 1.0

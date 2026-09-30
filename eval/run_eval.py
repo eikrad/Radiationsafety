@@ -280,6 +280,7 @@ def score_outputs(
                 "initial_documents": run.get("initial_documents") or [],
                 "context": run.get("context_used_for_generation") or "",
                 "sufficient": run.get("sufficient"),
+                "retrieval_warning": run.get("retrieval_warning"),
             },
             verdict,
         )
