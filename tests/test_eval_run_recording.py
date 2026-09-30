@@ -645,3 +645,12 @@ def test_a_debugging_run_without_history_may_use_uncommitted_code(
     monkeypatch, workspace, dirty
 ):
     assert _run(monkeypatch, workspace, "--no-history") == 0
+
+
+def test_a_retrieval_shallower_than_the_graphs_is_not_flagged_as_disagreeing(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only", "--depth", "2")
+
+    [run] = load_runs(workspace.history)
+    assert run["summary"]["top_k_mismatches"] == []

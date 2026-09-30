@@ -485,7 +485,8 @@ def _score_retrieval(
                 ranking_metrics(item, ranked, depth=depth, char_budget=budget)
             )
             result["evidence_ranks"] = evidence_ranks(item, ranked)
-            if k and not _top_k_matches(initial, ranked, k):
+            # below k the deep list is shorter than the graph's; nothing to check
+            if k and depth >= k and not _top_k_matches(initial, ranked, k):
                 mismatches.append(item["id"])
         results.append(
             {
