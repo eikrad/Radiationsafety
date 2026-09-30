@@ -31,7 +31,7 @@ from eval.history import (
     load_runs,
 )
 from eval.judge import judge_item
-from eval.scoring import METRICS_VERSION, score_item
+from eval.scoring import METRICS_VERSION, RECALL_DEPTHS, score_item
 from graph.llm_factory import DEFAULT_PROVIDER
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -61,6 +61,12 @@ NUMERIC_METRICS = (
     "context_utilization",
     "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
     "grade_documents_correct",
+    "evidence_position",  # context chunk holding the evidence (1 = first)
+    "warning_shown",  # 1 if the answer carried a warning: lower is better
+    # retrieval-only runs
+    *(f"evidence_recall_at_{k}" for k in RECALL_DEPTHS),
+    "evidence_recall_budget",
+    "reciprocal_rank",  # its mean is MRR
 )
 
 

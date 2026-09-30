@@ -3,7 +3,8 @@
 import pytest
 from langchain_core.documents import Document
 
-from eval.scoring import evidence_found, score_item
+from eval.scoring import evidence_found, evidence_ranks, ranking_metrics, score_item
+from graph.consts import CONTEXT_SEPARATOR
 
 ANNEX_2 = "Dosisgrænser for erhvervsmæssig bestråling fremgår af bilag 2."
 PER_YEAR = "Dosisgrænserne gælder for et kalenderår."
@@ -260,3 +261,131 @@ def test_a_failed_judge_leaves_the_question_unscored_but_keeps_evidence_metrics(
 def test_a_verdict_with_the_wrong_number_of_nugget_labels_is_rejected():
     with pytest.raises(ValueError, match="3 nuggets but 2 labels"):
         score_item(ITEM, _output(), _verdict(("support", "support")))
+
+
+# --- rank-based retrieval metrics --------------------------------------------
+
+FILLER = Document(page_content="Unrelated chunk about transport.")
+LIMIT = Document(page_content="Grænsen er 20 mSv pr. år.")
+
+
+def test_the_evidence_rank_is_the_first_chunk_holding_a_quote_in_its_collection():
+    ranked = {
+        "iaea": [FILLER, FILLER, FILLER],
+        "dk": [FILLER, Document(page_content=ANNEX_2), LIMIT],
+    }
+
+    assert evidence_ranks(ITEM, ranked) == [2, 3]
+
+
+def test_evidence_in_both_collections_counts_at_its_best_rank():
+    ranked = {"iaea": [Document(page_content=ANNEX_2)], "dk": [FILLER, FILLER, LIMIT]}
+
+    assert evidence_ranks(ITEM, ranked) == [1, 3]
+
+
+def test_evidence_that_was_not_retrieved_has_no_rank():
+    ranked = {"iaea": [FILLER], "dk": [Document(page_content=ANNEX_2)]}
+
+    assert evidence_ranks(ITEM, ranked) == [1, None]
+
+
+def test_ranking_metrics_give_recall_at_each_depth_and_the_reciprocal_rank():
+    ranked = {"iaea": [FILLER] * 20, "dk": [FILLER, Document(page_content=ANNEX_2)]}
+    ranked["dk"] += [FILLER] * 5 + [LIMIT]  # limit evidence at rank 8
+
+    metrics = ranking_metrics(ITEM, ranked, depth=20, char_budget=None)
+
+    assert metrics["evidence_recall_at_1"] == 0.0
+    assert metrics["evidence_recall_at_3"] == 0.5
+    assert metrics["evidence_recall_at_5"] == 0.5
+    assert metrics["evidence_recall_at_10"] == 1.0
+    assert metrics["evidence_recall_at_20"] == 1.0
+    assert metrics["reciprocal_rank"] == pytest.approx((1 / 2 + 1 / 8) / 2)
+
+
+def test_recall_is_reported_only_up_to_the_depth_retrieved():
+    ranked = {"iaea": [FILLER] * 5, "dk": [Document(page_content=ANNEX_2), LIMIT]}
+
+    metrics = ranking_metrics(ITEM, ranked, depth=5, char_budget=None)
+
+    assert "evidence_recall_at_5" in metrics
+    assert "evidence_recall_at_10" not in metrics
+
+
+def test_a_nugget_never_retrieved_adds_zero_to_the_reciprocal_rank():
+    ranked = {"iaea": [FILLER], "dk": [Document(page_content=ANNEX_2)]}
+
+    metrics = ranking_metrics(ITEM, ranked, depth=1, char_budget=None)
+
+    assert metrics["reciprocal_rank"] == 0.5
+
+
+def test_recall_at_a_text_budget_counts_only_the_chunks_that_fit_in_rank_order():
+    long_filler = Document(page_content="x" * 90)
+    ranked = {
+        "iaea": [],
+        "dk": [Document(page_content=ANNEX_2), long_filler, LIMIT],
+    }
+    budget = len(ANNEX_2) + 90  # the third chunk (the limit) no longer fits
+
+    metrics = ranking_metrics(ITEM, ranked, depth=3, char_budget=budget)
+
+    assert metrics["evidence_recall_budget"] == 0.5
+
+
+def test_the_text_budget_applies_to_each_collection_separately():
+    ranked = {"iaea": [Document(page_content=ANNEX_2)], "dk": [LIMIT]}
+    budget = max(len(ANNEX_2), len(LIMIT.page_content))
+
+    metrics = ranking_metrics(ITEM, ranked, depth=1, char_budget=budget)
+
+    assert metrics["evidence_recall_budget"] == 1.0
+
+
+def test_a_question_to_refuse_has_no_ranking_metrics():
+    assert (
+        ranking_metrics(REFUSAL, {"iaea": [], "dk": []}, depth=3, char_budget=100) == {}
+    )
+
+
+# --- evidence position in the generator context -------------------------------
+
+
+def _context(*docs):
+    return CONTEXT_SEPARATOR.join(d.page_content for d in docs)
+
+
+def test_the_evidence_position_is_the_context_chunk_the_evidence_first_appears_in():
+    output = {
+        **_output(),
+        "context": _context(FILLER, Document(page_content=ANNEX_2), LIMIT),
+    }
+
+    scores = score_item(ITEM, output, _verdict())
+
+    assert scores["evidence_position"] == pytest.approx((2 + 3) / 2)
+
+
+def test_only_nuggets_whose_evidence_is_in_the_context_have_a_position():
+    output = {**_output(), "context": _context(FILLER, Document(page_content=ANNEX_2))}
+
+    scores = score_item(ITEM, output, _verdict())
+
+    assert scores["evidence_position"] == 2
+
+
+def test_without_evidence_in_the_context_there_is_no_evidence_position():
+    output = {**_output(), "context": _context(FILLER)}
+
+    assert score_item(ITEM, output, _verdict())["evidence_position"] is None
+
+
+# --- warnings shown to the user ------------------------------------------------
+
+
+def test_a_warning_shown_with_the_answer_is_recorded():
+    output = {**_output(), "retrieval_warning": "could not be fully verified"}
+
+    assert score_item(ITEM, output, _verdict())["warning_shown"] is True
+    assert score_item(ITEM, _output(), _verdict())["warning_shown"] is False
