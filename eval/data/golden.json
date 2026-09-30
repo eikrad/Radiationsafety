@@ -814,5 +814,384 @@
         ]
       }
     ]
+  },
+  {
+    "id": "dk-en-apprentice-dose-limits",
+    "question": "Under Danish rules, what dose limits apply to a radiation worker aged between 16 and 18?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "Bilag 2 of the Danish order on ionising radiation sets 6 mSv effective dose per year, 15 mSv per year to the lens of the eye and 150 mSv per year to the skin and to the extremities. The IAEA BSS allows 20 mSv to the lens for this group, so an IAEA value is wrong here.",
+    "nuggets": [
+      {
+        "text": "Effective dose limit of 6 mSv per year",
+        "importance": "vital",
+        "evidence": [
+          "Stråleudsat arbejdstager mellem 16 og 18 år, jf. § 3, nr. 59) 6 15 150 150"
+        ]
+      },
+      {
+        "text": "Equivalent dose limit of 15 mSv per year for the lens of the eye",
+        "importance": "vital",
+        "evidence": [
+          "Stråleudsat arbejdstager mellem 16 og 18 år, jf. § 3, nr. 59) 6 15 150 150"
+        ]
+      },
+      {
+        "text": "150 mSv per year for the skin and for the extremities",
+        "importance": "okay",
+        "evidence": [
+          "Stråleudsat arbejdstager mellem 16 og 18 år, jf. § 3, nr. 59) 6 15 150 150"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-apprentice-dose-limits",
+    "question": "According to the IAEA Basic Safety Standards, what dose limits apply to apprentices aged 16 to 18 who are trained for work involving radiation?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "GSR Part 3, Schedule III: an effective dose of 6 mSv in a year, an equivalent dose to the lens of the eye of 20 mSv in a year, and 150 mSv in a year to the extremities or the skin.",
+    "nuggets": [
+      {
+        "text": "Effective dose of 6 mSv in a year",
+        "importance": "vital",
+        "evidence": [
+          "An effective dose of 6 mSv in a year"
+        ]
+      },
+      {
+        "text": "Equivalent dose to the lens of the eye of 20 mSv in a year",
+        "importance": "vital",
+        "evidence": [
+          "An equivalent dose to the lens of the eye of 20 mSv in a year"
+        ]
+      },
+      {
+        "text": "150 mSv in a year to the extremities or the skin",
+        "importance": "okay",
+        "evidence": [
+          "of 150 mSv in a year"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-pregnant-worker-fetus",
+    "question": "In Denmark, what dose may the fetus of a pregnant radiation worker receive once she has informed her employer?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 16: the equivalent dose to the fetus is kept as low as reasonably achievable and may not exceed 1 mSv after the employer has been told about the pregnancy.",
+    "nuggets": [
+      {
+        "text": "The equivalent dose to the fetus may not exceed 1 mSv after the employer has been notified",
+        "importance": "vital",
+        "evidence": [
+          "må efter meddelelsen til arbejdsgiveren om graviditeten ikke være større end 1 mSv"
+        ]
+      },
+      {
+        "text": "The dose to the fetus is to be kept as low as reasonably achievable",
+        "importance": "okay",
+        "evidence": [
+          "Ækvivalent dosis til et foster fra den gravides udsættelse for erhvervsmæssig bestråling skal holdes så lav"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-public-dose-constraint",
+    "question": "What dose constraint must a Danish undertaking use as the starting point for optimisation with regard to members of the public?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 11: an effective dose constraint of 0.1 mSv per year for members of the public, for the use at the same site; the Danish Health Authority may set a different constraint where several undertakings share a site.",
+    "nuggets": [
+      {
+        "text": "0.1 mSv effective dose per year for members of the public",
+        "importance": "vital",
+        "evidence": [
+          "benytte en dosisbinding for effektiv dosis på 0,1 mSv pr. år til enkeltpersoner i befolkningen"
+        ]
+      },
+      {
+        "text": "Where several undertakings use sources at the same site, the Danish Health Authority may set a different constraint",
+        "importance": "okay",
+        "evidence": [
+          "kan Sundhedsstyrelsen for hver af de pågældende virksomheder fastsætte en anden dosisbinding"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-category-a",
+    "question": "Under Danish rules, when must a worker be classified as a category A exposed worker?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 36: when the worker can be expected, in planned exposure situations, to receive more than 6 mSv effective dose per year, more than 15 mSv per year to the lens of the eye, or more than 150 mSv per year to the skin or extremities.",
+    "nuggets": [
+      {
+        "text": "Expected effective dose of more than 6 mSv per year",
+        "importance": "vital",
+        "evidence": [
+          "på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+        ]
+      },
+      {
+        "text": "Or more than 15 mSv per year to the lens of the eye",
+        "importance": "vital",
+        "evidence": [
+          "på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+        ]
+      },
+      {
+        "text": "Or more than 150 mSv per year to the skin or extremities",
+        "importance": "okay",
+        "evidence": [
+          "på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-transport-protection-programme",
+    "question": "Under the Danish rules on transport of radioactive material, what must be in place before the first transport?",
+    "topics": [
+      "transport"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 9: a radiation protection programme must be drawn up and implemented before the first transport; a safety assessment under § 27 of the order on ionising radiation can replace it.",
+    "nuggets": [
+      {
+        "text": "A radiation protection programme must be drawn up and implemented before the first transport",
+        "importance": "vital",
+        "evidence": [
+          "Forud for første transport af radioaktivt materiale skal der udformes og implementeres et strålingsbeskyttelsesprogram"
+        ]
+      },
+      {
+        "text": "A safety assessment under the order on ionising radiation can replace the programme",
+        "importance": "okay",
+        "evidence": [
+          "kan erstatte strålingsbeskyttelsesprogrammet"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-patient-dosimetry-first-measurement",
+    "question": "In Denmark, how soon after a new X-ray unit is taken into use must the first patient dose measurements be made?",
+    "topics": [
+      "medical"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 6 of the order on patient dosimetry: within 6 months of commissioning a new source, new equipment or changed protocols, the first measurements and the determination and analysis of representative levels must be done; afterwards they are repeated at the intervals in Bilag 2.",
+    "nuggets": [
+      {
+        "text": "Within 6 months of commissioning new equipment (or changed protocols)",
+        "importance": "vital",
+        "evidence": [
+          "skal udføres inden for 6 måneder efter idriftsættelse af ny strålekilde, nyt udstyr eller ændrede protokoller"
+        ]
+      },
+      {
+        "text": "Afterwards repeated at the intervals given in Bilag 2",
+        "importance": "okay",
+        "evidence": [
+          "skal herefter gentages med de intervaller, som fremgår af bilag 2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-mobile-xray-locations",
+    "question": "Under the Danish rules on radiation generators, when must an undertaking report a location where X-ray exposures are made outside a shielded facility?",
+    "topics": [
+      "industrial",
+      "medical"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 39: locations with more than 200 exposures per month outside a facility (anlæg) must be reported to the Danish Health Authority, as soon as possible and if possible before the work starts.",
+    "nuggets": [
+      {
+        "text": "When more than 200 exposures per month are made at the location",
+        "importance": "vital",
+        "evidence": [
+          "lokationer, hvor der foretages mere end 200 eksponeringer pr. måned uden for anlæg"
+        ]
+      },
+      {
+        "text": "Report as soon as possible, if possible before the work starts",
+        "importance": "okay",
+        "evidence": [
+          "så vidt muligt inden arbejdet påbegyn"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bek-stråling-områdeklassificering",
+    "question": "Hvornår skal et område klassificeres som kontrolleret, og hvornår som overvåget?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 44: kontrolleret ved forventet effektiv dosis over 6 mSv pr. år (eller over 15 mSv øjelinse / 150 mSv hud og ekstremiteter), ved risiko for utilsigtet bestråling eller væsentlig forurening. § 45: overvåget ved forventet effektiv dosis over 1 mSv, dog højst 6 mSv pr. år (eller over 50, højst 150 mSv til hud og ekstremiteter).",
+    "nuggets": [
+      {
+        "text": "Kontrolleret: forventet effektiv dosis over 6 mSv pr. år",
+        "importance": "vital",
+        "evidence": [
+          "skal klassificeres som kontrolleret, 1) hvis en arbejdstager som følge af planlagte bestrålingssituationer"
+        ]
+      },
+      {
+        "text": "Overvåget: forventet effektiv dosis over 1 mSv, dog højst 6 mSv pr. år",
+        "importance": "vital",
+        "evidence": [
+          "skal klassificeres som overvåget, hvis en arbejdstager som følge af planlagte bestrålingssituationer"
+        ]
+      },
+      {
+        "text": "Kontrolleret også ved risiko for utilsigtet bestråling eller væsentlig forurening",
+        "importance": "okay",
+        "evidence": [
+          "hvis der er væsentlig risiko for strålebeskyttelsesmæssig betydende forurening af området eller omgivelserne"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bek-stråling-dosisbinding-arbejdstagere",
+    "question": "Hvilken dosisbinding skal virksomheden benytte for sine øvrige arbejdstagere, og hvilken for enkeltpersoner i befolkningen?",
+    "topics": [
+      "occupational",
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 12: 0,3 mSv pr. år for virksomhedens øvrige arbejdstagere; § 11: 0,1 mSv pr. år for enkeltpersoner i befolkningen.",
+    "nuggets": [
+      {
+        "text": "0,3 mSv pr. år for virksomhedens øvrige arbejdstagere",
+        "importance": "vital",
+        "evidence": [
+          "dosisbinding for effektiv dosis på 0,3 mSv pr. år til virksomhedens øvrige arbejdstagere"
+        ]
+      },
+      {
+        "text": "0,1 mSv pr. år for enkeltpersoner i befolkningen",
+        "importance": "vital",
+        "evidence": [
+          "dosisbinding for effektiv dosis på 0,1 mSv pr. år til enkeltpersoner i befolkningen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-transport-package-surface-dose-rate",
+    "question": "According to the IAEA transport regulations, what is the maximum dose rate on the external surface of a package that is not transported under exclusive use?",
+    "topics": [
+      "transport"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "SSR-6 para. 527: 2 mSv/h at any point on the external surface (with the listed exclusive-use exceptions); under exclusive use up to 10 mSv/h (para. 528). The TI of a package not under exclusive use may not exceed 10 (para. 526).",
+    "nuggets": [
+      {
+        "text": "2 mSv/h at any point on the external surface",
+        "importance": "vital",
+        "evidence": [
+          "external surface of a package or overpack shall not exceed 2 mSv/h"
+        ]
+      },
+      {
+        "text": "Under exclusive use up to 10 mSv/h",
+        "importance": "okay",
+        "evidence": [
+          "external surface of a package or overpack under exclusive use shall not exceed 10 mSv/h"
+        ]
+      },
+      {
+        "text": "The transport index may not exceed 10 unless under exclusive use",
+        "importance": "okay",
+        "evidence": [
+          "the TI of any package or overpack shall not exceed 10"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-fee-open-sources-amount",
+    "question": "Hvor mange kroner udgør Sundhedsstyrelsens årlige gebyr for en tilladelse til brug af åbne radioaktive kilder?",
+    "topics": [
+      "research",
+      "medical"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "refuse",
+    "expected_answer": "Kilderne nævner, at der opkræves et årligt gebyr efter bekendtgørelse nr. 1111/2019, men ikke beløbet. Et godt svar siger det og henviser til sis.dk."
+  },
+  {
+    "id": "out-of-scope-mri-sar",
+    "question": "What is the specific absorption rate (SAR) limit for a patient in a 3 T MRI scanner?",
+    "topics": [
+      "medical"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "refuse",
+    "expected_answer": "MRI uses non-ionising radiation; neither the IAEA standards nor the Danish orders on ionising radiation in the corpus give SAR limits."
+  },
+  {
+    "id": "out-of-scope-laser-class",
+    "question": "Which laser classes require a laser safety officer in Denmark?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "refuse",
+    "expected_answer": "Laser safety is not covered by the Danish orders on ionising radiation or the IAEA standards in the corpus."
+  },
+  {
+    "id": "out-of-scope-power-line-fields",
+    "question": "What is the exposure limit for 50 Hz magnetic fields from overhead power lines for members of the public?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "both",
+    "expected_behavior": "refuse",
+    "expected_answer": "Extremely low frequency fields are non-ionising radiation and not covered by the corpus."
   }
 ]
