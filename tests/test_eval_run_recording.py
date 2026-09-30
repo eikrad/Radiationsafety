@@ -685,3 +685,59 @@ def test_a_warning_shown_with_an_answer_is_counted(monkeypatch, workspace):
     [run] = load_runs(workspace.history)
     assert _results(run)["dk-dose-limits"]["metrics"]["warning_shown"] == 1.0
     assert run["summary"]["warning_shown_mean"] == 1.0
+
+
+# --- Regrading: the sufficiency grader alone, on a saved run's retrievals ------
+
+
+@pytest.fixture
+def regrade(monkeypatch, workspace):
+    """A saved full run, then a grader that calls anything mentioning bilag 2 sufficient."""
+    _run(monkeypatch, workspace)
+    [run] = load_runs(workspace.history)
+    seen = []
+
+    def fake_grader(question, documents, llm):
+        seen.append((question, [d.page_content for d in documents]))
+        return any("bilag 2" in d.page_content for d in documents)
+
+    def must_not_run(*_, **__):
+        raise AssertionError("regrading neither answers nor judges")
+
+    monkeypatch.setattr(run_eval, "_grade_sufficient", fake_grader)
+    monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
+    monkeypatch.setattr(run_eval, "judge_item", must_not_run)
+    return SimpleNamespace(run_id=run["run_id"], seen=seen)
+
+
+def test_regrading_scores_the_grader_on_the_saved_first_retrievals(
+    monkeypatch, workspace, regrade
+):
+    assert _run(monkeypatch, workspace, "--regrade", regrade.run_id) == 0
+
+    run = load_runs(workspace.history)[-1]
+    results = _results(run)
+    assert run["config"]["grader_only"] is True
+    assert run["regraded_from"] == regrade.run_id
+    assert results["dk-dose-limits"]["metrics"]["grade_documents_correct"] == 1.0
+    # the annex was retrieved for the transport question too: "sufficient" is wrong
+    assert results["iaea-transport-index"]["metrics"]["grade_documents_correct"] == 0.0
+    assert results["out-of-scope-mri"]["metrics"]["grade_documents_correct"] == 0.0
+
+
+def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
+    monkeypatch, workspace, regrade
+):
+    """Labelled insufficient cases (#129): the same retrieval without its evidence chunks."""
+    _run(monkeypatch, workspace, "--regrade", regrade.run_id)
+
+    run = load_runs(workspace.history)[-1]
+    dk = _results(run)["dk-dose-limits"]["metrics"]
+    assert dk["grade_documents_ablation_correct"] == 1.0
+    assert ("Hvor findes dosisgrænserne?", []) in regrade.seen
+    # only retrievals that held all their evidence can be ablated
+    assert (
+        "grade_documents_ablation_correct"
+        not in _results(run)["iaea-transport-index"]["metrics"]
+    )
+    assert run["summary"]["grade_documents_ablation_correct_mean"] == 1.0

@@ -603,3 +603,16 @@ def test_retrieval_runs_without_ranks_fall_back_to_nothing_to_compare():
 
     assert comparison["basis"] == "pass/fail"
     assert comparison["regressions"] == comparison["improvements"] == []
+
+
+def test_a_grader_only_run_is_not_compared_with_a_full_run_as_like_for_like():
+    runs = [
+        _run("20260916_094008", ALL_PASS),
+        _run("20260925_101500", ALL_PASS, config={**CONFIG, "grader_only": True}),
+    ]
+
+    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
+        "previous"
+    ]
+
+    assert comparison["verdict"] == "Not directly comparable: grader only"
