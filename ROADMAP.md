@@ -107,6 +107,28 @@ Still deferred: re-ranking (only if MRR shows evidence ranked low), HyDE,
 propositions / sentence-level indexing, eRAG as a routine metric (about 430
 extra calls per run).
 
+**Baseline E0 (2026-09-30, golden set v2, 39 questions, BGE embeddings,
+`gemma-4` answers, `qwen3.8-27b` judge).**
+
+- Retrieval is deterministic: two retrieval-only runs agree on every
+  question, and the deep list's top 3 matches the graph's retrieval everywhere.
+- Evidence recall @1 0.53, @3 0.88, @5 0.92, @10 0.94, @20 0.97; MRR 0.72.
+  All 6 retrieval misses are Danish law, and 5 of them have the evidence at
+  rank 4-13: a ranking problem more than a recall problem. Every IAEA
+  question passes.
+- The jurisdiction trap works: the English question on the Danish limits
+  for 16-18-year-olds misses its evidence (rank 5).
+- Pass rate 74 % and 77 % on identical runs: 3 of 39 questions flip
+  between runs (all on "unsupported claim"), so differences under about
+  3 questions in a full run are judge noise.
+- `grade_documents` is right on 64-67 %: it flags 8-9 of 29 sufficient
+  retrievals and passes 5 of 10 insufficient ones (#129).
+- 13-15 % of answers show "could not be fully verified", with only local
+  sources (#136). 3 of 4 refusals are right; the power-line question is
+  answered anyway.
+- Danish evidence sits at context position 4-5, behind the IAEA chunks
+  (#132).
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
