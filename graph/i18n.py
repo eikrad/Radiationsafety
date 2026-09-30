@@ -54,9 +54,9 @@ WARNING_NOT_VERIFIED_AFTER_WEB: dict[str, str] = {
 
 # Answer not fully verified against the provided trusted sources (no web search involved).
 WARNING_NOT_VERIFIED_TRUSTED_ONLY: dict[str, str] = {
-    "en": "The answer could not be fully verified against the provided trusted sources.",
-    "de": "Die Antwort konnte nicht vollständig gegen die bereitgestellten vertrauenswürdigen Quellen bestätigt werden.",
-    "da": "Svaret kunne ikke fuldt ud verificeres mod de angivne pålidelige kilder.",
+    "en": "An automatic check could not match every statement in this answer to the retrieved sources. Check the cited passages before relying on it.",
+    "de": "Eine automatische Prüfung konnte nicht jede Aussage dieser Antwort den gefundenen Quellen zuordnen. Prüfen Sie die zitierten Stellen, bevor Sie sich darauf verlassen.",
+    "da": "En automatisk kontrol kunne ikke finde belæg for alle udsagn i svaret i de fundne kilder. Tjek de citerede passager, før du bruger svaret.",
 }
 
 # Embeddings not built yet. Retrieval always uses Gemini; hint tells user to run ingestion with GOOGLE_API_KEY.

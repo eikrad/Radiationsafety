@@ -5,7 +5,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from graph.chains.generation import get_generation_chain
-from graph.consts import CONTEXT_SEPARATOR
+from graph.chains.truncate import format_context
 from graph.llm_factory import get_llm
 from graph.state import GraphState
 from graph.utils import throttle_llm_if_needed
@@ -21,17 +21,6 @@ def _format_chat_history(history: list[tuple[str, str]]) -> str:
     return "\n\n".join(lines) + "\n\n" if lines else ""
 
 
-def _format_document(doc: Any) -> str:
-    """Format one document with its source so the model can use and cite it (especially web results)."""
-    meta = getattr(doc, "metadata", {}) or {}
-    source = meta.get("source", "retrieved")
-    dtype = meta.get("document_type", "")
-    label = source
-    if dtype:
-        label = f"{source} ({dtype})"
-    return f"[Source: {label}]\n{doc.page_content}"
-
-
 def generate(state: GraphState, config: RunnableConfig | None = None) -> dict[str, Any]:
     """Generate answer from documents, question, and optional chat history."""
     question = state["question"]
@@ -42,20 +31,7 @@ def generate(state: GraphState, config: RunnableConfig | None = None) -> dict[st
     throttle_llm_if_needed()
     chain = get_generation_chain(llm)
 
-    context = ""
-    if documents:
-        # Put web results first so the model sees them before long document chunks
-        ordered = sorted(
-            documents,
-            key=lambda d: (
-                (
-                    0
-                    if (getattr(d, "metadata", {}) or {}).get("document_type") == "web"
-                    else 1
-                ),
-            ),
-        )
-        context = CONTEXT_SEPARATOR.join(_format_document(d) for d in ordered)
+    context = format_context(documents) if documents else ""
 
     chat_history_str = _format_chat_history(chat_history)
     generation = chain.invoke(
