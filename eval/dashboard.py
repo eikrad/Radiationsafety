@@ -194,17 +194,43 @@ def _judge(run: dict) -> tuple | None:
     )
 
 
+def _ranks_evidence(run: dict) -> bool:
+    """A retrieval-only run with rank metrics: nothing passes or fails, but
+    each question's evidence has a rank that can move."""
+    return bool((run.get("config") or {}).get("retrieval_only")) and any(
+        "reciprocal_rank" in r.get("metrics", {}) for r in run.get("results", [])
+    )
+
+
+def _direction(before: dict, after: dict, by_rank: bool) -> int | None:
+    """+1 improved, -1 regressed, 0 same; None if there is nothing to compare.
+
+    Full runs: pass/fail flips. Retrieval-only runs: the reciprocal rank of the
+    evidence, which moves far more often than recall@k flips, so the sign test
+    has more questions to work with on the same golden set.
+    """
+    if by_rank:
+        rr = (
+            before["metrics"].get("reciprocal_rank"),
+            after["metrics"].get("reciprocal_rank"),
+        )
+        if None in rr:
+            return None
+        return (rr[1] > rr[0]) - (rr[1] < rr[0])
+    # pass None = the judge could not score it; that is no evidence either way
+    if before.get("pass") is None or after.get("pass") is None:
+        return None
+    return int(bool(after["pass"])) - int(bool(before["pass"]))
+
+
 def compare_runs(base: dict, run: dict) -> dict:
     """How `run` differs from `base`: flipped questions, score and setting changes."""
     base_results = {r["id"]: r for r in base.get("results", [])}
+    by_rank = _ranks_evidence(base) and _ranks_evidence(run)
     regressions, improvements, changed, unjudged = [], [], [], []
     for result in run.get("results", []):
         before = base_results.get(result["id"])
         if before is None:
-            continue
-        # pass None = the judge could not score it; that is no evidence either way
-        if before.get("pass") is None or result.get("pass") is None:
-            unjudged.append(result["id"])
             continue
         entry = {
             "id": result["id"],
@@ -212,9 +238,18 @@ def compare_runs(base: dict, run: dict) -> dict:
             "before": before.get("metrics", {}),
             "after": result.get("metrics", {}),
         }
-        if before.get("pass") and not result.get("pass"):
+        direction = _direction(
+            {**before, "metrics": entry["before"]},
+            {**result, "metrics": entry["after"]},
+            by_rank,
+        )
+        if direction is None:
+            if not by_rank:
+                unjudged.append(result["id"])
+            continue
+        if direction < 0:
             regressions.append(entry)
-        elif not before.get("pass") and result.get("pass"):
+        elif direction > 0:
             improvements.append(entry)
         elif entry["before"] != entry["after"]:
             changed.append(entry)
@@ -233,18 +268,26 @@ def compare_runs(base: dict, run: dict) -> dict:
         if (r.get("git") or {}).get("dirty"):
             warnings.append(f"run {r['run_id']} had uncommitted changes")
 
+    if reasons:
+        # Across a scoring or grading-target change, flips reflect the new
+        # rules as much as the system, so no regression/improvement verdict.
+        verdict = f"Not directly comparable: {', '.join(reasons)}"
+    elif by_rank:
+        verdict = (
+            f"Evidence ranked higher for {_plural(len(improvements), 'question')}, "
+            f"lower for {_plural(len(regressions), 'question')}"
+        )
+    else:
+        verdict = (
+            f"{_plural(len(regressions), 'regression')}, "
+            f"{_plural(len(improvements), 'improvement')}"
+        )
     return {
         "base_run_id": base["run_id"],
         "run_id": run["run_id"],
         "comparable": not reasons,
-        # Across a scoring or grading-target change, pass/fail flips reflect the
-        # new rules as much as the system, so no regression/improvement verdict.
-        "verdict": (
-            f"Not directly comparable: {', '.join(reasons)}"
-            if reasons
-            else f"{_plural(len(regressions), 'regression')}, "
-            f"{_plural(len(improvements), 'improvement')}"
-        ),
+        "basis": "evidence rank" if by_rank else "pass/fail",
+        "verdict": verdict,
         "regressions": regressions,
         "improvements": improvements,
         "changed": changed,

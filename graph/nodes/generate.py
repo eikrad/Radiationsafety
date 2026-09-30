@@ -5,6 +5,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from graph.chains.generation import get_generation_chain
+from graph.consts import CONTEXT_SEPARATOR
 from graph.llm_factory import get_llm
 from graph.state import GraphState
 from graph.utils import throttle_llm_if_needed
@@ -54,7 +55,7 @@ def generate(state: GraphState, config: RunnableConfig | None = None) -> dict[st
                 ),
             ),
         )
-        context = "\n\n---\n\n".join(_format_document(d) for d in ordered)
+        context = CONTEXT_SEPARATOR.join(_format_document(d) for d in ordered)
 
     chat_history_str = _format_chat_history(chat_history)
     generation = chain.invoke(

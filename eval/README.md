@@ -27,20 +27,52 @@ The harness uses your `.env` for the LLMs (no API keys in golden data). Ensure i
 | `--history-file PATH` | Run history to append to (default: `eval/history/runs.jsonl`) |
 | `--no-history` | Do not record the run (e.g. quick debugging runs) |
 | `--rescore RUN_ID` | Judge and score a saved run again (see [Re-scoring](#re-scoring)) without running the graph |
-| `--retrieval-only` | Score only the first retrieval (see [Comparing embeddings](#comparing-embeddings)): no answer model, no judge |
+| `--retrieval-only` | Score only retrieval (see [Comparing retrieval settings](#comparing-retrieval-settings)): no answer model, no judge |
+| `--depth K` | Retrieval-only: chunks retrieved per collection for the rank metrics (default 20) |
+| `--char-budget CHARS` | Retrieval-only: characters per collection for `evidence_recall_budget` (default 7500, about what k=3 passes on today) |
+| `--allow-dirty` | Record the run although tracked files have uncommitted changes (it is then marked dirty) |
 
 **Rate limits:** by default the runner waits **5 s** after each graph run and **20 s** between items so eval stays under typical free-tier limits. Set the env vars above or use `--delay-after-graph 0 --delay-between-items 0` to disable delays.
 
-## Comparing embeddings
+## Comparing retrieval settings
 
 ```bash
 EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL=qwen3-embedding-8b LLM_PROVIDER=scaleway \
   uv run python -m eval.run_eval --retrieval-only --label emb-qwen3
 ```
 
-Runs the graph's first retrieval for every answerable question and scores **evidence recall** only: no answer model, no judge, so a comparison takes seconds, costs only the query embeddings and carries no judge noise. The metric is the same `evidence_recall_initial` as in a full run; there is no pass rate. The run records the embedding model and whether questions carried the model's instruction (`EMBED_QUERY_INSTRUCTION=false` measures the instruction's effect without re-ingestion). A retrieval-only run refuses to start when `LLM_PROVIDER=ollama` would override `EMBEDDING_PROVIDER`.
+Retrieves for every answerable question and scores retrieval only: no answer model, no judge, so a comparison takes seconds, costs only the query embeddings and carries no judge noise. There is no pass rate.
+
+- `evidence_recall_initial` is the graph's own first retrieval (k=3 per collection, merged), the same metric as in a full run.
+- A second, deeper retrieval (`--depth`, default 20 per collection) goes through the same retrievers. From that one ranked list come:
+  - `evidence_recall_at_1/3/5/10/20`: share of vital nuggets whose evidence is in the top k of its collection;
+  - `reciprocal_rank` per question (1/rank of the first chunk holding each vital nugget's evidence, 0 if not retrieved, averaged over the vital nuggets; its mean is MRR);
+  - `evidence_recall_budget`: recall when each collection may pass on only `--char-budget` characters, chunks counted in rank order. Chunkings with longer chunks retrieve more text at equal k and win for that reason alone; the budget compares them at equal text (Dense X, Chen et al. 2024).
+
+  A `k` or budget experiment therefore needs no extra run. Ranks are per collection, because the generator gets every collection's list in full.
+- A self-check compares the deep list's top k with the graph's retrieval and lists disagreeing questions (`top_k_mismatches`); there recall@3 would not describe the graph.
+
+The run records the embedding model, whether questions carried the model's instruction (`EMBED_QUERY_INSTRUCTION=false` measures the instruction's effect without re-ingestion), `retrieval_depth`, `char_budget` and the search index fingerprint. A retrieval-only run refuses to start when `LLM_PROVIDER=ollama` would override `EMBEDDING_PROVIDER`.
+
+**Comparing two retrieval-only runs** in the dashboard counts questions whose evidence ranked higher or lower (reciprocal rank), not pass/fail flips, with the same sign test. Ranks move far more often than recall@3 flips, so the test has more questions to work with on the same golden set.
 
 Build the collections for a new embedding model first with `EMBEDDING_PROVIDER=… uv run python ingestion.py --reembed-from gemini`: it embeds the existing chunks, so every model is compared on identical chunks and the golden evidence quotes stay valid.
+
+### Pooling: passages the golden set does not list yet
+
+A variant can retrieve a valid passage that is not among a nugget's evidence quotes; it then scores a miss, and comparisons favour the retriever the labels were made with (BEIR, Thakur et al. 2021). After comparing variants:
+
+```bash
+uv run python -m eval.pool RUN_ID_A RUN_ID_B --k 5
+```
+
+writes `eval/reports/pool_<time>.md`: for questions where a run missed the evidence, the chunks in its top k that no quote covers, with the rank each run gave them. Read them, add the shortest distinguishing verbatim span of each valid passage to that nugget's `evidence`, commit, and re-score each run without retrieving again:
+
+```bash
+uv run python -m eval.run_eval --rescore RUN_ID_A
+```
+
+No LLM decides relevance here: LLM relevance labels agree with people on system rankings but miss relevant passages (Thomas et al. 2024), and a rejected passage would silently stay a miss.
 
 ## Environment
 
@@ -76,6 +108,14 @@ Build the collections for a new embedding model first with `EMBEDDING_PROVIDER=�
 
 `run_eval` validates the file and lists every problem at once (unknown topic, vital nugget without evidence, refuse item with nuggets, the v1 `key_facts` format, …).
 
+Check the evidence quotes against the chunks actually in the search index, after editing the golden set and after any re-chunking:
+
+```bash
+uv run python -m eval.golden --check-index
+```
+
+A vital nugget none of whose quotes is in any chunk is an error: its evidence can never be found (misquoted, or split across a chunk boundary). An alternative quote in no chunk, and a quote in more than three chunks (too unspecific to tell the right passage apart), are warnings.
+
 ## Scoring
 
 Per question the judge answers two narrow questions, and everything else is derived without tokens (`eval/scoring.py`):
@@ -97,6 +137,8 @@ Two focused calls rather than one combined prompt: in GroUSE (Muller et al. 2024
 | **Evidence in 1st retrieval / in context** | Share of vital nuggets whose evidence quote is in the first retrieval / in the generator's context (after `retrieve_missing`). Deterministic, no tokens. |
 | **Answers with unsupported claim** | 1 if the answer contains any claim the context does not support. Lower is better. |
 | **Sufficiency grader right** | Whether `grade_documents` judged the first retrieval correctly, measured against the evidence (CRAG, Yan et al. 2024, found prompted relevance judges much weaker than they look). |
+| **Evidence position in context** (`evidence_position`) | Which chunk of the generator context (1 = first) first holds each vital nugget's evidence, averaged over the nuggets found. Position can matter as much as presence (Lost in the Middle, Liu et al. 2024); it tells a position effect from a generator error. |
+| **Answers with a warning** (`warning_shown`) | 1 if the answer carried a warning for the user, e.g. "could not be fully verified". Lower is better. |
 
 Metrics that do not apply (e.g. vital recall of a refuse item) are left out rather than counted as 0. Each question also gets an **error type** that says whether retrieval or generation failed:
 
@@ -136,7 +178,7 @@ Reports, outputs and the dashboard are gitignored; the history is committed so r
 uv run python -m eval.run_eval --rescore 20260926_101500
 ```
 
-Judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning.
+Retrieval-only runs are re-scored from their saved ranked lists, without retrieving or judging (see [Pooling](#pooling-passages-the-golden-set-does-not-list-yet)). For full runs: judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning.
 
 ## Run history
 
@@ -144,12 +186,12 @@ Every finished run records what it tested, so a score change can be traced to a 
 
 | Field | Contents |
 |--------|--------|
-| `git` | commit, branch, and whether tracked files had uncommitted changes (captured at the start of the run) |
-| `config` | answer, judge and embedding models; whether the judge is the answering model; `retriever_k`; web search; `metrics_version`; a fingerprint of each `graph/chains/*.py` prompt module |
-| `dataset` | `questions_hash` (ids + questions: runs with the same value are comparable), `content_hash` (also expected answers and nuggets: changes when grading targets change), `n_items` |
+| `git` | commit, branch, and whether tracked files had uncommitted changes (captured at the start of the run; the run history itself does not count) |
+| `config` | answer, judge and embedding models; whether the judge is the answering model; `retriever_k`; web search; `metrics_version`; a fingerprint of each `graph/chains/*.py` prompt module; `index`: per collection the number of chunks and a hash of their texts (independent of chunk ids, so re-embedded identical chunks match and any re-chunking shows) |
+| `dataset` | `questions_hash` (ids + questions: runs with the same value are comparable), `content_hash` (also expected answers, expected behaviour and nuggets with their evidence quotes: changes when grading targets change, e.g. a pooled quote is added), `n_items` |
 | `results` | per question: pass, error type, metrics, tags; generated answers stay in the local report |
 
-A `--limit` run gets its own `questions_hash`, so it never mixes into full-set trends. A run that crashes records nothing.
+A `--limit` run gets its own `questions_hash`, so it never mixes into full-set trends. A run that crashes records nothing. A run on uncommitted tracked files is not recorded unless `--allow-dirty` is given, since its commit would not say what ran; `--no-history` debug runs are always allowed.
 
 Backfill older reports (they have no header, so settings show as "not recorded"):
 

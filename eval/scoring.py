@@ -16,6 +16,15 @@ derived here without tokens:
 - context_utilization: of the vital nuggets evidenced in the context, how many
   the answer used (RAGChecker, Ru et al. 2024). This is a generator-side diagnostic.
 - error_type: why a question failed, attributed to retrieval or generation.
+- evidence_position: which chunk of the generator context first holds each
+  vital nugget's evidence (Lost in the Middle, Liu et al. 2024: position can
+  matter as much as presence).
+- warning_shown: whether the answer carried a warning for the user.
+
+Rank-based retrieval metrics (retrieval-only runs, which retrieve deeper than
+the graph): evidence_recall_at_<k>, evidence_recall_budget (equal amount of
+text, so chunkings with different chunk lengths compare fairly; Dense X, Chen
+et al. 2024) and reciprocal_rank (its mean is MRR).
 """
 
 import re
@@ -24,11 +33,16 @@ from collections.abc import Iterable
 
 from langchain_core.documents import Document
 
+from graph.consts import CONTEXT_SEPARATOR
+
 # Bump when a metric's definition changes; the dashboard then marks runs on
 # either side as not directly comparable. 1 = RAGAS-style binary metrics
 # (eval/metrics.py, removed; see git history), 2 = evidence + nugget scoring
 # defined in this module.
 METRICS_VERSION = 2
+
+# Depths at which retrieval-only runs report evidence recall.
+RECALL_DEPTHS = (1, 3, 5, 10, 20)
 
 SUPPORT = "support"
 PARTIAL = "partial_support"
@@ -104,6 +118,10 @@ def score_item(item: dict, output: dict, verdict: dict | None) -> dict:
         "context_utilization": None,
         "unsupported_claims": None,
         "refused": None,
+        "evidence_position": _evidence_position(
+            [nuggets[i] for i in vital], output.get("context") or ""
+        ),
+        "warning_shown": bool(output.get("retrieval_warning")),
     }
     if verdict is None:
         return {**scores, "error_type": "judge_error", "pass": None}
@@ -178,3 +196,90 @@ def _grader_correct(
         return None
     truly_sufficient = answerable and all(in_initial.values())
     return sufficient == truly_sufficient
+
+
+def _evidence_position(vital_nuggets: list[dict], context: str) -> float | None:
+    """Mean 1-based position of the first context chunk holding each vital
+    nugget's evidence, over the nuggets whose evidence is in the context."""
+    chunks = context.split(CONTEXT_SEPARATOR) if context else []
+    positions = [
+        next(
+            (p for p, chunk in enumerate(chunks, 1) if evidence_found(quotes, [chunk])),
+            None,
+        )
+        for quotes in (n["evidence"] for n in vital_nuggets)
+    ]
+    found = [p for p in positions if p is not None]
+    return sum(found) / len(found) if found else None
+
+
+def evidence_ranks(
+    item: dict, ranked: dict[str, list[Document | str]]
+) -> list[int | None]:
+    """For each vital nugget, the 1-based rank of the first chunk holding its
+    evidence, within the collection where it ranks best; None if not retrieved.
+
+    ranked: each collection's retrieval in rank order. Ranks are per collection
+    because the generator receives every collection's list in full.
+    """
+    ranks = []
+    for nugget in item.get("nuggets") or []:
+        if nugget["importance"] != "vital":
+            continue
+        found = [
+            next(
+                (
+                    r
+                    for r, text in enumerate(_texts(docs), 1)
+                    if evidence_found(nugget["evidence"], [text])
+                ),
+                None,
+            )
+            for docs in ranked.values()
+        ]
+        hits = [r for r in found if r is not None]
+        ranks.append(min(hits) if hits else None)
+    return ranks
+
+
+def ranking_metrics(
+    item: dict,
+    ranked: dict[str, list[Document | str]],
+    *,
+    depth: int,
+    char_budget: int | None,
+) -> dict[str, float]:
+    """Rank-based evidence metrics for one question; {} if it has no vital nugget.
+
+    depth: how many chunks per collection were retrieved; recall is reported
+    for the RECALL_DEPTHS up to it. char_budget: characters per collection;
+    chunks count in rank order while the running total fits.
+    """
+    ranks = evidence_ranks(item, ranked)
+    if not ranks:
+        return {}
+    metrics = {
+        f"evidence_recall_at_{k}": _share([r is not None and r <= k for r in ranks])
+        for k in RECALL_DEPTHS
+        if k <= depth
+    }
+    metrics["reciprocal_rank"] = sum(1 / r if r else 0.0 for r in ranks) / len(ranks)
+    if char_budget is not None:
+        within = {
+            name: _within_budget(docs, char_budget) for name, docs in ranked.items()
+        }
+        metrics["evidence_recall_budget"] = _share(
+            [r is not None for r in evidence_ranks(item, within)]
+        )
+    return metrics
+
+
+def _within_budget(docs: list[Document | str], char_budget: int) -> list[str]:
+    """The rank-order prefix of docs whose total length fits in char_budget."""
+    kept, total = [], 0
+    for text in _texts(docs):
+        total += len(text)
+        if total > char_budget:
+            break
+        kept.append(text)
+    return kept

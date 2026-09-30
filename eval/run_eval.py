@@ -31,7 +31,13 @@ from eval.history import (
     load_runs,
 )
 from eval.judge import judge_item
-from eval.scoring import METRICS_VERSION, score_item
+from eval.scoring import (
+    METRICS_VERSION,
+    RECALL_DEPTHS,
+    evidence_ranks,
+    ranking_metrics,
+    score_item,
+)
 from graph.llm_factory import DEFAULT_PROVIDER
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -49,6 +55,13 @@ _DEFAULT_DELAY_BETWEEN_ITEMS_SEC = 20.0  # between items to stay under RPM
 # once; three groundedness votes (stopping once two agree) steady the verdict.
 _DEFAULT_JUDGE_VOTES = 3
 
+# Retrieval-only runs retrieve this many chunks per collection and derive
+# recall@k for every smaller k from the one ranked list.
+_DEFAULT_RETRIEVAL_DEPTH = 20
+# Characters per collection for evidence_recall_budget: about what the graph
+# passes on today (k=3 chunks of up to 2500 characters).
+_DEFAULT_CHAR_BUDGET = 7500
+
 # Per-question scores that go into the report, history and dashboard. None
 # (not applicable, e.g. vital recall of a refusal question) is left out.
 NUMERIC_METRICS = (
@@ -61,6 +74,12 @@ NUMERIC_METRICS = (
     "context_utilization",
     "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
     "grade_documents_correct",
+    "evidence_position",  # context chunk holding the evidence (1 = first)
+    "warning_shown",  # 1 if the answer carried a warning: lower is better
+    # retrieval-only runs
+    *(f"evidence_recall_at_{k}" for k in RECALL_DEPTHS),
+    "evidence_recall_budget",
+    "reciprocal_rank",  # its mean is MRR
 )
 
 
@@ -133,6 +152,28 @@ def _retrieve_initial(question: str, embedding_provider: str) -> list:
     return out.get("documents") or []
 
 
+def _retrieve_ranked(
+    question: str, embedding_provider: str, depth: int
+) -> dict[str, list]:
+    """Each collection's retrieval in rank order, `depth` chunks deep, through
+    the same retrievers the graph uses."""
+    from graph.nodes.retrieval_common import invoke_dual_retrievers
+
+    iaea, dk = invoke_dual_retrievers(
+        embedding_provider=embedding_provider, query=question, config=None, k=depth
+    )
+    return {"iaea": iaea, "dk": dk}
+
+
+def _top_k_matches(initial: list, ranked: dict[str, list], k: int) -> bool:
+    """Whether the graph's retrieval equals the top k of the deep lists, merged
+    the way the graph merges them (so recall@k means what the graph sees)."""
+    from graph.nodes.retrieval_common import make_doc_key, merge_unique_documents
+
+    merged, _ = merge_unique_documents([], ranked["iaea"][:k] + ranked["dk"][:k])
+    return [make_doc_key(d) for d in merged] == [make_doc_key(d) for d in initial]
+
+
 def _embedding_config() -> dict:
     """Which embeddings retrieve, and whether questions carry the model's instruction."""
     from graph.llm_factory import (
@@ -149,6 +190,17 @@ def _embedding_config() -> dict:
         "embedding_query_instruction": provider == "scaleway"
         and query_instruction_template(model) is not None,
     }
+
+
+def _index_config(embedding_provider: str) -> dict:
+    """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
+    import ingestion
+
+    try:
+        return {"index": ingestion.index_fingerprint(embedding_provider)}
+    except Exception as err:  # a missing store must not stop the run
+        print(f"Warning: search index not fingerprinted: {err}", file=sys.stderr)
+        return {"index": None}
 
 
 def _model_name(llm) -> str:
@@ -325,7 +377,8 @@ def _run_eval(
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
             **judge_info,
-            **_embedding_config(),
+            **(embedding := _embedding_config()),
+            **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
             "web_search": env_bool("WEB_SEARCH_ENABLED"),
             "metrics_version": METRICS_VERSION,
@@ -355,13 +408,18 @@ def _run_eval(
 
 
 def _run_retrieval_only(
-    golden: list[dict], output_dir: Path, run_id: str
+    golden: list[dict],
+    output_dir: Path,
+    run_id: str,
+    depth: int = _DEFAULT_RETRIEVAL_DEPTH,
+    char_budget: int = _DEFAULT_CHAR_BUDGET,
 ) -> tuple[dict, list[dict], dict]:
-    """Score only the first retrieval: evidence recall, no answer, no judge.
+    """Score only retrieval: evidence recall and ranks, no answer, no judge.
 
     For comparing embeddings and retrieval settings cheaply and without judge
-    noise. evidence_recall_initial means the same as in a full run; there is
-    no pass rate, since nothing was answered.
+    noise. evidence_recall_initial is the graph's own first retrieval, as in
+    a full run; the rank metrics come from a deeper retrieval through the same
+    retrievers. There is no pass rate, since nothing was answered.
     """
     from ingestion import RETRIEVER_K
 
@@ -371,29 +429,65 @@ def _run_retrieval_only(
         "config": {
             "retrieval_only": True,
             **embedding,
+            **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
+            "retrieval_depth": depth,
+            "char_budget": char_budget,
             "metrics_version": METRICS_VERSION,
         },
     }
     print(
         f"Eval (retrieval only): embeddings = {embedding['embedding_model']}, "
-        f"query instruction {'on' if embedding['embedding_query_instruction'] else 'off'}",
+        f"query instruction {'on' if embedding['embedding_query_instruction'] else 'off'}, "
+        f"depth {depth}",
         file=sys.stderr,
     )
-    outputs, results = {}, []
+    outputs = {}
     for item in golden:
         # refusal questions have no evidence to find: nothing to retrieve for
-        documents = (
-            _invoke_with_retry(
-                _retrieve_initial, item["question"], embedding["embedding_provider"]
-            )
-            if item.get("nuggets")
-            else []
-        )
-        outputs[item["id"]] = {"initial_documents": documents}
-        recall = score_item(item, {"initial_documents": documents}, None)[
+        if not item.get("nuggets"):
+            outputs[item["id"]] = {"initial_documents": []}
+            continue
+        provider = embedding["embedding_provider"]
+        ranked = _invoke_with_retry(_retrieve_ranked, item["question"], provider, depth)
+        outputs[item["id"]] = {
+            "initial_documents": _invoke_with_retry(
+                _retrieve_initial, item["question"], provider
+            ),
+            "ranked_iaea": ranked["iaea"],
+            "ranked_dk": ranked["dk"],
+        }
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
+    return (*_score_retrieval(golden, outputs, header["config"]), header)
+
+
+def _score_retrieval(
+    golden: list[dict], outputs: dict[str, dict], config: dict
+) -> tuple[dict, list[dict]]:
+    """Score saved retrieval-only outputs; also used to re-score after the
+    golden evidence changed (pooling), without retrieving again."""
+    depth, budget = config.get("retrieval_depth"), config.get("char_budget")
+    k = config.get("retriever_k")
+    results, mismatches = [], []
+    for item in golden:
+        run = outputs[item["id"]]
+        initial = run.get("initial_documents") or []
+        metrics = {}
+        recall = score_item(item, {"initial_documents": initial}, None)[
             "evidence_recall_initial"
         ]
+        if recall is not None:
+            metrics["evidence_recall_initial"] = recall
+        result = {}
+        if "ranked_dk" in run and depth:
+            ranked = {"iaea": run.get("ranked_iaea") or [], "dk": run["ranked_dk"]}
+            metrics.update(
+                ranking_metrics(item, ranked, depth=depth, char_budget=budget)
+            )
+            result["evidence_ranks"] = evidence_ranks(item, ranked)
+            # below k the deep list is shorter than the graph's; nothing to check
+            if k and depth >= k and not _top_k_matches(initial, ranked, k):
+                mismatches.append(item["id"])
         results.append(
             {
                 "id": item["id"],
@@ -406,9 +500,8 @@ def _run_retrieval_only(
                 "error_type": None,
                 "refused": None,
                 "unsupported_claims": None,
-                "metrics": (
-                    {"evidence_recall_initial": recall} if recall is not None else {}
-                ),
+                "metrics": metrics,
+                **result,
                 "generation_preview": "",
                 "retrieval_warning": None,
                 "web_search_attempted": False,
@@ -416,8 +509,17 @@ def _run_retrieval_only(
                 "judge": None,
             }
         )
-    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
-    return summarize(results), results, header
+    summary = summarize(results)
+    if depth:
+        summary["top_k_mismatches"] = mismatches
+    if mismatches:
+        print(
+            f"Warning: for {len(mismatches)} question(s) the deep retrieval's top {k} "
+            f"differs from the graph's retrieval, so recall@{k} does not describe "
+            f"the graph there: {', '.join(mismatches)}",
+            file=sys.stderr,
+        )
+    return summary, results
 
 
 def _rescore(
@@ -449,6 +551,16 @@ def _rescore(
             print(
                 f"Warning: {item['id']}: not in the saved run, skipped", file=sys.stderr
             )
+
+    if config.get("retrieval_only"):
+        summary, results = _score_retrieval(saved, outputs, config)
+        header = {
+            "git": original.get("git"),
+            "dataset": dataset_fingerprint(saved),
+            "config": {**config, "metrics_version": METRICS_VERSION},
+            "rescored_from": run_id,
+        }
+        return summary, results, header
 
     from graph.llm_factory import get_llm
 
@@ -564,7 +676,12 @@ def _markdown_header_lines(header: dict) -> list[str]:
         f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
         models,
         f"**Retrieval:** k={config.get('retriever_k')} per collection,"
-        f" web search {'on' if config.get('web_search') else 'off'}",
+        + (
+            f" ranked {config['retrieval_depth']} deep, text budget "
+            f"{config.get('char_budget')} characters per collection"
+            if config.get("retrieval_depth")
+            else f" web search {'on' if config.get('web_search') else 'off'}"
+        ),
         f"**Questions:** {dataset.get('n_items')} (set {dataset.get('questions_hash')})",
         "",
     ]
@@ -638,12 +755,34 @@ def main() -> int:
         help="Do not record this run in the history",
     )
     parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Record the run although tracked files have uncommitted changes "
+        "(the commit then does not say what ran)",
+    )
+    parser.add_argument(
         "--retrieval-only",
         action="store_true",
         help=(
             "Score only the first retrieval (evidence recall) with the configured "
             "embeddings; no answer model, no judge. For comparing embeddings."
         ),
+    )
+    parser.add_argument(
+        "--depth",
+        type=int,
+        default=_DEFAULT_RETRIEVAL_DEPTH,
+        metavar="K",
+        help=f"Retrieval-only: chunks retrieved per collection for the rank metrics "
+        f"(default {_DEFAULT_RETRIEVAL_DEPTH})",
+    )
+    parser.add_argument(
+        "--char-budget",
+        type=int,
+        default=_DEFAULT_CHAR_BUDGET,
+        metavar="CHARS",
+        help=f"Retrieval-only: characters per collection for evidence_recall_budget "
+        f"(default {_DEFAULT_CHAR_BUDGET})",
     )
     parser.add_argument(
         "--rescore",
@@ -681,6 +820,16 @@ def main() -> int:
             "EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC
         )
     )
+    # Before the run: describes the code that ran, not edits made while it ran.
+    git = git_info()
+    if git.get("dirty") and not (args.allow_dirty or args.no_history or args.rescore):
+        print(
+            "Tracked files have uncommitted changes, so the commit would not say "
+            "what this run tested. Commit first, or pass --allow-dirty (recorded "
+            "as dirty) or --no-history.",
+            file=sys.stderr,
+        )
+        return 1
     started = time.monotonic()
     run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     if args.rescore:
@@ -702,15 +851,16 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-        git = git_info()
         summary, results, header = _run_retrieval_only(
-            golden, output_dir=args.output_dir, run_id=run_id
+            golden,
+            output_dir=args.output_dir,
+            run_id=run_id,
+            depth=args.depth,
+            char_budget=args.char_budget,
         )
         header = {"git": git, **header}
         label = args.label
     else:
-        # Before the run: describes the code that ran, not edits made while it ran.
-        git = git_info()
         summary, results, header = _run_eval(
             golden,
             no_web_search=args.no_web_search,

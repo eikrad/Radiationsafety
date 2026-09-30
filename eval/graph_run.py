@@ -19,7 +19,8 @@ from langchain_core.documents import Document
 
 from graph.consts import GRADE_DOCUMENTS, RETRIEVE
 
-_DOCUMENT_FIELDS = ("initial_documents", "documents")
+# ranked_*: retrieval-only runs, each collection's deep retrieval in rank order
+_DOCUMENT_FIELDS = ("initial_documents", "documents", "ranked_iaea", "ranked_dk")
 
 
 def run_graph(

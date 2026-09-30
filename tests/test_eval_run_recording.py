@@ -11,6 +11,7 @@ from eval.graph_run import load_outputs
 from eval.history import load_runs
 
 ANNEX_2 = "For erhvervsmæssig bestråling gælder dosisgrænserne i bilag 2."
+FILLER = "Unrelated chunk about packaging."
 
 GOLDEN = [
     {
@@ -94,6 +95,15 @@ def workspace(tmp_path, monkeypatch):
 
     monkeypatch.setattr(run_eval, "_invoke_graph", fake_graph)
     monkeypatch.setattr(run_eval, "judge_item", fake_judge)
+    monkeypatch.setattr(
+        run_eval,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "staging", "dirty": False},
+    )
+    monkeypatch.setattr(
+        "ingestion.index_fingerprint",
+        lambda ep: {"radiation-dk-law": {"chunks": 2, "content_hash": "c0ffee"}},
+    )
     monkeypatch.setattr(
         "graph.llm_factory.get_llm",
         lambda provider=None, model_variant=None, **_: SimpleNamespace(
@@ -416,17 +426,26 @@ def test_questions_added_after_the_run_are_skipped_when_rescoring(
 
 @pytest.fixture
 def retrieval_only(monkeypatch, workspace):
-    """First retrieval returns the Danish annex for every question."""
+    """Every question retrieves the Danish annex, ranked second in its collection."""
     asked = []
 
     def fake_retrieve(question, embedding_provider):
         asked.append((question, embedding_provider))
-        return [Document(page_content=ANNEX_2)]
+        # the graph's top 3 per collection, merged and deduplicated
+        return [Document(page_content=FILLER), Document(page_content=ANNEX_2)]
 
     def must_not_run(*_, **__):
         raise AssertionError("retrieval-only runs neither answer nor judge")
 
+    def fake_ranked(question, embedding_provider, depth):
+        return {
+            "iaea": [Document(page_content=FILLER)] * depth,
+            "dk": [Document(page_content=FILLER), Document(page_content=ANNEX_2)]
+            + [Document(page_content=FILLER)] * (depth - 2),
+        }
+
     monkeypatch.setattr(run_eval, "_retrieve_initial", fake_retrieve)
+    monkeypatch.setattr(run_eval, "_retrieve_ranked", fake_ranked)
     monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
     monkeypatch.setattr(run_eval, "judge_item", must_not_run)
     return SimpleNamespace(asked=asked)
@@ -439,10 +458,8 @@ def test_a_retrieval_only_run_scores_the_first_retrieval_without_answering_or_ju
 
     [run] = load_runs(workspace.history)
     results = _results(run)
-    assert results["dk-dose-limits"]["metrics"] == {"evidence_recall_initial": 1.0}
-    assert results["iaea-transport-index"]["metrics"] == {
-        "evidence_recall_initial": 0.0
-    }
+    assert results["dk-dose-limits"]["metrics"]["evidence_recall_initial"] == 1.0
+    assert results["iaea-transport-index"]["metrics"]["evidence_recall_initial"] == 0.0
     # the refusal question has no evidence to find
     assert results["out-of-scope-mri"]["metrics"] == {}
     assert run["summary"]["evidence_recall_initial_mean"] == 0.5
@@ -491,3 +508,149 @@ def test_a_retrieval_only_run_refuses_when_privacy_mode_overrides_the_embeddings
     assert "LLM_PROVIDER=ollama" in capsys.readouterr().err
     assert retrieval_only.asked == []
     assert load_runs(workspace.history) == []
+
+
+def test_a_retrieval_only_run_ranks_the_evidence_in_a_deeper_retrieval(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only", "--depth", "5")
+
+    [run] = load_runs(workspace.history)
+    metrics = _results(run)["dk-dose-limits"]["metrics"]
+    assert metrics["evidence_recall_at_1"] == 0.0
+    assert metrics["evidence_recall_at_3"] == 1.0
+    assert metrics["evidence_recall_at_5"] == 1.0
+    assert "evidence_recall_at_10" not in metrics
+    assert metrics["reciprocal_rank"] == 0.5
+    assert run["summary"]["reciprocal_rank_mean"] == 0.25  # transport: not found
+    assert _results(run)["dk-dose-limits"]["evidence_ranks"] == [2]
+
+
+def test_recall_at_a_text_budget_uses_the_budget_given(
+    monkeypatch, workspace, retrieval_only
+):
+    one_filler = str(len(FILLER))  # the annex, ranked second, does not fit
+    _run(monkeypatch, workspace, "--retrieval-only", "--char-budget", one_filler)
+
+    [run] = load_runs(workspace.history)
+    assert _results(run)["dk-dose-limits"]["metrics"]["evidence_recall_budget"] == 0.0
+    assert run["config"]["char_budget"] == len(FILLER)
+    assert run["config"]["retrieval_depth"] == 20
+
+
+def test_a_retrieval_only_run_keeps_the_ranked_lists_for_rescoring(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only", "--depth", "3")
+
+    [run] = load_runs(workspace.history)
+    [outputs_file] = workspace.reports.glob("outputs_*.json")
+    saved = load_outputs(outputs_file)["dk-dose-limits"]
+    assert [d.page_content for d in saved["ranked_dk"]] == [FILLER, ANNEX_2, FILLER]
+    assert len(saved["ranked_iaea"]) == 3
+
+
+def test_a_deep_retrieval_that_disagrees_with_the_graph_is_reported(
+    monkeypatch, workspace, retrieval_only, capsys
+):
+    """Recall@3 from the deep list must mean what the graph retrieves at k=3."""
+    monkeypatch.setattr(
+        run_eval,
+        "_retrieve_initial",
+        lambda question, embedding_provider: [Document(page_content="other chunk")],
+    )
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    [run] = load_runs(workspace.history)
+    assert run["summary"]["top_k_mismatches"] == [
+        "dk-dose-limits",
+        "iaea-transport-index",
+    ]
+    assert "top 3 differs from the graph" in capsys.readouterr().err
+
+
+def test_a_retrieval_only_run_can_be_rescored_after_evidence_was_added(
+    monkeypatch, workspace, retrieval_only
+):
+    """Pooling: a newly confirmed quote counts without retrieving again."""
+    _run(monkeypatch, workspace, "--retrieval-only")
+    [first] = load_runs(workspace.history)
+
+    golden = json.loads(workspace.golden.read_text(encoding="utf-8"))
+    golden[1]["nuggets"][0]["evidence"].append("unrelated chunk about packaging")
+    workspace.golden.write_text(json.dumps(golden), encoding="utf-8")
+
+    def must_not_retrieve(*_, **__):
+        raise AssertionError("rescoring reuses the saved retrieval")
+
+    monkeypatch.setattr(run_eval, "_retrieve_initial", must_not_retrieve)
+    monkeypatch.setattr(run_eval, "_retrieve_ranked", must_not_retrieve)
+    assert _run(monkeypatch, workspace, "--rescore", first["run_id"]) == 0
+
+    rescored = load_runs(workspace.history)[-1]
+    assert rescored["config"]["retrieval_only"] is True
+    assert rescored["rescored_from"] == first["run_id"]
+    transport = _results(rescored)["iaea-transport-index"]["metrics"]
+    assert transport["evidence_recall_at_1"] == 1.0
+
+
+# --- Guards: what a recorded run can be trusted to describe -------------------
+
+
+def test_a_run_records_the_search_index_it_retrieved_from(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["index"] == {
+        "radiation-dk-law": {"chunks": 2, "content_hash": "c0ffee"}
+    }
+
+
+def test_a_retrieval_only_run_records_the_search_index_too(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["index"]["radiation-dk-law"]["chunks"] == 2
+
+
+@pytest.fixture
+def dirty(monkeypatch):
+    monkeypatch.setattr(
+        run_eval,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "staging", "dirty": True},
+    )
+
+
+def test_a_run_on_uncommitted_code_is_not_recorded_by_default(
+    monkeypatch, workspace, dirty, capsys
+):
+    assert _run(monkeypatch, workspace) == 1
+    assert "uncommitted changes" in capsys.readouterr().err
+    assert load_runs(workspace.history) == []
+
+
+def test_a_run_on_uncommitted_code_can_be_recorded_on_purpose(
+    monkeypatch, workspace, dirty
+):
+    assert _run(monkeypatch, workspace, "--allow-dirty") == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["git"]["dirty"] is True
+
+
+def test_a_debugging_run_without_history_may_use_uncommitted_code(
+    monkeypatch, workspace, dirty
+):
+    assert _run(monkeypatch, workspace, "--no-history") == 0
+
+
+def test_a_retrieval_shallower_than_the_graphs_is_not_flagged_as_disagreeing(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only", "--depth", "2")
+
+    [run] = load_runs(workspace.history)
+    assert run["summary"]["top_k_mismatches"] == []

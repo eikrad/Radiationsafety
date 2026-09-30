@@ -42,10 +42,16 @@ def invoke_dual_retrievers(
     query: str,
     config: RunnableConfig | None,
     map_error: Callable[[Exception], Exception] | None = None,
+    k: int | None = None,
 ) -> tuple[list[Document], list[Document]]:
-    """Invoke IAEA and DK retrievers in parallel and return both result lists."""
+    """Invoke IAEA and DK retrievers in parallel and return both result lists.
+
+    k: chunks per collection; default the retrievers' own (RETRIEVER_K). Eval
+    retrieves deeper through this same path, so it measures what the graph does.
+    """
     iaea_retriever, dk_retriever = get_retrievers(embedding_provider)
     cfg = config or {}
+    search = {"k": k} if k is not None else {}
 
     def _invoke_safe(fn):
         try:
@@ -57,9 +63,13 @@ def invoke_dual_retrievers(
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         fut_iaea = executor.submit(
-            lambda: _invoke_safe(lambda: iaea_retriever.invoke(query, config=cfg))
+            lambda: _invoke_safe(
+                lambda: iaea_retriever.invoke(query, config=cfg, **search)
+            )
         )
         fut_dk = executor.submit(
-            lambda: _invoke_safe(lambda: dk_retriever.invoke(query, config=cfg))
+            lambda: _invoke_safe(
+                lambda: dk_retriever.invoke(query, config=cfg, **search)
+            )
         )
         return fut_iaea.result(), fut_dk.result()
