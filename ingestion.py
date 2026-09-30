@@ -5,6 +5,7 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 (3) IAEA and direct PDFs from document_sources.yaml URLs.
 """
 
+import hashlib
 import os
 import re
 import shutil
@@ -862,6 +863,41 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
         return True, ""
     except Exception:
         return False, default_msg
+
+
+def load_chunk_texts(embedding_provider: str) -> dict[str, list[str] | None]:
+    """The chunk texts of both collections for this provider, in storage order;
+    None for a collection that does not exist."""
+    import chromadb
+
+    client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
+    texts: dict[str, list[str] | None] = {}
+    for name in get_collection_names(embedding_provider):
+        try:
+            stored = client.get_collection(name).get(include=["documents"])
+        except Exception:
+            texts[name] = None
+            continue
+        texts[name] = [t or "" for t in stored["documents"]]
+    return texts
+
+
+def index_fingerprint(embedding_provider: str) -> dict[str, dict | None]:
+    """Per collection, the number of chunks and a hash of their texts.
+
+    Independent of chunk ids and storage order, so the same chunks embedded by
+    another model (reembed_from) fingerprint the same, and any re-chunking or
+    re-ingestion that changes a chunk shows up.
+    """
+    fingerprint: dict[str, dict | None] = {}
+    for name, texts in load_chunk_texts(embedding_provider).items():
+        if texts is None:
+            fingerprint[name] = None
+            continue
+        digests = sorted(hashlib.sha256(t.encode("utf-8")).hexdigest() for t in texts)
+        content = hashlib.sha256("".join(digests).encode("ascii")).hexdigest()
+        fingerprint[name] = {"chunks": len(texts), "content_hash": content[:12]}
+    return fingerprint
 
 
 def add_single_pdf_to_collection(

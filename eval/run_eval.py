@@ -192,6 +192,17 @@ def _embedding_config() -> dict:
     }
 
 
+def _index_config(embedding_provider: str) -> dict:
+    """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
+    import ingestion
+
+    try:
+        return {"index": ingestion.index_fingerprint(embedding_provider)}
+    except Exception as err:  # a missing store must not stop the run
+        print(f"Warning: search index not fingerprinted: {err}", file=sys.stderr)
+        return {"index": None}
+
+
 def _model_name(llm) -> str:
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
@@ -366,7 +377,8 @@ def _run_eval(
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
             **judge_info,
-            **_embedding_config(),
+            **(embedding := _embedding_config()),
+            **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
             "web_search": env_bool("WEB_SEARCH_ENABLED"),
             "metrics_version": METRICS_VERSION,
@@ -417,6 +429,7 @@ def _run_retrieval_only(
         "config": {
             "retrieval_only": True,
             **embedding,
+            **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
             "retrieval_depth": depth,
             "char_budget": char_budget,
@@ -741,6 +754,12 @@ def main() -> int:
         help="Do not record this run in the history",
     )
     parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Record the run although tracked files have uncommitted changes "
+        "(the commit then does not say what ran)",
+    )
+    parser.add_argument(
         "--retrieval-only",
         action="store_true",
         help=(
@@ -800,6 +819,16 @@ def main() -> int:
             "EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC
         )
     )
+    # Before the run: describes the code that ran, not edits made while it ran.
+    git = git_info()
+    if git.get("dirty") and not (args.allow_dirty or args.no_history or args.rescore):
+        print(
+            "Tracked files have uncommitted changes, so the commit would not say "
+            "what this run tested. Commit first, or pass --allow-dirty (recorded "
+            "as dirty) or --no-history.",
+            file=sys.stderr,
+        )
+        return 1
     started = time.monotonic()
     run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     if args.rescore:
@@ -821,7 +850,6 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 1
-        git = git_info()
         summary, results, header = _run_retrieval_only(
             golden,
             output_dir=args.output_dir,
@@ -832,8 +860,6 @@ def main() -> int:
         header = {"git": git, **header}
         label = args.label
     else:
-        # Before the run: describes the code that ran, not edits made while it ran.
-        git = git_info()
         summary, results, header = _run_eval(
             golden,
             no_web_search=args.no_web_search,

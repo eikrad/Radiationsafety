@@ -20,6 +20,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HISTORY_PATH = _PROJECT_ROOT / "eval" / "history" / "runs.jsonl"
 _CHAINS_DIR = _PROJECT_ROOT / "graph" / "chains"
 SCHEMA_VERSION = 1
+_HISTORY_PATHSPEC = ":(exclude)eval/history"
 
 
 def _sha256_short(obj) -> str:
@@ -31,13 +32,21 @@ def dataset_fingerprint(items: list[dict]) -> dict:
     """Fingerprint the golden items actually run.
 
     questions_hash: ids + questions only; runs with equal value are comparable.
-    content_hash: also covers expected answers and key facts, so it changes when
-    grading targets change even though the questions stay the same.
+    content_hash: also covers expected answers, expected behaviour and nuggets
+    with their evidence quotes, so it changes when grading targets change (e.g. a
+    pooled quote is added) even though the questions stay the same.
     Tags (topics, language, source) are left out: retagging keeps runs comparable.
     """
     questions = [[i.get("id", ""), i["question"]] for i in items]
     content = [
-        [i.get("id", ""), i["question"], i.get("expected_answer"), i.get("key_facts")]
+        [
+            i.get("id", ""),
+            i["question"],
+            i.get("expected_answer"),
+            i.get("key_facts"),  # v1
+            i.get("expected_behavior"),
+            i.get("nuggets"),  # v2: nugget texts, importance and evidence quotes
+        ]
         for i in items
     ]
     return {
@@ -150,7 +159,16 @@ def _git(repo: Path, *args: str) -> str | None:
 def git_info(repo: Path = _PROJECT_ROOT) -> dict:
     """Commit and branch the run used, and whether tracked files had uncommitted
     changes (then the commit alone does not say what ran). Nulls outside git."""
-    status = _git(repo, "status", "--porcelain", "--untracked-files=no")
+    # the committed run history changes with every recorded run; not code
+    status = _git(
+        repo,
+        "status",
+        "--porcelain",
+        "--untracked-files=no",
+        "--",
+        ".",
+        _HISTORY_PATHSPEC,
+    )
     return {
         "commit": _git(repo, "rev-parse", "--short", "HEAD"),
         "branch": _git(repo, "rev-parse", "--abbrev-ref", "HEAD"),

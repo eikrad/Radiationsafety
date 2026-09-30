@@ -96,6 +96,15 @@ def workspace(tmp_path, monkeypatch):
     monkeypatch.setattr(run_eval, "_invoke_graph", fake_graph)
     monkeypatch.setattr(run_eval, "judge_item", fake_judge)
     monkeypatch.setattr(
+        run_eval,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "staging", "dirty": False},
+    )
+    monkeypatch.setattr(
+        "ingestion.index_fingerprint",
+        lambda ep: {"radiation-dk-law": {"chunks": 2, "content_hash": "c0ffee"}},
+    )
+    monkeypatch.setattr(
         "graph.llm_factory.get_llm",
         lambda provider=None, model_variant=None, **_: SimpleNamespace(
             model=model_variant or f"{provider or 'gemini'}-model"
@@ -583,3 +592,56 @@ def test_a_retrieval_only_run_can_be_rescored_after_evidence_was_added(
     assert rescored["rescored_from"] == first["run_id"]
     transport = _results(rescored)["iaea-transport-index"]["metrics"]
     assert transport["evidence_recall_at_1"] == 1.0
+
+
+# --- Guards: what a recorded run can be trusted to describe -------------------
+
+
+def test_a_run_records_the_search_index_it_retrieved_from(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["index"] == {
+        "radiation-dk-law": {"chunks": 2, "content_hash": "c0ffee"}
+    }
+
+
+def test_a_retrieval_only_run_records_the_search_index_too(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["index"]["radiation-dk-law"]["chunks"] == 2
+
+
+@pytest.fixture
+def dirty(monkeypatch):
+    monkeypatch.setattr(
+        run_eval,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "staging", "dirty": True},
+    )
+
+
+def test_a_run_on_uncommitted_code_is_not_recorded_by_default(
+    monkeypatch, workspace, dirty, capsys
+):
+    assert _run(monkeypatch, workspace) == 1
+    assert "uncommitted changes" in capsys.readouterr().err
+    assert load_runs(workspace.history) == []
+
+
+def test_a_run_on_uncommitted_code_can_be_recorded_on_purpose(
+    monkeypatch, workspace, dirty
+):
+    assert _run(monkeypatch, workspace, "--allow-dirty") == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["git"]["dirty"] is True
+
+
+def test_a_debugging_run_without_history_may_use_uncommitted_code(
+    monkeypatch, workspace, dirty
+):
+    assert _run(monkeypatch, workspace, "--no-history") == 0

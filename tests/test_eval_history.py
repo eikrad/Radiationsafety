@@ -47,6 +47,36 @@ def test_changed_grading_targets_are_flagged_but_runs_stay_comparable():
     assert after["content_hash"] != before["content_hash"]
 
 
+NUGGET_ITEM = {
+    "id": "dose-limits",
+    "question": "Hvor findes dosisgrænserne?",
+    "expected_behavior": "answer",
+    "nuggets": [
+        {"text": "I bilag 2", "importance": "vital", "evidence": ["bilag 2"]},
+    ],
+}
+
+
+def test_adding_an_evidence_quote_changes_the_grading_targets():
+    """Pooling adds quotes; runs on either side score against different labels."""
+    pooled = json.loads(json.dumps(NUGGET_ITEM))
+    pooled["nuggets"][0]["evidence"].append("fremgår af bilag 2")
+
+    before, after = dataset_fingerprint([NUGGET_ITEM]), dataset_fingerprint([pooled])
+
+    assert after["questions_hash"] == before["questions_hash"]
+    assert after["content_hash"] != before["content_hash"]
+
+
+def test_changing_the_expected_behaviour_changes_the_grading_targets():
+    refuse = {**NUGGET_ITEM, "expected_behavior": "refuse", "nuggets": []}
+
+    assert (
+        dataset_fingerprint([refuse])["content_hash"]
+        != dataset_fingerprint([NUGGET_ITEM])["content_hash"]
+    )
+
+
 def test_retagging_topics_does_not_break_comparability():
     retagged = [dict(item) for item in GOLDEN]
     retagged[0]["topics"] = ["medical"]
@@ -175,6 +205,17 @@ def test_a_run_on_uncommitted_changes_is_marked_dirty(repo):
 
 def test_untracked_files_do_not_mark_a_run_dirty(repo):
     (repo / "notes.txt").write_text("scratch")
+
+    assert git_info(repo)["dirty"] is False
+
+
+def test_recording_a_run_in_the_history_does_not_mark_the_next_run_dirty(repo):
+    history = repo / "eval" / "history" / "runs.jsonl"
+    history.parent.mkdir(parents=True)
+    history.write_text("")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "history")
+    history.write_text('{"run_id": "1"}\n')
 
     assert git_info(repo)["dirty"] is False
 
