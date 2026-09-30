@@ -42,9 +42,12 @@ the graph. See `eval/README.md`.
 
 ### Next
 
-1. **Golden set v2**: 24 questions so far (13 Danish law, 11 IAEA across all
-   topics); grow to about 40, including English questions about Danish law and
-   a few questions the sources do not answer (`expected_behavior: refuse`).
+1. **Golden set v2** (drafted, in review): 39 questions. The 15 new ones add
+   7 English questions about Danish law, 2 pairs where the Danish rule and the
+   IAEA value differ (apprentices' eye lens 15 vs 20 mSv; fetus 1 mSv vs "same
+   protection as the public"), annex values and cross-references, and 4
+   questions the sources do not answer (`expected_behavior: refuse`), one of
+   them in-domain (the fee amount, which the sources mention but do not give).
    The judge is chosen: `qwen3.8-27b` on Scaleway (16/16 fixtures) with three
    groundedness votes.
 2. **Scaleway by default** (done): evidence recall on the 24 reviewed questions (retrieval
@@ -104,6 +107,28 @@ Still deferred: re-ranking (only if MRR shows evidence ranked low), HyDE,
 propositions / sentence-level indexing, eRAG as a routine metric (about 430
 extra calls per run).
 
+**Baseline E0 (2026-09-30, golden set v2, 39 questions, BGE embeddings,
+`gemma-4` answers, `qwen3.8-27b` judge).**
+
+- Retrieval is deterministic: two retrieval-only runs agree on every
+  question, and the deep list's top 3 matches the graph's retrieval everywhere.
+- Evidence recall @1 0.53, @3 0.88, @5 0.92, @10 0.94, @20 0.97; MRR 0.72.
+  All 6 retrieval misses are Danish law, and 5 of them have the evidence at
+  rank 4-13: a ranking problem more than a recall problem. Every IAEA
+  question passes.
+- The jurisdiction trap works: the English question on the Danish limits
+  for 16-18-year-olds misses its evidence (rank 5).
+- Pass rate 74 % and 77 % on identical runs: 3 of 39 questions flip
+  between runs (all on "unsupported claim"), so differences under about
+  3 questions in a full run are judge noise.
+- `grade_documents` is right on 64-67 %: it flags 8-9 of 29 sufficient
+  retrievals and passes 5 of 10 insufficient ones (#129).
+- 13-15 % of answers show "could not be fully verified", with only local
+  sources (#136). 3 of 4 refusals are right; the power-line question is
+  answered anyway.
+- Danish evidence sits at context position 4-5, behind the IAEA chunks
+  (#132).
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -114,8 +139,9 @@ the costly ones:
    compared by rank changes (more signal than recall@3 flips). Guards: index
    fingerprint, no recorded runs on uncommitted code, `golden --check-index`,
    pooling report for human-confirmed evidence (#133 without an LLM).
-2. **Golden set v2**: English questions about Danish law, questions to
-   refuse, harder questions (annex values, cross-references); then one
+2. **Golden set v2** (39 questions, in review): English questions about
+   Danish law, questions to refuse, harder questions (annex values,
+   cross-references); then one
    baseline (retrieval-only twice to confirm determinism, full run twice).
 3. **Graders see whole chunks** (#129, #136).
 4. **BM25 + RRF** behind a switch, off by default (#131); the Danish

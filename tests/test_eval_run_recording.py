@@ -654,3 +654,34 @@ def test_a_retrieval_shallower_than_the_graphs_is_not_flagged_as_disagreeing(
 
     [run] = load_runs(workspace.history)
     assert run["summary"]["top_k_mismatches"] == []
+
+
+def test_a_full_run_reports_progress_for_every_question(monkeypatch, workspace, capsys):
+    """A run of 39 questions with pauses takes a while; it must not look stuck."""
+    _run(monkeypatch, workspace)
+
+    err = capsys.readouterr().err
+    assert "3 questions" in err
+    assert "[1/3] answered dk-dose-limits" in err
+    assert "[3/3] answered out-of-scope-mri" in err
+    assert "[2/3] judged iaea-transport-index: retrieval_miss" in err
+
+
+def test_the_run_header_names_the_embeddings(monkeypatch, workspace, capsys):
+    _run(monkeypatch, workspace)
+
+    assert "embeddings = gemini/models/gemini-embedding-001" in capsys.readouterr().err
+
+
+def test_a_warning_shown_with_an_answer_is_counted(monkeypatch, workspace):
+    answered = run_eval._invoke_graph
+
+    def warned(question, graph, llm):
+        return {**answered(question, graph, llm), "retrieval_warning": "not verified"}
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", warned)
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert _results(run)["dk-dose-limits"]["metrics"]["warning_shown"] == 1.0
+    assert run["summary"]["warning_shown_mean"] == 1.0

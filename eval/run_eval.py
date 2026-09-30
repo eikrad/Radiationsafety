@@ -264,7 +264,7 @@ def score_outputs(
 ) -> list[dict]:
     """Judge and score every golden item from its saved graph output."""
     results = []
-    for item in golden:
+    for n, item in enumerate(golden, start=1):
         run = outputs[item["id"]]
         verdict = _invoke_with_retry(
             judge_item,
@@ -280,10 +280,15 @@ def score_outputs(
                 "initial_documents": run.get("initial_documents") or [],
                 "context": run.get("context_used_for_generation") or "",
                 "sufficient": run.get("sufficient"),
+                "retrieval_warning": run.get("retrieval_warning"),
             },
             verdict,
         )
         results.append(_result(item, run, scores, verdict))
+        print(
+            f"  [{n}/{len(golden)}] judged {item['id']}: {scores['error_type']}",
+            file=sys.stderr,
+        )
     return results
 
 
@@ -385,17 +390,29 @@ def _run_eval(
             "prompts": prompt_fingerprints(),
         },
     }
+    pauses = len(golden) * delay_after_graph_sec + max(len(golden) - 1, 0) * (
+        delay_between_items_sec
+    )
     print(
         f"Eval: answer model = {header['config']['llm_model']}, "
-        f"judge = {judge_info['judge_provider']}/{judge_info['judge_model']}",
+        f"judge = {judge_info['judge_provider']}/{judge_info['judge_model']}, "
+        f"embeddings = {embedding['embedding_provider']}/{embedding['embedding_model']}\n"
+        f"{len(golden)} questions; the rate-limit pauses alone take about "
+        f"{pauses / 60:.0f} min, plus model time",
         file=sys.stderr,
     )
     _warn_if_self_judged(judge_info)
 
     outputs: dict[str, dict] = {}
-    for item in golden:
+    for n, item in enumerate(golden, start=1):
+        started = time.monotonic()
         outputs[item["id"]] = _invoke_with_retry(
             _invoke_graph, item["question"], graph, graph_llm
+        )
+        print(
+            f"  [{n}/{len(golden)}] answered {item['id']} "
+            f"({time.monotonic() - started:.1f} s)",
+            file=sys.stderr,
         )
         if delay_after_graph_sec > 0:
             time.sleep(delay_after_graph_sec)
