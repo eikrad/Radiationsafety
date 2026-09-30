@@ -87,6 +87,11 @@ def build_run_record(
                 "error_type": r.get("error_type"),
                 "unsupported_claims": r.get("unsupported_claims"),
                 "metrics": r.get("metrics", {}),
+                **(
+                    {"evidence_ranks": r["evidence_ranks"]}
+                    if "evidence_ranks" in r
+                    else {}
+                ),
                 "web_search_attempted": r.get("web_search_attempted"),
                 "retrieval_warning": bool(r.get("retrieval_warning")),
             }
