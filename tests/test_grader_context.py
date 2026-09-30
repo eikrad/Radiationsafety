@@ -200,3 +200,20 @@ def test_the_groundedness_prompt_ignores_framing_and_disclaimers():
     from graph.chains.hallucinations_grader import system
 
     assert "disclaimer" in system.lower()
+
+
+def test_the_sufficiency_example_shows_the_reply_as_json():
+    """A model that ignores the tool call copies the example's format; it must be JSON
+    (a plain 'binary_score: no' line made the reply unparseable)."""
+    from graph.chains.context_sufficiency_grader import (
+        GradeSufficiency,
+        sufficiency_prompt,
+    )
+    from graph.llm_factory import _parse_text_reply
+
+    rendered = sufficiency_prompt.format_messages(question="q", context="c")[0].content
+    example = rendered[rendered.index("Example reply:") :]
+
+    parsed = _parse_text_reply(example, GradeSufficiency)
+    assert parsed.binary_score is False
+    assert "\nbinary_score:" not in rendered

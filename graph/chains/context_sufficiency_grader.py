@@ -33,22 +33,19 @@ class GradeSufficiency(BaseModel):
 # where a Danish rule applies (#129).
 system = """You are a grader deciding whether the retrieved context is SUFFICIENT to answer the user's question fully and correctly. Each context chunk starts with [Source: ... (Danish law | IAEA | web)].
 
-Work in three steps:
-1. needed: list the specific facts a complete answer needs (values, conditions, obligations, the paragraph or annex), and which rule governs: Danish law when the question is about Denmark or Danish rules, the IAEA standards when it names the IAEA, otherwise either.
-2. found: for each needed fact, name the chunk that states it, or write 'not found'.
-3. binary_score: 'yes' only if every needed fact is stated in the context by a source of the governing jurisdiction. Otherwise 'no'.
+Work in three steps and reply with one JSON object with the fields needed, found and binary_score:
+1. needed: the specific facts a complete answer needs (values, conditions, obligations, the paragraph or annex), and which rule governs: Danish law when the question is about Denmark or Danish rules, the IAEA standards when it names the IAEA, otherwise either.
+2. found: for each needed fact, the chunk that states it, or 'not found'.
+3. binary_score: true only if every needed fact is stated in the context by a source of the governing jurisdiction, otherwise false.
 
 Rules:
 - A value from the IAEA standards does NOT answer a question about Danish rules, even when it is plausible. Danish values, deadlines and conditions can differ, so the Danish rule itself must be in the context.
 - Judge the context, not your own knowledge: a fact you know but the context does not state is 'not found'.
 - A chunk that is on the topic but does not state the needed value or condition does not count.
 
-Example:
-Question: Under Danish rules, how long must records of a worker's doses be kept?
-Context: [Source: GSR Part 3 (IAEA)] ... records of occupational exposure ... shall be retained until the worker attains or would have attained the age of 75 years ...
-needed: the Danish retention period for dose records (Danish law governs)
-found: not found (only the IAEA rule is in the context)
-binary_score: no"""
+Example question: Under Danish rules, how long must records of a worker's doses be kept?
+Example context: [Source: GSR Part 3 (IAEA)] ... records of occupational exposure ... shall be retained until the worker attains or would have attained the age of 75 years ...
+Example reply: {{"needed": "the Danish retention period for dose records (Danish law governs)", "found": "not found: only the IAEA rule is in the context", "binary_score": false}}"""
 
 sufficiency_prompt = ChatPromptTemplate.from_messages(
     [
