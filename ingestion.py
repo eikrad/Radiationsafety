@@ -13,6 +13,7 @@ import signal
 import sys
 import tempfile
 import time
+import unicodedata
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -126,15 +127,17 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     return (IAEA_COLLECTION, DK_LAW_COLLECTION)
 
 
-def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
-    """Delete the two collections for the given embedding provider so the next from_documents recreates them."""
+def _clear_chroma_collections(
+    embedding_provider: str | None = None, names: list[str] | None = None
+) -> None:
+    """Delete the provider's collections (or only `names`) so ingestion recreates them."""
     ep = embedding_provider or get_embedding_provider()
-    iaea_name, dk_name = get_collection_names(ep)
+    names = names or list(get_collection_names(ep))
     try:
         import chromadb
 
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-        for name in (iaea_name, dk_name):
+        for name in names:
             try:
                 client.delete_collection(name)
             except Exception:
@@ -413,7 +416,9 @@ def _save_danish_current_and_trim_backups(
     rotate_backups(_BACKUP_DIR, source_id, keep=_MAX_BACKUPS_PER_SOURCE)
 
 
-def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
+def _load_docs_from_registry(
+    include_iaea: bool = True,
+) -> tuple[list[Document], list[Document]]:
     """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF.
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
@@ -475,6 +480,8 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
                     pass
             continue
         # IAEA or other: PDF — docling returns pre-chunked docs
+        if not include_iaea:
+            continue
         path, label = fetch_pdf_for_source(source_id, name, url, folder)
         if path is None:
             continue
@@ -599,20 +606,65 @@ def _extract_and_load_attachments(
     return all_docs
 
 
-def load_dk_law_docs():
+def law_title_key(title: str) -> str:
+    """A law's title reduced to lowercase letters and single spaces, so a PDF
+    title line ("Bekendtgørelse om strålingsgeneratorer1)") matches the XML
+    DocumentTitle."""
+    letters = re.sub(
+        r"[^a-zæøåäöüé]+", " ", unicodedata.normalize("NFC", title).casefold()
+    )
+    return re.sub(r"\s+", " ", letters).strip()
+
+
+def pdf_law_match(first_lines: list[str], law_keys: set[str]) -> str | None:
+    """The law key a PDF's title area names, if it is one of law_keys.
+
+    Only the first lines count: a guidance document that cites an order in its
+    body is not a copy of that order.
+    """
+    for line in first_lines:
+        key = law_title_key(line)
+        for law in law_keys:
+            if law and key.startswith(law):
+                return law
+    return None
+
+
+def _pdf_first_lines(pdf_path: Path, n: int = 3) -> list[str]:
+    """The first n non-empty lines of a PDF's first page."""
+    try:
+        text = PdfReader(str(pdf_path)).pages[0].extract_text() or ""
+    except Exception:
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip()][:n]
+
+
+def load_dk_law_docs(skip_law_keys: set[str] | frozenset[str] = frozenset()):
     """Load PDFs from Bekendtgørelse (Danish legislation) directory.
 
     Uses docling HybridChunker for PDF parsing and loads embedded PDF
     attachments (Anhänge) that often contain tables.
+
+    skip_law_keys: laws (law_title_key) already ingested from Retsinformation
+    XML. Their PDFs are skipped: the XML is the current version, and a PDF left
+    in the folder after an update would put an outdated version next to it.
     """
     dk_path = DOCS_DIR / "Bekendtgørelse"
     if not dk_path.exists():
         return []
     all_docs = []
-    pdf_files = list(dk_path.rglob("*.pdf"))
+    pdf_files = sorted(dk_path.rglob("*.pdf"))
     for pdf_path in tqdm(
         pdf_files, desc="Loading Danish PDFs", unit="file", disable=False
     ):
+        if skip_law_keys and pdf_law_match(
+            _pdf_first_lines(pdf_path), set(skip_law_keys)
+        ):
+            tqdm.write(
+                f"  Skipped {pdf_path.name}: this law is already ingested from "
+                "retsinformation.dk XML (one copy per law)"
+            )
+            continue
         try:
             docs = _load_pdf_with_docling(pdf_path)
             for d in docs:
@@ -759,12 +811,13 @@ def _add_documents_gemini_rate_limited(
                 time.sleep(delay_sec)
 
 
-def ingest():
+def ingest(dk_only: bool = False):
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
     PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
-    inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
-    (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
+    inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
+    copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
+    Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
     """
 
     def _signal_handler(signum, frame):
@@ -777,7 +830,7 @@ def ingest():
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
     print(f"📊 Using embedding provider: {ep}")
-    print(f"📦 Collections: {iaea_name}, {dk_name}\n")
+    print(f"📦 Collections: {dk_name if dk_only else f'{iaea_name}, {dk_name}'}\n")
 
     with tqdm(
         total=6,
@@ -786,12 +839,12 @@ def ingest():
         disable=False,
         position=0,
     ) as overall_progress:
-        _clear_chroma_collections(ep)
+        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
         embeddings = get_embeddings(ep)
         overall_progress.update(1)
 
         # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
-        iaea_from_url, dk_from_url = _load_docs_from_registry()
+        iaea_from_url, dk_from_url = _load_docs_from_registry(include_iaea=not dk_only)
         if iaea_from_url:
             tqdm.write(
                 f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)"
@@ -803,19 +856,23 @@ def ingest():
         overall_progress.update(1)
 
         # IAEA collection: local dirs + registry URLs — all pre-chunked
-        iaea_docs = load_iaea_docs()
-        iaea_docs.extend(iaea_from_url)
-        overall_progress.update(1)
+        if not dk_only:
+            iaea_docs = load_iaea_docs()
+            iaea_docs.extend(iaea_from_url)
+            if iaea_docs:
+                _add_documents_rate_limited(
+                    iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+                )
+                tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        overall_progress.update(2)
 
-        if iaea_docs:
-            _add_documents_rate_limited(
-                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
-            )
-            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
-        overall_progress.update(1)
-
-        # Danish law collection: local dirs + registry URLs — all pre-chunked
-        dk_docs = load_dk_law_docs()
+        # Danish law collection: registry XML + local PDFs not already read from XML
+        xml_laws = {
+            law_title_key(d.metadata["law_title"])
+            for d in dk_from_url
+            if d.metadata.get("law_title")
+        }
+        dk_docs = load_dk_law_docs(skip_law_keys=xml_laws)
         dk_docs.extend(dk_from_url)
         overall_progress.update(1)
 
@@ -1053,8 +1110,13 @@ if __name__ == "__main__":
         help="Copy the chunks of this provider's collections (e.g. gemini) and embed "
         "them with the configured EMBEDDING_PROVIDER instead of re-parsing the documents",
     )
+    parser.add_argument(
+        "--dk-only",
+        action="store_true",
+        help="Rebuild only the Danish law collection; the IAEA collection is kept",
+    )
     args = parser.parse_args()
     if args.reembed_from:
         reembed_from(args.reembed_from, target=reembed_target())
     else:
-        ingest()
+        ingest(dk_only=args.dk_only)
