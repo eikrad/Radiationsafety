@@ -129,6 +129,22 @@ extra calls per run).
 - Danish evidence sits at context position 4-5, behind the IAEA chunks
   (#132).
 
+**Phase 3a (2026-09-30): graders read whole chunks.** On the same 39
+questions:
+
+- `grade_documents` right 0.64-0.67 → 0.85 (full run) and 0.82 (`--regrade` on
+  the baseline's retrievals). Wrongly flagged sufficient retrievals dropped
+  from 8-9 to 1 of 29.
+- Still weak in the other direction: it passes 5 of 10 insufficient
+  retrievals, and with the evidence chunks removed it still says
+  "sufficient" for 15 of 29 (`grade_documents_ablation_correct` 0.48). Some
+  of those may be valid unlabelled passages that restate the fact.
+- Warnings on local-only answers 13-15 % → 0 % (#136). The trade-off: the
+  one answer the judge flags for an unsupported claim now gets no warning;
+  in the baseline the warning caught 1 such answer per run, along with 3-4
+  false alarms.
+- Pass rate 77 %, unchanged within judge noise.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
