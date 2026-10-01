@@ -455,3 +455,55 @@ def test_a_danish_only_rebuild_leaves_the_iaea_collection_alone(monkeypatch):
     assert calls.cleared == [[dk_name]]
     assert calls.iaea_loaded is False
     assert set(calls.added) == {dk_name}
+
+
+# --- backups only when the version changed ----------------------------------------
+
+
+def _danish_dirs(tmp_path, monkeypatch):
+    docs, backups = tmp_path / "documents", tmp_path / "backup"
+    monkeypatch.setattr(ingestion, "DOCS_DIR", docs)
+    monkeypatch.setattr(ingestion, "_BACKUP_DIR", backups)
+    return docs / "Bekendtgørelse", backups
+
+
+def test_saving_the_same_danish_version_again_makes_no_backup(tmp_path, monkeypatch):
+    current_dir, backups = _danish_dirs(tmp_path, monkeypatch)
+    fetched = _write_xml(tmp_path)
+    ingestion._save_danish_current_and_trim_backups("dk-stoffer", fetched)
+
+    ingestion._save_danish_current_and_trim_backups("dk-stoffer", fetched)
+
+    assert (current_dir / "dk-stoffer_current.xml").read_text(
+        encoding="utf-8"
+    ) == RETSINFO_XML
+    assert not backups.exists() or list(backups.iterdir()) == []
+
+
+def test_a_new_danish_version_keeps_the_previous_one_as_backup(tmp_path, monkeypatch):
+    current_dir, backups = _danish_dirs(tmp_path, monkeypatch)
+    ingestion._save_danish_current_and_trim_backups("dk-stoffer", _write_xml(tmp_path))
+    newer = tmp_path / "newer.xml"
+    newer.write_text(RETSINFO_XML.replace("1385", "1500"), encoding="utf-8")
+
+    ingestion._save_danish_current_and_trim_backups("dk-stoffer", newer)
+
+    assert "1500" in (current_dir / "dk-stoffer_current.xml").read_text(
+        encoding="utf-8"
+    )
+    [backup] = list(backups.iterdir())
+    assert "1385" in backup.read_text(encoding="utf-8")
+
+
+def test_a_pdf_is_backed_up_only_when_the_download_differs(tmp_path):
+    current, backups = tmp_path / "GSR-3.pdf", tmp_path / "backup"
+    current.write_bytes(b"%PDF v1")
+    same, newer = tmp_path / "same.pdf", tmp_path / "newer.pdf"
+    same.write_bytes(b"%PDF v1")
+    newer.write_bytes(b"%PDF v2")
+
+    ingestion._backup_previous(current, same, backups, "gsr-3", "pdf")
+    assert not backups.exists()
+
+    ingestion._backup_previous(current, newer, backups, "gsr-3", "pdf")
+    assert [p.read_bytes() for p in backups.iterdir()] == [b"%PDF v1"]

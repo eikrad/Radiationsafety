@@ -5,6 +5,7 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 (3) IAEA and direct PDFs from document_sources.yaml URLs.
 """
 
+import filecmp
 import hashlib
 import os
 import re
@@ -242,7 +243,6 @@ def _load_retsinformation_xml(xml_path: Path, source_label: str) -> list[Documen
 
 def download_update_for_source(source_id: str) -> tuple[bool, str]:
     """Download the new version for a source and backup the old one. Returns (success, message)."""
-    import time
 
     try:
         from document_updates import (
@@ -285,21 +285,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                 folder_path = DOCS_DIR / folder
                 folder_path.mkdir(parents=True, exist_ok=True)
                 current_path = get_local_pdf_path(source)
-                backup_dir = DOCS_DIR / "backup" / folder
-                if current_path and current_path.exists():
-                    backup_dir.mkdir(parents=True, exist_ok=True)
-                    stamp = time.strftime("%Y%m%d", time.gmtime())
-                    backup_path = backup_dir / f"{source_id}_{stamp}.pdf"
-                    try:
-                        shutil.copy2(str(current_path), str(backup_path))
-                    except OSError:
-                        pass
-                    rotate_backups(
-                        backup_dir,
-                        source_id,
-                        keep=_MAX_BACKUPS_PER_SOURCE,
-                        extension="pdf",
-                    )
+                _backup_previous(
+                    current_path, path, DOCS_DIR / "backup" / folder, source_id, "pdf"
+                )
                 dest = (
                     current_path if (current_path and current_path.exists()) else None
                 )
@@ -351,18 +339,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
             folder_path = DOCS_DIR / folder
             folder_path.mkdir(parents=True, exist_ok=True)
             current_path = get_local_pdf_path(source)
-            backup_dir = DOCS_DIR / "backup" / folder
-            if current_path and current_path.exists():
-                backup_dir.mkdir(parents=True, exist_ok=True)
-                stamp = time.strftime("%Y%m%d", time.gmtime())
-                backup_path = backup_dir / f"{source_id}_{stamp}.pdf"
-                try:
-                    shutil.copy2(str(current_path), str(backup_path))
-                except OSError:
-                    pass
-                rotate_backups(
-                    backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension="pdf"
-                )
+            _backup_previous(
+                current_path, path, DOCS_DIR / "backup" / folder, source_id, "pdf"
+            )
             dest = current_path if (current_path and current_path.exists()) else None
             if not dest:
                 safe_name = (source.filename_hint or f"{source_id}.pdf").strip()
@@ -385,6 +364,36 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
     return False, "Only Bekendtgørelse and IAEA/IAEA_other are supported"
 
 
+def _backup_previous(
+    current_path: Path | None,
+    new_path: Path,
+    backup_dir: Path,
+    source_id: str,
+    extension: str,
+) -> None:
+    """Keep the current file as a dated backup before it is replaced, unless the
+    download is byte-identical: re-fetching an unchanged version used to add a
+    duplicate backup on every ingestion."""
+    if not current_path or not current_path.exists():
+        return
+    try:
+        if filecmp.cmp(current_path, new_path, shallow=False):
+            return
+    except OSError:
+        pass
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d", time.gmtime(current_path.stat().st_mtime))
+    try:
+        shutil.copy2(
+            str(current_path), str(backup_dir / f"{source_id}_{stamp}.{extension}")
+        )
+    except OSError:
+        pass
+    rotate_backups(
+        backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension=extension
+    )
+
+
 def _save_danish_current_and_trim_backups(
     source_id: str, xml_path: Path, *, version_label: str | None = None
 ) -> None:
@@ -395,13 +404,7 @@ def _save_danish_current_and_trim_backups(
     current_dir.mkdir(parents=True, exist_ok=True)
     _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     current_file = current_dir / f"{source_id}_current.xml"
-    if current_file.exists():
-        stamp = time.strftime("%Y%m%d", time.gmtime(current_file.stat().st_mtime))
-        backup_path = _BACKUP_DIR / f"{source_id}_{stamp}.xml"
-        try:
-            current_file.rename(backup_path)
-        except OSError:
-            pass
+    _backup_previous(current_file, xml_path, _BACKUP_DIR, source_id, "xml")
     try:
         shutil.copy2(str(xml_path), str(current_file))
     except OSError:
@@ -413,7 +416,6 @@ def _save_danish_current_and_trim_backups(
             )
         except OSError:
             pass
-    rotate_backups(_BACKUP_DIR, source_id, keep=_MAX_BACKUPS_PER_SOURCE)
 
 
 def _load_docs_from_registry(
