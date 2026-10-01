@@ -143,31 +143,96 @@ def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
         pass
 
 
+_NO_SPACE_BEFORE = (",", ".", ";", ":", ")")
+
+
+def _xml_meta(root) -> dict[str, str]:
+    """The Retsinformation <Meta> fields (title, number, date, accession number)."""
+    meta = root.find(".//Meta")
+    if meta is None:
+        return {}
+    return {child.tag: (child.text or "").strip() for child in meta}
+
+
+def _render_xml(elem) -> list[str]:
+    """Text pieces of an element in document order, Meta left out.
+
+    Superscripts and subscripts are attached to the preceding text as ^ and _
+    (10^6, CTDI_vol): flattening them turns 1·10^6 Bq into "1·10 6" here, and
+    into "106" in the PDF text.
+    """
+    if elem.tag == "Meta":
+        return []
+    pieces: list[str] = []
+
+    def add(text: str | None, glue: str = "") -> None:
+        text = (text or "").strip()
+        if not text:
+            return
+        if pieces and (glue or text.startswith(_NO_SPACE_BEFORE)):
+            pieces[-1] += glue + text
+        else:
+            pieces.append(text)
+
+    add(elem.text)
+    for child in elem:
+        child_pieces = _render_xml(child)
+        if child_pieces:
+            add(child_pieces[0], _glue_of(child))
+            pieces.extend(child_pieces[1:])
+        add(child.tail)
+    return pieces
+
+
+def _glue_of(elem) -> str:
+    """How a Char attaches to the text before it: ^ superscript, _ subscript."""
+    form = elem.get("formaChar", "") if elem.tag == "Char" else ""
+    return "^" if "Superscript" in form else "_" if "Subscript" in form else ""
+
+
 def _xml_to_text(xml_path: Path) -> str:
-    """Extract plain text from Retsinformation XML (strip tags, normalize whitespace)."""
+    """Plain text of a Retsinformation XML law, headed by its title and number.
+
+    The <Meta> block (document type codes, signatures) is not law text and is
+    left out; the title line names the version, e.g.
+    "Bekendtgørelse om radioaktive stoffer (BEK nr 1385 af 18.11.2025)".
+    """
     try:
-        tree = ET.parse(str(xml_path))
-        root = tree.getroot()
+        root = ET.parse(str(xml_path)).getroot()
     except (ET.ParseError, OSError):
         return ""
-    parts: list[str] = []
-    for elem in root.iter():
-        if elem.text:
-            parts.append(elem.text)
-        if elem.tail:
-            parts.append(elem.tail)
-    text = "".join(parts)
+    body = " ".join(_render_xml(root))
+    title = _law_title_line(_xml_meta(root))
+    text = f"{title} {body}" if title else body
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _law_title_line(meta: dict[str, str]) -> str:
+    title = meta.get("DocumentTitle", "")
+    number, signed = meta.get("Number", ""), meta.get("DiesSigni", "")
+    if not title or not number:
+        return title
+    date = ".".join(reversed(signed.split("-"))) if signed else ""
+    return f"{title} (BEK nr {number}{' af ' + date if date else ''})"
+
+
 def _load_retsinformation_xml(xml_path: Path, source_label: str) -> list[Document]:
-    """Load Retsinformation XML into one or more Document(s). Single doc with full text."""
+    """Load Retsinformation XML into one Document with the law's title and id."""
     text = _xml_to_text(xml_path)
     if not text:
         return []
+    try:
+        meta = _xml_meta(ET.parse(str(xml_path)).getroot())
+    except (ET.ParseError, OSError):
+        meta = {}
     doc = Document(
         page_content=text,
-        metadata={"source": source_label, "document_type": "Danish law"},
+        metadata={
+            "source": source_label,
+            "document_type": "Danish law",
+            "law_title": meta.get("DocumentTitle", ""),
+            "doc_id": meta.get("AccessionNumber", ""),
+        },
     )
     return [doc]
 

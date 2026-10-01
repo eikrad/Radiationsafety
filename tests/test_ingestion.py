@@ -251,3 +251,70 @@ def test_reembedding_without_a_configured_target_refuses_to_guess(monkeypatch):
 
     with pytest.raises(ValueError, match="EMBEDDING_PROVIDER"):
         ingestion.reembed_target()
+
+
+# --- Danish law from Retsinformation XML -------------------------------------------
+
+RETSINFO_XML = """<?xml version="1.0" encoding="utf-8"?>
+<Dokument>
+  <Meta>
+    <DocumentType>BEK H#LOKDOK04</DocumentType>
+    <AccessionNumber>B20250138505</AccessionNumber>
+    <DocumentTitle>Bekendtgørelse om radioaktive stoffer</DocumentTitle>
+    <DiesSigni>2025-11-18</DiesSigni>
+    <Number>1385</Number>
+    <Signature>Jonas Egebart</Signature>
+  </Meta>
+  <Paragraf>
+    <Explicatus>§ 7.</Explicatus>
+    <Stk>
+      <Exitus>
+        <Linea>
+          <Char>For arealer, der er mindre end eller lig med 1 m</Char>
+          <Char formaChar="Superscript">2</Char>
+          <Char>, kan aktivitetskoncentrationen bestemmes som middelværdien.</Char>
+        </Linea>
+        <Linea>
+          <Char>Indeksværdien</Char>
+          <Char formaChar="Subscript">A</Char>
+          <Char>er højst 1 · 10</Char>
+          <Char formaChar="Superscript">6</Char>
+          <Char>Bq.</Char>
+        </Linea>
+      </Exitus>
+    </Stk>
+  </Paragraf>
+</Dokument>
+"""
+
+
+def _write_xml(tmp_path, text=RETSINFO_XML):
+    path = tmp_path / "dk-radioaktive-stoffer_current.xml"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_exponents_and_indices_in_danish_law_stay_readable(tmp_path):
+    """The PDF text turns 10^6 into "106"; the XML marks superscripts, so keep them."""
+    text = ingestion._xml_to_text(_write_xml(tmp_path))
+
+    assert "1 m^2, kan" in text or "1 m^2 , kan" in text
+    assert "1 · 10^6 Bq." in text
+    assert "Indeksværdien_A er" in text
+
+
+def test_the_xml_metadata_block_is_not_indexed_as_law_text(tmp_path):
+    text = ingestion._xml_to_text(_write_xml(tmp_path))
+
+    assert "H#LOKDOK04" not in text
+    assert "Jonas Egebart" not in text
+    assert text.startswith(
+        "Bekendtgørelse om radioaktive stoffer (BEK nr 1385 af 18.11.2025)"
+    )
+
+
+def test_xml_law_documents_name_their_law_and_version(tmp_path):
+    [doc] = ingestion._load_retsinformation_xml(_write_xml(tmp_path), "BEK nr 1385")
+
+    assert doc.metadata["law_title"] == "Bekendtgørelse om radioaktive stoffer"
+    assert doc.metadata["doc_id"] == "B20250138505"
