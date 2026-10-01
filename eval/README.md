@@ -26,6 +26,7 @@ The harness uses your `.env` for the LLMs (no API keys in golden data). Ensure i
 | `--notes TEXT` | Free-text notes on what the run tests |
 | `--history-file PATH` | Run history to append to (default: `eval/history/runs.jsonl`) |
 | `--no-history` | Do not record the run (e.g. quick debugging runs) |
+| `--regrade RUN_ID` | Run today's sufficiency grader on a saved run's first retrievals, plus each retrieval without its evidence (see [Checking the sufficiency grader](#checking-the-sufficiency-grader)); no answers, no judge |
 | `--rescore RUN_ID` | Judge and score a saved run again (see [Re-scoring](#re-scoring)) without running the graph |
 | `--retrieval-only` | Score only retrieval (see [Comparing retrieval settings](#comparing-retrieval-settings)): no answer model, no judge |
 | `--depth K` | Retrieval-only: chunks retrieved per collection for the rank metrics (default 20) |
@@ -136,6 +137,7 @@ Two focused calls rather than one combined prompt: in GroUSE (Muller et al. 2024
 | **Retrieved facts used** (`context_utilization`) | Of the vital facts whose evidence reached the generator, the share the answer used (RAGChecker, Ru et al. 2024). |
 | **Evidence in 1st retrieval / in context** | Share of vital nuggets whose evidence quote is in the first retrieval / in the generator's context (after `retrieve_missing`). Deterministic, no tokens. |
 | **Answers with unsupported claim** | 1 if the answer contains any claim the context does not support. Lower is better. |
+| **Grader right without the evidence** (`grade_documents_ablation_correct`, `--regrade` only) | The same first retrieval with its evidence chunks removed is judged insufficient. |
 | **Sufficiency grader right** | Whether `grade_documents` judged the first retrieval correctly, measured against the evidence (CRAG, Yan et al. 2024, found prompted relevance judges much weaker than they look). |
 | **Evidence position in context** (`evidence_position`) | Which chunk of the generator context (1 = first) first holds each vital nugget's evidence, averaged over the nuggets found. Position can matter as much as presence (Lost in the Middle, Liu et al. 2024); it tells a position effect from a generator error. |
 | **Answers with a warning** (`warning_shown`) | 1 if the answer carried a warning for the user, e.g. "could not be fully verified". Lower is better. |
@@ -153,6 +155,19 @@ Metrics that do not apply (e.g. vital recall of a refuse item) are left out rath
 | `judge_error` | the judge failed twice; the question is left out of the pass rate |
 
 Matching evidence quotes ignores case, whitespace, soft hyphens, zero-width characters (present in the Danish XML) and typographic dashes.
+
+## Checking the sufficiency grader
+
+```bash
+uv run python -m eval.run_eval --regrade RUN_ID --label grader-v2
+```
+
+Runs `grade_documents` as the graph does, on the first retrieval saved with a full run (`outputs_<RUN_ID>.json`), without answering or judging:
+
+- `grade_documents_correct`: the verdict is right when it says "sufficient" exactly if every vital nugget's evidence was retrieved, and "insufficient" for questions to refuse. The same metric as in a full run, on identical retrievals.
+- `grade_documents_ablation_correct`: for each retrieval that held all its evidence, the chunks holding it are removed and the grader must now say "insufficient". This gives about as many labelled insufficient cases as there are answerable questions, without new retrieval (#129).
+
+It costs about two grader calls per question, so a prompt change to the grader can be measured in minutes rather than with a full run.
 
 ## Checking the judge
 

@@ -1,37 +1,53 @@
-"""Truncate context for grader calls to reduce token usage."""
+"""The context the generator and every grader read: whole chunks, each with its source.
+
+Graders used to see the first 420 (grade_documents) or 1200 (verify_trusted)
+characters of each ~2500-character chunk, so facts late in a chunk were
+invisible to them: grade_documents caught 0 of 3 insufficient retrievals
+(#129) and local answers were flagged "not verified" (#136). Truncating the
+context also changes sufficiency verdicts by itself (Sufficient Context,
+Joren et al. 2025). A cap applies only to very long contexts and drops whole
+chunks, never the end of one.
+"""
+
+from typing import Any
 
 from langchain_core.documents import Document
 
-# Cap per-doc and total context size for any LLM grader (not for final generation).
-MAX_CHARS_PER_DOC = 420
-MAX_CONTEXT_CHARS = 3600
+from graph.consts import CONTEXT_SEPARATOR
 
-# More generous limits for the generation grader so it sees the same facts the generator used.
-# Otherwise the grader may flag valid content (e.g. "geologiske prøver") as ungrounded.
-MAX_CHARS_PER_DOC_GENERATION_GRADER = 1200
-MAX_CONTEXT_CHARS_GENERATION_GRADER = 8000
+# Whole chunks up to about 15k tokens; reached only after retrieve_missing has
+# merged several retrievals.
+MAX_GRADER_CONTEXT_CHARS = 60_000
 
 
-def truncate_docs_for_grader(
-    documents: list[Document],
-    *,
-    max_chars_per_doc: int = MAX_CHARS_PER_DOC,
-    max_context_chars: int = MAX_CONTEXT_CHARS,
+def format_document(doc: Any) -> str:
+    """One document with its source, so the model can use and cite it and tell
+    Danish law from IAEA text."""
+    meta = getattr(doc, "metadata", {}) or {}
+    label = meta.get("source", "retrieved")
+    if meta.get("document_type"):
+        label = f"{label} ({meta['document_type']})"
+    return f"[Source: {label}]\n{doc.page_content}"
+
+
+def format_context(
+    documents: list[Document], max_context_chars: int | None = None
 ) -> str:
-    """Build a single context string from documents, truncating each and total to stay under token limits."""
-    if not documents:
-        return ""
+    """Web results first (they are short and easily overlooked after long
+    chunks), then the rest in retrieval order; whole chunks only."""
+    ordered = sorted(
+        documents,
+        key=lambda d: (getattr(d, "metadata", {}) or {}).get("document_type") != "web",
+    )
     parts: list[str] = []
     total = 0
-    for d in documents:
-        text = (d.page_content or "")[:max_chars_per_doc]
-        if not text:
+    for doc in ordered:
+        if not (doc.page_content or "").strip():
             continue
-        if total + len(text) + 2 > max_context_chars:
-            remaining = max_context_chars - total - 20
-            if remaining > 0:
-                parts.append(text[:remaining] + "...")
+        part = format_document(doc)
+        added = len(part) + (len(CONTEXT_SEPARATOR) if parts else 0)
+        if max_context_chars is not None and total + added > max_context_chars:
             break
-        parts.append(text)
-        total += len(text) + 2
-    return "\n\n".join(parts)
+        parts.append(part)
+        total += added
+    return CONTEXT_SEPARATOR.join(parts)

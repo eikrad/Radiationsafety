@@ -6,11 +6,7 @@ from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
 from graph.chains.hallucinations_grader import get_hallucination_grader
-from graph.chains.truncate import (
-    MAX_CHARS_PER_DOC_GENERATION_GRADER,
-    MAX_CONTEXT_CHARS_GENERATION_GRADER,
-    truncate_docs_for_grader,
-)
+from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.i18n import (
     detect_language,
     get_warning_no_trusted_sources,
@@ -32,21 +28,23 @@ def verify_trusted(
     web_search_attempted = state.get("web_search_attempted", False)
     question = state.get("question") or ""
     cfg = config or {}
-    llm = state.get("llm") or get_llm()
-    grader = get_hallucination_grader(llm)
 
     if not trusted_docs:
         lang = detect_language(question)
         return {"retrieval_warning": get_warning_no_trusted_sources(lang)}
+    # grade_generation already found the answer grounded in the full context the
+    # generator saw; without web results that context is exactly the trusted
+    # documents, so a second, differently prompted call can only disagree (#136).
+    if state.get("generation_passed_grading") and not web_search_attempted:
+        return {"trusted_verified": True}
+
+    llm = state.get("llm") or get_llm()
+    grader = get_hallucination_grader(llm)
 
     def is_supported(docs) -> bool:
         if not docs:
             return False
-        ctx = truncate_docs_for_grader(
-            docs,
-            max_chars_per_doc=MAX_CHARS_PER_DOC_GENERATION_GRADER,
-            max_context_chars=MAX_CONTEXT_CHARS_GENERATION_GRADER,
-        )
+        ctx = format_context(docs, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
         if not ctx.strip():
             return False
         throttle_llm_if_needed()

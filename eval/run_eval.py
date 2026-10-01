@@ -29,6 +29,7 @@ from eval.history import (
     dataset_fingerprint,
     git_info,
     load_runs,
+    prompt_fingerprints,
 )
 from eval.judge import judge_item
 from eval.scoring import (
@@ -37,6 +38,7 @@ from eval.scoring import (
     evidence_ranks,
     ranking_metrics,
     score_item,
+    without_evidence,
 )
 from graph.llm_factory import DEFAULT_PROVIDER
 
@@ -74,6 +76,7 @@ NUMERIC_METRICS = (
     "context_utilization",
     "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
     "grade_documents_correct",
+    "grade_documents_ablation_correct",  # --regrade: the retrieval minus its evidence
     "evidence_position",  # context chunk holding the evidence (1 = first)
     "warning_shown",  # 1 if the answer carried a warning: lower is better
     # retrieval-only runs
@@ -598,6 +601,95 @@ def _rescore(
     return summarize(results), results, header
 
 
+def _grade_sufficient(question: str, documents: list, llm) -> bool:
+    """The graph's grade_documents verdict on these documents."""
+    from graph.nodes.grade_documents import grade_documents
+
+    return not grade_documents(
+        {"question": question, "documents": documents, "llm": llm}
+    )["web_search"]
+
+
+def _regrade(
+    run_id: str, golden: list[dict], output_dir: Path
+) -> tuple[dict, list[dict], dict] | None:
+    """Run today's sufficiency grader on a saved run's first retrievals.
+
+    Per question: is the verdict right (sufficient exactly when every vital
+    nugget's evidence was retrieved; insufficient for questions to refuse)?
+    And, where the retrieval held all its evidence, the same retrieval with the
+    evidence chunks removed must be judged insufficient: labelled negatives
+    without new retrieval (#129). About two grader calls per question.
+    """
+    outputs_path = output_dir / f"outputs_{run_id}.json"
+    if not outputs_path.exists():
+        print(
+            f"There are no saved outputs for run {run_id} in {output_dir}",
+            file=sys.stderr,
+        )
+        return None
+    outputs = load_outputs(outputs_path)
+    saved = [item for item in golden if item["id"] in outputs]
+
+    from graph.llm_factory import get_llm
+
+    llm = get_llm()
+    llm_provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
+    print(
+        f"Regrade of {run_id}: grader = {llm_provider}/{_model_name(llm)}, "
+        f"{len(saved)} questions",
+        file=sys.stderr,
+    )
+    results = []
+    for n, item in enumerate(saved, start=1):
+        initial = outputs[item["id"]].get("initial_documents") or []
+        verdict = _invoke_with_retry(_grade_sufficient, item["question"], initial, llm)
+        scores = score_item(
+            item, {"initial_documents": initial, "sufficient": verdict}, None
+        )
+        metrics = {}
+        if scores["grade_documents_correct"] is not None:
+            metrics["grade_documents_correct"] = float(
+                scores["grade_documents_correct"]
+            )
+        if scores["evidence_recall_initial"] == 1.0:
+            ablated = without_evidence(item, initial)
+            said = _invoke_with_retry(_grade_sufficient, item["question"], ablated, llm)
+            metrics["grade_documents_ablation_correct"] = float(not said)
+        print(f"  [{n}/{len(saved)}] regraded {item['id']}", file=sys.stderr)
+        results.append(
+            {
+                "id": item["id"],
+                "question": item["question"],
+                "topics": item.get("topics") or [],
+                "language": item.get("language"),
+                "source": item.get("source"),
+                "expected_behavior": item["expected_behavior"],
+                "pass": None,
+                "error_type": None,
+                "unsupported_claims": None,
+                "metrics": metrics,
+                "generation_preview": "",
+                "retrieval_warning": None,
+                "web_search_attempted": False,
+                "node_path": ["grade_documents"],
+                "judge": None,
+            }
+        )
+    header = {
+        "dataset": dataset_fingerprint(saved),
+        "config": {
+            "grader_only": True,
+            "llm_provider": llm_provider,
+            "llm_model": _model_name(llm),
+            "metrics_version": METRICS_VERSION,
+            "prompts": prompt_fingerprints(),
+        },
+        "regraded_from": run_id,
+    }
+    return summarize(results), results, header
+
+
 def _write_report(
     summary: dict,
     results: list[dict],
@@ -682,12 +774,17 @@ def _markdown_header_lines(header: dict) -> list[str]:
     if header.get("notes"):
         lines.append(f"**Notes:** {header['notes']}")
     models = (
-        f"**Embeddings:** {config.get('embedding_model')} (retrieval only, query "
-        f"instruction {'on' if config.get('embedding_query_instruction') else 'off'})"
-        if config.get("retrieval_only")
-        else f"**Models:** {config.get('llm_model')} (judge: "
-        f"{config.get('judge_provider')}/{config.get('judge_model')}, "
-        f"embeddings: {config.get('embedding_model')})"
+        f"**Sufficiency grader:** {config.get('llm_model')} (regrade of "
+        f"{header.get('regraded_from')})"
+        if config.get("grader_only")
+        else (
+            f"**Embeddings:** {config.get('embedding_model')} (retrieval only, query "
+            f"instruction {'on' if config.get('embedding_query_instruction') else 'off'})"
+            if config.get("retrieval_only")
+            else f"**Models:** {config.get('llm_model')} (judge: "
+            f"{config.get('judge_provider')}/{config.get('judge_model')}, "
+            f"embeddings: {config.get('embedding_model')})"
+        )
     )
     lines += [
         f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
@@ -786,6 +883,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--regrade",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "Run today's sufficiency grader (grade_documents) on a saved run's first "
+            "retrievals, plus each retrieval without its evidence chunks; no answers"
+        ),
+    )
+    parser.add_argument(
         "--depth",
         type=int,
         default=_DEFAULT_RETRIEVAL_DEPTH,
@@ -855,6 +961,13 @@ def main() -> int:
             return 1
         summary, results, header = rescored
         label = args.label or f"rescore of {args.rescore}"
+    elif args.regrade:
+        regraded = _regrade(args.regrade, golden, args.output_dir)
+        if regraded is None:
+            return 1
+        summary, results, header = regraded
+        header = {"git": git, **header}
+        label = args.label or f"regrade of {args.regrade}"
     elif args.retrieval_only:
         configured = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
         if (

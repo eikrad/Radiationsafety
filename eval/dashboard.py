@@ -169,12 +169,14 @@ def _incomparability(before: dict, after: dict) -> list[str]:
     )
     if None not in versions and versions[0] != versions[1]:
         reasons.append("scoring changed")
-    modes = [
-        bool((r.get("config") or {}).get("retrieval_only")) for r in (before, after)
-    ]
-    if modes[0] != modes[1]:
-        # a retrieval-only run answers nothing: pass/fail flips would be artefacts
-        reasons.append("retrieval only")
+    for mode, reason in (
+        ("retrieval_only", "retrieval only"),
+        ("grader_only", "grader only"),
+    ):
+        modes = [bool((r.get("config") or {}).get(mode)) for r in (before, after)]
+        if modes[0] != modes[1]:
+            # such a run answers nothing: pass/fail flips would be artefacts
+            reasons.append(reason)
     judges = (_judge(before), _judge(after))
     if None not in judges and judges[0] != judges[1]:
         reasons.append("judge changed")

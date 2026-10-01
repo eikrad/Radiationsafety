@@ -283,3 +283,15 @@ def _within_budget(docs: list[Document | str], char_budget: int) -> list[str]:
             break
         kept.append(text)
     return kept
+
+
+def without_evidence(item: dict, documents: list[Document]) -> list[Document]:
+    """The documents minus every chunk holding a vital nugget's evidence: the same
+    retrieval as a labelled insufficient case for the sufficiency grader."""
+    quotes = [
+        q
+        for n in item.get("nuggets") or []
+        if n["importance"] == "vital"
+        for q in n["evidence"]
+    ]
+    return [d for d in documents if not evidence_found(quotes, [d.page_content])]
