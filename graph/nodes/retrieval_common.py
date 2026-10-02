@@ -6,7 +6,26 @@ from concurrent.futures import ThreadPoolExecutor
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
-from ingestion import get_retrievers
+from graph.consts import env_bool
+from graph.lexical import collection_index, reciprocal_rank_fusion
+from ingestion import RETRIEVER_K, get_collection_names, get_retrievers
+
+# Chunks each ranker contributes to the fusion; fixed, not tuned. A chunk at
+# rank 50 still adds 1/110 to a score whose maximum per ranker is 1/61.
+FUSION_CANDIDATES = 50
+
+_LANGUAGES = ("english", "danish")  # IAEA, Danish law
+
+
+def hybrid_enabled() -> bool:
+    """Dense retrieval fused with BM25 (HYBRID_RETRIEVAL, off by default)."""
+    return env_bool("HYBRID_RETRIEVAL")
+
+
+def lexical_index(embedding_provider: str, which: int):
+    """BM25 index of the IAEA (0) or Danish law (1) collection."""
+    name = get_collection_names(embedding_provider)[which]
+    return collection_index(name, _LANGUAGES[which])
 
 
 def make_doc_key(doc: Document) -> str:
@@ -48,10 +67,26 @@ def invoke_dual_retrievers(
 
     k: chunks per collection; default the retrievers' own (RETRIEVER_K). Eval
     retrieves deeper through this same path, so it measures what the graph does.
+    With HYBRID_RETRIEVAL each collection's dense and BM25 rankings are fused
+    (reciprocal rank fusion) before the top k are taken.
     """
     iaea_retriever, dk_retriever = get_retrievers(embedding_provider)
     cfg = config or {}
-    search = {"k": k} if k is not None else {}
+    hybrid = hybrid_enabled()
+    wanted = k if k is not None else RETRIEVER_K
+    if hybrid:
+        search = {"k": max(wanted, FUSION_CANDIDATES)}
+    else:
+        search = {"k": k} if k is not None else {}
+
+    def _retrieve(retriever, which: int) -> list[Document]:
+        dense = retriever.invoke(query, config=cfg, **search)
+        if not hybrid:
+            return dense
+        lexical = lexical_index(embedding_provider, which).search(
+            query, max(wanted, FUSION_CANDIDATES)
+        )
+        return reciprocal_rank_fusion([dense, lexical])[:wanted]
 
     def _invoke_safe(fn):
         try:
@@ -63,13 +98,9 @@ def invoke_dual_retrievers(
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         fut_iaea = executor.submit(
-            lambda: _invoke_safe(
-                lambda: iaea_retriever.invoke(query, config=cfg, **search)
-            )
+            lambda: _invoke_safe(lambda: _retrieve(iaea_retriever, 0))
         )
         fut_dk = executor.submit(
-            lambda: _invoke_safe(
-                lambda: dk_retriever.invoke(query, config=cfg, **search)
-            )
+            lambda: _invoke_safe(lambda: _retrieve(dk_retriever, 1))
         )
         return fut_iaea.result(), fut_dk.result()

@@ -53,7 +53,7 @@ Retrieves for every answerable question and scores retrieval only: no answer mod
   A `k` or budget experiment therefore needs no extra run. Ranks are per collection, because the generator gets every collection's list in full.
 - A self-check compares the deep list's top k with the graph's retrieval and lists disagreeing questions (`top_k_mismatches`); there recall@3 would not describe the graph.
 
-The run records the embedding model, whether questions carried the model's instruction (`EMBED_QUERY_INSTRUCTION=false` measures the instruction's effect without re-ingestion), `retrieval_depth`, `char_budget` and the search index fingerprint. A retrieval-only run refuses to start when `LLM_PROVIDER=ollama` would override `EMBEDDING_PROVIDER`.
+The run records the embedding model, whether questions carried the model's instruction (`EMBED_QUERY_INSTRUCTION=false` measures the instruction's effect without re-ingestion), whether dense retrieval was fused with BM25 (`HYBRID_RETRIEVAL=true`, likewise without re-ingestion), `retrieval_depth`, `char_budget` and the search index fingerprint. A retrieval-only run refuses to start when `LLM_PROVIDER=ollama` would override `EMBEDDING_PROVIDER`.
 
 **Comparing two retrieval-only runs** in the dashboard counts questions whose evidence ranked higher or lower (reciprocal rank), not pass/fail flips, with the same sign test. Ranks move far more often than recall@3 flips, so the test has more questions to work with on the same golden set.
 

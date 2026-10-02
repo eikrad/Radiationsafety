@@ -24,6 +24,7 @@ graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
+graph/lexical.py         — BM25 (Danish/English Snowball analyzer) and reciprocal rank fusion (HYBRID_RETRIEVAL)
 graph/llm_factory.py     — LLM and embedding provider selection (Scaleway default; Gemini/OpenAI/Mistral/Ollama)
 graph/provider_status.py — per-provider readiness for GET /config (answer model, embedding key, search index)
 graph/state.py           — GraphState TypedDict

@@ -39,6 +39,9 @@ dependencies = [
     "langchain-ollama>=1.1.0",
     "transformers>=5.10.0",
     "accelerate>=1.15.0",
+    "rank-bm25>=0.2.2",
+    "snowballstemmer>=3.1.1",
+    "pystemmer>=3.1.0",
 ]
 
 # A dependency group, not an extra: plain `uv sync` installs it.
