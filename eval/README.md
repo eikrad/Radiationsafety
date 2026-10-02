@@ -169,6 +169,21 @@ Runs `grade_documents` as the graph does, on the first retrieval saved with a fu
 
 It costs about two grader calls per question, so a prompt change to the grader can be measured in minutes rather than with a full run.
 
+## Position test
+
+Does the generator use evidence less when it sits in the middle of the context
+(#132)? `eval.position_test` answers each answerable question whose first
+retrieval holds vital evidence twice from the same chunks, the evidence first
+and the evidence in the middle, and compares lenient vital recall with a sign
+test. One groundedness vote per answer; about 6 calls per question.
+
+```bash
+uv run python -m eval.position_test --label position-k3
+```
+
+Each run is appended to `eval/history/position_tests.jsonl` (commit it like
+`runs.jsonl`).
+
 ## Checking the judge
 
 ```bash

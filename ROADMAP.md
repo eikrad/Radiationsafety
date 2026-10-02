@@ -237,6 +237,27 @@ weaker ranker pushes the stronger one's hits down. A weighted fusion would
 need tuning on these 39 questions, which the plan rules out. Lexical search
 is closed for this corpus and encoder; exact-term lookups stay open.
 
+**Step 4: does the evidence's position in the context matter? (#132,
+2026-10-02).** The context lists the 3 IAEA chunks before the 3 Danish ones,
+so Danish evidence sits at position 4 of 6. Lost in the Middle found answers
+worse with the evidence in the middle, but for 2023 models, 10-30 short
+passages and short factoid answers; the effect shrank with stronger models and
+was never measured at 6 long chunks. So it is measured first, with the
+current generator: `eval.position_test` answers every answerable question
+whose first retrieval holds vital evidence twice from the same chunks, the
+evidence first and the evidence in the middle (after half of the other
+chunks: position 4 of 6, where the best Danish chunk sits today). The judge
+labels the vital nuggets of both answers (lenient vital recall); questions
+where the two scores differ go into a sign test. About 6 calls per question.
+Adoption rule, set before measuring: if the evidence first scores higher on
+more questions than in the middle with p < 0.05, the context is reordered so
+that each collection's best chunk comes first (Danish 1, IAEA 1, Danish 2, …:
+Danish first because Danish rules apply in Denmark) and a full run confirms it
+(at least 30/39). Interleaving rather than "best at both ends": only front
+against middle is measured, the end is not. If p ≥ 0.05, the position effect
+is not detectable here, the order stays, and k is the next question (step 5),
+where distractors rather than position decide.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -258,8 +279,8 @@ the costly ones:
 5. **Structure-aware chunking** (#130): planned as a parallel index; it
    replaces the character splitter instead (step 2 above), since only the
    Danish collection changes and `--dk-only` rebuilds it in minutes.
-6. **k and context order** decided from the rank data plus a full run
-   stratified by evidence presence (#132).
+6. **Context order** measured by a position test (#132, step 4), then **k**
+   decided from the rank data plus a full run stratified by evidence presence.
 
 Each step states its adoption rule before the measurement; parameters are not
 tuned (RRF k = 60, fixed header format). A change that wins is switched on by
