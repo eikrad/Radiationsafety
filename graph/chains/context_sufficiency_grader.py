@@ -5,18 +5,18 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
 
-from graph.llm_factory import get_llm
+from graph.llm_factory import LenientText, get_llm
 
 
 class GradeSufficiency(BaseModel):
     """Step-by-step sufficiency verdict; the steps come first so the verdict rests on them."""
 
-    needed: str = Field(
+    needed: LenientText = Field(
         default="",
         description="What a complete answer needs: the specific facts, and which "
         "jurisdiction's rule applies (Danish law, the IAEA standards, or either)",
     )
-    found: str = Field(
+    found: LenientText = Field(
         default="",
         description="Where the context states each needed fact (source and a few "
         "words of the passage), or 'not found'",

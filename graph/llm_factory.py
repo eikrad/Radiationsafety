@@ -3,6 +3,9 @@
 import json
 import os
 import re
+from typing import Annotated, Any
+
+from pydantic import BeforeValidator
 
 ALLOWED_PROVIDERS = frozenset({"mistral", "gemini", "openai", "ollama", "scaleway"})
 
@@ -37,6 +40,24 @@ _OPENAI_MODELS = frozenset({"gpt-4o-mini", "gpt-4o"})
 _SCALEWAY_BASE_URL = "https://api.scaleway.ai/v1"
 
 _JSON_OBJECT = re.compile(r"\{.*\}", re.S)
+
+
+def _as_text(value: Any) -> Any:
+    """An object or list where a schema wants a sentence, written out as text.
+
+    Models sometimes answer a free-text field with one entry per fact, e.g.
+    {"IAEA procedure": "not found", "Danish rule": "§ 21"}; the content is
+    usable, only its shape is not.
+    """
+    if isinstance(value, dict):
+        return "; ".join(f"{k}: {_as_text(v)}" for k, v in value.items())
+    if isinstance(value, list):
+        return "; ".join(str(_as_text(v)) for v in value)
+    return value
+
+
+# A str field in a structured-output schema that also accepts an object or list.
+LenientText = Annotated[str, BeforeValidator(_as_text)]
 
 
 def _parse_text_reply(content: str, schema) -> object:

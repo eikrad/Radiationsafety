@@ -217,3 +217,29 @@ def test_the_sufficiency_example_shows_the_reply_as_json():
     parsed = _parse_text_reply(example, GradeSufficiency)
     assert parsed.binary_score is False
     assert "\nbinary_score:" not in rendered
+
+
+def test_a_finding_written_as_one_entry_per_fact_is_read_as_text():
+    """Eval crash 2026-10-02: the reply had "found" as an object, not a string."""
+    from graph.chains.context_sufficiency_grader import GradeSufficiency
+    from graph.llm_factory import _parse_text_reply
+
+    reply = (
+        '{"needed": ["Danish limit", "IAEA limit"], "found": {"IAEA procedure": '
+        '"not found", "Danish rule": "BEK 1385 § 21"}, "binary_score": false}'
+    )
+    grade = _parse_text_reply(reply, GradeSufficiency)
+
+    assert grade.needed == "Danish limit; IAEA limit"
+    assert grade.found == "IAEA procedure: not found; Danish rule: BEK 1385 § 21"
+    assert grade.binary_score is False
+
+
+def test_a_missing_info_hint_written_as_a_list_is_read_as_text():
+    from graph.chains.generation_grader import GradeGeneration
+
+    grade = GradeGeneration.model_validate(
+        {"passed": False, "missing_info": ["Annex 2 table", "BEK 1384 § 15"]}
+    )
+
+    assert grade.missing_info == "Annex 2 table; BEK 1384 § 15"
