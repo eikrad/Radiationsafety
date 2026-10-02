@@ -243,3 +243,61 @@ def test_a_missing_info_hint_written_as_a_list_is_read_as_text():
     )
 
     assert grade.missing_info == "Annex 2 table; BEK 1384 § 15"
+
+
+# --- a grader that gives no verdict even when asked again --------------------------
+
+
+def _broken_grader():
+    grader = MagicMock()
+    grader.invoke.side_effect = ValueError("no GradeHallucinations object in reply")
+    return grader
+
+
+def test_no_groundedness_verdict_means_the_answer_is_shown_as_unverified():
+    out = _verify(
+        {"generation": "Højst 1 mSv.", "trusted_documents": [LONG_CHUNK]},
+        _broken_grader(),
+    )
+
+    assert "retrieval_warning" in out
+
+
+def test_no_sufficiency_verdict_counts_as_insufficient():
+    from graph.nodes.grade_documents import grade_documents
+
+    with (
+        patch(
+            "graph.nodes.grade_documents.get_context_sufficiency_grader",
+            return_value=_broken_grader(),
+        ),
+        patch("graph.nodes.grade_documents.throttle_llm_if_needed"),
+    ):
+        out = grade_documents(
+            {"question": "q", "documents": [LONG_CHUNK], "llm": MagicMock()}
+        )
+
+    assert out["web_search"] is True
+    assert out["documents"] == [LONG_CHUNK]
+
+
+def test_no_generation_verdict_counts_as_not_passed():
+    from graph.nodes.grade_generation import grade_generation
+
+    with (
+        patch(
+            "graph.nodes.grade_generation.get_generation_grader",
+            return_value=_broken_grader(),
+        ),
+        patch("graph.nodes.grade_generation.throttle_llm_if_needed"),
+    ):
+        out = grade_generation(
+            {
+                "question": "q",
+                "documents": [LONG_CHUNK],
+                "generation": "Højst 1 mSv.",
+                "llm": MagicMock(),
+            }
+        )
+
+    assert out == {"generation_passed_grading": False, "reflection": "retry"}

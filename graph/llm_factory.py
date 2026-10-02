@@ -69,29 +69,62 @@ def _parse_text_reply(content: str, schema) -> object:
     return schema.model_validate(data) if hasattr(schema, "model_validate") else data
 
 
+def _correction(schema) -> str:
+    fields = ", ".join(getattr(schema, "model_fields", None) or [])
+    return (
+        "Your reply contained no verdict in the required format. Write your verdict "
+        f"as one JSON object with the fields {fields}, and nothing else."
+    )
+
+
+def _as_messages(prompt) -> list:
+    from langchain_core.messages import HumanMessage
+
+    if hasattr(prompt, "to_messages"):
+        return prompt.to_messages()
+    if isinstance(prompt, list):
+        return list(prompt)
+    return [HumanMessage(content=str(prompt))]
+
+
 def with_text_fallback(structured_with_raw, schema, include_raw: bool):
     """Wrap a structured-output runnable built with include_raw=True.
 
     Some models ignore a forced tool call and write the JSON as text instead;
-    that reply is parsed from the text. A reply that yields nothing raises
-    instead of returning None, so callers never act on a missing verdict.
+    that reply is parsed from the text. A reply with no verdict at all (prose)
+    is answered once with the model's own reply and a request for the JSON: at
+    temperature 0 the same question would only get the same prose. A second
+    failure raises instead of returning None, so callers never act on a missing
+    verdict.
     """
+    from langchain_core.messages import AIMessage, HumanMessage
     from langchain_core.runnables import RunnableLambda
 
-    def resolve(result: dict):
+    def resolve(result: dict) -> dict:
         if result["parsed"] is None and result["parsing_error"] is None:
             try:
                 parsed = _parse_text_reply(result["raw"].content, schema)
                 result = {**result, "parsed": parsed}
             except ValueError as e:  # json and pydantic errors are ValueErrors
                 result = {**result, "parsing_error": e}
+        return result
+
+    def run(prompt, config=None):
+        result = resolve(structured_with_raw.invoke(prompt, config))
+        if result["parsing_error"] is not None:
+            retry = [
+                *_as_messages(prompt),
+                AIMessage(content=result["raw"].content or ""),
+                HumanMessage(content=_correction(schema)),
+            ]
+            result = resolve(structured_with_raw.invoke(retry, config))
         if include_raw:
             return result
         if result["parsing_error"] is not None:
             raise result["parsing_error"]
         return result["parsed"]
 
-    return structured_with_raw | RunnableLambda(resolve)
+    return RunnableLambda(run)
 
 
 # The OpenAI client alone waits up to 600 s per attempt and retries twice, so a

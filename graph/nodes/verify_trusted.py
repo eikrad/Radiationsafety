@@ -48,10 +48,13 @@ def verify_trusted(
         if not ctx.strip():
             return False
         throttle_llm_if_needed()
-        score = grader.invoke(
-            {"documents": ctx, "generation": generation},
-            config=cfg,
-        )
+        try:
+            score = grader.invoke(
+                {"documents": ctx, "generation": generation},
+                config=cfg,
+            )
+        except ValueError:  # no verdict even when asked again: not verified
+            return False
         return bool(score.binary_score)
 
     if is_supported(trusted_docs):
