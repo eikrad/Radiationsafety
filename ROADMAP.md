@@ -257,6 +257,15 @@ Danish first because Danish rules apply in Denmark) and a full run confirms it
 against middle is measured, the end is not. If p ≥ 0.05, the position effect
 is not detectable here, the order stays, and k is the next question (step 5),
 where distractors rather than position decide.
+Result (2026-10-02, `position-k3`, not adopted: no position effect): 32
+questions had vital evidence in their first retrieval (the three without it
+are the known misses). The answer with the evidence first and the answer with
+it at position 4 got the same vital-recall score on 31 of them; one Danish
+question scored higher with the evidence first (radiography coordinator 0.50
+vs 0.33). Mean lenient vital recall 0.98 first vs 0.97 in the middle, sign
+test p = 1. The scores sit near the ceiling, so a small effect could hide
+there, but none that would change answers at k = 3: once the evidence is
+retrieved, this generator finds it at either position. The order stays.
 
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
@@ -279,7 +288,8 @@ the costly ones:
 5. **Structure-aware chunking** (#130): planned as a parallel index; it
    replaces the character splitter instead (step 2 above), since only the
    Danish collection changes and `--dk-only` rebuilds it in minutes.
-6. **Context order** measured by a position test (#132, step 4), then **k**
+6. **Context order** measured by a position test (#132, step 4: no effect,
+   order stays), then **k**
    decided from the rank data plus a full run stratified by evidence presence.
 
 Each step states its adoption rule before the measurement; parameters are not
