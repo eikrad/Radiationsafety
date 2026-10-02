@@ -482,6 +482,28 @@ def test_saving_the_same_danish_version_again_makes_no_backup(tmp_path, monkeypa
     assert not backups.exists() or list(backups.iterdir()) == []
 
 
+def test_a_re_export_with_other_layout_but_the_same_law_text_changes_nothing(
+    tmp_path, monkeypatch
+):
+    """Retsinformation's XML can come back with other line endings, indentation
+    or element ids: every line differed in git, but the law was the same."""
+    current_dir, backups = _danish_dirs(tmp_path, monkeypatch)
+    ingestion._save_danish_current_and_trim_backups("dk-stoffer", _write_xml(tmp_path))
+    reexport = tmp_path / "reexport.xml"
+    reexport.write_bytes(
+        RETSINFO_XML.replace("<Paragraf>", '<Paragraf id="id42">')
+        .replace("\n", "\r\n    ")
+        .encode("utf-8")
+    )
+
+    ingestion._save_danish_current_and_trim_backups("dk-stoffer", reexport)
+
+    assert (current_dir / "dk-stoffer_current.xml").read_text(
+        encoding="utf-8"
+    ) == RETSINFO_XML
+    assert not backups.exists() or list(backups.iterdir()) == []
+
+
 def test_a_new_danish_version_keeps_the_previous_one_as_backup(tmp_path, monkeypatch):
     current_dir, backups = _danish_dirs(tmp_path, monkeypatch)
     ingestion._save_danish_current_and_trim_backups("dk-stoffer", _write_xml(tmp_path))
