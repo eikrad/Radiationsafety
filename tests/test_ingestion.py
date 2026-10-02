@@ -10,6 +10,7 @@ from ingestion import (
     load_dk_law_docs,
     load_iaea_docs,
 )
+from ingestion_dk import structure_chunks, xml_to_text
 
 
 def test_load_iaea_docs_returns_empty_when_no_dirs(tmp_path, monkeypatch):
@@ -298,7 +299,7 @@ def _write_xml(tmp_path, text=RETSINFO_XML):
 
 def test_exponents_and_indices_in_danish_law_stay_readable(tmp_path):
     """The PDF text turns 10^6 into "106"; the XML marks superscripts, so keep them."""
-    text = ingestion._xml_to_text(_write_xml(tmp_path))
+    text = xml_to_text(_write_xml(tmp_path))
 
     assert "1 m^2, kan" in text or "1 m^2 , kan" in text
     assert "1 · 10^6 Bq." in text
@@ -306,7 +307,7 @@ def test_exponents_and_indices_in_danish_law_stay_readable(tmp_path):
 
 
 def test_the_xml_metadata_block_is_not_indexed_as_law_text(tmp_path):
-    text = ingestion._xml_to_text(_write_xml(tmp_path))
+    text = xml_to_text(_write_xml(tmp_path))
 
     assert "H#LOKDOK04" not in text
     assert "Jonas Egebart" not in text
@@ -315,8 +316,8 @@ def test_the_xml_metadata_block_is_not_indexed_as_law_text(tmp_path):
     )
 
 
-def test_xml_law_documents_name_their_law_and_version(tmp_path):
-    [doc] = ingestion._load_retsinformation_xml(_write_xml(tmp_path), "BEK nr 1385")
+def test_xml_law_chunks_name_their_law_and_version(tmp_path):
+    [doc] = structure_chunks(_write_xml(tmp_path), "BEK nr 1385")
 
     assert doc.metadata["law_title"] == "Bekendtgørelse om radioaktive stoffer"
     assert doc.metadata["doc_id"] == "B20250138505"
@@ -382,8 +383,9 @@ def test_danish_pdfs_of_laws_ingested_from_xml_are_skipped(tmp_path, monkeypatch
     monkeypatch.setattr(
         ingestion,
         "_load_pdf_with_docling",
-        lambda p, **kw: loaded.append(p.name)
-        or [ingestion.Document(page_content=p.name)],
+        lambda p, **kw: (
+            loaded.append(p.name) or [ingestion.Document(page_content=p.name)]
+        ),
     )
     monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
 

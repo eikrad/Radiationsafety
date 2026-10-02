@@ -29,6 +29,7 @@ graph/provider_status.py — per-provider readiness for GET /config (answer mode
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
+ingestion_dk.py          — Retsinformation XML: text, chunks along §/Stk./items/annex rows
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)

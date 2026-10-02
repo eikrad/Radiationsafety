@@ -15,7 +15,6 @@ import sys
 import tempfile
 import time
 import unicodedata
-import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +28,6 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
 from langchain_docling.loader import BaseMetaExtractor
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 from tqdm import tqdm
 
@@ -39,6 +37,7 @@ from graph.llm_factory import (
     get_embeddings,
     query_instruction_template,
 )
+from ingestion_dk import structure_chunks
 
 load_dotenv()
 
@@ -145,100 +144,6 @@ def _clear_chroma_collections(
                 pass
     except Exception:
         pass
-
-
-_NO_SPACE_BEFORE = (",", ".", ";", ":", ")")
-
-
-def _xml_meta(root) -> dict[str, str]:
-    """The Retsinformation <Meta> fields (title, number, date, accession number)."""
-    meta = root.find(".//Meta")
-    if meta is None:
-        return {}
-    return {child.tag: (child.text or "").strip() for child in meta}
-
-
-def _render_xml(elem) -> list[str]:
-    """Text pieces of an element in document order, Meta left out.
-
-    Superscripts and subscripts are attached to the preceding text as ^ and _
-    (10^6, CTDI_vol): flattening them turns 1·10^6 Bq into "1·10 6" here, and
-    into "106" in the PDF text.
-    """
-    if elem.tag == "Meta":
-        return []
-    pieces: list[str] = []
-
-    def add(text: str | None, glue: str = "") -> None:
-        text = (text or "").strip()
-        if not text:
-            return
-        if pieces and (glue or text.startswith(_NO_SPACE_BEFORE)):
-            pieces[-1] += glue + text
-        else:
-            pieces.append(text)
-
-    add(elem.text)
-    for child in elem:
-        child_pieces = _render_xml(child)
-        if child_pieces:
-            add(child_pieces[0], _glue_of(child))
-            pieces.extend(child_pieces[1:])
-        add(child.tail)
-    return pieces
-
-
-def _glue_of(elem) -> str:
-    """How a Char attaches to the text before it: ^ superscript, _ subscript."""
-    form = elem.get("formaChar", "") if elem.tag == "Char" else ""
-    return "^" if "Superscript" in form else "_" if "Subscript" in form else ""
-
-
-def _xml_to_text(xml_path: Path) -> str:
-    """Plain text of a Retsinformation XML law, headed by its title and number.
-
-    The <Meta> block (document type codes, signatures) is not law text and is
-    left out; the title line names the version, e.g.
-    "Bekendtgørelse om radioaktive stoffer (BEK nr 1385 af 18.11.2025)".
-    """
-    try:
-        root = ET.parse(str(xml_path)).getroot()
-    except (ET.ParseError, OSError):
-        return ""
-    body = " ".join(_render_xml(root))
-    title = _law_title_line(_xml_meta(root))
-    text = f"{title} {body}" if title else body
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def _law_title_line(meta: dict[str, str]) -> str:
-    title = meta.get("DocumentTitle", "")
-    number, signed = meta.get("Number", ""), meta.get("DiesSigni", "")
-    if not title or not number:
-        return title
-    date = ".".join(reversed(signed.split("-"))) if signed else ""
-    return f"{title} (BEK nr {number}{' af ' + date if date else ''})"
-
-
-def _load_retsinformation_xml(xml_path: Path, source_label: str) -> list[Document]:
-    """Load Retsinformation XML into one Document with the law's title and id."""
-    text = _xml_to_text(xml_path)
-    if not text:
-        return []
-    try:
-        meta = _xml_meta(ET.parse(str(xml_path)).getroot())
-    except (ET.ParseError, OSError):
-        meta = {}
-    doc = Document(
-        page_content=text,
-        metadata={
-            "source": source_label,
-            "document_type": "Danish law",
-            "law_title": meta.get("DocumentTitle", ""),
-            "doc_id": meta.get("AccessionNumber", ""),
-        },
-    )
-    return [doc]
 
 
 def download_update_for_source(source_id: str) -> tuple[bool, str]:
@@ -424,7 +329,7 @@ def _load_docs_from_registry(
     """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF.
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
-    XML-sourced Danish docs are split here with RecursiveCharacterTextSplitter.
+    XML-sourced Danish docs are chunked along their paragraphs (ingestion_dk).
     """
     try:
         from document_updates import update_registry_url, update_version_after_ingest
@@ -438,11 +343,6 @@ def _load_docs_from_registry(
     sources = load_sources_registry()
     if not sources:
         return [], []
-    text_splitter_dk = RecursiveCharacterTextSplitter(
-        chunk_size=2500,
-        chunk_overlap=200,
-        separators=["\n\n", "§ ", "\n", ". ", " ", ""],
-    )
     iaea_docs: list[Document] = []
     dk_docs: list[Document] = []
     for s in sources:
@@ -459,10 +359,7 @@ def _load_docs_from_registry(
             if path is None:
                 continue
             try:
-                docs = _load_retsinformation_xml(path, label)
-                for d in docs:
-                    d.metadata["document_type"] = "Danish law"
-                dk_docs.extend(text_splitter_dk.split_documents(docs))
+                dk_docs.extend(structure_chunks(path, label))
                 if resolved_url and resolved_url != url:
                     try:
                         update_registry_url(source_id, resolved_url)
@@ -816,8 +713,8 @@ def _add_documents_gemini_rate_limited(
 def ingest(dk_only: bool = False):
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
-    PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
-    inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
+    PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are chunked
+    along their paragraphs inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
     copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
     Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
     """
@@ -914,8 +811,9 @@ def reembed_from(source_provider: str, target: str) -> None:
     """
     import chromadb
 
-    sources, targets = get_collection_names(source_provider), get_collection_names(
-        target
+    sources, targets = (
+        get_collection_names(source_provider),
+        get_collection_names(target),
     )
     if sources == targets:
         raise ValueError(f"{source_provider} and {target} use the same collections")

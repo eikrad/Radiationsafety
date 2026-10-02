@@ -176,7 +176,7 @@ flowchart TD
     subgraph CHUNK [Chunking]
         direction LR
         C1[PDFs - IAEA + other\nDocling HybridChunker\nmax 512 tokens per chunk]
-        C2[Danish XML\nRecursiveCharacterTextSplitter\n2500 chars per chunk / 200 overlap]
+        C2[Danish XML\nchunks along §, Stk., items, table rows\n≤1500 chars + law › chapter › § header]
     end
 
     CHUNK --> EMBED[Embeddings\nScaleway or Gemini]

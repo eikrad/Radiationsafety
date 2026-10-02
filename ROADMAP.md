@@ -160,6 +160,25 @@ In each of those the short docling chunk of the PDF had ranked above the
 duplicates were not only redundant: the PDF chunks had the better grain.
 That is the case for structure-aware chunking of the XML (#130), next.
 
+**Step 2: Danish law chunked along its structure (#130, 2026-10-02).** The
+XML is cut along its own elements instead of every 2500 characters
+(`ingestion_dk.py`): paragraphs of one group (same chapter, same group title)
+are packed together up to 1500 characters, a longer one is split only between
+its Stk., numbered items, lines or table rows, a split table repeats its
+header row, and every chunk starts with `law (BEK nr, date) › chapter › group
+› §`. No overlap: no cut falls inside an item. Five orders, 308 chunks
+(median ~1300 characters, none above 1700); tests check that every word of
+each law lands in a chunk and every golden quote found in a law lies within
+one chunk. It replaces the character splitter rather than adding a parallel
+index: only the Danish collection changes, `ingestion.py --dk-only` rebuilds
+it in minutes and a revert restores the old chunks.
+Adoption rule, set before measuring: against `dk-one-copy`, retrieval-only
+evidence ranks improve for more questions than they worsen, at least two of
+the three single-fact questions lost in step 1 (registration, deregistration,
+fetus dose) are back in the top 3, none of the three gained in step 1
+(area classification, dose constraints, 16-18-year-olds) is lost, and the full
+run passes at least 30/39.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -178,8 +197,9 @@ the costly ones:
 4. **BM25 + RRF** behind a switch, off by default (#131); the Danish
    translation query as a second variant once the golden set has English
    questions about Danish law.
-5. **Structure-aware chunking** as a parallel index, never replacing the
-   current one (#130).
+5. **Structure-aware chunking** (#130): planned as a parallel index; it
+   replaces the character splitter instead (step 2 above), since only the
+   Danish collection changes and `--dk-only` rebuilds it in minutes.
 6. **k and context order** decided from the rank data plus a full run
    stratified by evidence presence (#132).
 
