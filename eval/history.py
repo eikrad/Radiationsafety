@@ -20,7 +20,15 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HISTORY_PATH = _PROJECT_ROOT / "eval" / "history" / "runs.jsonl"
 _CHAINS_DIR = _PROJECT_ROOT / "graph" / "chains"
 SCHEMA_VERSION = 1
-_HISTORY_PATHSPEC = ":(exclude)eval/history"
+# Paths that change without any code change: the run history grows with every
+# recorded run, and ingestion rewrites document_versions.json and the Danish
+# XML copies under documents/. What was indexed is recorded separately by the
+# index fingerprint (config.index).
+_NOT_CODE_PATHSPECS = (
+    ":(exclude)eval/history",
+    ":(exclude)documents",
+    ":(exclude)document_versions.json",
+)
 
 
 def _sha256_short(obj) -> str:
@@ -161,7 +169,6 @@ def _git(repo: Path, *args: str) -> str | None:
 def git_info(repo: Path = _PROJECT_ROOT) -> dict:
     """Commit and branch the run used, and whether tracked files had uncommitted
     changes (then the commit alone does not say what ran). Nulls outside git."""
-    # the committed run history changes with every recorded run; not code
     status = _git(
         repo,
         "status",
@@ -169,7 +176,7 @@ def git_info(repo: Path = _PROJECT_ROOT) -> dict:
         "--untracked-files=no",
         "--",
         ".",
-        _HISTORY_PATHSPEC,
+        *_NOT_CODE_PATHSPECS,
     )
     return {
         "commit": _git(repo, "rev-parse", "--short", "HEAD"),

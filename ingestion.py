@@ -5,6 +5,7 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 (3) IAEA and direct PDFs from document_sources.yaml URLs.
 """
 
+import filecmp
 import hashlib
 import os
 import re
@@ -13,6 +14,7 @@ import signal
 import sys
 import tempfile
 import time
+import unicodedata
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -126,15 +128,17 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     return (IAEA_COLLECTION, DK_LAW_COLLECTION)
 
 
-def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
-    """Delete the two collections for the given embedding provider so the next from_documents recreates them."""
+def _clear_chroma_collections(
+    embedding_provider: str | None = None, names: list[str] | None = None
+) -> None:
+    """Delete the provider's collections (or only `names`) so ingestion recreates them."""
     ep = embedding_provider or get_embedding_provider()
-    iaea_name, dk_name = get_collection_names(ep)
+    names = names or list(get_collection_names(ep))
     try:
         import chromadb
 
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-        for name in (iaea_name, dk_name):
+        for name in names:
             try:
                 client.delete_collection(name)
             except Exception:
@@ -143,38 +147,102 @@ def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
         pass
 
 
+_NO_SPACE_BEFORE = (",", ".", ";", ":", ")")
+
+
+def _xml_meta(root) -> dict[str, str]:
+    """The Retsinformation <Meta> fields (title, number, date, accession number)."""
+    meta = root.find(".//Meta")
+    if meta is None:
+        return {}
+    return {child.tag: (child.text or "").strip() for child in meta}
+
+
+def _render_xml(elem) -> list[str]:
+    """Text pieces of an element in document order, Meta left out.
+
+    Superscripts and subscripts are attached to the preceding text as ^ and _
+    (10^6, CTDI_vol): flattening them turns 1·10^6 Bq into "1·10 6" here, and
+    into "106" in the PDF text.
+    """
+    if elem.tag == "Meta":
+        return []
+    pieces: list[str] = []
+
+    def add(text: str | None, glue: str = "") -> None:
+        text = (text or "").strip()
+        if not text:
+            return
+        if pieces and (glue or text.startswith(_NO_SPACE_BEFORE)):
+            pieces[-1] += glue + text
+        else:
+            pieces.append(text)
+
+    add(elem.text)
+    for child in elem:
+        child_pieces = _render_xml(child)
+        if child_pieces:
+            add(child_pieces[0], _glue_of(child))
+            pieces.extend(child_pieces[1:])
+        add(child.tail)
+    return pieces
+
+
+def _glue_of(elem) -> str:
+    """How a Char attaches to the text before it: ^ superscript, _ subscript."""
+    form = elem.get("formaChar", "") if elem.tag == "Char" else ""
+    return "^" if "Superscript" in form else "_" if "Subscript" in form else ""
+
+
 def _xml_to_text(xml_path: Path) -> str:
-    """Extract plain text from Retsinformation XML (strip tags, normalize whitespace)."""
+    """Plain text of a Retsinformation XML law, headed by its title and number.
+
+    The <Meta> block (document type codes, signatures) is not law text and is
+    left out; the title line names the version, e.g.
+    "Bekendtgørelse om radioaktive stoffer (BEK nr 1385 af 18.11.2025)".
+    """
     try:
-        tree = ET.parse(str(xml_path))
-        root = tree.getroot()
+        root = ET.parse(str(xml_path)).getroot()
     except (ET.ParseError, OSError):
         return ""
-    parts: list[str] = []
-    for elem in root.iter():
-        if elem.text:
-            parts.append(elem.text)
-        if elem.tail:
-            parts.append(elem.tail)
-    text = "".join(parts)
+    body = " ".join(_render_xml(root))
+    title = _law_title_line(_xml_meta(root))
+    text = f"{title} {body}" if title else body
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _law_title_line(meta: dict[str, str]) -> str:
+    title = meta.get("DocumentTitle", "")
+    number, signed = meta.get("Number", ""), meta.get("DiesSigni", "")
+    if not title or not number:
+        return title
+    date = ".".join(reversed(signed.split("-"))) if signed else ""
+    return f"{title} (BEK nr {number}{' af ' + date if date else ''})"
+
+
 def _load_retsinformation_xml(xml_path: Path, source_label: str) -> list[Document]:
-    """Load Retsinformation XML into one or more Document(s). Single doc with full text."""
+    """Load Retsinformation XML into one Document with the law's title and id."""
     text = _xml_to_text(xml_path)
     if not text:
         return []
+    try:
+        meta = _xml_meta(ET.parse(str(xml_path)).getroot())
+    except (ET.ParseError, OSError):
+        meta = {}
     doc = Document(
         page_content=text,
-        metadata={"source": source_label, "document_type": "Danish law"},
+        metadata={
+            "source": source_label,
+            "document_type": "Danish law",
+            "law_title": meta.get("DocumentTitle", ""),
+            "doc_id": meta.get("AccessionNumber", ""),
+        },
     )
     return [doc]
 
 
 def download_update_for_source(source_id: str) -> tuple[bool, str]:
     """Download the new version for a source and backup the old one. Returns (success, message)."""
-    import time
 
     try:
         from document_updates import (
@@ -217,21 +285,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                 folder_path = DOCS_DIR / folder
                 folder_path.mkdir(parents=True, exist_ok=True)
                 current_path = get_local_pdf_path(source)
-                backup_dir = DOCS_DIR / "backup" / folder
-                if current_path and current_path.exists():
-                    backup_dir.mkdir(parents=True, exist_ok=True)
-                    stamp = time.strftime("%Y%m%d", time.gmtime())
-                    backup_path = backup_dir / f"{source_id}_{stamp}.pdf"
-                    try:
-                        shutil.copy2(str(current_path), str(backup_path))
-                    except OSError:
-                        pass
-                    rotate_backups(
-                        backup_dir,
-                        source_id,
-                        keep=_MAX_BACKUPS_PER_SOURCE,
-                        extension="pdf",
-                    )
+                _backup_previous(
+                    current_path, path, DOCS_DIR / "backup" / folder, source_id, "pdf"
+                )
                 dest = (
                     current_path if (current_path and current_path.exists()) else None
                 )
@@ -283,18 +339,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
             folder_path = DOCS_DIR / folder
             folder_path.mkdir(parents=True, exist_ok=True)
             current_path = get_local_pdf_path(source)
-            backup_dir = DOCS_DIR / "backup" / folder
-            if current_path and current_path.exists():
-                backup_dir.mkdir(parents=True, exist_ok=True)
-                stamp = time.strftime("%Y%m%d", time.gmtime())
-                backup_path = backup_dir / f"{source_id}_{stamp}.pdf"
-                try:
-                    shutil.copy2(str(current_path), str(backup_path))
-                except OSError:
-                    pass
-                rotate_backups(
-                    backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension="pdf"
-                )
+            _backup_previous(
+                current_path, path, DOCS_DIR / "backup" / folder, source_id, "pdf"
+            )
             dest = current_path if (current_path and current_path.exists()) else None
             if not dest:
                 safe_name = (source.filename_hint or f"{source_id}.pdf").strip()
@@ -317,6 +364,36 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
     return False, "Only Bekendtgørelse and IAEA/IAEA_other are supported"
 
 
+def _backup_previous(
+    current_path: Path | None,
+    new_path: Path,
+    backup_dir: Path,
+    source_id: str,
+    extension: str,
+) -> None:
+    """Keep the current file as a dated backup before it is replaced, unless the
+    download is byte-identical: re-fetching an unchanged version used to add a
+    duplicate backup on every ingestion."""
+    if not current_path or not current_path.exists():
+        return
+    try:
+        if filecmp.cmp(current_path, new_path, shallow=False):
+            return
+    except OSError:
+        pass
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d", time.gmtime(current_path.stat().st_mtime))
+    try:
+        shutil.copy2(
+            str(current_path), str(backup_dir / f"{source_id}_{stamp}.{extension}")
+        )
+    except OSError:
+        pass
+    rotate_backups(
+        backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension=extension
+    )
+
+
 def _save_danish_current_and_trim_backups(
     source_id: str, xml_path: Path, *, version_label: str | None = None
 ) -> None:
@@ -327,13 +404,7 @@ def _save_danish_current_and_trim_backups(
     current_dir.mkdir(parents=True, exist_ok=True)
     _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     current_file = current_dir / f"{source_id}_current.xml"
-    if current_file.exists():
-        stamp = time.strftime("%Y%m%d", time.gmtime(current_file.stat().st_mtime))
-        backup_path = _BACKUP_DIR / f"{source_id}_{stamp}.xml"
-        try:
-            current_file.rename(backup_path)
-        except OSError:
-            pass
+    _backup_previous(current_file, xml_path, _BACKUP_DIR, source_id, "xml")
     try:
         shutil.copy2(str(xml_path), str(current_file))
     except OSError:
@@ -345,10 +416,11 @@ def _save_danish_current_and_trim_backups(
             )
         except OSError:
             pass
-    rotate_backups(_BACKUP_DIR, source_id, keep=_MAX_BACKUPS_PER_SOURCE)
 
 
-def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
+def _load_docs_from_registry(
+    include_iaea: bool = True,
+) -> tuple[list[Document], list[Document]]:
     """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF.
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
@@ -410,6 +482,8 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
                     pass
             continue
         # IAEA or other: PDF — docling returns pre-chunked docs
+        if not include_iaea:
+            continue
         path, label = fetch_pdf_for_source(source_id, name, url, folder)
         if path is None:
             continue
@@ -534,20 +608,65 @@ def _extract_and_load_attachments(
     return all_docs
 
 
-def load_dk_law_docs():
+def law_title_key(title: str) -> str:
+    """A law's title reduced to lowercase letters and single spaces, so a PDF
+    title line ("Bekendtgørelse om strålingsgeneratorer1)") matches the XML
+    DocumentTitle."""
+    letters = re.sub(
+        r"[^a-zæøåäöüé]+", " ", unicodedata.normalize("NFC", title).casefold()
+    )
+    return re.sub(r"\s+", " ", letters).strip()
+
+
+def pdf_law_match(first_lines: list[str], law_keys: set[str]) -> str | None:
+    """The law key a PDF's title area names, if it is one of law_keys.
+
+    Only the first lines count: a guidance document that cites an order in its
+    body is not a copy of that order.
+    """
+    for line in first_lines:
+        key = law_title_key(line)
+        for law in law_keys:
+            if law and key.startswith(law):
+                return law
+    return None
+
+
+def _pdf_first_lines(pdf_path: Path, n: int = 3) -> list[str]:
+    """The first n non-empty lines of a PDF's first page."""
+    try:
+        text = PdfReader(str(pdf_path)).pages[0].extract_text() or ""
+    except Exception:
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip()][:n]
+
+
+def load_dk_law_docs(skip_law_keys: set[str] | frozenset[str] = frozenset()):
     """Load PDFs from Bekendtgørelse (Danish legislation) directory.
 
     Uses docling HybridChunker for PDF parsing and loads embedded PDF
     attachments (Anhänge) that often contain tables.
+
+    skip_law_keys: laws (law_title_key) already ingested from Retsinformation
+    XML. Their PDFs are skipped: the XML is the current version, and a PDF left
+    in the folder after an update would put an outdated version next to it.
     """
     dk_path = DOCS_DIR / "Bekendtgørelse"
     if not dk_path.exists():
         return []
     all_docs = []
-    pdf_files = list(dk_path.rglob("*.pdf"))
+    pdf_files = sorted(dk_path.rglob("*.pdf"))
     for pdf_path in tqdm(
         pdf_files, desc="Loading Danish PDFs", unit="file", disable=False
     ):
+        if skip_law_keys and pdf_law_match(
+            _pdf_first_lines(pdf_path), set(skip_law_keys)
+        ):
+            tqdm.write(
+                f"  Skipped {pdf_path.name}: this law is already ingested from "
+                "retsinformation.dk XML (one copy per law)"
+            )
+            continue
         try:
             docs = _load_pdf_with_docling(pdf_path)
             for d in docs:
@@ -694,12 +813,13 @@ def _add_documents_gemini_rate_limited(
                 time.sleep(delay_sec)
 
 
-def ingest():
+def ingest(dk_only: bool = False):
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
     PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
-    inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
-    (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
+    inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
+    copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
+    Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
     """
 
     def _signal_handler(signum, frame):
@@ -712,7 +832,7 @@ def ingest():
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
     print(f"📊 Using embedding provider: {ep}")
-    print(f"📦 Collections: {iaea_name}, {dk_name}\n")
+    print(f"📦 Collections: {dk_name if dk_only else f'{iaea_name}, {dk_name}'}\n")
 
     with tqdm(
         total=6,
@@ -721,12 +841,12 @@ def ingest():
         disable=False,
         position=0,
     ) as overall_progress:
-        _clear_chroma_collections(ep)
+        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
         embeddings = get_embeddings(ep)
         overall_progress.update(1)
 
         # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
-        iaea_from_url, dk_from_url = _load_docs_from_registry()
+        iaea_from_url, dk_from_url = _load_docs_from_registry(include_iaea=not dk_only)
         if iaea_from_url:
             tqdm.write(
                 f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)"
@@ -738,19 +858,23 @@ def ingest():
         overall_progress.update(1)
 
         # IAEA collection: local dirs + registry URLs — all pre-chunked
-        iaea_docs = load_iaea_docs()
-        iaea_docs.extend(iaea_from_url)
-        overall_progress.update(1)
+        if not dk_only:
+            iaea_docs = load_iaea_docs()
+            iaea_docs.extend(iaea_from_url)
+            if iaea_docs:
+                _add_documents_rate_limited(
+                    iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+                )
+                tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        overall_progress.update(2)
 
-        if iaea_docs:
-            _add_documents_rate_limited(
-                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
-            )
-            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
-        overall_progress.update(1)
-
-        # Danish law collection: local dirs + registry URLs — all pre-chunked
-        dk_docs = load_dk_law_docs()
+        # Danish law collection: registry XML + local PDFs not already read from XML
+        xml_laws = {
+            law_title_key(d.metadata["law_title"])
+            for d in dk_from_url
+            if d.metadata.get("law_title")
+        }
+        dk_docs = load_dk_law_docs(skip_law_keys=xml_laws)
         dk_docs.extend(dk_from_url)
         overall_progress.update(1)
 
@@ -988,8 +1112,13 @@ if __name__ == "__main__":
         help="Copy the chunks of this provider's collections (e.g. gemini) and embed "
         "them with the configured EMBEDDING_PROVIDER instead of re-parsing the documents",
     )
+    parser.add_argument(
+        "--dk-only",
+        action="store_true",
+        help="Rebuild only the Danish law collection; the IAEA collection is kept",
+    )
     args = parser.parse_args()
     if args.reembed_from:
         reembed_from(args.reembed_from, target=reembed_target())
     else:
-        ingest()
+        ingest(dk_only=args.dk_only)

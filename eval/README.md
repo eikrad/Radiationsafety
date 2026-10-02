@@ -201,7 +201,7 @@ Every finished run records what it tested, so a score change can be traced to a 
 
 | Field | Contents |
 |--------|--------|
-| `git` | commit, branch, and whether tracked files had uncommitted changes (captured at the start of the run; the run history itself does not count) |
+| `git` | commit, branch, and whether tracked files had uncommitted changes (captured at the start of the run; the run history and the documents ingestion rewrites, `documents/` and `document_versions.json`, do not count: the index fingerprint records what was indexed) |
 | `config` | answer, judge and embedding models; whether the judge is the answering model; `retriever_k`; web search; `metrics_version`; a fingerprint of each `graph/chains/*.py` prompt module; `index`: per collection the number of chunks and a hash of their texts (independent of chunk ids, so re-embedded identical chunks match and any re-chunking shows) |
 | `dataset` | `questions_hash` (ids + questions: runs with the same value are comparable), `content_hash` (also expected answers, expected behaviour and nuggets with their evidence quotes: changes when grading targets change, e.g. a pooled quote is added), `n_items` |
 | `results` | per question: pass, error type, metrics, tags; generated answers stay in the local report |

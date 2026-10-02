@@ -145,6 +145,21 @@ questions:
   false alarms.
 - Pass rate 77 %, unchanged within judge noise.
 
+**Step 1 (2026-10-02): one copy per Danish law.** The five orders were indexed
+from both XML and PDF (same version); the PDFs are now skipped (Danish
+collection 1321 → 803 chunks). Retrieval-only against the baseline: evidence
+ranked higher for 8 questions and lower for 8 (sign test p = 1), recall@3
+0.88 → 0.85, recall@20 unchanged at 0.97, still 6 retrieval misses. But they
+are different questions: the three multi-nugget questions whose evidence
+had to share 3 slots with duplicates now pass (area classification, dose
+constraints, the 16-18-year-olds trap), while three single-fact questions
+lost rank (registration rank 2 → 6, deregistration 1 → 4, fetus dose 2 → 4).
+In each of those the short docling chunk of the PDF had ranked above the
+2500-character XML chunk that holds the same sentence. Full run: 31/39 pass
+(30 before, within noise), `grade_documents` right 0.90, one warning. The
+duplicates were not only redundant: the PDF chunks had the better grain.
+That is the case for structure-aware chunking of the XML (#130), next.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then

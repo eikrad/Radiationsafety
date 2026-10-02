@@ -220,6 +220,22 @@ def test_recording_a_run_in_the_history_does_not_mark_the_next_run_dirty(repo):
     assert git_info(repo)["dirty"] is False
 
 
+def test_data_that_ingestion_rewrites_does_not_mark_a_run_dirty(repo):
+    """Ingestion updates document_versions.json and the Danish XML copies; what was
+    indexed is recorded by the index fingerprint, so they are not code changes."""
+    versions = repo / "document_versions.json"
+    law = repo / "documents" / "Bekendtgørelse" / "dk-law_current.xml"
+    law.parent.mkdir(parents=True)
+    versions.write_text("{}")
+    law.write_text("<Dokument/>")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "data")
+    versions.write_text('{"updated_at": "2026-10-02T10:00:00Z"}')
+    law.write_text("<Dokument>new</Dokument>")
+
+    assert git_info(repo)["dirty"] is False
+
+
 def test_outside_a_git_repo_the_run_is_still_recorded_without_git_info(tmp_path):
     assert git_info(tmp_path) == {"commit": None, "branch": None, "dirty": None}
 

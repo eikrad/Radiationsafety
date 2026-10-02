@@ -139,6 +139,11 @@ Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDE
    ```
    Each embedding model gets its own collections (`radiation-iaea-scw-<model>`, …), so switching back needs no rebuild.
 
+   Danish orders are read from retsinformation.dk XML (the sources in `document_sources.yaml`, kept current by the update check). A PDF of the same order in `documents/Bekendtgørelse/` is skipped, so each law is indexed once and an old PDF cannot sit next to a newer version; other PDFs there (e.g. SST guidance) are still read. To rebuild only the Danish collection, e.g. after an update:
+   ```bash
+   uv run python ingestion.py --dk-only
+   ```
+
 4. Start the backend:
    ```bash
    uv run uvicorn api.main:app --reload --port 8000
