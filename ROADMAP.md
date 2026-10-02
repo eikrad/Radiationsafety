@@ -190,7 +190,12 @@ warning, both in answers whose evidence did not change. Two questions lost
 rank, and both are definitions: the definitions paragraph (§ 3 of BEK 1384,
 about 100 numbered terms) is packed into 12 chunks of 5–7 terms, so one term
 is a small part of its chunk (safety assessment 11 → 20, receipt inspection
-3 → 4). Next: one chunk per term in a definitions list (step 2b).
+3 → 4). Not pursued as its own step: a definitions-only chunk rule would be
+designed on these two questions and judged on the same two (safety assessment
+was a miss before too, receipt inspection moved one place). Both look up an
+exact term, which lexical search (BM25 + RRF, #131) addresses for every
+document; whether term lookups still fail is checked after that step, on
+new definition questions written before any change.
 The full run also exposed two grader replies the graph could not read (a
 field given as an object, a verdict written as prose); both now get one
 follow-up request for the JSON and, failing that, the cautious verdict.
