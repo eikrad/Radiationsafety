@@ -19,7 +19,7 @@ import json
 import math
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from langchain_core.documents import Document
@@ -150,9 +150,9 @@ def run(golden: list[dict], label: str | None, delay_sec: float) -> dict:
             file=sys.stderr,
         )
     return {
-        "run_id": datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
+        "run_id": datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
         "label": label,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "git": git_info(),
         "config": {
             "llm_model": _model_name(generator),
