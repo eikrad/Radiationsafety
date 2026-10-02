@@ -178,6 +178,22 @@ the three single-fact questions lost in step 1 (registration, deregistration,
 fetus dose) are back in the top 3, none of the three gained in step 1
 (area classification, dose constraints, 16-18-year-olds) is lost, and the full
 run passes at least 30/39.
+Result (2026-10-02, adopted, all four conditions met): evidence ranked higher
+for 8 questions and lower for 4; recall@1 0.55 → 0.61, recall@3 0.85 → 0.90,
+recall@5 0.90 → 0.97, recall@20 0.97 → 1.00, MRR 0.70 → 0.77. Deregistration
+(4 → 1) and fetus dose (4 → 2) are back, registration only reaches 4 (from 6);
+the step 1 gains held or improved (area classification 3 → 1, dose constraints
+3 → 2), the 16-18-year-olds slipped 2 → 3 (still found). Full run: 31/39 as
+before, retrieval misses 6 → 4, `grade_documents` right 0.90 → 0.92; the new
+failures are one unsupported claim and a refusal question answered with a
+warning, both in answers whose evidence did not change. Two questions lost
+rank, and both are definitions: the definitions paragraph (§ 3 of BEK 1384,
+about 100 numbered terms) is packed into 12 chunks of 5–7 terms, so one term
+is a small part of its chunk (safety assessment 11 → 20, receipt inspection
+3 → 4). Next: one chunk per term in a definitions list (step 2b).
+The full run also exposed two grader replies the graph could not read (a
+field given as an object, a verdict written as prose); both now get one
+follow-up request for the JSON and, failing that, the cautious verdict.
 
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
