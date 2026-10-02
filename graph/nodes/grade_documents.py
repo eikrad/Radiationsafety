@@ -31,11 +31,14 @@ def grade_documents(
     context = format_context(documents, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
     throttle_llm_if_needed()
     sufficiency = get_context_sufficiency_grader(llm)
-    sufficient = sufficiency.invoke(
-        {"question": question, "context": context},
-        config=cfg,
-    )
-    web_search = not sufficient.binary_score
+    try:
+        sufficient = sufficiency.invoke(
+            {"question": question, "context": context},
+            config=cfg,
+        ).binary_score
+    except ValueError:  # no verdict even when asked again: not shown sufficient
+        sufficient = False
+    web_search = not sufficient
 
     # Privacy mode: never enable web search
     if privacy_mode:

@@ -39,10 +39,13 @@ def grade_generation(
 
     throttle_llm_if_needed()
     grader = get_generation_grader(llm)
-    score = grader.invoke(
-        {"documents": docs_str, "question": question, "generation": generation},
-        config=cfg,
-    )
+    try:
+        score = grader.invoke(
+            {"documents": docs_str, "question": question, "generation": generation},
+            config=cfg,
+        )
+    except ValueError:  # no verdict even when asked again: not passed
+        return {"generation_passed_grading": False, "reflection": _SENTINEL}
 
     if score.passed:
         return {"generation_passed_grading": True, "reflection": ""}

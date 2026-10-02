@@ -180,18 +180,20 @@ def scaleway_replies(scaleway_env, monkeypatch):
 
     sent: list[dict] = []
     reply = {}
+    queue: list[dict] = []  # replies for successive requests, then `reply`
 
     def send(self, request, **_):
         sent.append(json.loads(request.content))
-        message = {"role": "assistant", "content": reply.get("content")}
-        if "tool_args" in reply:
+        current = queue.pop(0) if queue else reply
+        message = {"role": "assistant", "content": current.get("content")}
+        if "tool_args" in current:
             message["tool_calls"] = [
                 {
                     "id": "call_1",
                     "type": "function",
                     "function": {
                         "name": "_Verdict",
-                        "arguments": json.dumps(reply["tool_args"]),
+                        "arguments": json.dumps(current["tool_args"]),
                     },
                 }
             ]
@@ -205,7 +207,7 @@ def scaleway_replies(scaleway_env, monkeypatch):
         return httpx.Response(200, json=body, request=request)
 
     monkeypatch.setattr(httpx.Client, "send", send)
-    return SimpleNamespace(sent=sent, reply=reply)
+    return SimpleNamespace(sent=sent, reply=reply, queue=queue)
 
 
 def _ask_for_verdict():
@@ -240,6 +242,20 @@ def test_an_unreadable_structured_reply_fails_loudly_instead_of_returning_none(
 
     with pytest.raises(ValueError, match="_Verdict"):
         _ask_for_verdict()
+    assert len(scaleway_replies.sent) == 2  # asked once more, then gave up
+
+
+def test_a_reply_without_a_verdict_is_asked_once_more_for_the_json(scaleway_replies):
+    """Eval crash 2026-10-02: the groundedness grader answered in prose."""
+    scaleway_replies.queue.append({"content": "Yes, every claim is supported."})
+    scaleway_replies.reply["tool_args"] = {"passed": True}
+
+    assert _ask_for_verdict() == _Verdict(passed=True)
+    first, second = scaleway_replies.sent
+    assert second["messages"][: len(first["messages"])] == first["messages"]
+    assert second["messages"][-2]["content"] == "Yes, every claim is supported."
+    correction = second["messages"][-1]["content"]
+    assert "JSON" in correction and "passed" in correction
 
 
 # --- Embeddings chosen separately from the answer model ----------------------

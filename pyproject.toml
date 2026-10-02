@@ -7,7 +7,7 @@ where = ["."]
 include = ["graph*"]
 
 [tool.setuptools]
-py-modules = ["ingestion", "ingestion_fetch", "document_updates"]
+py-modules = ["ingestion", "ingestion_dk", "ingestion_fetch", "document_updates"]
 
 [project]
 name = "radiationsafety"
@@ -62,6 +62,7 @@ source = [
     "api",
     "graph",
     "ingestion",
+    "ingestion_dk",
     "ingestion_fetch",
     "document_updates",
     "build_document_sources",

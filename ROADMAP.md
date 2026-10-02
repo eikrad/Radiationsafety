@@ -160,6 +160,46 @@ In each of those the short docling chunk of the PDF had ranked above the
 duplicates were not only redundant: the PDF chunks had the better grain.
 That is the case for structure-aware chunking of the XML (#130), next.
 
+**Step 2: Danish law chunked along its structure (#130, 2026-10-02).** The
+XML is cut along its own elements instead of every 2500 characters
+(`ingestion_dk.py`): paragraphs of one group (same chapter, same group title)
+are packed together up to 1500 characters, a longer one is split only between
+its Stk., numbered items, lines or table rows, a split table repeats its
+header row, and every chunk starts with `law (BEK nr, date) › chapter › group
+› §`. No overlap: no cut falls inside an item. Five orders, 308 chunks
+(median ~1300 characters, none above 1700); tests check that every word of
+each law lands in a chunk and every golden quote found in a law lies within
+one chunk. It replaces the character splitter rather than adding a parallel
+index: only the Danish collection changes, `ingestion.py --dk-only` rebuilds
+it in minutes and a revert restores the old chunks.
+Adoption rule, set before measuring: against `dk-one-copy`, retrieval-only
+evidence ranks improve for more questions than they worsen, at least two of
+the three single-fact questions lost in step 1 (registration, deregistration,
+fetus dose) are back in the top 3, none of the three gained in step 1
+(area classification, dose constraints, 16-18-year-olds) is lost, and the full
+run passes at least 30/39.
+Result (2026-10-02, adopted, all four conditions met): evidence ranked higher
+for 8 questions and lower for 4; recall@1 0.55 → 0.61, recall@3 0.85 → 0.90,
+recall@5 0.90 → 0.97, recall@20 0.97 → 1.00, MRR 0.70 → 0.77. Deregistration
+(4 → 1) and fetus dose (4 → 2) are back, registration only reaches 4 (from 6);
+the step 1 gains held or improved (area classification 3 → 1, dose constraints
+3 → 2), the 16-18-year-olds slipped 2 → 3 (still found). Full run: 31/39 as
+before, retrieval misses 6 → 4, `grade_documents` right 0.90 → 0.92; the new
+failures are one unsupported claim and a refusal question answered with a
+warning, both in answers whose evidence did not change. Two questions lost
+rank, and both are definitions: the definitions paragraph (§ 3 of BEK 1384,
+about 100 numbered terms) is packed into 12 chunks of 5–7 terms, so one term
+is a small part of its chunk (safety assessment 11 → 20, receipt inspection
+3 → 4). Not pursued as its own step: a definitions-only chunk rule would be
+designed on these two questions and judged on the same two (safety assessment
+was a miss before too, receipt inspection moved one place). Both look up an
+exact term, which lexical search (BM25 + RRF, #131) addresses for every
+document; whether term lookups still fail is checked after that step, on
+new definition questions written before any change.
+The full run also exposed two grader replies the graph could not read (a
+field given as an object, a verdict written as prose); both now get one
+follow-up request for the JSON and, failing that, the cautious verdict.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -178,8 +218,9 @@ the costly ones:
 4. **BM25 + RRF** behind a switch, off by default (#131); the Danish
    translation query as a second variant once the golden set has English
    questions about Danish law.
-5. **Structure-aware chunking** as a parallel index, never replacing the
-   current one (#130).
+5. **Structure-aware chunking** (#130): planned as a parallel index; it
+   replaces the character splitter instead (step 2 above), since only the
+   Danish collection changes and `--dk-only` rebuilds it in minutes.
 6. **k and context order** decided from the rank data plus a full run
    stratified by evidence presence (#132).
 

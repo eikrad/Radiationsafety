@@ -217,3 +217,87 @@ def test_the_sufficiency_example_shows_the_reply_as_json():
     parsed = _parse_text_reply(example, GradeSufficiency)
     assert parsed.binary_score is False
     assert "\nbinary_score:" not in rendered
+
+
+def test_a_finding_written_as_one_entry_per_fact_is_read_as_text():
+    """Eval crash 2026-10-02: the reply had "found" as an object, not a string."""
+    from graph.chains.context_sufficiency_grader import GradeSufficiency
+    from graph.llm_factory import _parse_text_reply
+
+    reply = (
+        '{"needed": ["Danish limit", "IAEA limit"], "found": {"IAEA procedure": '
+        '"not found", "Danish rule": "BEK 1385 § 21"}, "binary_score": false}'
+    )
+    grade = _parse_text_reply(reply, GradeSufficiency)
+
+    assert grade.needed == "Danish limit; IAEA limit"
+    assert grade.found == "IAEA procedure: not found; Danish rule: BEK 1385 § 21"
+    assert grade.binary_score is False
+
+
+def test_a_missing_info_hint_written_as_a_list_is_read_as_text():
+    from graph.chains.generation_grader import GradeGeneration
+
+    grade = GradeGeneration.model_validate(
+        {"passed": False, "missing_info": ["Annex 2 table", "BEK 1384 § 15"]}
+    )
+
+    assert grade.missing_info == "Annex 2 table; BEK 1384 § 15"
+
+
+# --- a grader that gives no verdict even when asked again --------------------------
+
+
+def _broken_grader():
+    grader = MagicMock()
+    grader.invoke.side_effect = ValueError("no GradeHallucinations object in reply")
+    return grader
+
+
+def test_no_groundedness_verdict_means_the_answer_is_shown_as_unverified():
+    out = _verify(
+        {"generation": "Højst 1 mSv.", "trusted_documents": [LONG_CHUNK]},
+        _broken_grader(),
+    )
+
+    assert "retrieval_warning" in out
+
+
+def test_no_sufficiency_verdict_counts_as_insufficient():
+    from graph.nodes.grade_documents import grade_documents
+
+    with (
+        patch(
+            "graph.nodes.grade_documents.get_context_sufficiency_grader",
+            return_value=_broken_grader(),
+        ),
+        patch("graph.nodes.grade_documents.throttle_llm_if_needed"),
+    ):
+        out = grade_documents(
+            {"question": "q", "documents": [LONG_CHUNK], "llm": MagicMock()}
+        )
+
+    assert out["web_search"] is True
+    assert out["documents"] == [LONG_CHUNK]
+
+
+def test_no_generation_verdict_counts_as_not_passed():
+    from graph.nodes.grade_generation import grade_generation
+
+    with (
+        patch(
+            "graph.nodes.grade_generation.get_generation_grader",
+            return_value=_broken_grader(),
+        ),
+        patch("graph.nodes.grade_generation.throttle_llm_if_needed"),
+    ):
+        out = grade_generation(
+            {
+                "question": "q",
+                "documents": [LONG_CHUNK],
+                "generation": "Højst 1 mSv.",
+                "llm": MagicMock(),
+            }
+        )
+
+    assert out == {"generation_passed_grading": False, "reflection": "retry"}

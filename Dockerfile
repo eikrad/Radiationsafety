@@ -20,7 +20,7 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY api/ ./api/
 COPY graph/ ./graph/
-COPY ingestion.py ingestion_fetch.py document_updates.py build_document_sources.py ./
+COPY ingestion.py ingestion_dk.py ingestion_fetch.py document_updates.py build_document_sources.py ./
 
 # Empty .chroma so the app starts; docker-compose mounts the index over it
 RUN mkdir -p .chroma
