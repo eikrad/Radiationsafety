@@ -37,7 +37,7 @@ from graph.llm_factory import (
     get_embeddings,
     query_instruction_template,
 )
-from ingestion_dk import structure_chunks
+from ingestion_dk import structure_chunks, xml_to_text
 
 load_dotenv()
 
@@ -277,15 +277,12 @@ def _backup_previous(
     extension: str,
 ) -> None:
     """Keep the current file as a dated backup before it is replaced, unless the
-    download is byte-identical: re-fetching an unchanged version used to add a
-    duplicate backup on every ingestion."""
+    download holds the same document: re-fetching an unchanged version used to
+    add a duplicate backup on every ingestion."""
     if not current_path or not current_path.exists():
         return
-    try:
-        if filecmp.cmp(current_path, new_path, shallow=False):
-            return
-    except OSError:
-        pass
+    if _same_document(current_path, new_path, extension):
+        return
     backup_dir.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d", time.gmtime(current_path.stat().st_mtime))
     try:
@@ -299,6 +296,20 @@ def _backup_previous(
     )
 
 
+def _same_document(current_path: Path, new_path: Path, extension: str) -> bool:
+    """Byte-identical, or for Retsinformation XML the same law text: a re-export
+    can differ in line endings, indentation and element ids on every line."""
+    try:
+        if filecmp.cmp(current_path, new_path, shallow=False):
+            return True
+    except OSError:
+        return False
+    if extension != "xml":
+        return False
+    text = xml_to_text(current_path)
+    return bool(text) and text == xml_to_text(new_path)
+
+
 def _save_danish_current_and_trim_backups(
     source_id: str, xml_path: Path, *, version_label: str | None = None
 ) -> None:
@@ -309,11 +320,13 @@ def _save_danish_current_and_trim_backups(
     current_dir.mkdir(parents=True, exist_ok=True)
     _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     current_file = current_dir / f"{source_id}_current.xml"
-    _backup_previous(current_file, xml_path, _BACKUP_DIR, source_id, "xml")
-    try:
-        shutil.copy2(str(xml_path), str(current_file))
-    except OSError:
-        pass
+    # The same law in another layout leaves the file alone, so git shows no change.
+    if not (current_file.exists() and _same_document(current_file, xml_path, "xml")):
+        _backup_previous(current_file, xml_path, _BACKUP_DIR, source_id, "xml")
+        try:
+            shutil.copy2(str(xml_path), str(current_file))
+        except OSError:
+            pass
     if version_label:
         try:
             (current_dir / f"{source_id}_version.txt").write_text(
