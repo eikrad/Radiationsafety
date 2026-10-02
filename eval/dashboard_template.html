@@ -129,7 +129,8 @@ select {
 
 /* Trends: small multiples */
 .multiples { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
-.panel h3 { margin: 0 0 6px; font-weight: 600; }
+/* Two lines for every title, so the plots of one row line up. */
+.panel h3 { margin: 0 0 10px; font-weight: 600; line-height: 1.3; min-height: 2.6em; }
 .panel .latest { color: var(--ink-2); font-weight: 400; }
 .chart { display: flex; align-items: stretch; }
 .y-gutter { position: relative; width: 36px; flex-shrink: 0; }
@@ -145,9 +146,17 @@ select {
   font-size: 11px; color: var(--muted);
 }
 .x-axis span { position: absolute; white-space: nowrap; }
+.x-axis .mid { transform: translateX(-50%); }
 .x-axis .end { right: 0; }
+.plot .badge {
+  position: absolute; top: -8px; transform: translateX(-50%);
+  min-width: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--marker); color: var(--ink-2);
+  font-size: 10px; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.chart-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; margin: 0; }
 .legend-markers { margin-top: 10px; font-size: 12px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.key-dash { display: inline-block; width: 14px; border-top: 2px dashed var(--marker); vertical-align: middle; margin-right: 6px; }
+.key-dash { display: inline-block; width: 14px; border-top: 1px dashed var(--muted); vertical-align: middle; margin-right: 6px; }
 .key-ring { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--series); border-radius: 50%; vertical-align: -1px; margin-right: 6px; }
 
 .tooltip {
@@ -511,51 +520,168 @@ function trends(set) {
         metrics.map((m) => el("td", { class: "num" }, m === "pass_rate" ? pct(summaryValue(run, m)) : score(summaryValue(run, m))))))));
   section.append(el("details", {}, el("summary", {}, "Show as table"), el("div", { class: "scroll" }, table)));
 
-  requestAnimationFrame(() => drawPanels(panels, runs, set));
+  if (trendsResize) trendsResize.disconnect();
+  let lastWidth = null, frame = null;
+  trendsResize = new ResizeObserver(([entry]) => {
+    const widthNow = Math.round(entry.contentRect.width);
+    if (widthNow === lastWidth) return;
+    lastWidth = widthNow;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => drawPanels(panels, runs, set));
+  });
+  trendsResize.observe(multiples);
   return section;
 }
 
-const PLOT_H = 120, PAD = { top: 8, right: 10, bottom: 8, left: 6 };
+// ---------- chart geometry ----------
+// Follows the metric-chart rules of DemBot's design system (DemAI-tech/dembot,
+// docs/DESIGNS.md "Metric charts"): round value ticks, a tick mark wherever a
+// label names a position, labels dropped rather than squeezed, solid grid
+// (dashes mean an annotation), numbered marker badges, HTML labels, a plot
+// measured to its rendered width, and no empty axes for a series with no data.
+// The x axis is run order rather than time: runs come in bursts (four in an
+// afternoon, then nothing for days), and a time axis would stack a burst on
+// one pixel.
+const PLOT_H = 120, PAD = { top: 10, right: 12, bottom: 8, left: 8 };
+const TICK_LENGTH = 5;
+const CHAR_WIDTH_PX = 6, LABEL_GAP_PX = 10;  // 11px labels; estimates err toward a tick too few
+const BADGE_MIN_GAP_PX = 18;
+
+// 1, 2, 2.5 or 5 times a power of ten at or above raw: the steps people count in.
+function niceStep(raw) {
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const f = raw / magnitude;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * magnitude;
+}
+// Zero-based ticks at a round step; the scale's top is the data's max raised
+// to a whole step, so a 0.46 peak reads against 0 / 0.1 / … / 0.5, not against
+// fractions of 0.46. Rates stay within 0–1 since every step divides 1.
+function niceValueTicks(dataMax, targetCount = 5) {
+  if (!(dataMax > 0)) return { max: 1, step: 0.2, ticks: [0, 0.2, 0.4, 0.6, 0.8, 1] };
+  const step = niceStep(dataMax / targetCount);
+  const count = Math.ceil(dataMax / step - 1e-9);
+  const ticks = Array.from({ length: count + 1 }, (_, i) => Math.round(i * step * 1e6) / 1e6);
+  return { max: ticks[ticks.length - 1], step, ticks };
+}
+// Decimals that show a step exactly (0.25 → 2, 0.2 → 1, 1 → 0).
+function stepDecimals(step) {
+  for (let d = 0; d <= 4; d++) {
+    const scaled = step * 10 ** d;
+    if (Math.abs(scaled - Math.round(scaled)) < 1e-6) return d;
+  }
+  return 4;
+}
+const labelWidth = (label) => label.length * CHAR_WIDTH_PX;
+// Keep the run labels that fit between the kept ones and the two flush end
+// labels; a label that does not fit is dropped, never overlapped.
+function ticksThatFit(candidates, leftClearance, rightClearance) {
+  const kept = [];
+  let cursor = leftClearance;
+  for (const tick of candidates) {
+    const half = labelWidth(tick.label) / 2;
+    if (tick.x - half < cursor || tick.x + half > rightClearance) continue;
+    kept.push(tick);
+    cursor = tick.x + half + LABEL_GAP_PX;
+  }
+  return kept;
+}
+// Markers closer than a badge's width share one badge naming the range (1–3):
+// separate badges would hide all but the top one.
+function mergeBadges(markers) {
+  const groups = [];
+  for (const m of markers) {
+    const last = groups[groups.length - 1];
+    if (last && m.x - last.x < BADGE_MIN_GAP_PX) last.numbers.push(m.number);
+    else groups.push({ x: m.x, numbers: [m.number] });
+  }
+  return groups;
+}
+
+let trendsResize = null;
 
 function drawPanels(panels, runs, set) {
   const hovers = [];
   const setHover = (index) => hovers.forEach((fn) => fn(index));
   const baseIndex = runs.findIndex((r) => r.run_id === set.baseline_run_id);
   const selectedIndex = runs.findIndex((r) => r.run_id === state.runId);
-  const markerIndexes = set.markers.map((m) => runs.findIndex((r) => r.run_id === m.run_id));
+  const markers = set.markers
+    .map((m, i) => ({ number: i + 1, index: runs.findIndex((r) => r.run_id === m.run_id), reasons: m.reasons }))
+    .filter((m) => m.index >= 0);
 
   for (const { metric, panel } of panels) {
-    const latest = summaryValue(runs[runs.length - 1], metric);
+    const values = runs.map((r) => summaryValue(r, metric));
+    const latest = values[values.length - 1];
+    const asPct = metric === "pass_rate";
+    const fmt = (v) => (asPct ? pct(v) : score(v));
     panel.replaceChildren(
-      el("h3", {}, METRIC_LABELS[metric] || metric, " ",
-        el("span", { class: "latest" }, metric === "pass_rate" ? pct(latest) : score(latest))));
+      el("h3", {}, METRIC_LABELS[metric] || metric, " ", el("span", { class: "latest" }, fmt(latest))));
+    if (values.every((v) => v == null)) {
+      panel.append(el("p", { class: "chart-empty", style: `height:${PLOT_H}px` }, "No run on this set reports it."));
+      continue;
+    }
     const gutter = el("div", { class: "y-gutter", "aria-hidden": "true" });
     const plot = el("div", { class: "plot", tabindex: "0", role: "img",
-      "aria-label": `${METRIC_LABELS[metric] || metric} over ${runs.length} runs; latest ${metric === "pass_rate" ? pct(latest) : score(latest)}. Table below.` });
+      "aria-label": `${METRIC_LABELS[metric] || metric} over ${runs.length} runs; latest ${fmt(latest)}. Table below.` });
     const chart = el("div", { class: "chart" }, gutter, plot);
     const xAxis = el("div", { class: "x-axis", "aria-hidden": "true" });
     panel.append(chart, xAxis);
 
+    // Measured, not scaled: one viewBox unit is one CSS pixel at every width.
     const width = Math.max(120, plot.clientWidth);
     const inner = { l: PAD.left, r: width - PAD.right, t: PAD.top, b: PLOT_H - PAD.bottom };
     const xFor = (i) => runs.length === 1 ? (inner.l + inner.r) / 2 : inner.l + (i / (runs.length - 1)) * (inner.r - inner.l);
-    const yFor = (v) => inner.b - v * (inner.b - inner.t);
+    const { max, step, ticks } = niceValueTicks(Math.max(...values.filter((v) => v != null)));
+    const yFor = (v) => inner.b - (v / max) * (inner.b - inner.t);
+    const tickLabel = asPct ? (v) => `${Math.round(v * 100)}%` : (v) => v.toFixed(stepDecimals(step));
     const svg = svgEl("svg", { viewBox: `0 0 ${width} ${PLOT_H}`, height: PLOT_H, "aria-hidden": "true" });
 
-    for (const tick of [0, 0.5, 1]) {
-      svg.append(svgEl("line", { x1: inner.l, x2: inner.r, y1: yFor(tick), y2: yFor(tick),
-        stroke: tick === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }));
-      gutter.append(el("span", { style: `top:${(yFor(tick) / PLOT_H) * 100}%` }, metric === "pass_rate" ? pct(tick) : tick.toFixed(1)));
+    // Run labels: both ends flush to their edge, the runs between centred
+    // under their point when there is room, in the same vocabulary.
+    // Run labels when both end labels fit side by side, dates otherwise: one
+    // vocabulary for the whole axis, never two labels run into each other.
+    const fits = (label) => labelWidth(shortLabel(runs[0])) + labelWidth(shortLabel(runs[runs.length - 1]))
+      + LABEL_GAP_PX <= inner.r - inner.l;
+    const runTick = fits() ? shortLabel : (run) => runDate(run, false);
+    const startLabel = runTick(runs[0]);
+    const endLabel = runs.length > 1 ? runTick(runs[runs.length - 1]) : "";
+    const xTicks = runs.length > 2
+      ? ticksThatFit(
+          // A label already on the axis (three runs on one day) places nothing new.
+          runs.slice(1, -1).map((run, k) => ({ x: xFor(k + 1), label: runTick(run) }))
+            .filter((t, k, all) => t.label !== startLabel && t.label !== endLabel
+              && (k === 0 || t.label !== all[k - 1].label)),
+          inner.l + labelWidth(startLabel) + LABEL_GAP_PX,
+          inner.r - labelWidth(endLabel) - LABEL_GAP_PX)
+      : [];
+
+    // Grid: solid, a line at every labelled value and run; the baseline is the axis.
+    for (const tick of ticks) {
+      const y = yFor(tick);
+      if (tick !== 0) {
+        svg.append(svgEl("line", { x1: inner.l, x2: inner.r, y1: y, y2: y, stroke: "var(--grid)", "stroke-width": 1 }));
+      }
+      svg.append(svgEl("line", { x1: inner.l - TICK_LENGTH, x2: inner.l, y1: y, y2: y, stroke: "var(--axis)", "stroke-width": 1 }));
+      gutter.append(el("span", { style: `top:${(y / PLOT_H) * 100}%` }, tickLabel(tick)));
     }
-    markerIndexes.forEach((i) => {
-      if (i < 0) return;
-      svg.append(svgEl("line", { x1: xFor(i), x2: xFor(i), y1: inner.t, y2: inner.b,
-        stroke: "var(--marker)", "stroke-width": 1.5, "stroke-dasharray": "4 3" }));
-    });
+    for (const t of xTicks) {
+      svg.append(svgEl("line", { x1: t.x, x2: t.x, y1: inner.t, y2: inner.b, stroke: "var(--grid)", "stroke-width": 1 }));
+    }
+    svg.append(svgEl("line", { x1: inner.l, x2: inner.r, y1: inner.b, y2: inner.b, stroke: "var(--axis)", "stroke-width": 1 }));
+    const tickXs = [xFor(0), ...xTicks.map((t) => t.x)];
+    if (runs.length > 1) tickXs.push(xFor(runs.length - 1));
+    for (const x of tickXs) {
+      svg.append(svgEl("line", { x1: x, x2: x, y1: inner.b, y2: inner.b + TICK_LENGTH, stroke: "var(--axis)", "stroke-width": 1 }));
+    }
+
+    // Annotations: dashed, numbered; the legend under the charts names them.
+    for (const m of markers) {
+      svg.append(svgEl("line", { x1: xFor(m.index), x2: xFor(m.index), y1: inner.t, y2: inner.b,
+        stroke: "var(--muted)", "stroke-width": 1, "stroke-dasharray": "4 3" }));
+    }
     const crosshair = svgEl("line", { y1: inner.t, y2: inner.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
     svg.append(crosshair);
 
-    const values = runs.map((r) => summaryValue(r, metric));
+    // A run without this metric breaks the line rather than bridging it.
     const d = values.map((v, i) => (v == null ? null : `${xFor(i).toFixed(1)} ${yFor(v).toFixed(1)}`))
       .map((p, i, all) => (p == null ? "" : `${i === 0 || all[i - 1] == null ? "M" : "L"} ${p}`)).join(" ");
     svg.append(svgEl("path", { d, fill: "none", stroke: "var(--series)", "stroke-width": 2,
@@ -570,8 +696,17 @@ function drawPanels(panels, runs, set) {
     });
     plot.append(svg);
 
-    xAxis.append(el("span", { style: "left:0" }, shortLabel(runs[0])));
-    if (runs.length > 1) xAxis.append(el("span", { class: "end" }, shortLabel(runs[runs.length - 1])));
+    // Badges are HTML over the plot, so they keep their size.
+    for (const group of mergeBadges(markers.map((m) => ({ number: m.number, x: xFor(m.index) })))) {
+      const numbers = group.numbers;
+      const text = numbers.length > 1 ? `${numbers[0]}–${numbers[numbers.length - 1]}` : String(numbers[0]);
+      plot.append(el("span", { class: "badge", style: `left:${(group.x / width) * 100}%`,
+        title: numbers.map((n) => `${n}: ${set.markers[n - 1].reasons.join(", ")}`).join("\n") }, text));
+    }
+
+    xAxis.append(el("span", { style: "left:0" }, startLabel));
+    for (const t of xTicks) xAxis.append(el("span", { class: "mid", style: `left:${(t.x / width) * 100}%` }, t.label));
+    if (endLabel) xAxis.append(el("span", { class: "end" }, endLabel));
 
     hovers.push((index) => {
       if (index == null) { crosshair.setAttribute("visibility", "hidden"); return; }

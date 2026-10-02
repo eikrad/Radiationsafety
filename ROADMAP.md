@@ -200,6 +200,43 @@ The full run also exposed two grader replies the graph could not read (a
 field given as an object, a verdict written as prose); both now get one
 follow-up request for the JSON and, failing that, the cautious verdict.
 
+**Step 3: dense + BM25, fused by reciprocal rank (#131, 2026-10-02).** Behind
+`HYBRID_RETRIEVAL` (off by default). Per collection, the 50 best dense chunks
+and the 50 best BM25 chunks are fused with RRF (k = 60, Cormack et al. 2009)
+and the top k taken; the eval's deeper retrieval goes through the same path.
+BM25 analyzes with the Snowball stemmer and stop words of the collection's
+language (Danish law: Danish, IAEA: English), the condition under which BM25
+matched learned sparse retrieval in BGE-M3's appendix C.2. Nothing is tuned:
+k = 60 and 50 candidates are fixed before measuring. Expected limits: BM25
+cannot match an English question against Danish text (49 vs 77 Recall@100 for
+Danish→English in BGE-M3's MKQA table), so gains, if any, come from term
+lookups within one language. Two evidence quotes that only matched the
+removed PDF text are dropped from the golden set (no score changes; a new
+retrieval-only reference run is taken on the cleaned set).
+Adoption rule, set before measuring: retrieval-only with the switch on,
+against the same run with it off, ranks the evidence higher for more questions
+than lower, and neither recall@3 nor recall at the text budget is lower; the
+full run with the switch on passes at least 30/39 (31/39 now). If it wins, it
+is switched on by default in its own small PR.
+Result (2026-10-02, rejected on all three conditions; the code was removed
+again and stays in the git history, commit 03e9d51): the dense-only reference
+reproduced step 2 exactly. With BM25 fused in, evidence ranked higher for 3
+questions and lower for 13 (sign test p ≈ 0.02); recall@3 0.90 → 0.70,
+recall at the text budget 0.97 → 0.83, MRR 0.77 → 0.63; full run 31/39 → 26/39
+with 10 retrieval misses instead of 4. The losses were where predicted and
+beyond: 6 of the 7 English questions about Danish law fell (BM25 has nothing
+to match; the seventh did not move), but so did three English IAEA questions
+(patient dose limits 2 → 12, transport index 1 → 6, lab spill 1 → 2). Of the
+Danish questions three rose by one place and four fell: area classification
+1 → 9, registration 4 → 6, and the two definitions BM25 was meant to help
+(safety assessment 20 → not in the top 20, receipt inspection 4 → 8);
+"sikkerhedsvurdering" occurs in many chunks, so the defined term is not a
+rare one. The mechanism is RRF's equal weight:
+BM25's first chunk scores 1/61 and outranks dense's second at 1/62, so a
+weaker ranker pushes the stronger one's hits down. A weighted fusion would
+need tuning on these 39 questions, which the plan rules out. Lexical search
+is closed for this corpus and encoder; exact-term lookups stay open.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -215,7 +252,7 @@ the costly ones:
    cross-references); then one
    baseline (retrieval-only twice to confirm determinism, full run twice).
 3. **Graders see whole chunks** (#129, #136).
-4. **BM25 + RRF** behind a switch, off by default (#131); the Danish
+4. **BM25 + RRF** (#131, step 3: measured and rejected, see above); the Danish
    translation query as a second variant once the golden set has English
    questions about Danish law.
 5. **Structure-aware chunking** (#130): planned as a parallel index; it
