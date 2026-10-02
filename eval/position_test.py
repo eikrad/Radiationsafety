@@ -62,20 +62,29 @@ def vital_score(item: dict, labels: list[str]) -> float:
     return sum(_credit(labels[i]) for i in vital) / len(vital)
 
 
-def compare(rows: list[dict]) -> dict:
-    """Paired outcome: how often each placement scored higher, and a sign test
-    over the questions where the two differ."""
-    first_better = sum(r["first"] > r["middle"] for r in rows)
-    middle_better = sum(r["middle"] > r["first"] for r in rows)
+def answer_score(item: dict, verdict: dict) -> float:
+    """Lenient vital recall for a question to answer; for a question to refuse,
+    1 for a refusal without unsupported claims, else 0."""
+    if item["expected_behavior"] != "answer":
+        clean = verdict["refused"] and not verdict["unsupported_claims"]
+        return 1.0 if clean else 0.0
+    return vital_score(item, verdict["nuggets"])
+
+
+def compare(rows: list[dict], a: str = "first", b: str = "middle") -> dict:
+    """Paired outcome of two variants a and b: how often each scored higher, and
+    a sign test over the questions where the two differ."""
+    a_better = sum(r[a] > r[b] for r in rows)
+    b_better = sum(r[b] > r[a] for r in rows)
     n = len(rows)
     return {
         "questions": n,
-        "first_better": first_better,
-        "middle_better": middle_better,
-        "ties": n - first_better - middle_better,
-        "mean_first": sum(r["first"] for r in rows) / n if n else None,
-        "mean_middle": sum(r["middle"] for r in rows) / n if n else None,
-        "sign_test": sign_test(first_better, middle_better),
+        f"{a}_better": a_better,
+        f"{b}_better": b_better,
+        "ties": n - a_better - b_better,
+        f"mean_{a}": sum(r[a] for r in rows) / n if n else None,
+        f"mean_{b}": sum(r[b] for r in rows) / n if n else None,
+        "sign_test": sign_test(a_better, b_better),
     }
 
 
@@ -96,8 +105,9 @@ def _answer_and_judge(item, documents, generator, judge, delay_sec: float) -> di
     if verdict is None:
         return {"score": None, "unsupported": None, "answer": answer}
     return {
-        "score": vital_score(item, verdict["nuggets"]),
+        "score": answer_score(item, verdict),
         "unsupported": len(verdict["unsupported_claims"]),
+        "refused": bool(verdict["refused"]),
         "answer": answer,
     }
 

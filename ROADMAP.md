@@ -267,6 +267,26 @@ test p = 1. The scores sit near the ceiling, so a small effect could hide
 there, but none that would change answers at k = 3: once the evidence is
 retrieved, this generator finds it at either position. The order stays.
 
+**Step 5: k, the chunks per collection (2026-10-02).** At k = 3 the evidence
+for 3 answerable questions sits at rank 4 or 5 (registration, receipt
+inspection, radiography coordinator): recall@3 0.90, recall@5 0.97. More
+chunks can bring that evidence in, but also distract: answer accuracy
+saturates while recall keeps rising (Lost in the Middle §5), so k is judged by
+answers, per group of questions (the rule in Concepts/Retrieval-Improvement-
+Grounded-in-Evaluation). `eval.k_test` answers every golden question from the
+top 3 and from the top 5 of each collection, the same retrieval otherwise, and
+groups the questions: evidence at k=3, evidence only at k=5, evidence missing,
+should refuse. The score is lenient vital recall, or for a question to refuse
+1 for a refusal without unsupported claims. `RETRIEVER_K` (default 3) makes k
+settable without a code change.
+Adoption rule, set before measuring: k = 5 becomes the default, in its own
+small PR confirmed by a full run passing at least 31/39, if (1) among the
+questions with evidence only at k=5, k=5 scores higher on more of them than
+lower; (2) over all other questions together, k=5 scores lower on at most 2
+more questions than it scores higher (the position test saw 1 single-vote
+difference in 32); and (3) at most 2 more answers carry an unsupported claim
+at k=5 than at k=3. Otherwise k stays 3.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -289,7 +309,7 @@ the costly ones:
    replaces the character splitter instead (step 2 above), since only the
    Danish collection changes and `--dk-only` rebuilds it in minutes.
 6. **Context order** measured by a position test (#132, step 4: no effect,
-   order stays), then **k**
+   order stays), then **k** (step 5)
    decided from the rank data plus a full run stratified by evidence presence.
 
 Each step states its adoption rule before the measurement; parameters are not

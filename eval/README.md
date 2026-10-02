@@ -184,6 +184,21 @@ uv run python -m eval.position_test --label position-k3
 Each run is appended to `eval/history/position_tests.jsonl` (commit it like
 `runs.jsonl`).
 
+## k test
+
+Do more chunks per collection give better answers? `eval.k_test` answers every
+golden question from the top 3 and from the top 5 chunks of each collection and
+compares the scores per group: evidence already at k=3 (extra chunks can only
+distract), evidence only at k=5 (where they can help), evidence missing, and
+questions to refuse (refusal without unsupported claims scores 1). About 6
+calls per question; runs go to `eval/history/k_tests.jsonl`.
+
+```bash
+uv run python -m eval.k_test --label k3-vs-k5
+```
+
+`RETRIEVER_K` sets k for the graph and for full runs.
+
 ## Checking the judge
 
 ```bash
