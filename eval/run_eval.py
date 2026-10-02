@@ -184,7 +184,6 @@ def _embedding_config() -> dict:
         get_embedding_provider,
         query_instruction_template,
     )
-    from graph.nodes.retrieval_common import hybrid_enabled
 
     provider = get_embedding_provider()
     model = get_embedding_model_name(provider)
@@ -193,7 +192,6 @@ def _embedding_config() -> dict:
         "embedding_model": model,
         "embedding_query_instruction": provider == "scaleway"
         and query_instruction_template(model) is not None,
-        "hybrid_retrieval": hybrid_enabled(),
     }
 
 
@@ -461,7 +459,6 @@ def _run_retrieval_only(
     print(
         f"Eval (retrieval only): embeddings = {embedding['embedding_model']}, "
         f"query instruction {'on' if embedding['embedding_query_instruction'] else 'off'}, "
-        f"{'dense + BM25 (RRF)' if embedding['hybrid_retrieval'] else 'dense'}, "
         f"depth {depth}",
         file=sys.stderr,
     )

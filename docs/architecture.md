@@ -98,7 +98,7 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 
 | Node | File | What it does |
 |---|---|---|
-| `RETRIEVE` | `retrieve.py` | Parallel vector search on both Chroma collections; with `HYBRID_RETRIEVAL`, fused with BM25 by reciprocal rank (`graph/lexical.py`) |
+| `RETRIEVE` | `retrieve.py` | Parallel vector search on both Chroma collections |
 | `GRADE_DOCUMENTS` | `grade_documents.py` | Asks LLM: is the retrieved context sufficient? |
 | `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |

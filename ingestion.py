@@ -960,9 +960,6 @@ def clear_retrievers_cache() -> None:
     """Clear the retriever cache so the next query uses fresh Chroma data (e.g. after re-ingestion)."""
     global _retrievers_cache
     _retrievers_cache = None
-    from graph.lexical import clear_indexes
-
-    clear_indexes()
 
 
 def get_retrievers(embedding_provider: str | None = None):
