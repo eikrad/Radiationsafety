@@ -286,6 +286,19 @@ lower; (2) over all other questions together, k=5 scores lower on at most 2
 more questions than it scores higher (the position test saw 1 single-vote
 difference in 32); and (3) at most 2 more answers carry an unsupported claim
 at k=5 than at k=3. Otherwise k stays 3.
+Result (2026-10-03, `k3-vs-k5`, adopted: all three conditions met): the 3
+questions with evidence only at k=5 all scored higher at k=5 (registration
+0.25 → 1.00, receipt inspection 0.25 → 1.00, radiography coordinator
+0.33 → 1.00). Of the other 36, 34 tied, one scored higher at k=5 and one lower
+(pre-disposal steps 1.00 → 0.75): no net loss. The 4 questions to refuse were
+refused at both k. Answers with an unsupported claim: 2 at k=3, 1 at k=5.
+The extra chunks did not distract this generator; they brought the evidence.
+One oddity for the golden set: the safety-assessment definition was answered
+fully at k=5 although its listed evidence (rank 20) is not in either context,
+so another retrieved chunk states it, a pooling candidate (#133). Next: k = 5
+as the default in its own PR, confirmed by a full run (at least 31/39). It
+costs about two thirds more context per call (10 chunks instead of 6) for the
+generator and the graders.
 
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
