@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { DocumentsPanel } from './components/DocumentsPanel'
 import { ModelSelector } from './components/ModelSelector'
+import { PrivacyNoticeModal } from './components/PrivacyNoticeModal'
 import { QueryForm } from './components/QueryForm'
 import { ResponseDisplay } from './components/ResponseDisplay'
 import { SettingsModal } from './components/SettingsModal'
-import { API_BASE, MODELS, STORAGE_KEYS, type Model } from './constants'
+import { API_BASE, DEFAULT_MODEL, MODELS, STORAGE_KEYS, type Model } from './constants'
+import { describeQueryError } from './queryError'
 import { loadApiKeys, loadModelVariants, hasAnyApiKeyInStorage, loadEnforcePrivacyMode } from './storage'
-import type { Message, QueryResponse } from './types'
+import type { Message, ProvidersStatus, QueryResponse } from './types'
 import './App.css'
 
 function loadStoredModel(): Model {
@@ -14,19 +16,33 @@ function loadStoredModel(): Model {
     const raw = localStorage.getItem(STORAGE_KEYS.model)
     if (raw && MODELS.includes(raw as Model)) return raw as Model
   } catch {}
-  return 'mistral'
+  return DEFAULT_MODEL
 }
 
 export default function App() {
   const [loading, setLoading] = useState(false)
+  /** The question on its way to /query, shown at once until the answer replaces it. */
+  const [pendingQuestion, setPendingQuestion] = useState<string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [error, setError] = useState('')
   const [model, setModel] = useState<Model>(loadStoredModel)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [documentsOpen, setDocumentsOpen] = useState(false)
+  const [privacyNoticeOpen, setPrivacyNoticeOpen] = useState(false)
   const [enforcePrivacyMode, setEnforcePrivacyMode] = useState(loadEnforcePrivacyMode)
   /** From GET /api/config: true = server has .env keys (hide hint), false = needs key from client or .env. null = not yet loaded. */
   const [serverHasLlmKey, setServerHasLlmKey] = useState<boolean | null>(null)
+  /** From GET /api/config: Scaleway models the server allows, its default first. */
+  const [scalewayModels, setScalewayModels] = useState<string[]>([])
+  /** From GET /api/config: per provider, whether the server can answer with it. */
+  const [providers, setProviders] = useState<ProvidersStatus>({})
+  /** Set once /api/config has been applied (or failed), exposed as data-config for tests. */
+  const [configLoaded, setConfigLoaded] = useState(false)
+  /** From GET /api/config: set only if the operator configured PRIVACY_CONTROLLER_NAME/CONTACT. */
+  const [privacyController, setPrivacyController] = useState<{
+    name: string | null
+    contact: string | null
+  }>({ name: null, contact: null })
 
   useEffect(() => {
     try {
@@ -50,11 +66,29 @@ export default function App() {
     let cancelled = false
     fetch(`${API_BASE}/config`)
       .then((res) => res.json())
-      .then((data: { server_has_llm_key?: boolean }) => {
-        if (!cancelled) setServerHasLlmKey(Boolean(data.server_has_llm_key))
-      })
+      .then(
+        (data: {
+          server_has_llm_key?: boolean
+          scaleway_models?: string[]
+          providers?: ProvidersStatus
+          privacy_controller_name?: string | null
+          privacy_controller_contact?: string | null
+        }) => {
+          if (cancelled) return
+          setServerHasLlmKey(Boolean(data.server_has_llm_key))
+          setScalewayModels(data.scaleway_models ?? [])
+          setProviders(data.providers ?? {})
+          setPrivacyController({
+            name: data.privacy_controller_name ?? null,
+            contact: data.privacy_controller_contact ?? null,
+          })
+        }
+      )
       .catch(() => {
         if (!cancelled) setServerHasLlmKey(false)
+      })
+      .finally(() => {
+        if (!cancelled) setConfigLoaded(true)
       })
     return () => { cancelled = true }
   }, [])
@@ -62,7 +96,7 @@ export default function App() {
   useEffect(() => {
     function clearApiKeysOnClose() {
       try {
-        localStorage.removeItem(STORAGE_KEYS.apiKeys)
+        sessionStorage.removeItem(STORAGE_KEYS.apiKeys)
       } catch {}
     }
     window.addEventListener('beforeunload', clearApiKeysOnClose)
@@ -75,6 +109,7 @@ export default function App() {
 
   async function handleSubmit(question: string) {
     setLoading(true)
+    setPendingQuestion(question)
     setError('')
     const chatHistory: [string, string][] = []
     for (let i = 0; i < messages.length - 1; i++) {
@@ -99,25 +134,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      let data: QueryResponse & { detail?: string | unknown }
+      let data: QueryResponse | null = null
       try {
-        data = (await res.json()) as QueryResponse & { detail?: string | unknown }
+        data = (await res.json()) as QueryResponse
       } catch {
-        throw new Error(
-          res.status >= 500
-            ? `Server error (${res.status}). Check if the backend is running and Ollama is available.`
-            : `Unexpected response from server (HTTP ${res.status}).`
-        )
+        // Not JSON (e.g. a proxy error page); describeQueryError explains by status.
       }
-      if (!res.ok) {
-        const detail = data.detail
-        const msg =
-          typeof detail === 'string'
-            ? detail
-            : Array.isArray(detail)
-              ? detail.map((e) => (e as { msg?: string }).msg ?? String(e)).join('; ')
-              : 'Request failed'
-        throw new Error(msg)
+      if (!res.ok || !data) {
+        const view = describeQueryError(res.status, data, model)
+        if (view.openSettings) setSettingsOpen(true)
+        throw new Error(view.message)
       }
       const newMessages: Message[] = [
         ...messages,
@@ -136,17 +162,14 @@ export default function App() {
       const msg =
         err instanceof Error ? err.message : 'Failed to get answer. Is the backend running?'
       setError(msg)
-      const msgLower = msg.toLowerCase()
-      if (msgLower.includes('api key') || msgLower.includes('rate limit') || msgLower.includes('quota')) {
-        setSettingsOpen(true)
-      }
     } finally {
       setLoading(false)
+      setPendingQuestion(null)
     }
   }
 
   return (
-    <div className="app">
+    <div className="app" data-config={configLoaded ? 'loaded' : 'pending'}>
       {documentsOpen && (
         <DocumentsPanel onClose={() => setDocumentsOpen(false)} />
       )}
@@ -167,12 +190,30 @@ export default function App() {
           <div className="header-center">
             <h1>Radiation Safety RAG</h1>
             <p>Query IAEA and Danish legislation documents</p>
+            <p className="ai-disclosure">
+              Answers are generated by AI, not a person, and are not legal or clinical
+              advice — always verify against the cited sources.
+            </p>
           </div>
           <div className="header-right">
             <div className="model-selector-wrap">
               {enforcePrivacyMode && <span className="privacy-badge" title="Privacy Mode: fully local">🔒</span>}
-              <ModelSelector value={model} onChange={setModel} enforcePrivacyMode={enforcePrivacyMode} />
+              <ModelSelector
+                value={model}
+                onChange={setModel}
+                enforcePrivacyMode={enforcePrivacyMode}
+                providers={providers}
+              />
             </div>
+            <button
+              type="button"
+              className="header-btn"
+              onClick={() => setPrivacyNoticeOpen(true)}
+              title="Privacy notice"
+              aria-label="Privacy notice"
+            >
+              Privacy
+            </button>
             <button
               type="button"
               className="header-btn"
@@ -184,7 +225,19 @@ export default function App() {
             </button>
           </div>
         </header>
-        <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        <SettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          scalewayModels={scalewayModels}
+          activeModel={model}
+          providers={providers}
+        />
+        <PrivacyNoticeModal
+          isOpen={privacyNoticeOpen}
+          onClose={() => setPrivacyNoticeOpen(false)}
+          controllerName={privacyController.name}
+          controllerContact={privacyController.contact}
+        />
       <div className="conversation-area">
         {messages.length === 0 && serverHasLlmKey === false && !hasAnyApiKeyInStorage() && (
           <div className="api-keys-hint" role="status">
@@ -194,6 +247,7 @@ export default function App() {
             </p>
             <ul>
               <li><strong>Mistral</strong> — <code>MISTRAL_API_KEY</code> in the server&apos;s <code>.env</code>, or add in Settings</li>
+              <li><strong>Scaleway (EU, default)</strong> — <code>SCW_SECRET_KEY</code> in <code>.env</code>, or add in Settings</li>
               <li><strong>Gemini (Google)</strong> — <code>GOOGLE_API_KEY</code> in <code>.env</code>, or add in Settings</li>
               <li><strong>OpenAI</strong> — <code>OPENAI_API_KEY</code> in <code>.env</code>, or add in Settings</li>
             </ul>
@@ -209,7 +263,7 @@ export default function App() {
             </button>
           </div>
         )}
-        <ResponseDisplay messages={messages} />
+        <ResponseDisplay messages={messages} pendingQuestion={pendingQuestion} />
       </div>
       <div className="input-area">
         {error && (() => {

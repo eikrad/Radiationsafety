@@ -52,11 +52,15 @@ def _generation_retry_route(
     web_search_enabled: bool,
     web_search_attempted: bool,
     retry_count: int,
+    privacy_mode: bool,
 ) -> GenerationRoute:
     """Centralize generation retry routing for clearer behavior contract."""
     if not web_search_enabled or web_search_attempted:
         return "end"
-    return "retry_retrieve" if retry_count < 2 else "web_search"
+    if retry_count < 2:
+        return "retry_retrieve"
+    # Privacy mode: never fall through to WEB_SEARCH, even after retries.
+    return "end" if privacy_mode else "web_search"
 
 
 def route_after_grade_generation(state: GraphState) -> GenerationRoute:
@@ -67,6 +71,7 @@ def route_after_grade_generation(state: GraphState) -> GenerationRoute:
         web_search_enabled=bool(env_bool("WEB_SEARCH_ENABLED")),
         web_search_attempted=state.get("web_search_attempted", False),
         retry_count=state.get("retry_after_generation_count") or 0,
+        privacy_mode=bool(state.get("privacy_mode", False)),
     )
 
 

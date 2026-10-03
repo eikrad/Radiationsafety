@@ -29,30 +29,63 @@ export function loadDocumentSearchEnabled(): boolean {
 }
 
 const DEFAULT_VARIANTS: Record<Model, string> = {
+  // 'default' = the server's SCW_MODEL
+  scaleway: 'default',
   mistral: 'default',
   gemini: 'gemini-2.5-pro',
   openai: 'gpt-4o-mini',
+  ollama: 'default',
 }
 
+/** Ollama runs locally and never takes a key; its entry stays empty. */
+const NO_API_KEYS: Record<Model, string> = {
+  scaleway: '',
+  mistral: '',
+  gemini: '',
+  openai: '',
+  ollama: '',
+}
+
+// API keys use sessionStorage, not localStorage: they must not outlive the tab.
+// sessionStorage is cleared by the browser itself when the tab closes, which
+// covers the crash/force-kill/mobile-backgrounding cases that the beforeunload/
+// pagehide handlers in App.tsx can miss.
 export function loadApiKeys(): Record<Model, string> {
+  // Earlier versions kept keys in localStorage; drop any leftover (e.g. after a
+  // crash skipped the unload cleanup) rather than reusing it.
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.apiKeys)
-    if (!raw) return { mistral: '', gemini: '', openai: '' }
+    localStorage.removeItem(STORAGE_KEYS.apiKeys)
+  } catch {
+    // localStorage unavailable: nothing to clean up
+  }
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEYS.apiKeys)
+    if (!raw) return { ...NO_API_KEYS }
     const parsed = JSON.parse(raw) as Record<string, string>
     return {
+      scaleway: parsed.scaleway ?? '',
       mistral: parsed.mistral ?? '',
       gemini: parsed.gemini ?? '',
       openai: parsed.openai ?? '',
+      ollama: '',
     }
   } catch {
-    return { mistral: '', gemini: '', openai: '' }
+    return { ...NO_API_KEYS }
   }
 }
 
-/** True if at least one provider has a non-empty key in the UI (localStorage). */
+export function saveApiKeys(keys: Partial<Record<Model, string>>): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEYS.apiKeys, JSON.stringify(keys))
+  } catch {
+    // Silently fail if sessionStorage is unavailable
+  }
+}
+
+/** True if at least one provider has a non-empty key in the UI (sessionStorage). */
 export function hasAnyApiKeyInStorage(): boolean {
   const keys = loadApiKeys()
-  return keys.mistral !== '' || keys.gemini !== '' || keys.openai !== ''
+  return Object.values(keys).some((key) => key !== '')
 }
 
 export function loadModelVariants(): Record<Model, string> {
@@ -61,9 +94,11 @@ export function loadModelVariants(): Record<Model, string> {
     if (!raw) return { ...DEFAULT_VARIANTS }
     const parsed = JSON.parse(raw) as Record<string, string>
     return {
+      scaleway: parsed.scaleway ?? DEFAULT_VARIANTS.scaleway,
       mistral: parsed.mistral ?? DEFAULT_VARIANTS.mistral,
       gemini: parsed.gemini ?? DEFAULT_VARIANTS.gemini,
       openai: parsed.openai ?? DEFAULT_VARIANTS.openai,
+      ollama: DEFAULT_VARIANTS.ollama,
     }
   } catch {
     return { ...DEFAULT_VARIANTS }

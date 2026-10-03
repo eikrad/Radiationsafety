@@ -1,31 +1,43 @@
-import type { Model } from '../constants'
+import { PROVIDER_LABELS, type Model } from '../constants'
+import type { ProvidersStatus } from '../types'
 
 interface ModelSelectorProps {
   value: Model
   onChange: (model: Model) => void
   enforcePrivacyMode?: boolean
+  /** From GET /api/config; a provider with an issue is marked but stays selectable. */
+  providers?: ProvidersStatus
 }
 
-const MODEL_LABELS: Record<Model, string> = {
-  mistral: 'Mistral',
-  gemini: 'Gemini',
-  openai: 'OpenAI',
-  ollama: 'Ollama (Local)',
-}
-
-export function ModelSelector({ value, onChange, enforcePrivacyMode = false }: ModelSelectorProps) {
+export function ModelSelector({
+  value,
+  onChange,
+  enforcePrivacyMode = false,
+  providers = {},
+}: ModelSelectorProps) {
+  const activeIssue = providers[value]?.issue
   return (
     <select
-      className="model-selector"
+      className={`model-selector${activeIssue ? ' model-selector--needs-setup' : ''}`}
       value={value}
       onChange={(e) => onChange(e.target.value as Model)}
-      title={enforcePrivacyMode ? 'Privacy Mode: Ollama only' : 'Select LLM provider'}
+      title={
+        enforcePrivacyMode ? 'Privacy Mode: Ollama only' : (activeIssue ?? 'Select LLM provider')
+      }
     >
-      {(Object.entries(MODEL_LABELS) as [Model, string][]).map(([id, label]) => (
-        <option key={id} value={id} disabled={enforcePrivacyMode && id !== 'ollama'}>
-          {label}
-        </option>
-      ))}
+      {(Object.entries(PROVIDER_LABELS) as [Model, string][]).map(([id, label]) => {
+        const issue = providers[id]?.issue
+        return (
+          <option
+            key={id}
+            value={id}
+            disabled={enforcePrivacyMode && id !== 'ollama'}
+            title={issue ?? undefined}
+          >
+            {issue ? `${label} – needs setup` : label}
+          </option>
+        )
+      })}
     </select>
   )
 }

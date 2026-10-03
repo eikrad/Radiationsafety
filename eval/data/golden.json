@@ -2,79 +2,1194 @@
   {
     "id": "bek-stråling-1",
     "question": "Hvad gælder strålebeskyttelsesbekendtgørelsen for?",
-    "expected_answer": "Bekendtgørelsen gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer. For strålingsgeneratorer gælder den kun for brug af generatorer med spændingsforskel større end 5 kV.",
-    "key_facts": ["strålekilder", "stråleudsættelse", "planlagte", "nødbestrålingssituationer", "5 kV"]
+    "topics": [
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "Bekendtgørelsen gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer.",
+    "nuggets": [
+      {
+        "text": "Bekendtgørelsen gælder for brug af strålekilder og stråleudsættelse i planlagte, eksisterende og nødbestrålingssituationer",
+        "importance": "vital",
+        "evidence": [
+          "gælder for brug af strålekilder og stråleudsættelse i planlagte og eksisterende bestrålingssituationer og i nødbestrålingssituationer"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stråling-def-sikkerhedsvurdering",
     "question": "Hvad er en sikkerhedsvurdering ifølge strålebeskyttelsesbekendtgørelsen?",
+    "topics": [
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Sikkerhedsvurdering er vurdering af alle aspekter af en virksomheds specifikke brug af strålekilder eller stråleudsættelse, der er relevante for sikkerhed og strålebeskyttelse.",
-    "key_facts": ["sikkerhedsvurdering", "virksomhed", "strålekilder", "strålebeskyttelse"]
+    "nuggets": [
+      {
+        "text": "En sikkerhedsvurdering er en vurdering af alle aspekter af virksomhedens specifikke brug af strålekilder eller stråleudsættelse, som er relevante for sikkerhed og strålebeskyttelse",
+        "importance": "vital",
+        "evidence": [
+          "vurdering af alle aspekter af en virksomheds specifikke brug af strålekilder eller stråleudsættelse, der er relevante for sikkerhed"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stråling-dosisgrænser",
     "question": "Hvor findes dosisgrænserne for erhvervsmæssig bestråling?",
-    "expected_answer": "For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2.",
-    "key_facts": ["dosisgrænser", "erhvervsmæssig bestråling", "bilag 2"]
+    "topics": [
+      "occupational"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "For erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2 (§ 14). I særlige tilfælde kan Sundhedsstyrelsen godkende op til 50 mSv pr. år – som effektiv dosis (stk. 2) eller til øjelinsen (stk. 3) – hvis gennemsnittet over enhver 5-årsperiode højst er 20 mSv pr. år.",
+    "nuggets": [
+      {
+        "text": "Dosisgrænserne for erhvervsmæssig bestråling fremgår af bilag 2",
+        "importance": "vital",
+        "evidence": [
+          "for erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis, der fremgår af bilag 2"
+        ]
+      },
+      {
+        "text": "Grænserne gælder både for effektiv dosis og ækvivalent dosis",
+        "importance": "okay",
+        "evidence": [
+          "for erhvervsmæssig bestråling gælder de dosisgrænser for effektiv dosis og ækvivalent dosis"
+        ]
+      },
+      {
+        "text": "Sundhedsstyrelsen kan i særlige tilfælde godkende op til 50 mSv effektiv dosis pr. år, hvis gennemsnittet over 5 år højst er 20 mSv pr. år",
+        "importance": "okay",
+        "evidence": [
+          "modtager en effektiv dosis på op til 50 mSv pr. år"
+        ]
+      },
+      {
+        "text": "Tilsvarende kan Sundhedsstyrelsen i særlige tilfælde godkende op til 50 mSv pr. år til øjelinsen (5-års-gennemsnit højst 20 mSv pr. år)",
+        "importance": "okay",
+        "evidence": [
+          "ækvivalent dosis til øjelinsen på op til 50 mSv pr. år"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stråling-nødbestråling",
     "question": "Hvad gælder for indsats- og redningsmandskab ved nødbestråling med hensyn til dosis?",
+    "topics": [
+      "emergency",
+      "occupational"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Doser til indsats- og redningsmandskab skal holdes så lave som rimeligt opnåeligt og må så vidt muligt ikke overstige dosisgrænserne for erhvervsmæssig bestråling i bilag 2. Hvis dosisgrænsen for effektiv dosis ikke kan overholdes, gælder et referenceniveau for effektiv dosis på 100 mSv.",
-    "key_facts": ["indsats- og redningsmandskab", "dosisgrænser", "100 mSv", "referenceniveau"]
+    "nuggets": [
+      {
+        "text": "Doser til indsats- og redningsmandskab skal holdes så lave, som det med rimelighed er opnåeligt",
+        "importance": "vital",
+        "evidence": [
+          "doser til indsats- og redningsmandskab skal holdes så lave, som det med rimelighed er opnåeligt"
+        ]
+      },
+      {
+        "text": "Dosisgrænserne for erhvervsmæssig bestråling i bilag 2 må så vidt muligt ikke overskrides",
+        "importance": "vital",
+        "evidence": [
+          "må så vidt muligt ikke være større end dosisgrænserne for erhvervsmæssig bestråling"
+        ]
+      },
+      {
+        "text": "Kan dosisgrænsen for effektiv dosis ikke overholdes, gælder et referenceniveau på 100 mSv",
+        "importance": "vital",
+        "evidence": [
+          "gælder et referenceniveau for effektiv dosis på 100 mSv"
+        ]
+      },
+      {
+        "text": "I ekstraordinære situationer kan Sundhedsstyrelsen fastsætte et højere referenceniveau, dog højst 500 mSv",
+        "importance": "okay",
+        "evidence": [
+          "et større referenceniveau for effektiv dosis, dog højst 500 mSv"
+        ]
+      },
+      {
+        "text": "Mandskab, der har modtaget mere end 100 mSv, må ikke deltage i yderligere indsats",
+        "importance": "okay",
+        "evidence": [
+          "har modtaget effektive doser på mere end 100 mSv, må ikke deltage i yderligere"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stråling-tilladelse-underretning",
     "question": "Hvad kræver brug af strålekilder eller stråleudsættelse ifølge strålebeskyttelsesbekendtgørelsen?",
+    "topics": [
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Brug af strålekilder eller stråleudsættelse kræver afhængig af art, omfang og kompleksitet tilladelse fra eller underretning til Sundhedsstyrelsen, eller er undtaget fra krav om tilladelse eller underretning i henhold til bekendtgørelserne.",
-    "key_facts": ["tilladelse", "underretning", "Sundhedsstyrelsen"]
+    "nuggets": [
+      {
+        "text": "Afhængig af art, omfang og kompleksitet kræver brugen tilladelse fra eller underretning til Sundhedsstyrelsen",
+        "importance": "vital",
+        "evidence": [
+          "kræver, afhængig af art, omfang og kompleksitet af brugen eller stråleudsættelsen, tilladelse fra eller underretning til Sundhedsstyrelsen"
+        ]
+      },
+      {
+        "text": "Alternativt er brugen undtaget fra krav om tilladelse og underretning",
+        "importance": "vital",
+        "evidence": [
+          "eller er undtaget fra krav om tilladelse fra eller underretning til Sundhedsstyrelsen"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stoffer-sikkerhedsvurdering",
     "question": "Hvornår skal der foretages sikkerhedsvurdering ifølge bekendtgørelse om radioaktive stoffer?",
+    "topics": [
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "For brug af strålekilder eller stråleudsættelse, der er omfattet af krav om tilladelse jf. §§ 7 og 8, og som fremgår af bilag 7, skal der foretages en sikkerhedsvurdering.",
-    "key_facts": ["sikkerhedsvurdering", "tilladelse", "bilag 7"]
+    "nuggets": [
+      {
+        "text": "Brugen skal være omfattet af krav om tilladelse (§§ 7 og 8)",
+        "importance": "vital",
+        "evidence": [
+          "der er omfattet af krav om tilladelse, jf. §§ 7 og 8, og som fremgår af bilag 7"
+        ]
+      },
+      {
+        "text": "Brugen skal fremgå af bilag 7",
+        "importance": "vital",
+        "evidence": [
+          "og som fremgår af bilag 7, skal der foretages en sikkerhedsvurdering"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stoffer-registrering",
     "question": "Hvad skal registreres i Sundhedsstyrelsens register for strålekilder og anlæg?",
+    "topics": [
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Lukkede radioaktive kilder med aktivitetsmængde pr. strålekilde større end 100 gange værdien i bilag 3, og anlæg der benyttes til brug af radioaktivt materiale omfattet af krav om tilladelse jf. §§ 7 og 8.",
-    "key_facts": ["registrering", "Sundhedsstyrelsen", "lukkede kilder", "anlæg", "bilag 3"]
+    "nuggets": [
+      {
+        "text": "Lukkede radioaktive kilder med en aktivitetsmængde over 100 gange værdien i bilag 3",
+        "importance": "vital",
+        "evidence": [
+          "lukkede radioaktive kilder, hvis aktivitetsmængde pr. strålekilde er større end 100 gange værdien i bilag 3"
+        ]
+      },
+      {
+        "text": "Anlæg til brug af radioaktivt materiale, hvor brugen kræver tilladelse",
+        "importance": "vital",
+        "evidence": [
+          "anlæg, der benyttes til brug af radioaktivt materiale i et omfang, der er omfattet af krav om tilladelse"
+        ]
+      }
+    ]
   },
   {
-    "id": "bek-stoffer-koordinator-ekspert",
-    "question": "Hvor fremgår krav til strålebeskyttelseskoordinatorens og den medicinsk-fysiske eksperts viden og kompetencer?",
-    "expected_answer": "Krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 8. Krav til medicinsk-fysiske eksperters viden, færdigheder og kompetencer fremgår af bilag 9.",
-    "key_facts": ["strålebeskyttelseskoordinator", "medicinsk-fysisk ekspert", "bilag 8", "bilag 9"]
+    "id": "bek-stoffer-koordinator-radiografi",
+    "question": "Hvilke krav er der til strålebeskyttelseskoordinatorens uddannelse og erfaring ved industriel radiografi?",
+    "topics": [
+      "industrial",
+      "occupational"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "Ifølge bilag 8 til bekendtgørelse om radioaktive stoffer skal koordinatoren have et kursus i strålebeskyttelse forbundet med industriel radiografi godkendt af Sundhedsstyrelsen, et repetitionskursus mindst hvert 5. år (også godkendt af Sundhedsstyrelsen) og tidssvarende erfaring med anvendelse af højaktive lukkede radioaktive kilder til industriel radiografi.",
+    "nuggets": [
+      {
+        "text": "Kursus i strålebeskyttelse forbundet med industriel radiografi, godkendt af Sundhedsstyrelsen",
+        "importance": "vital",
+        "evidence": [
+          "Kursus i strålebeskyttelse forbundet med industriel radiografi godkendt af Sundhedsstyrelsen"
+        ]
+      },
+      {
+        "text": "Repetitionskursus mindst hvert 5. år",
+        "importance": "vital",
+        "evidence": [
+          "industriel radiografi godkendt af Sundhedsstyrelsen. 3.3.2. Repetitionskursus mindst hvert 5. år"
+        ]
+      },
+      {
+        "text": "Tidssvarende erfaring med højaktive lukkede radioaktive kilder til industriel radiografi",
+        "importance": "vital",
+        "evidence": [
+          "erfaring med anvendelse af højaktive lukkede radioaktive kilder til industriel radiografi"
+        ]
+      },
+      {
+        "text": "Kravene til koordinatorens viden, færdigheder og kompetencer står i bilag 8",
+        "importance": "okay",
+        "evidence": [
+          "krav til strålebeskyttelseskoordinatorers viden, færdigheder og kompetencer fremgår af bilag 8"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stoffer-eftersyn",
     "question": "Hvor ofte skal eftersyn og radiologisk kontrol foretages for brug af åbne radioaktive kilder med tilladelse henholdsvis underretning?",
+    "topics": [
+      "research",
+      "medical"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "For brug omfattet af krav om tilladelse må intervallet mellem eftersyn og radiologisk kontrol ikke være længere end 13 måneder. For brug omfattet af krav om underretning må intervallet ikke være længere end 25 måneder.",
-    "key_facts": ["eftersyn", "radiologisk kontrol", "13 måneder", "25 måneder", "tilladelse", "underretning"]
+    "nuggets": [
+      {
+        "text": "Ved brug omfattet af krav om tilladelse højst 13 måneder mellem eftersyn og radiologisk kontrol",
+        "importance": "vital",
+        "evidence": [
+          "tilladelse, jf. §§ 7 og 8, må intervallet mellem eftersyn og radiologisk kontrol ikke være længere end 13 måneder"
+        ]
+      },
+      {
+        "text": "Ved brug omfattet af krav om underretning højst 25 måneder mellem eftersyn og radiologisk kontrol",
+        "importance": "vital",
+        "evidence": [
+          "underretning, jf. § 8, må intervallet mellem eftersyn og radiologisk kontrol ikke være længere end 25 måneder"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stoffer-dokumentation-bevares",
     "question": "Hvor længe skal dokumentation af målinger ved brug af åbne radioaktive kilder bevares?",
+    "topics": [
+      "research",
+      "medical"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Dokumentationen skal være tilpasset art og omfang af brugen og skal bevares i mindst 5 år.",
-    "key_facts": ["dokumentation", "5 år", "bevares"]
+    "nuggets": [
+      {
+        "text": "Dokumentationen skal bevares i mindst 5 år",
+        "importance": "vital",
+        "evidence": [
+          "dokumentationen skal være tilpasset art og omfang af brugen og skal bevares i mindst 5 år",
+          "udførte kontrolmålinger (opbe- vares i mindst 5 år)"
+        ]
+      },
+      {
+        "text": "Dokumentationen skal være tilpasset art og omfang af brugen",
+        "importance": "okay",
+        "evidence": [
+          "dokumentationen skal være tilpasset art og omfang af brugen"
+        ]
+      },
+      {
+        "text": "Målingerne skal dokumenteres",
+        "importance": "okay",
+        "evidence": [
+          "målingerne, jf. stk. 1 og 2, skal dokumenteres"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stoffer-udledning-årlig",
     "question": "Hvad skal en virksomhed med tilladelse til udledning af radioaktivt materiale gøre årligt?",
+    "topics": [
+      "waste"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Virksomheden skal overvåge udledningen og mindst én gang årligt indberette resultaterne til Sundhedsstyrelsen. Den skal årligt foretage en bestemmelse af den interne og eksterne dosis til enkeltpersoner i befolkningen som følge af virksomhedens udledning.",
-    "key_facts": ["udledning", "indberetning", "Sundhedsstyrelsen", "årligt", "dosis", "repræsentativ person"]
+    "nuggets": [
+      {
+        "text": "Virksomheden skal overvåge udledningen og mindst én gang årligt indberette resultaterne til Sundhedsstyrelsen",
+        "importance": "vital",
+        "evidence": [
+          "skal overvåge udledningen og mindst én gang årligt indberette resultaterne herfra til Sundhedsstyrelsen"
+        ]
+      },
+      {
+        "text": "Virksomheden skal årligt bestemme den interne og eksterne dosis til enkeltpersoner i befolkningen fra udledningen",
+        "importance": "vital",
+        "evidence": [
+          "skal årligt foretage en bestemmelse af den interne og eksterne dosis, som enkeltpersoner i befolkningen har været udsat for"
+        ]
+      },
+      {
+        "text": "Dosisbestemmelsen tager udgangspunkt i en repræsentativ person",
+        "importance": "okay",
+        "evidence": [
+          "skal en repræsentativ person, som bestemmelsen af dosis skal tage udgangspunkt i, identificeres"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stråling-def-modtagekontrol",
     "question": "Hvad betyder modtagekontrol i strålebeskyttelsesbekendtgørelsen?",
+    "topics": [
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "Modtagekontrol er test eller gennemgang for at bekræfte, at strålekilder, anlæg og relevant udstyr ved modtagelse eller ibrugtagning samt efter indgreb er i strålebeskyttelsesmæssig forsvarlig stand og opfylder de opstillede specifikationer relevante for strålebeskyttelse.",
-    "key_facts": ["modtagekontrol", "test", "strålekilder", "anlæg", "specifikationer"]
+    "nuggets": [
+      {
+        "text": "Modtagekontrol er test eller gennemgang ved modtagelse eller ibrugtagning samt efter indgreb",
+        "importance": "vital",
+        "evidence": [
+          "modtagekontrol: test eller gennemgang for at bekræfte, at strålekilder, anlæg og relevant udstyr ved modtagelse eller ibrugtagning"
+        ]
+      },
+      {
+        "text": "Formålet er at bekræfte forsvarlig stand og at specifikationerne relevante for strålebeskyttelse er opfyldt",
+        "importance": "vital",
+        "evidence": [
+          "er i strålebeskyttelsesmæssig forsvarlig stand og dels opfylder de opstillede specifikationer relevante for strålebeskyttelse"
+        ]
+      },
+      {
+        "text": "For medicinsk og veterinærmedicinsk anvendelse gælder yderligere test eller gennemgang",
+        "importance": "okay",
+        "evidence": [
+          "for medicinsk og veterinærmedicinsk anvendelse desuden test eller gennemgang"
+        ]
+      }
+    ]
   },
   {
     "id": "bek-stoffer-afmelding-højaktiv",
     "question": "Senest hvornår skal afmelding af en højaktiv lukket radioaktiv kilde være Sundhedsstyrelsen i hænde efter overdragelse?",
+    "topics": [
+      "industrial"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
     "expected_answer": "For en højaktiv lukket radioaktiv kilde skal afmeldingen være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen.",
-    "key_facts": ["højaktiv", "lukket kilde", "afmelding", "21 dage", "overdragelse"]
+    "nuggets": [
+      {
+        "text": "Afmeldingen skal være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen",
+        "importance": "vital",
+        "evidence": [
+          "skal afmeldingen være Sundhedsstyrelsen i hænde senest 21 dage efter overdragelsen"
+        ]
+      },
+      {
+        "text": "En registreringspligtig lukket kilde skal afmeldes hos Sundhedsstyrelsen, når den overdrages",
+        "importance": "okay",
+        "evidence": [
+          "overdrages, skal den afmeldes hos Sundhedsstyrelsen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-eye-lens-occupational",
+    "question": "What is the occupational dose limit for the lens of the eye?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "For workers over 18, the equivalent dose to the lens of the eye is limited to 20 mSv per year averaged over five consecutive years (100 mSv in 5 years), and to 50 mSv in any single year (GSR Part 3, Schedule III).",
+    "nuggets": [
+      {
+        "text": "20 mSv per year averaged over five consecutive years",
+        "importance": "vital",
+        "evidence": [
+          "equivalent dose to the lens of the eye of 20 mSv per year averaged over five consecutive years",
+          "lens of the eye of 20 mSv in a year, averaged over defined periods of 5 years"
+        ]
+      },
+      {
+        "text": "No more than 50 mSv in any single year",
+        "importance": "vital",
+        "evidence": [
+          "lens of the eye of 20 mSv per year averaged over five consecutive years (100 mSv in 5 years) and of 50 mSv in any single year",
+          "with the dose in no single year exceeding 50 mSv"
+        ]
+      },
+      {
+        "text": "It is an equivalent dose limit for workers over 18 years of age",
+        "importance": "okay",
+        "evidence": [
+          "For occupational exposure of workers over the age of 18 years, the dose limits are"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-public-dose-limit",
+    "question": "What is the dose limit for members of the public?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "both",
+    "expected_behavior": "answer",
+    "expected_answer": "An effective dose of 1 mSv in a year. In special circumstances a higher effective dose in a single year may apply if the average over five consecutive years does not exceed 1 mSv per year. There are also equivalent dose limits of 15 mSv a year for the lens of the eye and 50 mSv a year for the skin.",
+    "nuggets": [
+      {
+        "text": "Effective dose of 1 mSv in a year",
+        "importance": "vital",
+        "evidence": [
+          "For public exposure, the dose limits are: - (a) An effective dose of 1 mSv in a year",
+          "Enkeltperson i befolkningen 1 15 50 50",
+          "enkeltperson i befolkningen, grænse for effektiv dosis.[mSv/år] = 1.",
+          "members of the public from all practices shall not exceed the following limit: - -an effective dose of 1 mSv in a year"
+        ]
+      },
+      {
+        "text": "A higher single-year value is possible in special circumstances if the five-year average stays at or below 1 mSv per year",
+        "importance": "okay",
+        "evidence": [
+          "provided that the average effective dose over five consecutive years does not exceed 1 mSv per year"
+        ]
+      },
+      {
+        "text": "Equivalent dose limit of 15 mSv a year for the lens of the eye",
+        "importance": "okay",
+        "evidence": [
+          "An equivalent dose to the lens of the eye of 15 mSv in a year"
+        ]
+      },
+      {
+        "text": "Equivalent dose limit of 50 mSv a year for the skin",
+        "importance": "okay",
+        "evidence": [
+          "An equivalent dose to the skin of 50 mSv in a year"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-pregnant-worker",
+    "question": "What must an employer do when a female radiation worker says she is pregnant?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "The notification must not be a reason to exclude her from work. The employer must adapt her working conditions so that the embryo or fetus gets the same broad level of protection as members of the public (GSR Part 3, para. 3.114); GSG-7 notes this means more stringent restrictions on her occupational exposure.",
+    "nuggets": [
+      {
+        "text": "Working conditions must be adapted so the embryo or fetus gets the same broad level of protection as members of the public",
+        "importance": "vital",
+        "evidence": [
+          "afforded the same broad level of protection as is required for members of the public"
+        ]
+      },
+      {
+        "text": "The notification must not be a reason to exclude her from work",
+        "importance": "vital",
+        "evidence": [
+          "shall not be considered a reason to exclude the female worker from work",
+          "notification not be considered a reason to exclude the female worker from work"
+        ]
+      },
+      {
+        "text": "This entails more stringent restrictions on her occupational exposure",
+        "importance": "okay",
+        "evidence": [
+          "more stringent restrictions on the occupational exposures to which the female worker is subject"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-patient-dose-limits",
+    "question": "Are there dose limits for patients undergoing X-ray examinations?",
+    "topics": [
+      "medical"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "No. Dose limits do not apply to medical exposure. Instead the exposure must be the minimum necessary for the clinical purpose, and diagnostic reference levels are used: if typical doses exceed the relevant DRL, a review of the optimization is required.",
+    "nuggets": [
+      {
+        "text": "Dose limits do not apply to medical exposure",
+        "importance": "vital",
+        "evidence": [
+          "Dose limits do not apply to medical exposures.",
+          "Dose limits do not apply to medical exposure (i.e. exposure of patients"
+        ]
+      },
+      {
+        "text": "The exposure should be the minimum necessary to fulfil the clinical purpose",
+        "importance": "okay",
+        "evidence": [
+          "the minimum necessary to fulfil the clinical purpose of the radiological procedure"
+        ]
+      },
+      {
+        "text": "If typical doses exceed the diagnostic reference level, the optimization must be reviewed",
+        "importance": "okay",
+        "evidence": [
+          "Typical doses or activities exceed the relevant diagnostic reference level"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-carers-comforters",
+    "question": "According to the IAEA safety standards, what dose constraint is commonly used for an adult caring for a patient after radionuclide therapy?",
+    "topics": [
+      "medical"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "Carers and comforters are not subject to dose limits; dose constraints apply instead. For an adult carer or comforter a commonly used constraint is 5 mSv effective dose per episode; children and pregnant carers (for the embryo or fetus) are often constrained to 1 mSv per episode (SSG-46).",
+    "nuggets": [
+      {
+        "text": "A commonly used constraint for an adult carer or comforter is 5 mSv effective dose per episode",
+        "importance": "vital",
+        "evidence": [
+          "For an adult carer or comforter, a value of dose constraint commonly used is 5 mSv effective dose per episode"
+        ]
+      },
+      {
+        "text": "Children acting as carers are often constrained to 1 mSv per episode",
+        "importance": "okay",
+        "evidence": [
+          "constrained to an effective dose of 1 mSv per episode"
+        ]
+      },
+      {
+        "text": "Dose limits do not apply to carers and comforters (their exposure counts as medical exposure)",
+        "importance": "okay",
+        "evidence": [
+          "Dose limits do not apply to medical exposure (i.e. exposure of patients, carers or comforters"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-transport-index",
+    "question": "How is the transport index of a package determined?",
+    "topics": [
+      "transport"
+    ],
+    "language": "en",
+    "source": "both",
+    "expected_behavior": "answer",
+    "expected_answer": "Measure the maximum dose rate in mSv/h at 1 m from the external surfaces of the package and multiply it by 100 (for tanks, freight containers and unpackaged LSA-I, SCO-I and SCO-III also by the factor from Table 7). Round up to the first decimal place; a value of 0.05 or less may be taken as zero (SSR-6, para. 523). The Danish transport order defines the TI the same way.",
+    "nuggets": [
+      {
+        "text": "The maximum dose rate in mSv/h at 1 m from the external surfaces",
+        "importance": "vital",
+        "evidence": [
+          "maximum dose rate in units of millisieverts per hour (mSv/h) at a distance of 1 m from the external surfaces",
+          "maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade"
+        ]
+      },
+      {
+        "text": "The value is multiplied by 100",
+        "importance": "vital",
+        "evidence": [
+          "The value determined shall be multiplied by 100",
+          "i 1 meters afstand fra kolliets overflade ganget med 100"
+        ]
+      },
+      {
+        "text": "The result is rounded up to the first decimal place",
+        "importance": "okay",
+        "evidence": [
+          "rounded up to the first decimal place (for example, 1.13 becomes 1.2)"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-iodine-thyroid-blocking",
+    "question": "At what projected dose should iodine thyroid blocking be carried out in a nuclear emergency?",
+    "topics": [
+      "emergency"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "The generic criterion is a projected equivalent dose to the thyroid of 50 mSv in the first 7 days. Iodine thyroid blocking is an urgent protective action, used if exposure to radioactive iodine is involved and before or shortly after a release (GSR Part 3 Table A-1, GSG-2 Table 3).",
+    "nuggets": [
+      {
+        "text": "A projected equivalent dose to the thyroid of 50 mSv in the first 7 days",
+        "importance": "vital",
+        "evidence": [
+          "H Thyroid, Generic criteria = 50 mSv in the first 7 days",
+          "H thyroid, Generic criteria = 50 mSv in the first 7 days",
+          "H thyroid, Generic criteria = 50 mSv b in the first 7 days"
+        ]
+      },
+      {
+        "text": "It is applied before or shortly after a release of radioactive iodine",
+        "importance": "okay",
+        "evidence": [
+          "before or shortly after a release of radioactive iodine"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-predisposal-steps",
+    "question": "Which steps does predisposal management of radioactive waste cover?",
+    "topics": [
+      "waste"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "All steps from the generation of the waste up to disposal: processing (pretreatment, treatment and conditioning), storage and transport (GSR Part 5). Processing is mainly meant to produce a waste form compatible with the selected or anticipated disposal option.",
+    "nuggets": [
+      {
+        "text": "All steps from generation up to disposal",
+        "importance": "vital",
+        "evidence": [
+          "all the steps in the management of radioactive waste from its generation up to disposal",
+          "all the steps in its management from its generation up to its disposal",
+          "Any waste management steps carried out prior to disposal"
+        ]
+      },
+      {
+        "text": "Processing (pretreatment, treatment and conditioning), storage and transport",
+        "importance": "vital",
+        "evidence": [
+          "processing (pretreatment, treatment and conditioning), storage and transport",
+          "such as pretreatment, treatment, conditioning, storage and transport activities"
+        ]
+      },
+      {
+        "text": "Processing aims at a waste form compatible with the (anticipated) disposal option",
+        "importance": "okay",
+        "evidence": [
+          "primarily intended to produce a waste form that is compatible with the selected or anticipated disposal option"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-exemption-criterion",
+    "question": "What dose criterion allows a practice or source to be exempted from regulatory requirements without further consideration?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "The effective dose expected to any individual under all reasonably foreseeable circumstances is of the order of 10 μSv or less in a year. For low probability scenarios a different criterion can be used: no more than 1 mSv in a year (GSR Part 3, Schedule I, para. I.2).",
+    "nuggets": [
+      {
+        "text": "Effective dose to any individual of the order of 10 μSv or less in a year",
+        "importance": "vital",
+        "evidence": [
+          "the exempt source within the practice is of the order of 10 μSv or less in a year"
+        ]
+      },
+      {
+        "text": "For low probability scenarios, not more than 1 mSv in a year",
+        "importance": "okay",
+        "evidence": [
+          "To take into account low probability scenarios, a different criterion could be used"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-site-radiography-barrier",
+    "question": "According to IAEA guidance, what dose rate is typically allowed at the controlled area barrier during site radiography?",
+    "topics": [
+      "industrial"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "The regulatory body may specify maximum permitted dose rates at the barriers; typical values are 2.5-20 µSv/h (SSG-11). Collimators and local shielding should be used to limit the extent of the controlled area, and no other work is permitted inside it until the radiography is finished.",
+    "nuggets": [
+      {
+        "text": "Typical values are 2.5-20 µSv/h",
+        "importance": "vital",
+        "evidence": [
+          "maximum permitted dose rates at the barriers during site radiography work, typical values being 2.5-20"
+        ]
+      },
+      {
+        "text": "The regulatory body may specify the maximum permitted dose rate",
+        "importance": "okay",
+        "evidence": [
+          "The regulatory body may specify maximum permitted dose rates at the barriers"
+        ]
+      },
+      {
+        "text": "Collimators (and local shielding) limit the extent of the controlled area",
+        "importance": "okay",
+        "evidence": [
+          "To limit the extent of the controlled area, collimators should be used where practicable"
+        ]
+      },
+      {
+        "text": "No other work in the controlled area until the radiography is finished",
+        "importance": "okay",
+        "evidence": [
+          "No other work should be permitted in this area until the radiography work has been finished"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-lab-spill",
+    "question": "What should be done after a spill of unsealed radioactive material in a research laboratory?",
+    "topics": [
+      "research"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "Cover a liquid spill with absorbent pads, evacuate people from the immediate area and monitor them for contamination, and inform the radiation protection officer immediately. Remove contaminated clothing and wash contaminated skin. Decontaminate under the officer's supervision, monitor for residual activity (e.g. wipe test), and restrict access until the officer declares the area fit for re-occupation (SSG-87, para. V-5).",
+    "nuggets": [
+      {
+        "text": "Cover a liquid spill with absorbent pads to prevent spread",
+        "importance": "vital",
+        "evidence": [
+          "absorbent pads are to be placed over the spill to prevent further spread of contamination"
+        ]
+      },
+      {
+        "text": "Evacuate people from the immediate area of the spill",
+        "importance": "vital",
+        "evidence": [
+          "Persons are to be evacuated from the immediate area of the spill"
+        ]
+      },
+      {
+        "text": "Inform the radiation protection officer immediately",
+        "importance": "vital",
+        "evidence": [
+          "The radiation protection officer is to be informed immediately"
+        ]
+      },
+      {
+        "text": "Decontaminate and monitor for residual activity (e.g. wipe test)",
+        "importance": "okay",
+        "evidence": [
+          "The area is to be decontaminated and monitored for residual activity"
+        ]
+      },
+      {
+        "text": "Restrict access until the area is declared fit for re-occupation",
+        "importance": "okay",
+        "evidence": [
+          "Access to the contaminated area is to be restricted until decontamination has been completed"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-apprentice-dose-limits",
+    "question": "Under Danish rules, what dose limits apply to a radiation worker aged between 16 and 18?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "Bilag 2 of the Danish order on ionising radiation sets 6 mSv effective dose per year, 15 mSv per year to the lens of the eye and 150 mSv per year to the skin and to the extremities. The IAEA BSS allows 20 mSv to the lens for this group, so an IAEA value is wrong here.",
+    "nuggets": [
+      {
+        "text": "Effective dose limit of 6 mSv per year",
+        "importance": "vital",
+        "evidence": [
+          "Stråleudsat arbejdstager mellem 16 og 18 år, jf. § 3, nr. 59) 6 15 150 150"
+        ]
+      },
+      {
+        "text": "Equivalent dose limit of 15 mSv per year for the lens of the eye",
+        "importance": "vital",
+        "evidence": [
+          "Stråleudsat arbejdstager mellem 16 og 18 år, jf. § 3, nr. 59) 6 15 150 150"
+        ]
+      },
+      {
+        "text": "150 mSv per year for the skin and for the extremities",
+        "importance": "okay",
+        "evidence": [
+          "Stråleudsat arbejdstager mellem 16 og 18 år, jf. § 3, nr. 59) 6 15 150 150"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-apprentice-dose-limits",
+    "question": "According to the IAEA Basic Safety Standards, what dose limits apply to apprentices aged 16 to 18 who are trained for work involving radiation?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "GSR Part 3, Schedule III: an effective dose of 6 mSv in a year, an equivalent dose to the lens of the eye of 20 mSv in a year, and 150 mSv in a year to the extremities or the skin.",
+    "nuggets": [
+      {
+        "text": "Effective dose of 6 mSv in a year",
+        "importance": "vital",
+        "evidence": [
+          "An effective dose of 6 mSv in a year"
+        ]
+      },
+      {
+        "text": "Equivalent dose to the lens of the eye of 20 mSv in a year",
+        "importance": "vital",
+        "evidence": [
+          "An equivalent dose to the lens of the eye of 20 mSv in a year"
+        ]
+      },
+      {
+        "text": "150 mSv in a year to the extremities or the skin",
+        "importance": "okay",
+        "evidence": [
+          "of 150 mSv in a year"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-pregnant-worker-fetus",
+    "question": "In Denmark, what dose may the fetus of a pregnant radiation worker receive once she has informed her employer?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 16: the equivalent dose to the fetus is kept as low as reasonably achievable and may not exceed 1 mSv after the employer has been told about the pregnancy.",
+    "nuggets": [
+      {
+        "text": "The equivalent dose to the fetus may not exceed 1 mSv after the employer has been notified",
+        "importance": "vital",
+        "evidence": [
+          "må efter meddelelsen til arbejdsgiveren om graviditeten ikke være større end 1 mSv"
+        ]
+      },
+      {
+        "text": "The dose to the fetus is to be kept as low as reasonably achievable",
+        "importance": "okay",
+        "evidence": [
+          "Ækvivalent dosis til et foster fra den gravides udsættelse for erhvervsmæssig bestråling skal holdes så lav"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-public-dose-constraint",
+    "question": "What dose constraint must a Danish undertaking use as the starting point for optimisation with regard to members of the public?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 11: an effective dose constraint of 0.1 mSv per year for members of the public, for the use at the same site; the Danish Health Authority may set a different constraint where several undertakings share a site.",
+    "nuggets": [
+      {
+        "text": "0.1 mSv effective dose per year for members of the public",
+        "importance": "vital",
+        "evidence": [
+          "benytte en dosisbinding for effektiv dosis på 0,1 mSv pr. år til enkeltpersoner i befolkningen"
+        ]
+      },
+      {
+        "text": "Where several undertakings use sources at the same site, the Danish Health Authority may set a different constraint",
+        "importance": "okay",
+        "evidence": [
+          "kan Sundhedsstyrelsen for hver af de pågældende virksomheder fastsætte en anden dosisbinding"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-category-a",
+    "question": "Under Danish rules, when must a worker be classified as a category A exposed worker?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 36: when the worker can be expected, in planned exposure situations, to receive more than 6 mSv effective dose per year, more than 15 mSv per year to the lens of the eye, or more than 150 mSv per year to the skin or extremities.",
+    "nuggets": [
+      {
+        "text": "Expected effective dose of more than 6 mSv per year",
+        "importance": "vital",
+        "evidence": [
+          "på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+        ]
+      },
+      {
+        "text": "Or more than 15 mSv per year to the lens of the eye",
+        "importance": "vital",
+        "evidence": [
+          "på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+        ]
+      },
+      {
+        "text": "Or more than 150 mSv per year to the skin or extremities",
+        "importance": "okay",
+        "evidence": [
+          "på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-transport-protection-programme",
+    "question": "Under the Danish rules on transport of radioactive material, what must be in place before the first transport?",
+    "topics": [
+      "transport"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 9: a radiation protection programme must be drawn up and implemented before the first transport; a safety assessment under § 27 of the order on ionising radiation can replace it.",
+    "nuggets": [
+      {
+        "text": "A radiation protection programme must be drawn up and implemented before the first transport",
+        "importance": "vital",
+        "evidence": [
+          "Forud for første transport af radioaktivt materiale skal der udformes og implementeres et strålingsbeskyttelsesprogram"
+        ]
+      },
+      {
+        "text": "A safety assessment under the order on ionising radiation can replace the programme",
+        "importance": "okay",
+        "evidence": [
+          "kan erstatte strålingsbeskyttelsesprogrammet"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-patient-dosimetry-first-measurement",
+    "question": "In Denmark, how soon after a new X-ray unit is taken into use must the first patient dose measurements be made?",
+    "topics": [
+      "medical"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 6 of the order on patient dosimetry: within 6 months of commissioning a new source, new equipment or changed protocols, the first measurements and the determination and analysis of representative levels must be done; afterwards they are repeated at the intervals in Bilag 2.",
+    "nuggets": [
+      {
+        "text": "Within 6 months of commissioning new equipment (or changed protocols)",
+        "importance": "vital",
+        "evidence": [
+          "skal udføres inden for 6 måneder efter idriftsættelse af ny strålekilde, nyt udstyr eller ændrede protokoller"
+        ]
+      },
+      {
+        "text": "Afterwards repeated at the intervals given in Bilag 2",
+        "importance": "okay",
+        "evidence": [
+          "skal herefter gentages med de intervaller, som fremgår af bilag 2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-en-mobile-xray-locations",
+    "question": "Under the Danish rules on radiation generators, when must an undertaking report a location where X-ray exposures are made outside a shielded facility?",
+    "topics": [
+      "industrial",
+      "medical"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 39: locations with more than 200 exposures per month outside a facility (anlæg) must be reported to the Danish Health Authority, as soon as possible and if possible before the work starts.",
+    "nuggets": [
+      {
+        "text": "When more than 200 exposures per month are made at the location",
+        "importance": "vital",
+        "evidence": [
+          "lokationer, hvor der foretages mere end 200 eksponeringer pr. måned uden for anlæg"
+        ]
+      },
+      {
+        "text": "Report as soon as possible, if possible before the work starts",
+        "importance": "okay",
+        "evidence": [
+          "så vidt muligt inden arbejdet påbegyn"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bek-stråling-områdeklassificering",
+    "question": "Hvornår skal et område klassificeres som kontrolleret, og hvornår som overvåget?",
+    "topics": [
+      "occupational"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 44: kontrolleret ved forventet effektiv dosis over 6 mSv pr. år (eller over 15 mSv øjelinse / 150 mSv hud og ekstremiteter), ved risiko for utilsigtet bestråling eller væsentlig forurening. § 45: overvåget ved forventet effektiv dosis over 1 mSv, dog højst 6 mSv pr. år (eller over 50, højst 150 mSv til hud og ekstremiteter).",
+    "nuggets": [
+      {
+        "text": "Kontrolleret: forventet effektiv dosis over 6 mSv pr. år",
+        "importance": "vital",
+        "evidence": [
+          "skal klassificeres som kontrolleret, 1) hvis en arbejdstager som følge af planlagte bestrålingssituationer"
+        ]
+      },
+      {
+        "text": "Overvåget: forventet effektiv dosis over 1 mSv, dog højst 6 mSv pr. år",
+        "importance": "vital",
+        "evidence": [
+          "skal klassificeres som overvåget, hvis en arbejdstager som følge af planlagte bestrålingssituationer"
+        ]
+      },
+      {
+        "text": "Kontrolleret også ved risiko for utilsigtet bestråling eller væsentlig forurening",
+        "importance": "okay",
+        "evidence": [
+          "hvis der er væsentlig risiko for strålebeskyttelsesmæssig betydende forurening af området eller omgivelserne"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bek-stråling-dosisbinding-arbejdstagere",
+    "question": "Hvilken dosisbinding skal virksomheden benytte for sine øvrige arbejdstagere, og hvilken for enkeltpersoner i befolkningen?",
+    "topics": [
+      "occupational",
+      "general"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "answer",
+    "expected_answer": "§ 12: 0,3 mSv pr. år for virksomhedens øvrige arbejdstagere; § 11: 0,1 mSv pr. år for enkeltpersoner i befolkningen.",
+    "nuggets": [
+      {
+        "text": "0,3 mSv pr. år for virksomhedens øvrige arbejdstagere",
+        "importance": "vital",
+        "evidence": [
+          "dosisbinding for effektiv dosis på 0,3 mSv pr. år til virksomhedens øvrige arbejdstagere"
+        ]
+      },
+      {
+        "text": "0,1 mSv pr. år for enkeltpersoner i befolkningen",
+        "importance": "vital",
+        "evidence": [
+          "dosisbinding for effektiv dosis på 0,1 mSv pr. år til enkeltpersoner i befolkningen"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "iaea-transport-package-surface-dose-rate",
+    "question": "According to the IAEA transport regulations, what is the maximum dose rate on the external surface of a package that is not transported under exclusive use?",
+    "topics": [
+      "transport"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "answer",
+    "expected_answer": "SSR-6 para. 527: 2 mSv/h at any point on the external surface (with the listed exclusive-use exceptions); under exclusive use up to 10 mSv/h (para. 528). The TI of a package not under exclusive use may not exceed 10 (para. 526).",
+    "nuggets": [
+      {
+        "text": "2 mSv/h at any point on the external surface",
+        "importance": "vital",
+        "evidence": [
+          "external surface of a package or overpack shall not exceed 2 mSv/h"
+        ]
+      },
+      {
+        "text": "Under exclusive use up to 10 mSv/h",
+        "importance": "okay",
+        "evidence": [
+          "external surface of a package or overpack under exclusive use shall not exceed 10 mSv/h"
+        ]
+      },
+      {
+        "text": "The transport index may not exceed 10 unless under exclusive use",
+        "importance": "okay",
+        "evidence": [
+          "the TI of any package or overpack shall not exceed 10"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dk-fee-open-sources-amount",
+    "question": "Hvor mange kroner udgør Sundhedsstyrelsens årlige gebyr for en tilladelse til brug af åbne radioaktive kilder?",
+    "topics": [
+      "research",
+      "medical"
+    ],
+    "language": "da",
+    "source": "dk-law",
+    "expected_behavior": "refuse",
+    "expected_answer": "Kilderne nævner, at der opkræves et årligt gebyr efter bekendtgørelse nr. 1111/2019, men ikke beløbet. Et godt svar siger det og henviser til sis.dk."
+  },
+  {
+    "id": "out-of-scope-mri-sar",
+    "question": "What is the specific absorption rate (SAR) limit for a patient in a 3 T MRI scanner?",
+    "topics": [
+      "medical"
+    ],
+    "language": "en",
+    "source": "iaea",
+    "expected_behavior": "refuse",
+    "expected_answer": "MRI uses non-ionising radiation; neither the IAEA standards nor the Danish orders on ionising radiation in the corpus give SAR limits."
+  },
+  {
+    "id": "out-of-scope-laser-class",
+    "question": "Which laser classes require a laser safety officer in Denmark?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "dk-law",
+    "expected_behavior": "refuse",
+    "expected_answer": "Laser safety is not covered by the Danish orders on ionising radiation or the IAEA standards in the corpus."
+  },
+  {
+    "id": "out-of-scope-power-line-fields",
+    "question": "What is the exposure limit for 50 Hz magnetic fields from overhead power lines for members of the public?",
+    "topics": [
+      "general"
+    ],
+    "language": "en",
+    "source": "both",
+    "expected_behavior": "refuse",
+    "expected_answer": "Extremely low frequency fields are non-ionising radiation and not covered by the corpus."
   }
 ]

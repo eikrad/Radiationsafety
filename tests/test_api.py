@@ -26,6 +26,28 @@ def test_health(client: TestClient):
     assert data["graph_loaded"] is True
 
 
+def test_config_privacy_controller_unset_by_default(client: TestClient, monkeypatch):
+    """Without PRIVACY_CONTROLLER_NAME/CONTACT set, /config returns null for both."""
+    monkeypatch.delenv("PRIVACY_CONTROLLER_NAME", raising=False)
+    monkeypatch.delenv("PRIVACY_CONTROLLER_CONTACT", raising=False)
+    res = client.get("/config")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_controller_name"] is None
+    assert data["privacy_controller_contact"] is None
+
+
+def test_config_privacy_controller_reads_env(client: TestClient, monkeypatch):
+    """When an operator sets PRIVACY_CONTROLLER_NAME/CONTACT, /config surfaces them."""
+    monkeypatch.setenv("PRIVACY_CONTROLLER_NAME", "Acme Hospital Physics Dept.")
+    monkeypatch.setenv("PRIVACY_CONTROLLER_CONTACT", "privacy@acme.example")
+    res = client.get("/config")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_controller_name"] == "Acme Hospital Physics Dept."
+    assert data["privacy_controller_contact"] == "privacy@acme.example"
+
+
 def test_metrics_returns_prometheus_style(client: TestClient):
     """Metrics endpoint returns Prometheus-style text with graph_loaded and uptime."""
     res = client.get("/metrics")
@@ -92,6 +114,31 @@ def test_query_api_key_error_when_openai_selected_no_key(
     data = res.json()
     assert "detail" in data
     assert "API key" in data["detail"]
+
+
+def test_query_explains_a_missing_scaleway_model_instead_of_a_500(
+    client: TestClient, monkeypatch
+):
+    """A provider the server has not configured answers 503 with a JSON reason."""
+    monkeypatch.delenv("SCW_MODEL", raising=False)
+    res = client.post(
+        "/query",
+        json={"question": "What is radiation?", "model": "scaleway"},
+    )
+    assert res.status_code == 503
+    assert "SCW_MODEL" in res.json()["detail"]
+
+
+def test_query_explains_an_unsupported_embedding_provider(
+    client: TestClient, monkeypatch
+):
+    monkeypatch.setenv("EMBEDDING_PROVIDER", "word2vec")
+    res = client.post(
+        "/query",
+        json={"question": "What is radiation?", "model": "gemini"},
+    )
+    assert res.status_code == 503
+    assert "EMBEDDING_PROVIDER" in res.json()["detail"]
 
 
 def test_query_non_question_short_circuit(client: TestClient):
@@ -581,3 +628,56 @@ def test_documents_sync_danish(client: TestClient):
     assert res.status_code == 200
     assert res.json()["mode"] == "shadow"
     assert res.json()["checked_count"] == 1
+
+
+def test_config_lists_the_scaleway_models_a_client_may_pick(
+    client: TestClient, monkeypatch
+):
+    """The dropdown's Scaleway models come from .env: the default first, then the allow-list."""
+    monkeypatch.setenv("SCW_MODEL", "gemma-4-26b-a4b-it")
+    monkeypatch.setenv(
+        "SCW_ALLOWED_MODELS", "deepseek-v4-flash-0731, gemma-4-26b-a4b-it,qwen3.8-27b"
+    )
+    data = client.get("/config").json()
+
+    assert data["scaleway_models"] == [
+        "gemma-4-26b-a4b-it",
+        "deepseek-v4-flash-0731",
+        "qwen3.8-27b",
+    ]
+
+
+def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkeypatch):
+    for name in ("MISTRAL_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("SCW_SECRET_KEY", "scw-test-key")
+
+    assert client.get("/config").json()["server_has_llm_key"] is True
+
+
+def test_query_explains_a_provider_that_did_not_answer_in_time(
+    client: TestClient, mock_graph
+):
+    """A provider call that times out becomes a 504 naming the provider, not a bare 500."""
+    import httpx
+    import openai
+
+    mock_graph.invoke.side_effect = openai.APITimeoutError(
+        request=httpx.Request("POST", "https://api.scaleway.ai/v1/chat/completions")
+    )
+    res = client.post(
+        "/query", json={"question": "What is ALARA?", "model": "scaleway"}
+    )
+    assert res.status_code == 504
+    detail = res.json()["detail"]
+    assert "scaleway" in detail.lower()
+    assert "did not answer" in detail
+
+
+def test_api_reports_the_installed_package_version(client: TestClient):
+    """/openapi.json shows the release that runs, as bumped by release-please."""
+    from importlib.metadata import version
+
+    assert client.get("/openapi.json").json()["info"]["version"] == version(
+        "radiationsafety"
+    )

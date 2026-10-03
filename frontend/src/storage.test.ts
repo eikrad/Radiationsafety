@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { loadEnforcePrivacyMode, saveEnforcePrivacyMode } from './storage'
+import {
+  loadEnforcePrivacyMode,
+  saveEnforcePrivacyMode,
+  loadApiKeys,
+  saveApiKeys,
+  hasAnyApiKeyInStorage,
+  loadModelVariants,
+} from './storage'
 
 // Mock localStorage for Node environment
 const localStorageMock = (() => {
@@ -82,5 +89,66 @@ describe('Privacy Mode Storage', () => {
       expect(() => saveEnforcePrivacyMode(true)).not.toThrow()
       setItemSpy.mockRestore()
     })
+  })
+})
+
+describe('API key storage (sessionStorage, not localStorage)', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    vi.clearAllMocks()
+  })
+
+  it('loadApiKeys returns empty keys when sessionStorage is empty', () => {
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '', ollama: '' })
+  })
+
+  it('saveApiKeys writes to sessionStorage, not localStorage', () => {
+    saveApiKeys({ mistral: 'm-key', gemini: 'g-key', openai: '' })
+    expect(loadApiKeys()).toEqual({
+      scaleway: '',
+      mistral: 'm-key',
+      gemini: 'g-key',
+      openai: '',
+      ollama: '',
+    })
+    expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
+  })
+
+  it('hasAnyApiKeyInStorage reflects sessionStorage contents', () => {
+    expect(hasAnyApiKeyInStorage()).toBe(false)
+    saveApiKeys({ mistral: '', gemini: '', openai: 'sk-test' })
+    expect(hasAnyApiKeyInStorage()).toBe(true)
+  })
+
+  it('removes keys an earlier version left in localStorage instead of using them', () => {
+    localStorageMock.setItem(
+      'radiation-safety-api-keys',
+      JSON.stringify({ mistral: 'old-key', gemini: '', openai: '' })
+    )
+
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '', ollama: '' })
+    expect(localStorageMock.getItem('radiation-safety-api-keys')).toBeNull()
+  })
+
+  it('loadApiKeys does not throw and returns empty keys on corrupted data', () => {
+    sessionStorage.setItem('radiation-safety-api-keys', 'not-json')
+    expect(loadApiKeys()).toEqual({ scaleway: '', mistral: '', gemini: '', openai: '', ollama: '' })
+  })
+})
+
+describe('Scaleway key and model storage', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    localStorageMock.clear()
+  })
+
+  it('keeps a Scaleway key for the session like the other providers', () => {
+    saveApiKeys({ ...loadApiKeys(), scaleway: 'scw-key' })
+    expect(loadApiKeys().scaleway).toBe('scw-key')
+    expect(hasAnyApiKeyInStorage()).toBe(true)
+  })
+
+  it('uses the server default Scaleway model until one is picked', () => {
+    expect(loadModelVariants().scaleway).toBe('default')
   })
 })

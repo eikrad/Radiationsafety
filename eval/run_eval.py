@@ -1,28 +1,89 @@
-"""Run evaluation: load golden dataset, invoke graph, compute metrics, write report."""
+"""Run evaluation (scoring v2): run the graph per golden item, judge, score, report.
+
+Per question:
+1. run the graph, capturing the first retrieval and the grade_documents verdict
+   (eval/graph_run.py);
+2. ask the judge two narrow questions (eval/judge.py);
+3. derive all metrics and the error type deterministically (eval/scoring.py).
+
+Full graph outputs are saved to <output-dir>/outputs_<run_id>.json so a run
+can be re-scored without re-running the graph.
+"""
 
 import argparse
 import json
 import os
 import sys
 import time
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from langchain_core.documents import Document
+from eval.dashboard import write_dashboard
+from eval.golden import GoldenError, golden_warnings, load_golden
+from eval.graph_run import load_outputs, save_outputs
+from eval.history import (
+    DEFAULT_HISTORY_PATH,
+    append_run,
+    build_run_record,
+    dataset_fingerprint,
+    git_info,
+    load_runs,
+    prompt_fingerprints,
+)
+from eval.judge import judge_item
+from eval.scoring import (
+    METRICS_VERSION,
+    RECALL_DEPTHS,
+    evidence_ranks,
+    ranking_metrics,
+    score_item,
+    without_evidence,
+)
+from graph.llm_factory import DEFAULT_PROVIDER
 
-# Project root for default paths
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-_CACHE_FILENAME = "eval_cache.json"
 
 _MAX_RATE_LIMIT_RETRIES = 4
 _INITIAL_BACKOFF_SEC = 30
 
 # Default delays for eval to stay under LLM rate limits (Mistral free tier ~1 RPS, ~30 RPM)
 _DEFAULT_DELAY_AFTER_GRAPH_SEC = (
-    5.0  # after graph.invoke, before metrics (4+ LLM calls)
+    5.0  # after graph.invoke, before judging (2+ LLM calls)
 )
 _DEFAULT_DELAY_BETWEEN_ITEMS_SEC = 20.0  # between items to stay under RPM
+
+# The same answer judged twice at temperature 0 was flagged once and passed
+# once; three groundedness votes (stopping once two agree) steady the verdict.
+_DEFAULT_JUDGE_VOTES = 3
+
+# Retrieval-only runs retrieve this many chunks per collection and derive
+# recall@k for every smaller k from the one ranked list.
+_DEFAULT_RETRIEVAL_DEPTH = 20
+# Characters per collection for evidence_recall_budget: about what the graph
+# passes on today (k=3 chunks of up to 2500 characters).
+_DEFAULT_CHAR_BUDGET = 7500
+
+# Per-question scores that go into the report, history and dashboard. None
+# (not applicable, e.g. vital recall of a refusal question) is left out.
+NUMERIC_METRICS = (
+    "evidence_recall_initial",
+    "evidence_recall_context",
+    "vital_recall",
+    "vital_recall_lenient",
+    "all_recall",
+    "grounded_vital_recall",
+    "context_utilization",
+    "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
+    "grade_documents_correct",
+    "grade_documents_ablation_correct",  # --regrade: the retrieval minus its evidence
+    "evidence_position",  # context chunk holding the evidence (1 = first)
+    "warning_shown",  # 1 if the answer carried a warning: lower is better
+    # retrieval-only runs
+    *(f"evidence_recall_at_{k}" for k in RECALL_DEPTHS),
+    "evidence_recall_budget",
+    "reciprocal_rank",  # its mean is MRR
+)
 
 
 def _is_rate_limit_error(e: BaseException) -> bool:
@@ -47,18 +108,6 @@ def _delay_sec(env_name: str, default: float) -> float:
         return default
 
 
-def _load_golden(path: Path) -> list[dict]:
-    """Load and validate golden JSON. Each item must have 'question'; optional id, expected_answer, key_facts."""
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
-    if not isinstance(data, list):
-        raise ValueError("Golden file must be a JSON array")
-    for i, item in enumerate(data):
-        if not isinstance(item, dict) or "question" not in item:
-            raise ValueError(f"Item {i}: must be an object with 'question'")
-    return data
-
-
 def _invoke_with_retry(fn, *args, **kwargs):
     """Call fn; on 429 / rate limit, back off and retry up to _MAX_RATE_LIMIT_RETRIES."""
     last_error = None
@@ -76,239 +125,632 @@ def _invoke_with_retry(fn, *args, **kwargs):
 
 
 def _invoke_graph(question: str, graph, llm) -> dict:
-    """Run graph for one question; return state slice we need for metrics and report."""
+    """Run graph for one question; final answer plus first retrieval, sufficiency and node path."""
+    from eval.graph_run import run_graph
     from graph.llm_factory import get_embedding_provider
 
-    invoke_input = {
-        "question": question,
-        "generation": "",
-        "web_search": False,
-        "documents": [],
-        "web_search_attempted": False,
-        "chat_history": [],
-        "llm": llm,
-        "embedding_provider": get_embedding_provider(),
-    }
     config = {"run_name": "eval-run", "tags": ["eval", "golden"]}
-    result = graph.invoke(invoke_input, config=config)
+    return run_graph(
+        question,
+        graph,
+        llm=llm,
+        embedding_provider=get_embedding_provider(),
+        config=config,
+    )
+
+
+def _retrieve_initial(question: str, embedding_provider: str) -> list:
+    """The graph's first retrieval for a question: both collections, merged."""
+    from graph.nodes.retrieve import retrieve
+
+    out = retrieve(
+        {
+            "question": question,
+            "chat_history": [],
+            "embedding_provider": embedding_provider,
+        }
+    )
+    if not out.get("documents") and out.get("retrieval_warning"):
+        raise RuntimeError(out["retrieval_warning"])
+    return out.get("documents") or []
+
+
+def _retrieve_ranked(
+    question: str, embedding_provider: str, depth: int
+) -> dict[str, list]:
+    """Each collection's retrieval in rank order, `depth` chunks deep, through
+    the same retrievers the graph uses."""
+    from graph.nodes.retrieval_common import invoke_dual_retrievers
+
+    iaea, dk = invoke_dual_retrievers(
+        embedding_provider=embedding_provider, query=question, config=None, k=depth
+    )
+    return {"iaea": iaea, "dk": dk}
+
+
+def _top_k_matches(initial: list, ranked: dict[str, list], k: int) -> bool:
+    """Whether the graph's retrieval equals the top k of the deep lists, merged
+    the way the graph merges them (so recall@k means what the graph sees)."""
+    from graph.nodes.retrieval_common import make_doc_key, merge_unique_documents
+
+    merged, _ = merge_unique_documents([], ranked["iaea"][:k] + ranked["dk"][:k])
+    return [make_doc_key(d) for d in merged] == [make_doc_key(d) for d in initial]
+
+
+def _embedding_config() -> dict:
+    """Which embeddings retrieve, and whether questions carry the model's instruction."""
+    from graph.llm_factory import (
+        get_embedding_model_name,
+        get_embedding_provider,
+        query_instruction_template,
+    )
+
+    provider = get_embedding_provider()
+    model = get_embedding_model_name(provider)
     return {
-        "generation": result.get("generation", ""),
-        "documents": result.get("documents", []),
-        "context_used_for_generation": result.get("context_used_for_generation") or "",
-        "retrieval_warning": result.get("retrieval_warning"),
-        "web_search_attempted": result.get("web_search_attempted", False),
+        "embedding_provider": provider,
+        "embedding_model": model,
+        "embedding_query_instruction": provider == "scaleway"
+        and query_instruction_template(model) is not None,
     }
 
 
-def _serialize_documents(documents: list) -> list[dict]:
-    """Serialize Document list to JSON-serializable list of dicts."""
-    out = []
-    for d in documents:
-        meta = getattr(d, "metadata", None) or {}
-        out.append(
-            {
-                "page_content": getattr(d, "page_content", "") or "",
-                "metadata": dict(meta),
-            }
+def _index_config(embedding_provider: str) -> dict:
+    """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
+    import ingestion
+
+    try:
+        return {"index": ingestion.index_fingerprint(embedding_provider)}
+    except Exception as err:  # a missing store must not stop the run
+        print(f"Warning: search index not fingerprinted: {err}", file=sys.stderr)
+        return {"index": None}
+
+
+def _model_name(llm) -> str:
+    return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
+
+
+def _judge_llm(
+    default_llm, llm_provider: str, answer_model: str
+) -> tuple[object, dict]:
+    """The judge model and how it was chosen.
+
+    EVAL_GRADER_PROVIDER picks the provider, EVAL_JUDGE_MODEL the model. With
+    neither set, default_llm (the answering model) judges; that is recorded and
+    warned about, because a model grading its own answers is lenient.
+    answer_model is the model that wrote the answers being judged (for a
+    re-score: the original run's model, not today's default).
+    """
+    from graph.llm_factory import get_llm, scaleway_chat
+
+    provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
+    model = (os.getenv("EVAL_JUDGE_MODEL") or "").strip() or None
+    if not provider and not model:
+        judge = default_llm
+    elif provider == "scaleway":
+        if not model:
+            raise ValueError("Set EVAL_JUDGE_MODEL to a Scaleway model id")
+        judge = scaleway_chat(model)
+    else:
+        judge = get_llm(provider=provider or llm_provider, model_variant=model)
+    judge_provider = provider or llm_provider
+    info = {
+        "judge_provider": judge_provider,
+        "judge_model": _model_name(judge),
+        "judge_is_generator": judge_provider == llm_provider
+        and _model_name(judge) == answer_model,
+        "judge_votes": _judge_votes(),
+    }
+    return judge, info
+
+
+def _judge_votes() -> int:
+    """EVAL_JUDGE_VOTES: how often the groundedness question is asked (majority wins)."""
+    raw = (os.getenv("EVAL_JUDGE_VOTES") or "").strip()
+    votes = int(raw) if raw else _DEFAULT_JUDGE_VOTES
+    if votes < 1:
+        raise ValueError("EVAL_JUDGE_VOTES must be at least 1")
+    return votes
+
+
+def _warn_if_self_judged(info: dict) -> None:
+    if info["judge_is_generator"]:
+        print(
+            "Warning: the judge is the answering model (set EVAL_GRADER_PROVIDER / "
+            "EVAL_JUDGE_MODEL); self-judged scores tend to be lenient.",
+            file=sys.stderr,
         )
-    return out
 
 
-def _deserialize_documents(data: list[dict]) -> list[Document]:
-    """Deserialize list of dicts back to Document list."""
-    return [
-        Document(page_content=x.get("page_content", ""), metadata=x.get("metadata", {}))
-        for x in data
-    ]
+def score_outputs(
+    golden: list[dict], outputs: dict[str, dict], judge_llm, votes: int = 1
+) -> list[dict]:
+    """Judge and score every golden item from its saved graph output."""
+    results = []
+    for n, item in enumerate(golden, start=1):
+        run = outputs[item["id"]]
+        verdict = _invoke_with_retry(
+            judge_item,
+            item,
+            run["generation"],
+            run.get("context_used_for_generation") or "",
+            judge_llm,
+            votes=votes,
+        )
+        scores = score_item(
+            item,
+            {
+                "initial_documents": run.get("initial_documents") or [],
+                "context": run.get("context_used_for_generation") or "",
+                "sufficient": run.get("sufficient"),
+                "retrieval_warning": run.get("retrieval_warning"),
+            },
+            verdict,
+        )
+        results.append(_result(item, run, scores, verdict))
+        print(
+            f"  [{n}/{len(golden)}] judged {item['id']}: {scores['error_type']}",
+            file=sys.stderr,
+        )
+    return results
+
+
+def _result(item: dict, run: dict, scores: dict, verdict: dict | None) -> dict:
+    generation = run.get("generation", "")
+    return {
+        "id": item["id"],
+        "question": item["question"],
+        "topics": item.get("topics") or [],
+        "language": item.get("language"),
+        "source": item.get("source"),
+        "expected_behavior": item["expected_behavior"],
+        "pass": scores["pass"],
+        "error_type": scores["error_type"],
+        "refused": scores["refused"],
+        "unsupported_claims": scores["unsupported_claims"],
+        "metrics": _metrics(scores),
+        "generation_preview": (
+            (generation[:300] + "…") if len(generation) > 300 else generation
+        ),
+        "retrieval_warning": run.get("retrieval_warning"),
+        "web_search_attempted": run.get("web_search_attempted", False),
+        "node_path": run.get("node_path") or [],
+        # the raw verdict, so a failure can be checked without re-judging
+        "judge": verdict,
+    }
+
+
+def _metrics(scores: dict) -> dict[str, float]:
+    """Per-question scores on a 0-1 scale; metrics that do not apply are left out."""
+    values = dict(scores)
+    if values.get("unsupported_claims") is not None:
+        values["unsupported_claim"] = values["unsupported_claims"] > 0
+    return {
+        name: float(values[name])
+        for name in NUMERIC_METRICS
+        if values.get(name) is not None
+    }
+
+
+def summarize(results: list[dict]) -> dict:
+    """Pass rate over judged questions, mean of each metric where it applies,
+    and how many questions failed for which reason."""
+    judged = [r for r in results if r["pass"] is not None]
+    summary = {
+        "n": len(results),
+        "judged": len(judged),
+        "pass_rate": (
+            sum(1 for r in judged if r["pass"]) / len(judged) if judged else None
+        ),
+        "pass_rule": "v2-strict",
+        "error_counts": dict(
+            Counter(r["error_type"] for r in results if r["error_type"])
+        ),
+    }
+    for name in NUMERIC_METRICS:
+        values = [r["metrics"][name] for r in results if name in r["metrics"]]
+        summary[f"{name}_mean"] = sum(values) / len(values) if values else None
+    return summary
 
 
 def _run_eval(
-    golden_path: Path,
-    limit: int | None,
+    golden: list[dict],
     no_web_search: bool,
     output_dir: Path,
-    cache_dir: Path | None,
-    use_per_chunk_precision: bool,
-    pass_rule: str = "all",
+    run_id: str,
     delay_after_graph_sec: float = 0.0,
     delay_between_items_sec: float = 0.0,
-) -> tuple[dict, list[dict]]:
-    """Load golden, run graph and metrics, return summary and results for reporting."""
-    golden = _load_golden(golden_path)
-    if limit is not None:
-        golden = golden[:limit]
+) -> tuple[dict, list[dict], dict]:
+    """Run the graph for each item, save outputs, judge and score.
 
+    Returns summary, per-question results, and the run header (dataset
+    fingerprint + config) that says what was tested.
+    """
     if no_web_search:
         os.environ["WEB_SEARCH_ENABLED"] = "false"
 
-    from eval.metrics import compute_all_metrics
+    from eval.history import prompt_fingerprints
+    from graph.consts import env_bool
     from graph.graph import app as graph
     from graph.llm_factory import get_llm
+    from ingestion import RETRIEVER_K
 
-    golden_mtime = golden_path.stat().st_mtime
-    cache: dict = {}
-    cache_path = None
-    if cache_dir:
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_path = cache_dir / _CACHE_FILENAME
-        if cache_path.exists():
-            try:
-                with open(cache_path, encoding="utf-8") as f:
-                    data = json.load(f)
-                if (
-                    data.get("golden_path") == str(golden_path.resolve())
-                    and data.get("golden_mtime") == golden_mtime
-                ):
-                    cache = data.get("entries", {})
-            except (json.JSONDecodeError, OSError):
-                pass
-
-    # Graph uses main provider; grading can use a different provider via EVAL_GRADER_PROVIDER
     graph_llm = get_llm()
-    grader_provider = (os.getenv("EVAL_GRADER_PROVIDER") or "").strip().lower()
-    grader_llm = get_llm(provider=grader_provider) if grader_provider else graph_llm
-    graph_model = getattr(graph_llm, "model", None) or "n/a"
-    grader_model = getattr(grader_llm, "model", None) or "n/a"
+    llm_provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
+    judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
+    header = {
+        "dataset": dataset_fingerprint(golden),
+        "config": {
+            "retrieval_only": False,
+            "llm_provider": llm_provider,
+            "llm_model": _model_name(graph_llm),
+            **judge_info,
+            **(embedding := _embedding_config()),
+            **_index_config(embedding["embedding_provider"]),
+            "retriever_k": RETRIEVER_K,
+            "web_search": env_bool("WEB_SEARCH_ENABLED"),
+            "metrics_version": METRICS_VERSION,
+            "prompts": prompt_fingerprints(),
+        },
+    }
+    pauses = len(golden) * delay_after_graph_sec + max(len(golden) - 1, 0) * (
+        delay_between_items_sec
+    )
     print(
-        f"Eval: graph model = {graph_model}, grader model = {grader_model}",
+        f"Eval: answer model = {header['config']['llm_model']}, "
+        f"judge = {judge_info['judge_provider']}/{judge_info['judge_model']}, "
+        f"embeddings = {embedding['embedding_provider']}/{embedding['embedding_model']}\n"
+        f"{len(golden)} questions; the rate-limit pauses alone take about "
+        f"{pauses / 60:.0f} min, plus model time",
         file=sys.stderr,
     )
-    results = []
-    for item in golden:
-        question = item["question"]
-        item_id = item.get("id", "") or str(hash(question))
-        expected_answer = item.get("expected_answer")
-        key_facts = item.get("key_facts")
-        if cache_dir and item_id in cache:
-            entry = cache[item_id]
-            generation = entry.get("generation", "")
-            documents = _deserialize_documents(entry.get("documents", []))
-            context_used_for_generation = entry.get("context_used_for_generation") or ""
-            retrieval_warning = entry.get("retrieval_warning")
-            web_search_attempted = entry.get("web_search_attempted", False)
-        else:
-            run = _invoke_with_retry(_invoke_graph, question, graph, graph_llm)
-            generation = run["generation"]
-            documents = run["documents"]
-            context_used_for_generation = run.get("context_used_for_generation") or ""
-            retrieval_warning = run["retrieval_warning"]
-            web_search_attempted = run["web_search_attempted"]
-            if cache_dir:
-                cache[item_id] = {
-                    "generation": generation,
-                    "documents": _serialize_documents(documents),
-                    "context_used_for_generation": context_used_for_generation,
-                    "retrieval_warning": retrieval_warning,
-                    "web_search_attempted": web_search_attempted,
-                }
+    _warn_if_self_judged(judge_info)
+
+    outputs: dict[str, dict] = {}
+    for n, item in enumerate(golden, start=1):
+        started = time.monotonic()
+        outputs[item["id"]] = _invoke_with_retry(
+            _invoke_graph, item["question"], graph, graph_llm
+        )
+        print(
+            f"  [{n}/{len(golden)}] answered {item['id']} "
+            f"({time.monotonic() - started:.1f} s)",
+            file=sys.stderr,
+        )
         if delay_after_graph_sec > 0:
             time.sleep(delay_after_graph_sec)
-        metrics = _invoke_with_retry(
-            compute_all_metrics,
-            question=question,
-            generation=generation,
-            documents=documents,
-            context_used_for_generation=context_used_for_generation,
-            expected_answer=expected_answer,
-            key_facts=key_facts,
-            llm=grader_llm,
-            use_per_chunk_precision=use_per_chunk_precision,
-        )
-        threshold = 0.5
-        if pass_rule == "mean":
-            passed = (sum(metrics.values()) / len(metrics)) >= threshold
-        else:
-            passed = all(m >= threshold for m in metrics.values())
-        results.append(
-            {
-                "id": item.get("id", ""),
-                "question": question,
-                "pass": passed,
-                "metrics": metrics,
-                "generation_preview": (
-                    (generation[:300] + "…") if len(generation) > 300 else generation
-                ),
-                "retrieval_warning": retrieval_warning,
-                "web_search_attempted": web_search_attempted,
-            }
-        )
         if delay_between_items_sec > 0 and item is not golden[-1]:
             time.sleep(delay_between_items_sec)
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
-    if cache_dir and cache_path is not None:
-        try:
-            payload = {
-                "golden_path": str(golden_path.resolve()),
-                "golden_mtime": golden_mtime,
-                "entries": cache,
-            }
-            with open(cache_path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, indent=2, ensure_ascii=False)
-        except OSError:
-            pass
+    results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
+    return summarize(results), results, header
 
-    n = len(results)
-    summary = {
-        "pass_rate": sum(1 for r in results if r["pass"]) / n if n else 0.0,
-        "pass_rule": pass_rule,
-        "faithfulness_mean": (
-            sum(r["metrics"]["faithfulness"] for r in results) / n if n else 0.0
-        ),
-        "answer_relevance_mean": (
-            sum(r["metrics"]["answer_relevance"] for r in results) / n if n else 0.0
-        ),
-        "context_precision_mean": (
-            sum(r["metrics"]["context_precision"] for r in results) / n if n else 0.0
-        ),
-        "context_recall_mean": (
-            sum(r["metrics"]["context_recall"] for r in results) / n if n else 0.0
-        ),
+
+def _run_retrieval_only(
+    golden: list[dict],
+    output_dir: Path,
+    run_id: str,
+    depth: int = _DEFAULT_RETRIEVAL_DEPTH,
+    char_budget: int = _DEFAULT_CHAR_BUDGET,
+) -> tuple[dict, list[dict], dict]:
+    """Score only retrieval: evidence recall and ranks, no answer, no judge.
+
+    For comparing embeddings and retrieval settings cheaply and without judge
+    noise. evidence_recall_initial is the graph's own first retrieval, as in
+    a full run; the rank metrics come from a deeper retrieval through the same
+    retrievers. There is no pass rate, since nothing was answered.
+    """
+    from ingestion import RETRIEVER_K
+
+    embedding = _embedding_config()
+    header = {
+        "dataset": dataset_fingerprint(golden),
+        "config": {
+            "retrieval_only": True,
+            **embedding,
+            **_index_config(embedding["embedding_provider"]),
+            "retriever_k": RETRIEVER_K,
+            "retrieval_depth": depth,
+            "char_budget": char_budget,
+            "metrics_version": METRICS_VERSION,
+        },
     }
+    print(
+        f"Eval (retrieval only): embeddings = {embedding['embedding_model']}, "
+        f"query instruction {'on' if embedding['embedding_query_instruction'] else 'off'}, "
+        f"depth {depth}",
+        file=sys.stderr,
+    )
+    outputs = {}
+    for item in golden:
+        # refusal questions have no evidence to find: nothing to retrieve for
+        if not item.get("nuggets"):
+            outputs[item["id"]] = {"initial_documents": []}
+            continue
+        provider = embedding["embedding_provider"]
+        ranked = _invoke_with_retry(_retrieve_ranked, item["question"], provider, depth)
+        outputs[item["id"]] = {
+            "initial_documents": _invoke_with_retry(
+                _retrieve_initial, item["question"], provider
+            ),
+            "ranked_iaea": ranked["iaea"],
+            "ranked_dk": ranked["dk"],
+        }
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
+    return (*_score_retrieval(golden, outputs, header["config"]), header)
+
+
+def _score_retrieval(
+    golden: list[dict], outputs: dict[str, dict], config: dict
+) -> tuple[dict, list[dict]]:
+    """Score saved retrieval-only outputs; also used to re-score after the
+    golden evidence changed (pooling), without retrieving again."""
+    depth, budget = config.get("retrieval_depth"), config.get("char_budget")
+    k = config.get("retriever_k")
+    results, mismatches = [], []
+    for item in golden:
+        run = outputs[item["id"]]
+        initial = run.get("initial_documents") or []
+        metrics = {}
+        recall = score_item(item, {"initial_documents": initial}, None)[
+            "evidence_recall_initial"
+        ]
+        if recall is not None:
+            metrics["evidence_recall_initial"] = recall
+        result = {}
+        if "ranked_dk" in run and depth:
+            ranked = {"iaea": run.get("ranked_iaea") or [], "dk": run["ranked_dk"]}
+            metrics.update(
+                ranking_metrics(item, ranked, depth=depth, char_budget=budget)
+            )
+            result["evidence_ranks"] = evidence_ranks(item, ranked)
+            # below k the deep list is shorter than the graph's; nothing to check
+            if k and depth >= k and not _top_k_matches(initial, ranked, k):
+                mismatches.append(item["id"])
+        results.append(
+            {
+                "id": item["id"],
+                "question": item["question"],
+                "topics": item.get("topics") or [],
+                "language": item.get("language"),
+                "source": item.get("source"),
+                "expected_behavior": item["expected_behavior"],
+                "pass": None,
+                "error_type": None,
+                "refused": None,
+                "unsupported_claims": None,
+                "metrics": metrics,
+                **result,
+                "generation_preview": "",
+                "retrieval_warning": None,
+                "web_search_attempted": False,
+                "node_path": ["retrieve"],
+                "judge": None,
+            }
+        )
+    summary = summarize(results)
+    if depth:
+        summary["top_k_mismatches"] = mismatches
+    if mismatches:
+        print(
+            f"Warning: for {len(mismatches)} question(s) the deep retrieval's top {k} "
+            f"differs from the graph's retrieval, so recall@{k} does not describe "
+            f"the graph there: {', '.join(mismatches)}",
+            file=sys.stderr,
+        )
     return summary, results
 
 
-def _write_report(
-    summary: dict, results: list[dict], output_dir: Path
-) -> tuple[Path, Path]:
-    """Write report_<timestamp>.json and report_<timestamp>.md; return both paths."""
-    output_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
-    json_path = output_dir / f"report_{ts}.json"
-    md_path = output_dir / f"report_{ts}.md"
+def _rescore(
+    run_id: str, golden: list[dict], output_dir: Path, history_file: Path
+) -> tuple[dict, list[dict], dict] | None:
+    """Judge and score a saved run again with today's judge and scoring.
 
-    payload = {"summary": summary, "results": results, "run_id": ts}
+    The answers, and therefore the answering model, retrieval settings, prompts
+    and git state, are the original run's; only the judgement is new.
+    Returns None (after printing why) if the run cannot be found.
+    """
+    outputs_path = output_dir / f"outputs_{run_id}.json"
+    if not outputs_path.exists():
+        print(
+            f"There are no saved outputs for run {run_id} in {output_dir}",
+            file=sys.stderr,
+        )
+        return None
+    outputs = load_outputs(outputs_path)
+    original = next((r for r in load_runs(history_file) if r["run_id"] == run_id), None)
+    if original is None:
+        report = output_dir / f"report_{run_id}.json"
+        original = json.loads(report.read_text("utf-8")) if report.exists() else {}
+    config = dict(original.get("config") or {})
+
+    saved = [item for item in golden if item["id"] in outputs]
+    for item in golden:
+        if item["id"] not in outputs:
+            print(
+                f"Warning: {item['id']}: not in the saved run, skipped", file=sys.stderr
+            )
+
+    if config.get("retrieval_only"):
+        summary, results = _score_retrieval(saved, outputs, config)
+        header = {
+            "git": original.get("git"),
+            "dataset": dataset_fingerprint(saved),
+            "config": {**config, "metrics_version": METRICS_VERSION},
+            "rescored_from": run_id,
+        }
+        return summary, results, header
+
+    from graph.llm_factory import get_llm
+
+    llm_provider = (
+        config.get("llm_provider") or os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER
+    )
+    judge_llm, judge_info = _judge_llm(
+        get_llm(), llm_provider, config.get("llm_model") or "n/a"
+    )
+    _warn_if_self_judged(judge_info)
+    results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
+    header = {
+        "git": original.get("git"),
+        "dataset": dataset_fingerprint(saved),
+        "config": {**config, **judge_info, "metrics_version": METRICS_VERSION},
+        "rescored_from": run_id,
+    }
+    return summarize(results), results, header
+
+
+def _grade_sufficient(question: str, documents: list, llm) -> bool:
+    """The graph's grade_documents verdict on these documents."""
+    from graph.nodes.grade_documents import grade_documents
+
+    return not grade_documents(
+        {"question": question, "documents": documents, "llm": llm}
+    )["web_search"]
+
+
+def _regrade(
+    run_id: str, golden: list[dict], output_dir: Path
+) -> tuple[dict, list[dict], dict] | None:
+    """Run today's sufficiency grader on a saved run's first retrievals.
+
+    Per question: is the verdict right (sufficient exactly when every vital
+    nugget's evidence was retrieved; insufficient for questions to refuse)?
+    And, where the retrieval held all its evidence, the same retrieval with the
+    evidence chunks removed must be judged insufficient: labelled negatives
+    without new retrieval (#129). About two grader calls per question.
+    """
+    outputs_path = output_dir / f"outputs_{run_id}.json"
+    if not outputs_path.exists():
+        print(
+            f"There are no saved outputs for run {run_id} in {output_dir}",
+            file=sys.stderr,
+        )
+        return None
+    outputs = load_outputs(outputs_path)
+    saved = [item for item in golden if item["id"] in outputs]
+
+    from graph.llm_factory import get_llm
+
+    llm = get_llm()
+    llm_provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
+    print(
+        f"Regrade of {run_id}: grader = {llm_provider}/{_model_name(llm)}, "
+        f"{len(saved)} questions",
+        file=sys.stderr,
+    )
+    results = []
+    for n, item in enumerate(saved, start=1):
+        initial = outputs[item["id"]].get("initial_documents") or []
+        verdict = _invoke_with_retry(_grade_sufficient, item["question"], initial, llm)
+        scores = score_item(
+            item, {"initial_documents": initial, "sufficient": verdict}, None
+        )
+        metrics = {}
+        if scores["grade_documents_correct"] is not None:
+            metrics["grade_documents_correct"] = float(
+                scores["grade_documents_correct"]
+            )
+        if scores["evidence_recall_initial"] == 1.0:
+            ablated = without_evidence(item, initial)
+            said = _invoke_with_retry(_grade_sufficient, item["question"], ablated, llm)
+            metrics["grade_documents_ablation_correct"] = float(not said)
+        print(f"  [{n}/{len(saved)}] regraded {item['id']}", file=sys.stderr)
+        results.append(
+            {
+                "id": item["id"],
+                "question": item["question"],
+                "topics": item.get("topics") or [],
+                "language": item.get("language"),
+                "source": item.get("source"),
+                "expected_behavior": item["expected_behavior"],
+                "pass": None,
+                "error_type": None,
+                "unsupported_claims": None,
+                "metrics": metrics,
+                "generation_preview": "",
+                "retrieval_warning": None,
+                "web_search_attempted": False,
+                "node_path": ["grade_documents"],
+                "judge": None,
+            }
+        )
+    header = {
+        "dataset": dataset_fingerprint(saved),
+        "config": {
+            "grader_only": True,
+            "llm_provider": llm_provider,
+            "llm_model": _model_name(llm),
+            "metrics_version": METRICS_VERSION,
+            "prompts": prompt_fingerprints(),
+        },
+        "regraded_from": run_id,
+    }
+    return summarize(results), results, header
+
+
+def _write_report(
+    summary: dict,
+    results: list[dict],
+    output_dir: Path,
+    run_id: str,
+    header: dict | None = None,
+) -> tuple[Path, Path]:
+    """Write report_<run_id>.json and report_<run_id>.md; return both paths.
+
+    header: label, notes, git, dataset, config, duration_sec, stored alongside
+    the results so a report says what it tested.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    json_path = output_dir / f"report_{run_id}.json"
+    md_path = output_dir / f"report_{run_id}.md"
+    header = header or {}
+
+    payload = {"run_id": run_id, **header, "summary": summary, "results": results}
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
+    pass_rate = summary["pass_rate"]
     lines = [
         "# Evaluation report",
         "",
-        f"**Run ID:** {ts}",
+        f"**Run ID:** {run_id}",
         "",
+        *_markdown_header_lines(header),
         "## Summary",
         "",
-        f"- **Pass rate:** {summary['pass_rate']:.2%}",
-        f"- **Faithfulness (mean):** {summary['faithfulness_mean']:.3f}",
-        f"- **Answer relevance (mean):** {summary['answer_relevance_mean']:.3f}",
-        f"- **Context precision (mean):** {summary['context_precision_mean']:.3f}",
-        f"- **Context recall (mean):** {summary['context_recall_mean']:.3f}",
+        (
+            f"- **Pass rate:** {pass_rate:.0%} of {summary['judged']} judged questions"
+            if pass_rate is not None
+            else "- **Pass rate:** no question could be judged"
+        ),
+        "- **Outcomes:** "
+        + ", ".join(f"{k} {v}" for k, v in sorted(summary["error_counts"].items())),
+        *[
+            f"- **{name}:** {summary[f'{name}_mean']:.2f}"
+            for name in NUMERIC_METRICS
+            if summary.get(f"{name}_mean") is not None
+        ],
         "",
         "## Per-question results",
         "",
     ]
     for r in results:
-        status = "PASS" if r["pass"] else "FAIL"
-        lines.append(f"### {r['id'] or '(no id)'} — {status}")
-        lines.append("")
-        lines.append(
-            f"- **Question:** {r['question'][:200]}{'…' if len(r['question']) > 200 else ''}"
-        )
-        lines.append(
-            f"- **Metrics:** faithfulness={r['metrics']['faithfulness']:.2f}, answer_relevance={r['metrics']['answer_relevance']:.2f}, context_precision={r['metrics']['context_precision']:.2f}, context_recall={r['metrics']['context_recall']:.2f}"
-        )
-        lines.append(f"- **Generation (preview):** {r['generation_preview'][:150]}…")
+        status = {True: "PASS", False: "FAIL", None: "NOT JUDGED"}[r["pass"]]
+        lines += [
+            f"### {r['id']} — {status} ({r['error_type']})",
+            "",
+            f"- **Question:** {r['question'][:200]}{'…' if len(r['question']) > 200 else ''}",
+            "- **Scores:** "
+            + ", ".join(f"{k}={v:.2f}" for k, v in r["metrics"].items()),
+            f"- **Path:** {' → '.join(r['node_path'])}",
+            f"- **Answer (preview):** {r['generation_preview'][:150]}…",
+        ]
         if r.get("retrieval_warning"):
             lines.append(f"- **Warning:** {r['retrieval_warning']}")
+        for claim in (r.get("judge") or {}).get("unsupported_claims") or []:
+            lines.append(f"- **Unsupported claim:** {claim}")
         lines.append("")
     with open(md_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -316,7 +758,55 @@ def _write_report(
     return json_path, md_path
 
 
+def _markdown_header_lines(header: dict) -> list[str]:
+    """What the run tested, for the top of the Markdown report."""
+    if not header:
+        return []
+    git = header.get("git") or {}
+    config = header.get("config") or {}
+    dataset = header.get("dataset") or {}
+    commit = git.get("commit") or "unknown"
+    if git.get("dirty"):
+        commit += " (uncommitted changes)"
+    lines = []
+    if header.get("label"):
+        lines.append(f"**Label:** {header['label']}")
+    if header.get("notes"):
+        lines.append(f"**Notes:** {header['notes']}")
+    models = (
+        f"**Sufficiency grader:** {config.get('llm_model')} (regrade of "
+        f"{header.get('regraded_from')})"
+        if config.get("grader_only")
+        else (
+            f"**Embeddings:** {config.get('embedding_model')} (retrieval only, query "
+            f"instruction {'on' if config.get('embedding_query_instruction') else 'off'})"
+            if config.get("retrieval_only")
+            else f"**Models:** {config.get('llm_model')} (judge: "
+            f"{config.get('judge_provider')}/{config.get('judge_model')}, "
+            f"embeddings: {config.get('embedding_model')})"
+        )
+    )
+    lines += [
+        f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
+        models,
+        f"**Retrieval:** k={config.get('retriever_k')} per collection,"
+        + (
+            f" ranked {config['retrieval_depth']} deep, text budget "
+            f"{config.get('char_budget')} characters per collection"
+            if config.get("retrieval_depth")
+            else f" web search {'on' if config.get('web_search') else 'off'}"
+        ),
+        f"**Questions:** {dataset.get('n_items')} (set {dataset.get('questions_hash')})",
+        "",
+    ]
+    return lines
+
+
 def main() -> int:
+    from dotenv import load_dotenv
+
+    # Explicitly, not only as a side effect of importing ingestion later on.
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Run RAG evaluation against golden dataset."
     )
@@ -344,47 +834,103 @@ def main() -> int:
         help="Directory for report outputs",
     )
     parser.add_argument(
-        "--cache-dir",
-        type=Path,
-        default=None,
-        help="Cache directory for graph outputs (env: EVAL_CACHE_DIR); re-run only metrics when cache hit",
-    )
-    parser.add_argument(
-        "--per-chunk-precision",
-        action="store_true",
-        help="Use per-chunk context precision (Option A) instead of sufficiency (Option B)",
-    )
-    parser.add_argument(
-        "--pass-rule",
-        choices=("all", "mean"),
-        default="all",
-        help="Pass when all metrics >= 0.5 (all) or mean of metrics >= 0.5 (mean); default: all",
-    )
-    parser.add_argument(
         "--delay-after-graph",
         type=float,
         default=None,
         metavar="SEC",
-        help="Seconds to wait after graph invoke before running metrics (env: EVAL_DELAY_AFTER_GRAPH_SEC; default 5)",
+        help="Seconds to wait after each graph run (env: EVAL_DELAY_AFTER_GRAPH_SEC; default 5)",
     )
     parser.add_argument(
         "--delay-between-items",
         type=float,
         default=None,
         metavar="SEC",
-        help="Seconds to wait between processing each golden item (env: EVAL_DELAY_BETWEEN_ITEMS_SEC; default 20)",
+        help="Seconds to wait between golden items (env: EVAL_DELAY_BETWEEN_ITEMS_SEC; default 20)",
+    )
+    parser.add_argument(
+        "--label",
+        default=None,
+        help="Short name for this run in the history and dashboard (e.g. dk-query-translation)",
+    )
+    parser.add_argument(
+        "--notes",
+        default=None,
+        help="Free-text notes on what this run tests",
+    )
+    parser.add_argument(
+        "--history-file",
+        type=Path,
+        default=DEFAULT_HISTORY_PATH,
+        help="Run history to append to (default: eval/history/runs.jsonl)",
+    )
+    parser.add_argument(
+        "--no-history",
+        action="store_true",
+        help="Do not record this run in the history",
+    )
+    parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="Record the run although tracked files have uncommitted changes "
+        "(the commit then does not say what ran)",
+    )
+    parser.add_argument(
+        "--retrieval-only",
+        action="store_true",
+        help=(
+            "Score only the first retrieval (evidence recall) with the configured "
+            "embeddings; no answer model, no judge. For comparing embeddings."
+        ),
+    )
+    parser.add_argument(
+        "--regrade",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "Run today's sufficiency grader (grade_documents) on a saved run's first "
+            "retrievals, plus each retrieval without its evidence chunks; no answers"
+        ),
+    )
+    parser.add_argument(
+        "--depth",
+        type=int,
+        default=_DEFAULT_RETRIEVAL_DEPTH,
+        metavar="K",
+        help=f"Retrieval-only: chunks retrieved per collection for the rank metrics "
+        f"(default {_DEFAULT_RETRIEVAL_DEPTH})",
+    )
+    parser.add_argument(
+        "--char-budget",
+        type=int,
+        default=_DEFAULT_CHAR_BUDGET,
+        metavar="CHARS",
+        help=f"Retrieval-only: characters per collection for evidence_recall_budget "
+        f"(default {_DEFAULT_CHAR_BUDGET})",
+    )
+    parser.add_argument(
+        "--rescore",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "Judge and score a saved run again (outputs_<RUN_ID>.json in --output-dir) "
+            "with the current golden set, judge and scoring, without running the graph"
+        ),
     )
     args = parser.parse_args()
-
-    cache_dir = args.cache_dir or (
-        os.environ.get("EVAL_CACHE_DIR") and Path(os.environ["EVAL_CACHE_DIR"])
-    )
-    if cache_dir is not None and not isinstance(cache_dir, Path):
-        cache_dir = Path(cache_dir)
 
     if not args.golden.exists():
         print(f"Golden file not found: {args.golden}", file=sys.stderr)
         return 1
+    try:
+        golden = load_golden(args.golden)
+    except GoldenError as err:
+        print(err, file=sys.stderr)
+        return 1
+    for warning in golden_warnings(golden):
+        print(f"Warning: {warning}", file=sys.stderr)
+    if args.limit is not None:
+        golden = golden[: args.limit]
+
     delay_after_graph = (
         args.delay_after_graph
         if args.delay_after_graph is not None
@@ -397,21 +943,99 @@ def main() -> int:
             "EVAL_DELAY_BETWEEN_ITEMS_SEC", _DEFAULT_DELAY_BETWEEN_ITEMS_SEC
         )
     )
-    summary, results = _run_eval(
-        golden_path=args.golden,
-        limit=args.limit,
-        no_web_search=args.no_web_search,
-        output_dir=args.output_dir,
-        cache_dir=cache_dir,
-        use_per_chunk_precision=args.per_chunk_precision,
-        pass_rule=args.pass_rule,
-        delay_after_graph_sec=delay_after_graph,
-        delay_between_items_sec=delay_between_items,
+    # Before the run: describes the code that ran, not edits made while it ran.
+    git = git_info()
+    if git.get("dirty") and not (args.allow_dirty or args.no_history or args.rescore):
+        print(
+            "Tracked files have uncommitted changes, so the commit would not say "
+            "what this run tested. Commit first, or pass --allow-dirty (recorded "
+            "as dirty) or --no-history.",
+            file=sys.stderr,
+        )
+        return 1
+    started = time.monotonic()
+    run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    if args.rescore:
+        rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
+        if rescored is None:
+            return 1
+        summary, results, header = rescored
+        label = args.label or f"rescore of {args.rescore}"
+    elif args.regrade:
+        regraded = _regrade(args.regrade, golden, args.output_dir)
+        if regraded is None:
+            return 1
+        summary, results, header = regraded
+        header = {"git": git, **header}
+        label = args.label or f"regrade of {args.regrade}"
+    elif args.retrieval_only:
+        configured = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
+        if (
+            configured not in ("", "ollama")
+            and os.getenv("LLM_PROVIDER", "").lower() == "ollama"
+        ):
+            print(
+                f"LLM_PROVIDER=ollama (privacy mode) always embeds locally, so "
+                f"EMBEDDING_PROVIDER={configured} would not be measured. Set "
+                "LLM_PROVIDER to a cloud provider for this run.",
+                file=sys.stderr,
+            )
+            return 1
+        summary, results, header = _run_retrieval_only(
+            golden,
+            output_dir=args.output_dir,
+            run_id=run_id,
+            depth=args.depth,
+            char_budget=args.char_budget,
+        )
+        header = {"git": git, **header}
+        label = args.label
+    else:
+        summary, results, header = _run_eval(
+            golden,
+            no_web_search=args.no_web_search,
+            output_dir=args.output_dir,
+            run_id=run_id,
+            delay_after_graph_sec=delay_after_graph,
+            delay_between_items_sec=delay_between_items,
+        )
+        header = {"git": git, **header}
+        label = args.label
+    header = {
+        "label": label,
+        "notes": args.notes,
+        **header,
+        "duration_sec": round(time.monotonic() - started, 1),
+    }
+    json_path, md_path = _write_report(
+        summary, results, args.output_dir, run_id, header
     )
-    json_path, md_path = _write_report(summary, results, args.output_dir)
+    if not args.no_history:
+        append_run(
+            build_run_record(
+                run_id=run_id,
+                summary=summary,
+                results=results,
+                report_file=json_path.name,
+                **header,
+            ),
+            args.history_file,
+        )
+        print(f"Run recorded: {args.history_file}")
+        dashboard = write_dashboard(
+            args.output_dir / "dashboard.html",
+            args.history_file,
+            reports_dir=args.output_dir,
+        )
+        print(f"Dashboard updated: {dashboard}")
     print(f"Report written: {json_path}")
     print(f"Report written: {md_path}")
-    print(f"Pass rate: {summary['pass_rate']:.2%}")
+    if summary["pass_rate"] is not None:
+        print(f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged")
+    if summary.get("evidence_recall_initial_mean") is not None:
+        print(
+            f"Evidence recall (first retrieval): {summary['evidence_recall_initial_mean']:.2f}"
+        )
     return 0
 
 

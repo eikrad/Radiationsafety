@@ -35,3 +35,9 @@ document_versions.json
 
 # Claude Code session run artifacts
 run-*.json
+
+# Test coverage data
+.coverage
+.coverage.*
+coverage.xml
+frontend/coverage/

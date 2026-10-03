@@ -15,6 +15,11 @@ describe('QueryForm', () => {
     expect(screen.getByRole('button', { name: /Searching/i })).toBeInTheDocument()
   })
 
+  it('marks the button busy while an answer is on its way', () => {
+    render(<QueryForm onSubmit={vi.fn()} loading={true} disabled={false} />)
+    expect(screen.getByRole('button', { name: /Searching/i })).toHaveAttribute('aria-busy', 'true')
+  })
+
   it('calls onSubmit with question and clears field when form submitted', async () => {
     const onSubmit = vi.fn()
     const user = userEvent.setup()

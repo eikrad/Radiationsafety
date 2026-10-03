@@ -5,6 +5,7 @@ import secrets
 import time
 import uuid
 from contextlib import asynccontextmanager
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -67,6 +68,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Radiation Safety RAG API",
+    # The installed package's version, which release-please bumps in pyproject.toml.
+    version=package_version("radiationsafety"),
     lifespan=lifespan,
 )
 app.add_middleware(
@@ -134,7 +137,7 @@ class QueryRequest(BaseModel):
 
     question: str
     chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
-    model: str | None = None  # "mistral" | "gemini" | "openai"
+    model: str | None = None  # "scaleway" | "mistral" | "gemini" | "openai" | "ollama"
     model_variant: str | None = None  # e.g. "gemini-2.5-flash-lite", "gpt-4o-mini"
     api_keys: dict[str, str] | None = (
         None  # {"mistral": "...", "gemini": "...", "openai": "..."}
@@ -168,6 +171,25 @@ class SetSourceUrlBody(BaseModel):
     """Request body for PATCH /documents/source/{source_id}/url."""
 
     url: str
+
+
+def _is_timeout(exc: BaseException) -> bool:
+    """Whether a provider call gave up on its time limit (any client library)."""
+    import httpx
+
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        name = type(current).__name__
+        if (
+            isinstance(current, (TimeoutError, httpx.TimeoutException))
+            or ("Timeout" in name and "Error" in name)
+            or name == "DeadlineExceeded"  # google-api-core (Gemini)
+        ):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
 
 
 def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
@@ -330,15 +352,41 @@ def metrics() -> str:
     return "\n".join(lines) + "\n"
 
 
+def _scaleway_models() -> list[str]:
+    ids = [(os.getenv("SCW_MODEL") or "").strip()]
+    ids += (os.getenv("SCW_ALLOWED_MODELS") or "").split(",")
+    return list(dict.fromkeys(m.strip() for m in ids if m.strip()))
+
+
 @api_router.get("/config")
 def config():
     """Return client-relevant config; e.g. whether server has LLM keys so the client can hide the API-key hint."""
     server_has_llm_key = bool(
-        (os.getenv("MISTRAL_API_KEY") or "").strip()
+        (os.getenv("SCW_SECRET_KEY") or "").strip()
+        or (os.getenv("MISTRAL_API_KEY") or "").strip()
         or (os.getenv("GOOGLE_API_KEY") or "").strip()
         or (os.getenv("OPENAI_API_KEY") or "").strip()
     )
-    return {"server_has_llm_key": server_has_llm_key}
+    from graph.provider_status import providers_status
+
+    return {
+        "server_has_llm_key": server_has_llm_key,
+        # Per provider: server_key (the server holds its key) and issue (the server
+        # configuration that stops it from answering, else null).
+        "providers": providers_status(),
+        # The Scaleway models a client may pick: SCW_MODEL (the default) first,
+        # then SCW_ALLOWED_MODELS. Ids live only in .env, since Scaleway renames them.
+        "scaleway_models": _scaleway_models(),
+        # Who to name as the GDPR controller in the in-app privacy notice. Unset
+        # (the default) means: nobody has configured this deployment as a shared
+        # instance, so the notice falls back to the solo-local-use explanation.
+        "privacy_controller_name": (os.getenv("PRIVACY_CONTROLLER_NAME") or "").strip()
+        or None,
+        "privacy_controller_contact": (
+            os.getenv("PRIVACY_CONTROLLER_CONTACT") or ""
+        ).strip()
+        or None,
+    }
 
 
 @api_router.get("/documents/check-updates")
@@ -664,12 +712,12 @@ def _resolve_model_and_key(
     api_keys: dict[str, str] | None,
 ) -> tuple[str, str | None]:
     """Resolve model (whitelist) and api_key for the request. Returns (model, api_key)."""
-    from graph.llm_factory import ALLOWED_PROVIDERS
+    from graph.llm_factory import ALLOWED_PROVIDERS, DEFAULT_PROVIDER
 
-    provider_from_env = (os.getenv("LLM_PROVIDER") or "gemini").strip()
+    provider_from_env = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).strip()
     prov = (model or provider_from_env).lower()
     if prov not in ALLOWED_PROVIDERS:
-        prov = "gemini"
+        prov = DEFAULT_PROVIDER
     key = None
     if api_keys and isinstance(api_keys, dict):
         key = api_keys.get(prov) or api_keys.get(prov.strip())
@@ -715,19 +763,29 @@ def query(req: QueryRequest, request: Request):
             used_web_search_label=None,
             privacy_mode=is_ollama,
         )
-    try:
-        from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
+    from graph.llm_factory import (
+        APIKeyError,
+        ProviderConfigError,
+        get_embedding_provider,
+        get_llm,
+    )
 
+    try:
         llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
+        embedding_provider = get_embedding_provider(model)
     except APIKeyError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except ProviderConfigError as e:
+        # The operator must fix this on the server; the user can pick another provider.
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception as e:
         if is_ollama:
             raise HTTPException(
                 status_code=503, detail=_ollama_error_detail(e, model_variant)
             ) from e
-        raise
-    embedding_provider = get_embedding_provider(model)
+        raise HTTPException(
+            status_code=500, detail=str(e) or "Internal server error"
+        ) from e
     try:
         invoke_input = {
             "question": req.question,
@@ -764,6 +822,21 @@ def query(req: QueryRequest, request: Request):
             raise HTTPException(
                 status_code=429,
                 detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
+            ) from e
+        if _is_timeout(e):
+            from graph.llm_factory import request_timeout
+
+            limit = (
+                "its time limit"
+                if is_ollama
+                else f"{request_timeout():.0f} s (LLM_REQUEST_TIMEOUT_SEC)"
+            )
+            raise HTTPException(
+                status_code=504,
+                detail=(
+                    f"{model.capitalize()} did not answer within {limit}. "
+                    "Try again, or pick another provider."
+                ),
             ) from e
         if is_ollama:
             raise HTTPException(

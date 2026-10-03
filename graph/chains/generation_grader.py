@@ -5,7 +5,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel, Field
 
-from graph.llm_factory import get_llm
+from graph.llm_factory import LenientText, get_llm
 
 
 class GradeGeneration(BaseModel):
@@ -17,7 +17,7 @@ class GradeGeneration(BaseModel):
             "False otherwise."
         )
     )
-    missing_info: str = Field(
+    missing_info: LenientText = Field(
         default="",
         description=(
             "Only when passed=False: one short phrase (max 15 words) naming the specific "

@@ -17,14 +17,38 @@ test.beforeEach(async ({ page }) => {
 
 // --- Mocked UI Tests (always run) ---
 
-test('all-four-models-in-dropdown: selector shows all providers', async ({ page }) => {
+test('all-models-in-dropdown: selector shows all providers', async ({ page }) => {
   await page.route('/api/config', (r) => r.fulfill({ json: { server_has_llm_key: true } }))
   await page.goto('/')
   const options = await page.getByRole('combobox').locator('option').allTextContents()
+  expect(options).toContain('Scaleway (EU)')
   expect(options).toContain('Mistral')
   expect(options).toContain('Gemini')
   expect(options).toContain('OpenAI')
   expect(options).toContain('Ollama (Local)')
+})
+
+test('scaleway-is-the-default: a first visit answers with Scaleway and the server models', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('radiation-safety-model'))
+  await page.route('/api/config', (r) =>
+    r.fulfill({
+      json: {
+        server_has_llm_key: true,
+        scaleway_models: ['gemma-4-26b-a4b-it', 'deepseek-v4-flash-0731', 'qwen3.8-27b'],
+      },
+    })
+  )
+  await page.goto('/')
+  await expect(page.getByRole('combobox')).toHaveValue('scaleway')
+
+  await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  const request = page.waitForRequest('/api/query')
+  await page.getByRole('button', { name: 'Ask' }).click()
+  expect((await request).postDataJSON().model).toBe('scaleway')
+
+  await page.getByRole('button', { name: /settings/i }).click()
+  const models = await page.locator('#variant-scaleway option').allTextContents()
+  expect(models).toEqual(['Gemma 4 26B (default)', 'DeepSeek V4 Flash', 'Qwen3.8 27B'])
 })
 
 test('api-key-hint-when-no-key: shows hint when no keys configured', async ({ page }) => {
@@ -112,4 +136,42 @@ test('invalid-api-key-shows-error: wrong key returns error message', async ({ pa
   await page.getByRole('button', { name: 'Ask' }).click()
   await expect(page.locator('p.error')).toBeVisible({ timeout: 15000 })
   await expect(page.locator('p.error')).toContainText(/API key/i)
+})
+
+test('provider-needs-setup: the server reason is shown and Settings opens on that provider', async ({ page }) => {
+  const reason = 'Scaleway has no answer model on this server: set SCW_MODEL.'
+  await page.addInitScript(() => localStorage.setItem('radiation-safety-model', 'scaleway'))
+  await page.route('/api/config', (r) =>
+    r.fulfill({
+      json: {
+        server_has_llm_key: true,
+        providers: { scaleway: { server_key: true, issue: reason }, gemini: { server_key: true, issue: null } },
+      },
+    })
+  )
+  await page.route('/api/query', (r) => r.fulfill({ status: 503, json: { detail: reason } }))
+  await page.goto('/')
+  await expect(page.getByRole('combobox')).toContainText('Scaleway (EU) – needs setup')
+
+  await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  await page.getByRole('button', { name: 'Ask' }).click()
+
+  await expect(page.locator('.error')).toHaveText(reason)
+  const scaleway = page.getByRole('region', { name: 'Scaleway (EU)' })
+  await expect(scaleway.getByText('Active')).toBeVisible()
+  await expect(scaleway.getByText('Needs setup')).toBeVisible()
+})
+
+test('server-error-names-the-provider: a plain 500 does not blame Ollama for Scaleway', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('radiation-safety-model', 'scaleway'))
+  await page.route('/api/config', (r) => r.fulfill({ json: { server_has_llm_key: true } }))
+  await page.route('/api/query', (r) =>
+    r.fulfill({ status: 500, contentType: 'text/plain', body: 'Internal Server Error' })
+  )
+  await page.goto('/')
+  await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
+  await page.getByRole('button', { name: 'Ask' }).click()
+
+  await expect(page.locator('.error')).toContainText('Scaleway')
+  await expect(page.locator('.error')).not.toContainText('Ollama')
 })

@@ -17,8 +17,16 @@ class GradeHallucinations(BaseModel):
     )
 
 
-system = """You are a grader assessing whether an LLM generation is grounded in / supported by a set of retrieved facts.
-Give a binary score 'yes' or 'no'. 'Yes' means that the answer is grounded in / supported by the set of facts."""
+# Judges claims, not wording: one framing sentence, a general remark or a
+# "consult the regulator" note used to fail whole answers built only on local
+# sources (#136).
+system = """You are a grader assessing whether an answer is supported by a set of retrieved facts.
+
+Check only the answer's factual and regulatory claims: values and units, limits, conditions, obligations, deadlines, and which document or paragraph says so. Each of these must be stated in the facts; paraphrase and translation (Danish/English) are fine.
+
+Ignore everything that is not such a claim: introductory or closing sentences, general remarks, disclaimers, advice to consult the authority or a radiation protection expert, and conclusions that follow directly from supported claims.
+
+Give a binary score: 'yes' if every factual and regulatory claim is supported by the facts, 'no' if at least one is not."""
 
 hallucination_prompt = ChatPromptTemplate.from_messages(
     [

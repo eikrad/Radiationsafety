@@ -2,6 +2,73 @@
 
 All notable changes to this project are documented in this file.
 
+<!-- Versions from 0.5.0 on are written by release-please from Conventional Commit
+     messages (see docs/releasing.md). Notes that commits cannot carry,
+     such as upgrade steps, are added by hand below the generated entry. -->
+
+## 0.5.0 upgrade notes
+
+Read these before upgrading from 0.4.x. The generated list of features and fixes
+for 0.5.0 is above.
+
+### Changed
+- **⚠️ Breaking: Scaleway is the default provider** for answers (`gemma-4-26b-a4b-it`) and
+  retrieval embeddings (`bge-multilingual-gemma2`), EU-hosted, instead of Gemini. On the golden
+  set, BGE embeddings found more of the relevant passages than Gemini (evidence recall 0.90 vs
+  0.81, pass rate 79 % vs 71 %). A setup without `LLM_PROVIDER` / `EMBEDDING_PROVIDER` now needs
+  `SCW_SECRET_KEY` and the Scaleway collections
+  (`EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini`); set both to
+  `gemini` to keep the previous behaviour. Gemini, OpenAI, Mistral and Ollama stay available.
+- The UI offers Scaleway first, with its models from the server's `.env`, and a Scaleway key
+  field in Settings. The privacy notice no longer says every question goes to Google.
+
+### Privacy and compliance (#94)
+- **Fixed a Privacy Mode leak:** with `LLM_PROVIDER=ollama`, the generation-retry path
+  could still fall back to Brave web search after two failed retries. It now ends
+  instead, and `web_search` refuses to run in Privacy Mode as a second guard.
+- LangSmith tracing is off by default; when enabled, the EU endpoint is the documented
+  default.
+- The header shows a persistent AI disclosure and a not-legal/clinical-advice notice
+  (EU AI Act Art. 50(1)); a new Privacy notice names the controller from the optional
+  `PRIVACY_CONTROLLER_NAME` / `PRIVACY_CONTROLLER_CONTACT` variables.
+- `X-Forwarded-For` is trusted only with `TRUST_PROXY_HEADERS=true`; before, any client
+  could spoof it to get around rate limits.
+- API keys entered in the browser live in `sessionStorage` instead of `localStorage`.
+- Three Danish bekendtgørelser in force since 1 January 2026 (BEK 1386–1388) are staged;
+  run `uv run python ingestion.py` to embed them.
+
+### Setup checks (#115)
+- Settings show per provider whether the server can answer with it and, if not, what is
+  missing (e.g. `SCW_MODEL`, `SCW_EMBED_MODEL`, an unbuilt search index). A misconfigured
+  provider now returns a 503 with that reason instead of a bare 500.
+- **Check your `.env` after upgrading:** with `EMBEDDING_PROVIDER` unset, every cloud
+  provider searches with Scaleway embeddings. Set `EMBEDDING_PROVIDER=gemini` to keep
+  using an existing Gemini index.
+
+### Security
+- **`cryptography` 49.0.0 → 50.0.1 (⚠️ major version bump)** — fixes
+  [GHSA-g6cj-pr64-35w5](https://github.com/advisories/GHSA-g6cj-pr64-35w5)
+  (PYSEC-2026-3552, CVE-2026-69247): `pkcs7_decrypt_der`/`pkcs7_decrypt_pem`/
+  `pkcs7_decrypt_smime` leaked a Bleichenbacher timing/output oracle against
+  the recovered content-encryption key (introduced in 44.0.0, fixed in 50.0.0).
+  `cryptography` is a transitive dependency (via `google-auth` →
+  `google-genai` → `langchain-google-genai`), not pinned directly in
+  `pyproject.toml`; bumped via `uv lock --upgrade-package cryptography`.
+  Verified with `pip-audit` (CVE no longer reported) and the full test/lint
+  suite (177 backend tests, ruff, black, isort — all green; no code changes
+  required, `uv.lock` only).
+
+### Notes (routine weekly maintenance, no code changes otherwise)
+- `pip-audit` against the resolved environment also flagged `transformers`
+  5.8.1 (CVE-2026-9856, path-traversal in `save_pretrained`, fixed in
+  5.10.0) and `accelerate`/`chromadb` (no fix version published yet).
+  `transformers` could not be bumped: `docling-core`/`docling-ibm-models`
+  cap it at `<5.9.0` on `sys_platform == "darwin"`, and `uv.lock` is a
+  cross-platform lock, so `uv lock --upgrade-package transformers` cannot
+  select 5.10.0 without breaking macOS installs. Left at 5.8.1 pending an
+  upstream `docling` release that relaxes the darwin cap; tracked for a
+  future maintenance pass rather than forced here.
+
 ## 0.4.0 - 2026-06-11
 
 ### Added

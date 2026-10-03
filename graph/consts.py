@@ -12,6 +12,10 @@ GENERATE = "generate"
 VERIFY_TRUSTED = "verify_trusted"
 FINALIZE = "finalize"
 
+# Joins the documents in the generator's context; eval splits on it to find
+# which context chunk holds the evidence.
+CONTEXT_SEPARATOR = "\n\n---\n\n"
+
 
 def env_bool(name: str, default: bool = False) -> bool:
     """Return True if env var is set to 'true' or '1' (case-insensitive), else default."""

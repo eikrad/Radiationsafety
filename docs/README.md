@@ -13,7 +13,7 @@ Documentation for the Radiation Safety RAG system.
 ## Where to start
 
 - **New to the project?** Start with [architecture.md](architecture.md) to understand how queries flow from the browser to the vector database and back.
-- **Want to run locally without any API keys?** See [architecture.md — Privacy Mode](architecture.md#privacy-mode-fully-local-ollama) for Ollama setup.
+- **Want to run locally without any API keys?** See [architecture.md — Privacy Mode](architecture.md#privacy-mode-ollama) for Ollama setup.
 - **Deploying or operating the system?** Read [production-readiness.md](production-readiness.md) for container hardening, admin authentication, rate limiting configuration, and runbook entries.
 - **Adding a new pipeline node or chain?** Follow the step-by-step guide at the bottom of [architecture.md](architecture.md#adding-a-new-node).
 - **Maintaining dependencies or documents?** See [maintenance.md](maintenance.md) for upgrade notes and document update procedures.

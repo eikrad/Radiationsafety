@@ -14,9 +14,7 @@ Reference for deploying and operating the Radiation Safety RAG system.
 | `GET /config` | Public | Returns whether the server has an LLM key configured (`server_has_llm_key`) |
 | `GET /documents/check-updates` | Public | Polls retsinformation.dk / IAEA for newer versions |
 | `GET /documents/source/{id}/file` | Public | Serve the local PDF for a document source |
-| `GET /ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST /ingest` | **Admin** | Triggers full re-ingestion in background |
-| `GET /ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST /documents/add-pdf` | **Admin** | Upload and register a new PDF |
 | `PATCH /documents/source/{id}/url` | **Admin** | Manually update a source URL |
 | `POST /documents/source/{id}/lookup-url` | **Admin** | Auto-resolve newest URL for a source |
@@ -84,8 +82,16 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 - `PYTHONDONTWRITEBYTECODE=1` and `PYTHONUNBUFFERED=1` are set.
 - Compose applies `no-new-privileges: true` and `cap_drop: [ALL]` to backend and frontend containers.
 - `/tmp` is a `tmpfs` mount (not persisted).
-- Chroma data lives in a named volume (`chroma_data`) mounted at `/app/.chroma`.
+- Chroma data lives on the host in `.chroma/` (or `CHROMA_DIR`), bind-mounted at `/app/.chroma`. A one-shot `chroma-permissions` service (busybox, `cap_drop: ALL` + `cap_add: CHOWN`, no network) makes it writable for uid 1000 (`appuser`) before the backend starts.
 - Backend healthcheck is active; frontend service waits for backend healthy before starting.
+
+---
+
+## CI safeguards
+
+- **`ci.yml`** — runs backend/frontend tests, ruff, and the scoped mypy check on every push and PR.
+- **`weekly-audit.yml`** — runs `pip-audit` and `npm audit` on a weekly schedule; opens a GitHub issue if new vulnerabilities are found.
+- **`protect-master.yml`** — blocks direct pushes/merges into `master` that don't come from `staging` (see the branching workflow in `AGENTS.md`/`CLAUDE.md`).
 
 ---
 

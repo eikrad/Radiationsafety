@@ -5,11 +5,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from graph.chains.generation_grader import get_generation_grader
-from graph.chains.truncate import (
-    MAX_CHARS_PER_DOC_GENERATION_GRADER,
-    MAX_CONTEXT_CHARS_GENERATION_GRADER,
-    truncate_docs_for_grader,
-)
+from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.llm_factory import get_llm
 from graph.state import GraphState
 from graph.utils import throttle_llm_if_needed
@@ -37,20 +33,19 @@ def grade_generation(
     if context_used and context_used.strip():
         docs_str = context_used
     elif documents:
-        docs_str = truncate_docs_for_grader(
-            documents,
-            max_chars_per_doc=MAX_CHARS_PER_DOC_GENERATION_GRADER,
-            max_context_chars=MAX_CONTEXT_CHARS_GENERATION_GRADER,
-        )
+        docs_str = format_context(documents, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
     else:
         docs_str = "No documents"
 
     throttle_llm_if_needed()
     grader = get_generation_grader(llm)
-    score = grader.invoke(
-        {"documents": docs_str, "question": question, "generation": generation},
-        config=cfg,
-    )
+    try:
+        score = grader.invoke(
+            {"documents": docs_str, "question": question, "generation": generation},
+            config=cfg,
+        )
+    except ValueError:  # no verdict even when asked again: not passed
+        return {"generation_passed_grading": False, "reflection": _SENTINEL}
 
     if score.passed:
         return {"generation_passed_grading": True, "reflection": ""}

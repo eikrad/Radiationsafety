@@ -10,9 +10,9 @@ The system has three main layers:
 
 1. **API** (`api/main.py`) — validates inputs, enforces rate limits, resolves LLM provider, and invokes the graph.
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
-3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded with Gemini embeddings (or local embeddings in Ollama mode).
+3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded by the configured embedding provider (Scaleway by default, Gemini optional; local embeddings in Ollama mode).
 
-The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API.
+The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API. Key components live in `frontend/src/components/`: `QueryForm` (question input), `ResponseDisplay` (answer + sources + warnings), `DocumentsPanel` + `DocumentListSidebar` + `DocumentUpdatesModal` (document management UI), `ModelSelector` (LLM provider picker), and `SettingsModal` (API keys, preferences).
 
 ```mermaid
 graph LR
@@ -20,7 +20,7 @@ graph LR
     FE --> API[FastAPI\n:8000]
     API --> LG[LangGraph\nPipeline]
     LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nGemini / OpenAI / Mistral / Ollama]
+    LG --> LLM[LLM Provider\nScaleway / Gemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
     DOCS[documents/\nIAEA + Danish law] --> INGEST
@@ -85,7 +85,8 @@ The `routing_outcome` field in the response tells you which path the query took:
 
 | Outcome | Meaning |
 |---|---|
-| `trusted_only_verified` | Answer grounded in vector DB documents only |
+| `trusted_only_verified` | Answer grounded in vector DB documents only, verified |
+| `trusted_only_unverified` | Web search was never attempted, but verification against trusted sources failed |
 | `web_search_unverified` | Web search was used; answer may not be fully grounded |
 | `web_search_verified` | Web search used, but answer verified against trusted sources |
 
@@ -106,6 +107,8 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
+
+Shared helpers used across nodes: `graph/nodes/retrieval_common.py` (shared Chroma retrieval logic for `RETRIEVE`/`RETRIEVE_MISSING`), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
 
 ---
 
@@ -170,13 +173,13 @@ flowchart TD
     IAEAURL -->|parse page, fetch PDF| CHUNK
     DIRECT -->|download PDF| CHUNK
 
-    subgraph CHUNK [Chunking — Docling HybridChunker]
+    subgraph CHUNK [Chunking]
         direction LR
-        C1[IAEA\n256 tokens / chunk]
-        C2[Danish\n512 tokens / chunk]
+        C1[PDFs - IAEA + other\nDocling HybridChunker\nmax 512 tokens per chunk]
+        C2[Danish XML\nchunks along §, Stk., items, table rows\n≤1500 chars + law › chapter › § header]
     end
 
-    CHUNK --> EMBED[Gemini Embeddings\nbatch size 200]
+    CHUNK --> EMBED[Embeddings\nScaleway or Gemini]
     EMBED --> CHROMA
 
     subgraph CHROMA [Chroma .chroma/]
@@ -187,8 +190,8 @@ flowchart TD
 
 ### Key ingestion facts
 
-- **Embeddings are always Gemini** for cloud providers — `GOOGLE_API_KEY` is required for both ingestion and query time.
-- Changing `LLM_PROVIDER` (Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
+- **Embeddings follow `EMBEDDING_PROVIDER`** (Scaleway by default, Gemini optional), independently of the answering model; each provider/model has its own collections.
+- Changing `LLM_PROVIDER` (Scaleway / Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
@@ -209,6 +212,24 @@ flowchart TD
     LOCAL[Drop PDF into documents/] --> BUILD[POST /documents/build-from-local\nrebuild registry]
     BUILD --> INGEST
 ```
+
+### Danish source sync
+
+`POST /documents/sync-danish` brings every Danish Bekendtgørelse up to the newest version in one call, via `document_updates.sync_danish_legislation()` and `graph/services/`:
+
+```mermaid
+flowchart LR
+    SYNC[POST /documents/sync-danish] --> HARVEST[retsinformation_harvest.py\nincremental harvest of changed docs]
+    HARVEST --> ELI[retsinformation_eli.py\nresolve latest ELI expression per source]
+    ELI --> REPLACE[Download newest XML\nback up old version]
+    REPLACE --> BACKUP[(documents/backup/Bekendtgørelse/\nmax 2 kept per source)]
+    REPLACE --> INGEST[Re-ingest into Chroma]
+```
+
+- `RETSINFO_API_KEY` (optional) — subscription key sent to the retsinformation.dk Harvest API for higher rate limits; the harvest works unauthenticated without it.
+- `RETSINFO_RESOLVER_MODE` (optional, default `shadow`) — controls how much the ELI resolver (`retsinformation_eli.py`) is trusted relative to the legacy probe/search resolver used elsewhere in `document_updates.py`:
+  - `shadow` (default): the legacy resolver stays authoritative; the ELI resolver still runs and its result is recorded as `resolution_evidence` for comparison, but never applied.
+  - `guarded` / `enforce`: the ELI resolver's result is used directly whenever it resolves a URL.
 
 ---
 
@@ -231,9 +252,10 @@ flowchart LR
 
 | Provider | `LLM_PROVIDER` value | Key required | Notes |
 |---|---|---|---|
-| Gemini | `gemini` | `GOOGLE_API_KEY` | Default; also used for embeddings |
-| OpenAI | `openai` | `OPENAI_API_KEY` | Reuses Gemini embedding collections |
-| Mistral | `mistral` | `MISTRAL_API_KEY` | Reuses Gemini embedding collections |
+| Scaleway | `scaleway` | `SCW_SECRET_KEY` | Default; models from `SCW_MODEL` / `SCW_ALLOWED_MODELS`, embeddings `SCW_EMBED_MODEL` |
+| Gemini | `gemini` | `GOOGLE_API_KEY` | Optional; also as `EMBEDDING_PROVIDER=gemini` |
+| OpenAI | `openai` | `OPENAI_API_KEY` | Retrieves with `EMBEDDING_PROVIDER` |
+| Mistral | `mistral` | `MISTRAL_API_KEY` | Retrieves with `EMBEDDING_PROVIDER` |
 | Ollama | `ollama` | None | Fully local — see [Privacy Mode](#privacy-mode-ollama) below |
 
 The frontend can pass API keys directly (stored in `sessionStorage`, never persisted). When this happens, LangSmith tracing is automatically disabled to prevent key leakage.
@@ -260,6 +282,7 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `GET` | `/metrics` | Public | Prometheus-style counters |
 | `GET` | `/config` | Public | Whether the server has an LLM key configured (`server_has_llm_key`), so the client can hide/show the API-key hint |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
+| `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a document source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
 | `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |

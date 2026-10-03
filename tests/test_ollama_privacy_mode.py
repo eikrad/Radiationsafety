@@ -108,9 +108,11 @@ class TestOllamaEmbeddingProvider:
 
         assert get_embedding_provider() == "ollama"
 
-    def test_cloud_providers_still_use_gemini(self):
-        """Cloud providers (gemini, openai, mistral) should still map to 'gemini' embeddings."""
+    def test_cloud_providers_use_the_chosen_cloud_embeddings(self, monkeypatch):
+        """Cloud providers (gemini, openai, mistral) retrieve with EMBEDDING_PROVIDER, not locally."""
         from graph.llm_factory import get_embedding_provider
+
+        monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
 
         assert get_embedding_provider("gemini") == "gemini"
         assert get_embedding_provider("openai") == "gemini"
@@ -340,17 +342,12 @@ class TestFrontendConstants:
     def test_model_selector_has_ollama_label(self):
         from pathlib import Path
 
-        selector_path = (
-            Path(__file__).resolve().parent.parent
-            / "frontend"
-            / "src"
-            / "components"
-            / "ModelSelector.tsx"
+        # The dropdown's labels live in constants.PROVIDER_LABELS
+        constants_path = (
+            Path(__file__).resolve().parent.parent / "frontend" / "src" / "constants.ts"
         )
-        content = selector_path.read_text()
-        # Should have a label for ollama
-        assert "ollama" in content.lower()
-        assert "Local" in content or "local" in content
+        content = constants_path.read_text()
+        assert "ollama: 'Ollama (Local)'" in content
 
     def test_settings_modal_has_ollama_privacy_hint(self):
         from pathlib import Path
@@ -459,3 +456,28 @@ class TestPrivacyModeGraphNodes:
             result = grade_documents(state)
 
             assert result["web_search"] is True
+
+    def test_web_search_node_refuses_to_call_brave_in_privacy_mode(self, monkeypatch):
+        """web_search() must not call Brave when privacy_mode=True, even with a key configured.
+
+        Regression test: the generation-retry path (route_after_grade_generation ->
+        _generation_retry_route) used to reach WEB_SEARCH without checking privacy_mode,
+        so a repeatedly-failing generation in Ollama mode could still leak the query to
+        Brave. This is the defense-in-depth check inside the node itself.
+        """
+        monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "fake-key-should-never-be-used")
+        from graph.nodes.web_search import web_search
+
+        state = {
+            "question": "What is ALARA?",
+            "documents": [],
+            "chat_history": [],
+            "privacy_mode": True,
+        }
+
+        with patch("graph.nodes.web_search.BraveSearch") as mock_brave:
+            result = web_search(state)
+
+            mock_brave.from_api_key.assert_not_called()
+            assert result["web_search"] is False
+            assert result["web_search_attempted"] is True

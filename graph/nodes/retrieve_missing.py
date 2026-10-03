@@ -6,7 +6,7 @@ from langchain_core.runnables import RunnableConfig
 
 from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader
 from graph.chains.missing_query_chain import invoke_missing_query_chain
-from graph.chains.truncate import truncate_docs_for_grader
+from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.llm_factory import get_embedding_provider, get_llm
 from graph.nodes.retrieval_common import invoke_dual_retrievers, merge_unique_documents
 from graph.state import GraphState
@@ -45,11 +45,11 @@ def retrieve_missing(
 
     sufficient = False
     if merged:
-        truncated = truncate_docs_for_grader(merged)
+        context = format_context(merged, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
         throttle_llm_if_needed()
         sufficiency = get_context_sufficiency_grader(llm)
         result = sufficiency.invoke(
-            {"question": question, "context": truncated},
+            {"question": question, "context": context},
             config=cfg,
         )
         sufficient = bool(result.binary_score)

@@ -1,11 +1,11 @@
 {
   "dk-bekendtg\u00f8relse-om-ioniserende-str\u00e5ling-og-str\u00e5le": {
     "version": "Bekendtg\u00f8relse om ioniserende str\u00e5ling og str\u00e5lebeskyttelse",
-    "updated_at": "2026-06-11T19:40:27Z"
+    "updated_at": "2026-09-16T09:45:53Z"
   },
   "dk-bekendtg\u00f8relse-om-radioaktive-stoffer": {
     "version": "Bekendtg\u00f8relse om radioaktive stoffer",
-    "updated_at": "2026-06-11T19:40:27Z"
+    "updated_at": "2026-09-16T09:45:54Z"
   },
   "iaea-stipub1678": {
     "version": "STI/PUB/1678",
@@ -86,5 +86,17 @@
   "iaea-other-iaea-tecdoc-1638": {
     "version": "IAEA-TECDOC-1638",
     "updated_at": "2026-06-11T19:39:26Z"
+  },
+  "dk-bekendtg\u00f8relse-om-patientdosimetri-og-diagnostis": {
+    "version": "Bekendtg\u00f8relse om patientdosimetri og diagnostiske referenceniveauer",
+    "updated_at": "2026-09-16T09:45:53Z"
+  },
+  "dk-bekendtg\u00f8relse-om-str\u00e5lingsgeneratorer": {
+    "version": "Bekendtg\u00f8relse om str\u00e5lingsgeneratorer",
+    "updated_at": "2026-09-16T09:45:54Z"
+  },
+  "dk-bekendtg\u00f8relse-om-transport-af-radioaktivt-mater": {
+    "version": "Bekendtg\u00f8relse om transport af radioaktivt materiale",
+    "updated_at": "2026-09-16T09:45:54Z"
   }
 }

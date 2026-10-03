@@ -9,8 +9,8 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: Gemini for cloud providers (`GOOGLE_API_KEY` required for ingestion and retrieval); Ollama privacy mode uses local embeddings instead (separate `-ollama` Chroma collections)
-- **LLM for generation**: configurable — `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
+- **Embeddings**: chosen by `EMBEDDING_PROVIDER`, independently of the answering LLM: Scaleway (default, `SCW_EMBED_MODEL`, collections `-scw-<model>`) or Gemini (`GOOGLE_API_KEY`); Ollama privacy mode always embeds locally (`-ollama` collections). `ingestion.py --reembed-from gemini` embeds the existing chunks with another model
+- **LLM for generation**: configurable — `scaleway` (default, `SCW_MODEL`), `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
 
@@ -24,14 +24,19 @@ graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
-graph/llm_factory.py     — LLM provider selection (Gemini/OpenAI/Mistral/Ollama)
+graph/llm_factory.py     — LLM and embedding provider selection (Scaleway default; Gemini/OpenAI/Mistral/Ollama)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
+ingestion_dk.py          — Retsinformation XML: text, chunks along §/Stk./items/annex rows
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
-eval/                    — RAGAS-style evaluation (run_eval.py, metrics.py, data/golden.json)
+eval/                    — evaluation: run_eval.py (runner, --rescore), golden.py + data/golden.json
+                           (nuggets + verbatim evidence), judge.py + judge_check.py (LLM judge and its
+                           calibration fixtures), scoring.py (deterministic metrics, error types),
+                           history.py → history/runs.jsonl, dashboard.py (local HTML dashboard),
+                           pool.py (unlabelled retrieved chunks for human review)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
@@ -82,7 +87,7 @@ RETRIEVE → GRADE_DOCUMENTS
 - **Frontend**: `npm -C frontend run test`, `npm -C frontend run build`
 - **Linting**: pre-commit hooks (`.pre-commit-config.yaml`)
 - **Environment variables**: always update `.env.example` when adding new variables
-- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` — do not rename without re-ingestion
+- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` (Gemini) — do not rename without re-ingestion; other embeddings use suffixed pairs (`-ollama`, `-scw-<model>`)
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
 
 ### Branching workflow

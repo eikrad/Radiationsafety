@@ -40,3 +40,39 @@ describe('ModelSelector with Privacy Mode', () => {
     expect(onChange).toHaveBeenCalledWith('mistral')
   })
 })
+
+describe('ModelSelector providers', () => {
+  it('offers Scaleway first, as the default provider', () => {
+    render(<ModelSelector value="scaleway" onChange={vi.fn()} />)
+    const select = screen.getByRole('combobox') as HTMLSelectElement
+    const first = select.options.item(0)
+    expect(first?.value).toBe('scaleway')
+    expect(first?.textContent).toMatch(/Scaleway/)
+    expect(Array.from(select.options).map((o) => o.value)).toContain('gemini')
+  })
+})
+
+describe('ModelSelector provider status', () => {
+  const needsSetup = {
+    scaleway: { server_key: true, issue: 'Scaleway has no answer model on this server: set SCW_MODEL.' },
+    gemini: { server_key: true, issue: null },
+  }
+
+  it('marks a provider the server cannot use yet, but keeps it selectable', async () => {
+    const onChange = vi.fn()
+    const user = userEvent.setup()
+    render(<ModelSelector value="gemini" onChange={onChange} providers={needsSetup} />)
+    const select = screen.getByRole('combobox') as HTMLSelectElement
+    const scaleway = Array.from(select.options).find((o) => o.value === 'scaleway')!
+
+    expect(scaleway.textContent).toBe('Scaleway (EU) – needs setup')
+    expect(scaleway.title).toMatch(/SCW_MODEL/)
+    await user.selectOptions(select, 'scaleway')
+    expect(onChange).toHaveBeenCalledWith('scaleway')
+  })
+
+  it('leaves ready providers unmarked', () => {
+    render(<ModelSelector value="gemini" onChange={vi.fn()} providers={needsSetup} />)
+    expect(screen.getByRole('option', { name: 'Gemini' })).toBeInTheDocument()
+  })
+})

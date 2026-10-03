@@ -5,6 +5,8 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 (3) IAEA and direct PDFs from document_sources.yaml URLs.
 """
 
+import filecmp
+import hashlib
 import os
 import re
 import shutil
@@ -12,7 +14,7 @@ import signal
 import sys
 import tempfile
 import time
-import xml.etree.ElementTree as ET
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -26,11 +28,16 @@ from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_docling import DoclingLoader
 from langchain_docling.loader import BaseMetaExtractor
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pypdf import PdfReader
 from tqdm import tqdm
 
-from graph.llm_factory import get_embedding_provider, get_embeddings
+from graph.llm_factory import (
+    get_embedding_model_name,
+    get_embedding_provider,
+    get_embeddings,
+    query_instruction_template,
+)
+from ingestion_dk import structure_chunks, xml_to_text
 
 load_dotenv()
 
@@ -105,7 +112,14 @@ def _gemini_batch_delay_sec() -> float:
 
 
 def get_collection_names(embedding_provider: str) -> tuple[str, str]:
-    """Return (iaea_collection_name, dk_collection_name) for the given embedding provider."""
+    """Return (iaea_collection_name, dk_collection_name) for the given embedding provider.
+
+    Scaleway collections carry the model id (SCW_EMBED_MODEL), so several
+    Scaleway models can be built side by side and compared.
+    """
+    if embedding_provider == "scaleway":
+        suffix = f"-scw-{get_embedding_model_name('scaleway')}"
+        return (f"{IAEA_COLLECTION}{suffix}", f"{DK_LAW_COLLECTION}{suffix}")
     if embedding_provider == "mistral":
         return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
     if embedding_provider == "ollama":
@@ -113,15 +127,17 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     return (IAEA_COLLECTION, DK_LAW_COLLECTION)
 
 
-def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
-    """Delete the two collections for the given embedding provider so the next from_documents recreates them."""
+def _clear_chroma_collections(
+    embedding_provider: str | None = None, names: list[str] | None = None
+) -> None:
+    """Delete the provider's collections (or only `names`) so ingestion recreates them."""
     ep = embedding_provider or get_embedding_provider()
-    iaea_name, dk_name = get_collection_names(ep)
+    names = names or list(get_collection_names(ep))
     try:
         import chromadb
 
         client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-        for name in (iaea_name, dk_name):
+        for name in names:
             try:
                 client.delete_collection(name)
             except Exception:
@@ -130,38 +146,8 @@ def _clear_chroma_collections(embedding_provider: str | None = None) -> None:
         pass
 
 
-def _xml_to_text(xml_path: Path) -> str:
-    """Extract plain text from Retsinformation XML (strip tags, normalize whitespace)."""
-    try:
-        tree = ET.parse(str(xml_path))
-        root = tree.getroot()
-    except (ET.ParseError, OSError):
-        return ""
-    parts: list[str] = []
-    for elem in root.iter():
-        if elem.text:
-            parts.append(elem.text)
-        if elem.tail:
-            parts.append(elem.tail)
-    text = "".join(parts)
-    return re.sub(r"\s+", " ", text).strip()
-
-
-def _load_retsinformation_xml(xml_path: Path, source_label: str) -> list[Document]:
-    """Load Retsinformation XML into one or more Document(s). Single doc with full text."""
-    text = _xml_to_text(xml_path)
-    if not text:
-        return []
-    doc = Document(
-        page_content=text,
-        metadata={"source": source_label, "document_type": "Danish law"},
-    )
-    return [doc]
-
-
 def download_update_for_source(source_id: str) -> tuple[bool, str]:
     """Download the new version for a source and backup the old one. Returns (success, message)."""
-    import time
 
     try:
         from document_updates import (
@@ -204,21 +190,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                 folder_path = DOCS_DIR / folder
                 folder_path.mkdir(parents=True, exist_ok=True)
                 current_path = get_local_pdf_path(source)
-                backup_dir = DOCS_DIR / "backup" / folder
-                if current_path and current_path.exists():
-                    backup_dir.mkdir(parents=True, exist_ok=True)
-                    stamp = time.strftime("%Y%m%d", time.gmtime())
-                    backup_path = backup_dir / f"{source_id}_{stamp}.pdf"
-                    try:
-                        shutil.copy2(str(current_path), str(backup_path))
-                    except OSError:
-                        pass
-                    rotate_backups(
-                        backup_dir,
-                        source_id,
-                        keep=_MAX_BACKUPS_PER_SOURCE,
-                        extension="pdf",
-                    )
+                _backup_previous(
+                    current_path, path, DOCS_DIR / "backup" / folder, source_id, "pdf"
+                )
                 dest = (
                     current_path if (current_path and current_path.exists()) else None
                 )
@@ -270,18 +244,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
             folder_path = DOCS_DIR / folder
             folder_path.mkdir(parents=True, exist_ok=True)
             current_path = get_local_pdf_path(source)
-            backup_dir = DOCS_DIR / "backup" / folder
-            if current_path and current_path.exists():
-                backup_dir.mkdir(parents=True, exist_ok=True)
-                stamp = time.strftime("%Y%m%d", time.gmtime())
-                backup_path = backup_dir / f"{source_id}_{stamp}.pdf"
-                try:
-                    shutil.copy2(str(current_path), str(backup_path))
-                except OSError:
-                    pass
-                rotate_backups(
-                    backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension="pdf"
-                )
+            _backup_previous(
+                current_path, path, DOCS_DIR / "backup" / folder, source_id, "pdf"
+            )
             dest = current_path if (current_path and current_path.exists()) else None
             if not dest:
                 safe_name = (source.filename_hint or f"{source_id}.pdf").strip()
@@ -304,6 +269,47 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
     return False, "Only Bekendtgørelse and IAEA/IAEA_other are supported"
 
 
+def _backup_previous(
+    current_path: Path | None,
+    new_path: Path,
+    backup_dir: Path,
+    source_id: str,
+    extension: str,
+) -> None:
+    """Keep the current file as a dated backup before it is replaced, unless the
+    download holds the same document: re-fetching an unchanged version used to
+    add a duplicate backup on every ingestion."""
+    if not current_path or not current_path.exists():
+        return
+    if _same_document(current_path, new_path, extension):
+        return
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = time.strftime("%Y%m%d", time.gmtime(current_path.stat().st_mtime))
+    try:
+        shutil.copy2(
+            str(current_path), str(backup_dir / f"{source_id}_{stamp}.{extension}")
+        )
+    except OSError:
+        pass
+    rotate_backups(
+        backup_dir, source_id, keep=_MAX_BACKUPS_PER_SOURCE, extension=extension
+    )
+
+
+def _same_document(current_path: Path, new_path: Path, extension: str) -> bool:
+    """Byte-identical, or for Retsinformation XML the same law text: a re-export
+    can differ in line endings, indentation and element ids on every line."""
+    try:
+        if filecmp.cmp(current_path, new_path, shallow=False):
+            return True
+    except OSError:
+        return False
+    if extension != "xml":
+        return False
+    text = xml_to_text(current_path)
+    return bool(text) and text == xml_to_text(new_path)
+
+
 def _save_danish_current_and_trim_backups(
     source_id: str, xml_path: Path, *, version_label: str | None = None
 ) -> None:
@@ -314,17 +320,13 @@ def _save_danish_current_and_trim_backups(
     current_dir.mkdir(parents=True, exist_ok=True)
     _BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     current_file = current_dir / f"{source_id}_current.xml"
-    if current_file.exists():
-        stamp = time.strftime("%Y%m%d", time.gmtime(current_file.stat().st_mtime))
-        backup_path = _BACKUP_DIR / f"{source_id}_{stamp}.xml"
+    # The same law in another layout leaves the file alone, so git shows no change.
+    if not (current_file.exists() and _same_document(current_file, xml_path, "xml")):
+        _backup_previous(current_file, xml_path, _BACKUP_DIR, source_id, "xml")
         try:
-            current_file.rename(backup_path)
+            shutil.copy2(str(xml_path), str(current_file))
         except OSError:
             pass
-    try:
-        shutil.copy2(str(xml_path), str(current_file))
-    except OSError:
-        pass
     if version_label:
         try:
             (current_dir / f"{source_id}_version.txt").write_text(
@@ -332,14 +334,15 @@ def _save_danish_current_and_trim_backups(
             )
         except OSError:
             pass
-    rotate_backups(_BACKUP_DIR, source_id, keep=_MAX_BACKUPS_PER_SOURCE)
 
 
-def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
+def _load_docs_from_registry(
+    include_iaea: bool = True,
+) -> tuple[list[Document], list[Document]]:
     """Fetch from document_sources.yaml: Danish via XML (newest), IAEA/direct via PDF.
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
-    XML-sourced Danish docs are split here with RecursiveCharacterTextSplitter.
+    XML-sourced Danish docs are chunked along their paragraphs (ingestion_dk).
     """
     try:
         from document_updates import update_registry_url, update_version_after_ingest
@@ -353,11 +356,6 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
     sources = load_sources_registry()
     if not sources:
         return [], []
-    text_splitter_dk = RecursiveCharacterTextSplitter(
-        chunk_size=2500,
-        chunk_overlap=200,
-        separators=["\n\n", "§ ", "\n", ". ", " ", ""],
-    )
     iaea_docs: list[Document] = []
     dk_docs: list[Document] = []
     for s in sources:
@@ -374,10 +372,7 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
             if path is None:
                 continue
             try:
-                docs = _load_retsinformation_xml(path, label)
-                for d in docs:
-                    d.metadata["document_type"] = "Danish law"
-                dk_docs.extend(text_splitter_dk.split_documents(docs))
+                dk_docs.extend(structure_chunks(path, label))
                 if resolved_url and resolved_url != url:
                     try:
                         update_registry_url(source_id, resolved_url)
@@ -397,6 +392,8 @@ def _load_docs_from_registry() -> tuple[list[Document], list[Document]]:
                     pass
             continue
         # IAEA or other: PDF — docling returns pre-chunked docs
+        if not include_iaea:
+            continue
         path, label = fetch_pdf_for_source(source_id, name, url, folder)
         if path is None:
             continue
@@ -521,20 +518,65 @@ def _extract_and_load_attachments(
     return all_docs
 
 
-def load_dk_law_docs():
+def law_title_key(title: str) -> str:
+    """A law's title reduced to lowercase letters and single spaces, so a PDF
+    title line ("Bekendtgørelse om strålingsgeneratorer1)") matches the XML
+    DocumentTitle."""
+    letters = re.sub(
+        r"[^a-zæøåäöüé]+", " ", unicodedata.normalize("NFC", title).casefold()
+    )
+    return re.sub(r"\s+", " ", letters).strip()
+
+
+def pdf_law_match(first_lines: list[str], law_keys: set[str]) -> str | None:
+    """The law key a PDF's title area names, if it is one of law_keys.
+
+    Only the first lines count: a guidance document that cites an order in its
+    body is not a copy of that order.
+    """
+    for line in first_lines:
+        key = law_title_key(line)
+        for law in law_keys:
+            if law and key.startswith(law):
+                return law
+    return None
+
+
+def _pdf_first_lines(pdf_path: Path, n: int = 3) -> list[str]:
+    """The first n non-empty lines of a PDF's first page."""
+    try:
+        text = PdfReader(str(pdf_path)).pages[0].extract_text() or ""
+    except Exception:
+        return []
+    return [line.strip() for line in text.splitlines() if line.strip()][:n]
+
+
+def load_dk_law_docs(skip_law_keys: set[str] | frozenset[str] = frozenset()):
     """Load PDFs from Bekendtgørelse (Danish legislation) directory.
 
     Uses docling HybridChunker for PDF parsing and loads embedded PDF
     attachments (Anhänge) that often contain tables.
+
+    skip_law_keys: laws (law_title_key) already ingested from Retsinformation
+    XML. Their PDFs are skipped: the XML is the current version, and a PDF left
+    in the folder after an update would put an outdated version next to it.
     """
     dk_path = DOCS_DIR / "Bekendtgørelse"
     if not dk_path.exists():
         return []
     all_docs = []
-    pdf_files = list(dk_path.rglob("*.pdf"))
+    pdf_files = sorted(dk_path.rglob("*.pdf"))
     for pdf_path in tqdm(
         pdf_files, desc="Loading Danish PDFs", unit="file", disable=False
     ):
+        if skip_law_keys and pdf_law_match(
+            _pdf_first_lines(pdf_path), set(skip_law_keys)
+        ):
+            tqdm.write(
+                f"  Skipped {pdf_path.name}: this law is already ingested from "
+                "retsinformation.dk XML (one copy per law)"
+            )
+            continue
         try:
             docs = _load_pdf_with_docling(pdf_path)
             for d in docs:
@@ -554,18 +596,32 @@ def load_dk_law_docs():
     return all_docs
 
 
+# Scaleway embeddings: chunks per request (1000 short texts were accepted; chunks
+# run up to 512 tokens, so stay well below).
+SCALEWAY_BATCH_SIZE = 64
+
+
 def _add_documents_rate_limited(
-    documents, collection_name, embeddings, persist_directory
+    documents, collection_name, embeddings, persist_directory, embedding_provider=None
 ):
-    """Add docs. Gemini: batches + optional delay. Ollama: batches with small delay to avoid overload."""
-    ep = get_embedding_provider()
+    """Add docs. Gemini: batches + optional delay. Ollama and Scaleway: batches with retry."""
+    ep = embedding_provider or get_embedding_provider()
     if ep == "gemini":
         _add_documents_gemini_rate_limited(
             documents, collection_name, embeddings, persist_directory
         )
     elif ep == "ollama":
-        _add_documents_ollama_rate_limited(
-            documents, collection_name, embeddings, persist_directory
+        # small batches and a pause: a local embedding model is easily overloaded
+        _add_documents_batched(
+            documents, collection_name, embeddings, persist_directory, 10, 0.3
+        )
+    elif ep == "scaleway":
+        _add_documents_batched(
+            documents,
+            collection_name,
+            embeddings,
+            persist_directory,
+            SCALEWAY_BATCH_SIZE,
         )
     else:
         with tqdm(
@@ -583,14 +639,17 @@ def _add_documents_rate_limited(
             pbar.update(1)
 
 
-def _add_documents_ollama_rate_limited(
-    documents, collection_name, embeddings, persist_directory
+def _add_documents_batched(
+    documents,
+    collection_name,
+    embeddings,
+    persist_directory,
+    batch_size: int,
+    pause_sec: float = 0.0,
+    max_retries: int = 3,
 ):
-    """Add documents in batches with retry logic to handle Ollama connection issues."""
-    batch_size = 10  # Conservative batch size for local embedding model
+    """Add documents in batches, retrying a failed batch (connection errors, rate limits)."""
     vectorstore = None
-    max_retries = 3
-
     num_batches = (len(documents) + batch_size - 1) // batch_size
 
     with tqdm(
@@ -616,9 +675,8 @@ def _add_documents_ollama_rate_limited(
                         vectorstore.add_documents(batch)
                     pbar.update(1)
                     pbar.set_postfix({"chunks": len(batch)})
-                    # Small delay between batches to prevent Ollama overload
-                    if i + batch_size < len(documents):
-                        time.sleep(0.3)
+                    if pause_sec > 0 and i + batch_size < len(documents):
+                        time.sleep(pause_sec)
                     break  # Success, exit retry loop
                 except Exception as e:
                     if attempt < max_retries - 1:
@@ -665,12 +723,13 @@ def _add_documents_gemini_rate_limited(
                 time.sleep(delay_sec)
 
 
-def ingest():
+def ingest(dk_only: bool = False):
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
-    PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are split
-    inside _load_docs_from_registry. Embedding provider is determined by LLM_PROVIDER env
-    (gemini requires GOOGLE_API_KEY; ollama/mistral use separate collection suffixes).
+    PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are chunked
+    along their paragraphs inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
+    copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
+    Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
     """
 
     def _signal_handler(signum, frame):
@@ -683,7 +742,7 @@ def ingest():
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
     print(f"📊 Using embedding provider: {ep}")
-    print(f"📦 Collections: {iaea_name}, {dk_name}\n")
+    print(f"📦 Collections: {dk_name if dk_only else f'{iaea_name}, {dk_name}'}\n")
 
     with tqdm(
         total=6,
@@ -692,12 +751,12 @@ def ingest():
         disable=False,
         position=0,
     ) as overall_progress:
-        _clear_chroma_collections(ep)
+        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
         embeddings = get_embeddings(ep)
         overall_progress.update(1)
 
         # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
-        iaea_from_url, dk_from_url = _load_docs_from_registry()
+        iaea_from_url, dk_from_url = _load_docs_from_registry(include_iaea=not dk_only)
         if iaea_from_url:
             tqdm.write(
                 f"  ✓ Loaded {len(iaea_from_url)} chunks from registry URLs (IAEA)"
@@ -709,19 +768,23 @@ def ingest():
         overall_progress.update(1)
 
         # IAEA collection: local dirs + registry URLs — all pre-chunked
-        iaea_docs = load_iaea_docs()
-        iaea_docs.extend(iaea_from_url)
-        overall_progress.update(1)
+        if not dk_only:
+            iaea_docs = load_iaea_docs()
+            iaea_docs.extend(iaea_from_url)
+            if iaea_docs:
+                _add_documents_rate_limited(
+                    iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+                )
+                tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        overall_progress.update(2)
 
-        if iaea_docs:
-            _add_documents_rate_limited(
-                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
-            )
-            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
-        overall_progress.update(1)
-
-        # Danish law collection: local dirs + registry URLs — all pre-chunked
-        dk_docs = load_dk_law_docs()
+        # Danish law collection: registry XML + local PDFs not already read from XML
+        xml_laws = {
+            law_title_key(d.metadata["law_title"])
+            for d in dk_from_url
+            if d.metadata.get("law_title")
+        }
+        dk_docs = load_dk_law_docs(skip_law_keys=xml_laws)
         dk_docs.extend(dk_from_url)
         overall_progress.update(1)
 
@@ -733,27 +796,103 @@ def ingest():
     print("\n🎉 Ingestion complete!")
 
 
-_retrievers_cache: dict[str, tuple] | None = None  # keyed by embedding_provider
+def reembed_target() -> str:
+    """The provider a re-embed writes to: EMBEDDING_PROVIDER, never guessed.
+
+    Deliberately not get_embedding_provider(): with LLM_PROVIDER=ollama that
+    returns ollama (privacy mode), and a re-embed meant for another provider
+    would replace the local collections.
+    """
+    from graph.llm_factory import EMBEDDING_PROVIDERS
+
+    target = (os.getenv("EMBEDDING_PROVIDER") or "").strip().lower()
+    if target not in EMBEDDING_PROVIDERS:
+        raise ValueError(
+            "Set EMBEDDING_PROVIDER to the embeddings to build "
+            f"({', '.join(EMBEDDING_PROVIDERS)}), e.g. EMBEDDING_PROVIDER=scaleway"
+        )
+    return target
+
+
+def reembed_from(source_provider: str, target: str) -> None:
+    """Embed the chunks of another provider's collections again with `target`.
+
+    Copies text, metadata and ids unchanged, so embedding models are compared
+    on exactly the same chunks (a full ingestion re-parses the PDFs, and a
+    different docling version could chunk differently). An earlier copy is
+    replaced.
+    """
+    import chromadb
+
+    sources, targets = (
+        get_collection_names(source_provider),
+        get_collection_names(target),
+    )
+    if sources == targets:
+        raise ValueError(f"{source_provider} and {target} use the same collections")
+    client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
+    print(f"\n🔁 Re-embedding {', '.join(sources)} → {', '.join(targets)}\n")
+    _clear_chroma_collections(target)
+    embeddings = get_embeddings(target)
+    for src, dst in zip(sources, targets, strict=True):
+        stored = client.get_collection(src).get(include=["documents", "metadatas"])
+        if not stored["ids"]:
+            raise ValueError(f"Collection {src} is empty; run ingestion first")
+        documents = [
+            Document(page_content=text, metadata=meta or {}, id=doc_id)
+            for doc_id, text, meta in zip(
+                stored["ids"], stored["documents"], stored["metadatas"], strict=True
+            )
+        ]
+        _add_documents_rate_limited(
+            documents, dst, embeddings, str(_CHROMA_DIR), embedding_provider=target
+        )
+        tqdm.write(f"✅ Re-embedded {len(documents)} chunks into {dst}")
+
+
+def _retriever_k() -> int:
+    """Chunks returned per collection (IAEA and DK each) for one retrieval query
+    (RETRIEVER_K, default 5: chosen by the k test, ROADMAP step 5)."""
+    raw = (os.getenv("RETRIEVER_K") or "").strip()
+    k = int(raw) if raw else 5
+    if k < 1:
+        raise ValueError("RETRIEVER_K must be at least 1")
+    return k
+
+
+RETRIEVER_K = _retriever_k()
+
+_retrievers_cache: dict[tuple, tuple] | None = (
+    None  # keyed by collections + query instruction
+)
 
 
 def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, str]:
-    """Return (ready, message). If not ready (collections missing or empty), message explains how to build them.
-
-    Applies to both gemini (Gemini/OpenAI) and mistral embedding providers.
-    """
-    if embedding_provider not in ("gemini", "mistral", "ollama"):
+    """Return (ready, message). If not ready (collections missing or empty), message explains how to build them."""
+    if embedding_provider not in ("gemini", "mistral", "ollama", "scaleway"):
         return True, ""
-    iaea_name, dk_name = get_collection_names(embedding_provider)
     if embedding_provider == "ollama":
         default_msg = (
             "Local embeddings are not built yet. Run: "
             "LLM_PROVIDER=ollama uv run python ingestion.py"
+        )
+    elif embedding_provider == "scaleway":
+        try:
+            model = get_embedding_model_name("scaleway")
+        except ValueError as e:
+            return False, str(e)
+        default_msg = (
+            f"Scaleway embeddings ({model}) are not built yet. Run: "
+            f"EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL={model} "
+            "uv run python ingestion.py --reembed-from gemini "
+            "(or without --reembed-from for a full ingestion)"
         )
     else:
         default_msg = (
             "Embeddings are not built yet. Set GOOGLE_API_KEY in .env (or export it), "
             "then run: uv run python ingestion.py"
         )
+    iaea_name, dk_name = get_collection_names(embedding_provider)
     try:
         import chromadb
 
@@ -768,6 +907,41 @@ def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, st
         return True, ""
     except Exception:
         return False, default_msg
+
+
+def load_chunk_texts(embedding_provider: str) -> dict[str, list[str] | None]:
+    """The chunk texts of both collections for this provider, in storage order;
+    None for a collection that does not exist."""
+    import chromadb
+
+    client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
+    texts: dict[str, list[str] | None] = {}
+    for name in get_collection_names(embedding_provider):
+        try:
+            stored = client.get_collection(name).get(include=["documents"])
+        except Exception:
+            texts[name] = None
+            continue
+        texts[name] = [t or "" for t in stored["documents"]]
+    return texts
+
+
+def index_fingerprint(embedding_provider: str) -> dict[str, dict | None]:
+    """Per collection, the number of chunks and a hash of their texts.
+
+    Independent of chunk ids and storage order, so the same chunks embedded by
+    another model (reembed_from) fingerprint the same, and any re-chunking or
+    re-ingestion that changes a chunk shows up.
+    """
+    fingerprint: dict[str, dict | None] = {}
+    for name, texts in load_chunk_texts(embedding_provider).items():
+        if texts is None:
+            fingerprint[name] = None
+            continue
+        digests = sorted(hashlib.sha256(t.encode("utf-8")).hexdigest() for t in texts)
+        content = hashlib.sha256("".join(digests).encode("ascii")).hexdigest()
+        fingerprint[name] = {"chunks": len(texts), "content_hash": content[:12]}
+    return fingerprint
 
 
 def add_single_pdf_to_collection(
@@ -811,34 +985,60 @@ def clear_retrievers_cache() -> None:
 
 
 def get_retrievers(embedding_provider: str | None = None):
-    """Return retriever instances for both collections (for use in graph). Cached per embedding_provider.
+    """Return retriever instances for both collections (for use in graph).
 
-    When embedding_provider is None, uses get_embedding_provider() (currently always 'gemini').
-    Retrieval always uses Gemini embeddings; the same collections are used regardless of LLM for generation.
+    Cached per collection pair and query instruction, so two Scaleway models
+    (or the instruction switched off) never share a cached retriever.
     """
     global _retrievers_cache
     if _retrievers_cache is None:
         _retrievers_cache = {}
     ep = (
-        embedding_provider if embedding_provider in ("gemini", "mistral") else None
+        embedding_provider
+        if embedding_provider in ("gemini", "mistral", "ollama", "scaleway")
+        else None
     ) or get_embedding_provider()
-    if ep in _retrievers_cache:
-        return _retrievers_cache[ep]
     iaea_name, dk_name = get_collection_names(ep)
+    template = (
+        query_instruction_template(get_embedding_model_name(ep))
+        if ep == "scaleway"
+        else None
+    )
+    key = (iaea_name, dk_name, template)
+    if key in _retrievers_cache:
+        return _retrievers_cache[key]
     embeddings = get_embeddings(ep)
     iaea = Chroma(
         collection_name=iaea_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": 3})
+    ).as_retriever(search_kwargs={"k": RETRIEVER_K})
     dk = Chroma(
         collection_name=dk_name,
         embedding_function=embeddings,
         persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": 3})
-    _retrievers_cache[ep] = (iaea, dk)
-    return _retrievers_cache[ep]
+    ).as_retriever(search_kwargs={"k": RETRIEVER_K})
+    _retrievers_cache[key] = (iaea, dk)
+    return _retrievers_cache[key]
 
 
 if __name__ == "__main__":
-    ingest()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=ingest.__doc__.splitlines()[0])
+    parser.add_argument(
+        "--reembed-from",
+        metavar="PROVIDER",
+        help="Copy the chunks of this provider's collections (e.g. gemini) and embed "
+        "them with the configured EMBEDDING_PROVIDER instead of re-parsing the documents",
+    )
+    parser.add_argument(
+        "--dk-only",
+        action="store_true",
+        help="Rebuild only the Danish law collection; the IAEA collection is kept",
+    )
+    args = parser.parse_args()
+    if args.reembed_from:
+        reembed_from(args.reembed_from, target=reembed_target())
+    else:
+        ingest(dk_only=args.dk_only)
