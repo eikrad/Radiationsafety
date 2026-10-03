@@ -850,8 +850,17 @@ def reembed_from(source_provider: str, target: str) -> None:
         tqdm.write(f"✅ Re-embedded {len(documents)} chunks into {dst}")
 
 
-# Chunks returned per collection (IAEA and DK each) for one retrieval query.
-RETRIEVER_K = 3
+def _retriever_k() -> int:
+    """Chunks returned per collection (IAEA and DK each) for one retrieval query
+    (RETRIEVER_K, default 5: chosen by the k test, ROADMAP step 5)."""
+    raw = (os.getenv("RETRIEVER_K") or "").strip()
+    k = int(raw) if raw else 5
+    if k < 1:
+        raise ValueError("RETRIEVER_K must be at least 1")
+    return k
+
+
+RETRIEVER_K = _retriever_k()
 
 _retrievers_cache: dict[tuple, tuple] | None = (
     None  # keyed by collections + query instruction

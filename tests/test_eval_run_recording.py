@@ -75,6 +75,10 @@ VERDICTS = {
 
 @pytest.fixture
 def workspace(tmp_path, monkeypatch):
+    import ingestion
+
+    # The fake retrievals below are built for the graph retrieving 3 per collection.
+    monkeypatch.setattr(ingestion, "RETRIEVER_K", 3)
     golden = tmp_path / "golden.json"
     golden.write_text(json.dumps(GOLDEN), encoding="utf-8")
 

@@ -267,6 +267,45 @@ test p = 1. The scores sit near the ceiling, so a small effect could hide
 there, but none that would change answers at k = 3: once the evidence is
 retrieved, this generator finds it at either position. The order stays.
 
+**Step 5: k, the chunks per collection (2026-10-02).** At k = 3 the evidence
+for 3 answerable questions sits at rank 4 or 5 (registration, receipt
+inspection, radiography coordinator): recall@3 0.90, recall@5 0.97. More
+chunks can bring that evidence in, but also distract: answer accuracy
+saturates while recall keeps rising (Lost in the Middle §5), so k is judged by
+answers, per group of questions (the rule in Concepts/Retrieval-Improvement-
+Grounded-in-Evaluation). `eval.k_test` answers every golden question from the
+top 3 and from the top 5 of each collection, the same retrieval otherwise, and
+groups the questions: evidence at k=3, evidence only at k=5, evidence missing,
+should refuse. The score is lenient vital recall, or for a question to refuse
+1 for a refusal without unsupported claims. `RETRIEVER_K` (default 3) makes k
+settable without a code change.
+Adoption rule, set before measuring: k = 5 becomes the default, in its own
+small PR confirmed by a full run passing at least 31/39, if (1) among the
+questions with evidence only at k=5, k=5 scores higher on more of them than
+lower; (2) over all other questions together, k=5 scores lower on at most 2
+more questions than it scores higher (the position test saw 1 single-vote
+difference in 32); and (3) at most 2 more answers carry an unsupported claim
+at k=5 than at k=3. Otherwise k stays 3.
+Result (2026-10-03, `k3-vs-k5`, adopted: all three conditions met): the 3
+questions with evidence only at k=5 all scored higher at k=5 (registration
+0.25 → 1.00, receipt inspection 0.25 → 1.00, radiography coordinator
+0.33 → 1.00). Of the other 36, 34 tied, one scored higher at k=5 and one lower
+(pre-disposal steps 1.00 → 0.75): no net loss. The 4 questions to refuse were
+refused at both k. Answers with an unsupported claim: 2 at k=3, 1 at k=5.
+The extra chunks did not distract this generator; they brought the evidence.
+One oddity for the golden set: the safety-assessment definition was answered
+fully at k=5 although its listed evidence (rank 20) is not in either context,
+so another retrieved chunk states it, a pooling candidate (#133). It costs
+about two thirds more context per call (10 chunks instead of 6) for the
+generator and the graders.
+Confirmation (2026-10-03, full run `k5`): 32/39 pass (31/39 at k = 3), so k = 5
+is now the default (`RETRIEVER_K`). Retrieval misses 4 → 1, vital recall
+0.89 → 0.98, `grade_documents` right 0.92 → 0.97. Registration and the
+radiography coordinator now pass; receipt inspection has its evidence but
+fails on an unsupported claim; pre-disposal steps misses a fact (as in the k
+test), and area classification and the mobile X-ray question swapped
+pass/fail on unsupported claims, within the judge noise of about 3 questions.
+
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
 test. So the measurement comes first, then cheap and reversible changes, then
@@ -289,7 +328,7 @@ the costly ones:
    replaces the character splitter instead (step 2 above), since only the
    Danish collection changes and `--dk-only` rebuilds it in minutes.
 6. **Context order** measured by a position test (#132, step 4: no effect,
-   order stays), then **k**
+   order stays), then **k** (step 5)
    decided from the rank data plus a full run stratified by evidence presence.
 
 Each step states its adoption rule before the measurement; parameters are not
