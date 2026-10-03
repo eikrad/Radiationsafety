@@ -15,8 +15,13 @@ jobs:
       - name: Every commit starts with a Conventional Commit prefix
         run: |
           pattern='^(feat|fix|perf|security|revert|docs|chore|build|ci|test|refactor|style)(\([^)]+\))?!?: .+'
+          # Commits reachable from the merge that introduced this check (#117) are
+          # exempt: two older ones from #94 have no prefix, and rewording them would
+          # rewrite staging's history under every branch built on it.
+          convention_start=7c6d38b6c0830b959101ec0ffaaf643610006c09
           bad=$(git log --no-merges --format='%h %s' \
             "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" \
+            "^${convention_start}" \
             | grep -Ev "^[0-9a-f]+ ${pattern#^}" || true)
           if [ -n "$bad" ]; then
             echo "❌ These commits lack a Conventional Commit prefix (e.g. 'fix: …', 'feat(api): …', 'feat!: …'):"
