@@ -102,7 +102,8 @@ image of 1–2 GB per run, so it is left out unless the profile breaks in practi
   `OLLAMA_EMBED_MODEL=all-minilm`): pull, healthcheck, backend → Ollama, ingestion into the
   `-ollama` collections, one `/api/query` with `model=ollama`.
 - The same with the default models once, to measure the CPU ingestion time for the README.
-- The GPU override needs real NVIDIA hardware; ask @luttegu (#106) to test it.
+- The GPU override on real NVIDIA hardware: the maintainer's card, and if possible a 6 GB card
+  (RTX A1000, @luttegu in #106) to check the low-VRAM hints.
 - `uv run pytest tests/ -v` and the pre-commit checks.
 
 ## Decisions
