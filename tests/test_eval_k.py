@@ -67,9 +67,9 @@ def test_the_retriever_k_can_be_set_without_a_code_change(monkeypatch):
     from ingestion import _retriever_k
 
     monkeypatch.delenv("RETRIEVER_K", raising=False)
-    assert _retriever_k() == 3
-    monkeypatch.setenv("RETRIEVER_K", "5")
     assert _retriever_k() == 5
+    monkeypatch.setenv("RETRIEVER_K", "3")
+    assert _retriever_k() == 3
     monkeypatch.setenv("RETRIEVER_K", "0")
     with pytest.raises(ValueError, match="RETRIEVER_K"):
         _retriever_k()

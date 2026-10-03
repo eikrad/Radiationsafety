@@ -852,9 +852,9 @@ def reembed_from(source_provider: str, target: str) -> None:
 
 def _retriever_k() -> int:
     """Chunks returned per collection (IAEA and DK each) for one retrieval query
-    (RETRIEVER_K, default 3)."""
+    (RETRIEVER_K, default 5: chosen by the k test, ROADMAP step 5)."""
     raw = (os.getenv("RETRIEVER_K") or "").strip()
-    k = int(raw) if raw else 3
+    k = int(raw) if raw else 5
     if k < 1:
         raise ValueError("RETRIEVER_K must be at least 1")
     return k

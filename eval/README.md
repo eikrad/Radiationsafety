@@ -30,7 +30,7 @@ The harness uses your `.env` for the LLMs (no API keys in golden data). Ensure i
 | `--rescore RUN_ID` | Judge and score a saved run again (see [Re-scoring](#re-scoring)) without running the graph |
 | `--retrieval-only` | Score only retrieval (see [Comparing retrieval settings](#comparing-retrieval-settings)): no answer model, no judge |
 | `--depth K` | Retrieval-only: chunks retrieved per collection for the rank metrics (default 20) |
-| `--char-budget CHARS` | Retrieval-only: characters per collection for `evidence_recall_budget` (default 7500, about what k=3 passes on today) |
+| `--char-budget CHARS` | Retrieval-only: characters per collection for `evidence_recall_budget` (default 7500, about what k=3 passed on; k=5 passes more) |
 | `--allow-dirty` | Record the run although tracked files have uncommitted changes (it is then marked dirty) |
 
 **Rate limits:** by default the runner waits **5 s** after each graph run and **20 s** between items so eval stays under typical free-tier limits. Set the env vars above or use `--delay-after-graph 0 --delay-between-items 0` to disable delays.
@@ -44,7 +44,7 @@ EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL=qwen3-embedding-8b LLM_PROVIDER=scal
 
 Retrieves for every answerable question and scores retrieval only: no answer model, no judge, so a comparison takes seconds, costs only the query embeddings and carries no judge noise. There is no pass rate.
 
-- `evidence_recall_initial` is the graph's own first retrieval (k=3 per collection, merged), the same metric as in a full run.
+- `evidence_recall_initial` is the graph's own first retrieval (`RETRIEVER_K` per collection, default 5, merged), the same metric as in a full run.
 - A second, deeper retrieval (`--depth`, default 20 per collection) goes through the same retrievers. From that one ranked list come:
   - `evidence_recall_at_1/3/5/10/20`: share of vital nuggets whose evidence is in the top k of its collection;
   - `reciprocal_rank` per question (1/rank of the first chunk holding each vital nugget's evidence, 0 if not retrieved, averaged over the vital nuggets; its mean is MRR);
@@ -197,7 +197,7 @@ calls per question; runs go to `eval/history/k_tests.jsonl`.
 uv run python -m eval.k_test --label k3-vs-k5
 ```
 
-`RETRIEVER_K` sets k for the graph and for full runs.
+`RETRIEVER_K` sets k for the graph and for full runs (default 5, step 5 of the ROADMAP).
 
 ## Checking the judge
 

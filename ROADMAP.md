@@ -295,10 +295,16 @@ refused at both k. Answers with an unsupported claim: 2 at k=3, 1 at k=5.
 The extra chunks did not distract this generator; they brought the evidence.
 One oddity for the golden set: the safety-assessment definition was answered
 fully at k=5 although its listed evidence (rank 20) is not in either context,
-so another retrieved chunk states it, a pooling candidate (#133). Next: k = 5
-as the default in its own PR, confirmed by a full run (at least 31/39). It
-costs about two thirds more context per call (10 chunks instead of 6) for the
+so another retrieved chunk states it, a pooling candidate (#133). It costs
+about two thirds more context per call (10 chunks instead of 6) for the
 generator and the graders.
+Confirmation (2026-10-03, full run `k5`): 32/39 pass (31/39 at k = 3), so k = 5
+is now the default (`RETRIEVER_K`). Retrieval misses 4 → 1, vital recall
+0.89 → 0.98, `grade_documents` right 0.92 → 0.97. Registration and the
+radiography coordinator now pass; receipt inspection has its evidence but
+fails on an unsupported claim; pre-disposal steps misses a fact (as in the k
+test), and area classification and the mobile X-ray question swapped
+pass/fail on unsupported claims, within the judge noise of about 3 questions.
 
 **Revised order (2026-09-30).** With evidence recall at 0.90 on 24 questions,
 a retrieval change can fix at most 2–3 questions, too few flips for the sign
