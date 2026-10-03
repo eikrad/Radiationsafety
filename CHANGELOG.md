@@ -164,7 +164,9 @@ for 0.5.0 is above.
 - API keys entered in the browser live in `sessionStorage` instead of `localStorage`.
 - Three Danish bekendtgørelser in force since 1 January 2026 (BEK 1386–1388) are staged;
   run `uv run python ingestion.py` to embed them.
-
+- The in-memory rate-limit store drops entries untouched for over an hour instead of
+  growing for the life of the process.
+  
 ### Setup checks (#115)
 - Settings show per provider whether the server can answer with it and, if not, what is
   missing (e.g. `SCW_MODEL`, `SCW_EMBED_MODEL`, an unbuilt search index). A misconfigured
@@ -196,6 +198,19 @@ for 0.5.0 is above.
   select 5.10.0 without breaking macOS installs. Left at 5.8.1 pending an
   upstream `docling` release that relaxes the darwin cap; tracked for a
   future maintenance pass rather than forced here.
+
+### Retrieval (#137–#144)
+- **Re-ingest the Danish law collection** after upgrading:
+  `uv run python ingestion.py --dk-only`. The Retsinformation XML is now chunked along
+  its paragraphs, items and annex rows, each chunk headed `law › chapter › §` (#141),
+  and a PDF copy of a law that is already read from XML is no longer ingested (#140).
+- **`RETRIEVER_K`** (new, default 5; was a fixed 3) sets the chunks retrieved per
+  collection. On the golden set, k = 5 fixed the three questions whose evidence ranked
+  4–5 and lost nothing elsewhere (full run 32/39 vs 31/39). It sends about two thirds
+  more context per call; `RETRIEVER_K=3` restores the previous behaviour.
+- The graders read whole chunks instead of their first 420 or 1200 characters (#139),
+  so answers built only on local sources no longer get a false "could not be fully
+  verified" warning.
 
 ## 0.4.0 - 2026-06-11
 
