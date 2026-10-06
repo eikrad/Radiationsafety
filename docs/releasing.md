@@ -34,6 +34,34 @@ hidden. From 1.0 on, `feat` bumps the minor and a breaking change the major vers
 The **Commit messages** check fails a pull request with a commit that lacks one of these
 prefixes, since release-please would silently leave that commit out.
 
+## How to merge pull requests
+
+release-please reads every commit on `master`, merge commits included, and treats each
+line in a commit body that looks like a Conventional Commit as a change of its own. A
+GitHub merge commit carries the pull request's title in its body, so a feature PR titled
+`feat(eval): …` merged with a merge commit lands in the CHANGELOG twice: once from the
+commit itself, once from the merge commit. This is why 0.5.0 first listed 18 entries
+twice (removed by hand afterwards).
+
+| Pull request                                    | Merge with            | Title                                  |
+| ----------------------------------------------- | --------------------- | -------------------------------------- |
+| feature branch → `staging`                      | **Rebase and merge**  | anything; it never reaches the history |
+| `staging` → `master`                            | Create a merge commit | `chore: merge staging into master …`   |
+| release-please's `chore(master): release X.Y.Z` | Create a merge commit | unchanged                              |
+| back-merge `master` → `staging`                 | Create a merge commit | unchanged (`chore: …`)                 |
+
+- **Rebase, not squash, for feature PRs.** Rebase puts each commit on `staging` unchanged
+  and adds no merge commit, so every change appears once and the individual commits stay
+  in the history. Squash would also avoid the duplicates, but collapses a PR into one
+  commit and one CHANGELOG line.
+- **Never rebase or squash `staging` → `master`.** Either rewrites the commits, so
+  `master` and `staging` stop sharing history and every later release conflicts.
+- **`chore:` titles for the merges into and out of `master`.** `chore` is hidden in the
+  CHANGELOG, so the merge commit adds no entry. A `feat:` or `fix:` title would.
+
+One-time setup: repository **Settings** → General → Pull Requests → enable **Allow rebase
+merging**, and keep **Allow merge commits** enabled for the `staging` → `master` merges.
+
 Upgrade steps that a commit message cannot carry (a changed default, a new `.env` variable,
 a re-ingestion) go into the CHANGELOG by hand, below the generated entry, in the release PR.
 
