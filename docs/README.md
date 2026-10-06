@@ -9,6 +9,7 @@ Documentation for the Radiation Safety RAG system.
 | [architecture.md](architecture.md) | RAG pipeline nodes, chains, ingestion workflow, LLM providers (incl. Ollama / privacy mode), API routes — with Mermaid diagrams |
 | [production-readiness.md](production-readiness.md) | Security, admin auth, rate limiting, observability, container hardening, and a runbook |
 | [maintenance.md](maintenance.md) | Dependency versions, upgrade notes, and periodic maintenance tasks |
+| [privacy-mode-docker-plan.md](privacy-mode-docker-plan.md) | Plan (not started): optional Ollama container for privacy mode in Docker |
 
 ## Where to start
 
