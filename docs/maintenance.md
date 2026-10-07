@@ -4,6 +4,66 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-10-07
+
+> **Open PRs (verified via `mcp__github__list_pull_requests`, state=open):** #155 (docs: privacy-mode plan), #127 (vitest 5 combined), #124 / #123 (Dependabot `@vitest/coverage-v8` / `vitest` 5.x). The vitest 5 bump is already proposed there and was **not duplicated**.
+
+### Checks performed
+- `git fetch origin`; branch `claude/modest-faraday-ouyr43` reset to `origin/staging` with `git checkout -B`.
+- Baseline **before changes**: `uv sync --all-extras`; `uv run pytest tests/ -n auto` -> **469 passed**; `ruff`, `black --check`, `isort --check`, `mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip`, `pre-commit run --all-files` all clean. Frontend: `npm ci`, `test` -> **70 passed (9 files)**, `lint` and `build` clean. **Nothing broken on `staging`** apart from the npm audit finding below.
+- Playwright E2E not run in the sandbox (proxy blocks `cdn.playwright.dev`); CI runs it with full network access.
+- Security: `pip-audit` on `uv export --format requirements-txt --no-hashes`; `npm -C frontend audit`.
+- Outdated: `uv pip list --outdated`, `npm -C frontend outdated`.
+- `uv lock --upgrade-package docling ...` (docling, docling-core, docling-parse, docling-slim, also pinned to `==2.131.0` / `==2.133.0`) always cascades `docling-ibm-models` 3.14.0 -> **4.0.3 (major)**, so the docling CVE fix cannot be taken as a minor bump. Reverted.
+
+### Security findings
+
+**`npm -C frontend audit`** -- baseline **2 high** (transitive, dev tooling): `brace-expansion` 5.0.9 (GHSA-q2hr-2g5m-vwhr, GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p; ReDoS/recursion DoS) and `source-map-js` 1.2.1 (GHSA-68fv-2mgg-jv7q; DoS). **Fixed** with `npm audit fix` (-> 5.0.12 and 1.2.2, lockfile only). After: **0 vulnerabilities**.
+
+**`pip-audit`** -- **7 known vulnerabilities in 3 packages**, unchanged before and after (none fixable without a major):
+
+| Package | Version | ID | Fix | Resolution |
+|---|---|---|---|---|
+| `docling` | 2.120.3 | CVE-2026-105747 -- METS-GBS tar archive: `getmembers()` builds the full member list before `max_member_count` is checked (memory DoS) | 2.131.0 | **Not applied**: needs `docling-ibm-models` 4 (major) transitively. Not reachable: only trusted local PDFs/XML are ingested, no METS-GBS tar input |
+| `oauthlib` | 3.3.1 | PYSEC-2026-4114 -- non-constant-time PKCE `plain` comparison | 4.0.0 (major) | Not applied; transitive via `kubernetes` <- `chromadb`, no OAuth server code in this app |
+| `chromadb` | 1.5.9 | PYSEC-2026-311, -3813, -3814, -3815 (HTTP server) | none upstream | Not fixable; not reachable (embedded `PersistentClient` only) |
+
+### Dependency updates
+
+**Python** (one batched `uv lock --upgrade-package ...`, each package named; no `pyproject.toml` changes):
+`aiohttp` 3.14.3->3.14.4, `black` 26.5.1->26.10.0 (dev), `charset-normalizer` 3.5.2, `cryptography` 50.0.1->50.0.2, `faker` 40.41.0 (dev), `fastapi` 0.141.1->0.142.2, `google-auth` 2.58.0->2.60.0, `google-genai` 2.25.0->2.28.0, `googleapis-common-protos` 1.75.5, `langchain` 1.4.3, `langchain-core` 1.6.7, `langchain-openai` 1.6.7, `langchain-text-splitters` 1.1.3, `langgraph` 1.2.14, `langgraph-sdk` 0.4.6, `langsmith` 0.14.4, `mypy` 2.3.1->2.4.0 (dev), `ruff` 0.16.10 (dev), `transformers` 5.17.0->5.19.0, `uvicorn` 0.54.0, `orjson` 3.13.0, `opentelemetry-*` 1.44->1.45 (new transitive `opentelemetry-exporter-otlp-common`), `shapely` 2.2.0, `pypdfium2` 5.14.0, `platformdirs`, `regex`, `rpds-py`, `hf-xet`, `ollama`, `python-dotenv`, `typer`, `uvloop`, `virtualenv`, `types-requests` and other small patch/minor transitives. Held back: `torch`/`torchvision`/`triton`/`nvidia-*` (torch 2.13->2.14 left for a deliberate CUDA compatibility check), `docling` family (see above), `pydantic-core` 2.49.0 (pinned by `pydantic`), `sqlalchemy` 2.1 (minor but breaking-prone; held).
+
+**Frontend** (lockfile only, `package.json` unchanged): `brace-expansion`, `source-map-js` (security), `vite` 8.3.1->8.3.3, `@vitejs/plugin-react` 6.1.1->6.1.2, `@typescript-eslint/*` 8.71.1, `eslint` 10.12.0, `globals` 17.13.0, `jsdom` 30.1.2. (`npm update vite` hit an npm arborist bug, `Cannot read properties of null (reading 'edgesOut')`; applied with `npm install --no-save vite@8.3.3 @vitejs/plugin-react@6.1.2` instead.)
+
+### Major upgrades -- flagged, NOT applied
+
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `docling-ibm-models` (transitive via `docling`) | 3.14.0 | 4.0.3 | Required by every docling >= 2.131.0, i.e. the only way to fix CVE-2026-105747; needs an ingestion regression run on real PDFs |
+| `oauthlib` (transitive) | 3.3.1 | 4.0.0 | Major; PYSEC-2026-4114 not reachable |
+| `langchain-docling` (direct) | 2.0.0 | 3.0.0 | Major; needs compatibility review with docling |
+| `openai` (transitive) | 2.53.0 | 3.26.0 | `langchain-openai` still pins 2.x |
+| `huggingface-hub` | 1.32.0 | 2.1.1 | Major |
+| `multidict` | 6.9.1 | 7.0.0 | Major |
+| `sqlalchemy` | 2.0.54 | 2.1.4 | Held; breaking-change risk |
+| `opencv-python` | 4.13.0.92 | 5.0.0.93 | Major; docling OCR path |
+| `semchunk` | 3.2.5 | 4.1.1 | Major |
+| `websockets` | 15.0.1 | 17.2 | Major |
+| `xxhash`, `filelock`, `uuid-utils`, `packaging`, `kubernetes`, `antlr4-python3-runtime`, `isort` (dev, 9.0.2) | -- | -- | Majors / large jumps, no CVE driving them |
+| `vitest`, `@vitest/coverage-v8` | 4.1.11 | 5.0.3 | Already covered by open PRs #123/#124/#127 |
+| `typescript` | 6.0.3 | 7.0.2 | Major (native compiler rewrite) |
+| `jsdom` | 30.1.2 | "29.1.1" shown as latest | npm dist-tag oddity, ignore |
+
+### Post-change verification
+- `uv run pytest tests/ -n auto` -> **469 passed**
+- `ruff check .`, `black --check .`, `isort --check .`, `mypy ...`, `pre-commit run --all-files` -> clean
+- `npm -C frontend ci`, `test` -> **70 passed (9 files)**, `lint`, `build` -> clean
+- `npm -C frontend audit` -> **0 vulnerabilities** (was 2 high)
+- `pip-audit` -> same 7 findings in 3 packages, all unreachable and without a minor-level fix
+- Changed files: `uv.lock`, `frontend/package-lock.json`, `docs/maintenance.md` only; no env vars added.
+
+---
+
 ## 2026-09-23
 
 > **⚠️ Manual-maintenance-PR backlog — verified fresh via `mcp__github__list_pull_requests` (state=open), not assumed from any prior note.** **11 PRs** are currently open against `staging`. Two are this project's own prior weekly-maintenance cycles, both still `mergeable_state: clean` with no CI status reported yet (`get_status` → 0 statuses on both heads — checks appear not to have run/completed on these PRs' commits):
