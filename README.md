@@ -13,7 +13,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **Web search fallback** — Brave Search kicks in when local documents don't cover the query
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
-- **Evaluation harness** — RAGAS-style scoring (faithfulness, relevance, precision, recall) against a golden Q&A dataset
+- **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
 
 ## How it works
 
@@ -74,9 +74,12 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 
 | File | What it covers |
 |------|----------------|
+| [docs/README.md](docs/README.md) | Index of all documentation |
 | [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes — with Mermaid diagrams |
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
-| [docs/maintenance.md](docs/maintenance.md) | Dependency upgrade notes and document update procedures |
+| [docs/maintenance.md](docs/maintenance.md) | Dated log of dependency checks and upgrade notes |
+| [docs/releasing.md](docs/releasing.md) | How versions, tags and the CHANGELOG are produced |
+| [eval/README.md](eval/README.md) | Evaluation harness |
 
 ## Ingestion overview
 

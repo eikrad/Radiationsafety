@@ -17,9 +17,9 @@ Thanks for your interest in contributing to Radiation Safety RAG.
 ## Running tests
 
 - **Backend:** `uv run pytest tests/ -v`
-- **Frontend:** `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
+- **Frontend:** `cd frontend && npm run test` (or `npm run test:watch` for watch mode); E2E and visual tests are described in the [README](README.md#testing)
 
-CI runs both on push and on pull requests.
+CI runs these (plus E2E, visual and Docker checks) on push and on pull requests.
 
 ## Code quality
 
@@ -32,7 +32,7 @@ CI runs both on push and on pull requests.
 
 ## Documentation
 
-- **Architecture diagram:** The README shows `architecture.svg`, generated from `architecture.mmd`. If you change the RAG graph (nodes or flow in `graph/`), update `architecture.mmd` and regenerate the image: `uv run python scripts/render_architecture.py`, then commit the updated SVG.
+- **Architecture diagram:** `architecture.svg` / `architecture.png` in the repo root are generated from `architecture.mmd` (linked from [docs/architecture.md](docs/architecture.md)). If you change the RAG graph (nodes or flow in `graph/`), update `architecture.mmd` and regenerate the image: `uv run python scripts/render_architecture.py`, then commit the updated SVG.
 
 ## Pull requests
 

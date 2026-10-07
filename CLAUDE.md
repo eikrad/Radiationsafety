@@ -103,6 +103,8 @@ feature branch  →  staging  →  master
 - `master` is only updated by merging `staging` → `master` after validation
 - When creating a feature branch or fixing a bug, set `base = staging` in the PR
 - `staging` acts as the integration/QA gate before production (`master`)
+- Feature PRs are merged with **Rebase and merge**; `staging` → `master` with a merge commit
+  and a `chore:` title. Otherwise the CHANGELOG lists changes twice (`docs/releasing.md`)
 
 ---
 

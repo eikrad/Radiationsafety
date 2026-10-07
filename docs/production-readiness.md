@@ -11,9 +11,10 @@ Reference for deploying and operating the Radiation Safety RAG system.
 | `POST /query` | Public | Rate-limited |
 | `GET /health` | Public | Container healthcheck target |
 | `GET /metrics` | Public | Prometheus-style counters |
-| `GET /config` | Public | Returns whether the server has an LLM key configured (`server_has_llm_key`) |
+| `GET /config` | Public | Client config: `server_has_llm_key`, per-provider readiness, selectable Scaleway models, optional privacy-notice controller |
 | `GET /documents/check-updates` | Public | Polls retsinformation.dk / IAEA for newer versions |
 | `GET /documents/source/{id}/file` | Public | Serve the local PDF for a document source |
+| `GET /ingest/status` | Public | Ingestion status (`idle` or `running`) |
 | `POST /ingest` | **Admin** | Triggers full re-ingestion in background |
 | `POST /documents/add-pdf` | **Admin** | Upload and register a new PDF |
 | `PATCH /documents/source/{id}/url` | **Admin** | Manually update a source URL |
@@ -89,7 +90,9 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 
 ## CI safeguards
 
-- **`ci.yml`** — runs backend/frontend tests, ruff, and the scoped mypy check on every push and PR.
+- **`ci.yml`** — on every push and PR: pre-commit, ruff, black, isort and the scoped mypy check; backend tests with coverage; frontend lint, build, unit, Playwright E2E (mocked API) and visual tests; a Docker build that starts the stack and waits for it to answer.
+- **`commit-messages.yml`** — fails a PR with a commit lacking a Conventional Commit prefix (see [releasing.md](releasing.md)).
+- **`release-please.yml`** — maintains the release PR on `master` (see [releasing.md](releasing.md)).
 - **`weekly-audit.yml`** — runs `pip-audit` and `npm audit` on a weekly schedule; opens a GitHub issue if new vulnerabilities are found.
 - **`protect-master.yml`** — blocks direct pushes/merges into `master` that don't come from `staging` (see the branching workflow in `AGENTS.md`/`CLAUDE.md`).
 
