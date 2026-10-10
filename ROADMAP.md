@@ -335,6 +335,51 @@ Each step states its adoption rule before the measurement; parameters are not
 tuned (RRF k = 60, fixed header format). A change that wins is switched on by
 default in its own small PR.
 
+## Generation — after retrieval (2026-10-10)
+
+**The generation prompt (#145).** In the full run `k5` (32/39) the vital
+evidence reached the generator for 34 of 35 answerable questions; 6 of the 7
+failures happened after retrieval. The judge's reasons show what went wrong:
+the three unsupported claims are legal conditions restated with a different
+meaning ("samt efter indgreb" became "eller efter indgreb", "kan medvirke til"
+became "nødvendigt", "anlægget" became "området", and in the same answer
+GSR-7's "shall" became "bør"); pre-disposal steps left out "from generation up
+to disposal"; the MRI question was answered from two web pages; the power-line
+question was refused, but the refusal added a related figure misquoted (< 1 %
+for 1 %). The prompt had a typo in its key rule ("Uso only information"),
+said nothing about scope or jurisdiction, and nothing about facts on topic but
+absent from the context.
+
+The revised prompt (`graph/chains/generation.py`) adds numbered rules: only
+the context; keep the meaning of requirements, conditions, definitions and
+limits exact (how binding, how conditions combine, what or whom a rule
+applies to, numbers, units, references); say whether a statement is Danish
+or IAEA, an IAEA requirement is not a Danish rule; give a definition or list
+asked for in full; name what the context does not answer and do not fill the
+gap; non-ionising radiation is out of scope even if a web source answers it.
+The rules name categories, not the words of the failed answers (no "samt",
+no MRI, no power lines), so that the measurement on these same questions
+does not reward a prompt written for them. Trust-Score found that prompting
+alone does not stop models from answering from their own knowledge, and
+GroUSE that over-refusal is a failure mode of its own; so the change is
+measured, including for refusals of answerable questions.
+
+`eval.prompt_test` replays the context each question's generator saw in the
+`k5` run (web results included) and answers it with the previous and the
+revised prompt; only the prompt differs. Both answers are scored as in a
+full run, with 3 groundedness votes.
+Adoption rule, set before measuring: the revised prompt is kept if, on the
+39 replayed contexts, (1) fewer answers carry an unsupported claim; (2) on
+lenient vital recall it scores lower on at most 1 more answerable question
+than it scores higher; (3) all 4 questions to refuse are refused without an
+unsupported claim (the two out-of-scope questions answered in `k5`
+included); (4) no more answerable questions are refused although their
+evidence was in the context (`wrong_refusal`); and then (5) a full run passes
+at least 32/39. Otherwise the previous prompt returns with only the typo
+fixed, and a scope check before retrieval (#150) is the next step for the
+refusals. The caveat stays: the rules come from the failures of the same 39
+questions, so a held-out check needs new golden questions (#133).
+
 ---
 
 ## Phase 1 — Continuous Scoring
