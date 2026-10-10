@@ -379,6 +379,22 @@ at least 32/39. Otherwise the previous prompt returns with only the typo
 fixed, and a scope check before retrieval (#150) is the next step for the
 refusals. The caveat stays: the rules come from the failures of the same 39
 questions, so a held-out check needs new golden questions (#133).
+First measurement (2026-10-10, `prompt-145`, rule not met): passed 33 → 35;
+lenient vital recall higher on 3 answerable questions (emergency exposure,
+pre-disposal steps, safety-assessment definition), lower on none; no
+`wrong_refusal` with either prompt. Conditions 1 and 3 failed: 3 answers with
+an unsupported claim for each prompt, and 1 clean refusal of 4 (previous 2).
+The revised prompt refused all 4 questions to refuse, but the judge flagged
+the refusal itself in the three out-of-scope answers: "non-ionising radiation
+is outside the scope of the provided documents" counted as contradicted,
+because the context held web pages on MRI SAR, laser classes and power-line
+fields. The judge exempts "the information is missing" from unsupported
+claims, not "this is out of scope", so it would flag the expected answer in
+`golden.json` too. On answerable questions the revised prompt had no
+unsupported claim (previous 1). Decision: not adopted on this measurement.
+The judge gets a narrow fix, checked on new calibration fixtures with a
+different topic (not on these answers), and the saved answers of both prompts
+are judged again under the same rule.
 
 ---
 
