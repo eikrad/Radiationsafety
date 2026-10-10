@@ -16,15 +16,18 @@ RAG_TEMPLATE = """{context}
 User: {question}
 Assistant:"""
 
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", RAG_SYSTEM),
-        ("human", RAG_TEMPLATE),
-    ]
-)
 
+def get_generation_chain(
+    llm: BaseChatModel | None = None, system: str = RAG_SYSTEM
+) -> Runnable:
+    """Return RAG generation chain for the given LLM. Uses get_llm() if llm is None.
 
-def get_generation_chain(llm: BaseChatModel | None = None) -> Runnable:
-    """Return RAG generation chain for the given LLM. Uses get_llm() if llm is None."""
+    system replaces the system prompt (eval.prompt_test compares prompts)."""
     model = llm or get_llm()
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system),
+            ("human", RAG_TEMPLATE),
+        ]
+    )
     return prompt | model | StrOutputParser()
