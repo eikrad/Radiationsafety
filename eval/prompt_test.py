@@ -80,17 +80,27 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
-def _answer_and_score(item, saved, system, generator, judge, delay_sec) -> dict | None:
-    from eval.judge import judge_item
+def _generate(item, saved, system, generator, delay_sec) -> str:
     from eval.run_eval import _invoke_with_retry
     from graph.chains.generation import get_generation_chain
 
-    context = saved["context_used_for_generation"]
     answer = _invoke_with_retry(
         get_generation_chain(generator, system).invoke,
-        {"context": context, "chat_history": "", "question": item["question"]},
+        {
+            "context": saved["context_used_for_generation"],
+            "chat_history": "",
+            "question": item["question"],
+        },
     )
     time.sleep(delay_sec)
+    return answer
+
+
+def _score(item, saved, answer, judge, delay_sec) -> dict | None:
+    """The answer's scores as in a full run, or None if the judge failed."""
+    from eval.judge import judge_item
+
+    context = saved["context_used_for_generation"]
     verdict = judge_item(item, answer, context, judge, votes=JUDGE_VOTES)
     time.sleep(delay_sec)
     if verdict is None:
@@ -106,20 +116,26 @@ def _answer_and_score(item, saved, system, generator, judge, delay_sec) -> dict 
         verdict,
     )
     return {
-        "answer": answer,
-        "scores": {
-            "pass": scores["pass"],
-            "error_type": scores["error_type"],
-            "vital_recall_lenient": scores["vital_recall_lenient"],
-            "refused": scores["refused"],
-            "unsupported_claims": list(verdict["unsupported_claims"]),
-        },
+        "pass": scores["pass"],
+        "error_type": scores["error_type"],
+        "vital_recall_lenient": scores["vital_recall_lenient"],
+        "refused": scores["refused"],
+        "unsupported_claims": list(verdict["unsupported_claims"]),
     }
 
 
-def run(golden: list[dict], outputs: dict[str, dict], label, delay_sec: float) -> dict:
+def run(
+    golden: list[dict],
+    outputs: dict[str, dict],
+    label,
+    delay_sec: float,
+    answers: dict[str, dict] | None = None,
+) -> dict:
     """Answer every golden question in outputs (a saved full run, see
-    eval.graph_run.load_outputs) with both prompts and score both answers."""
+    eval.graph_run.load_outputs) with both prompts and score both answers.
+
+    answers: {question id: {prompt name: answer}} from an earlier prompt test,
+    judged again instead of generating new ones."""
     from eval.history import git_info
     from eval.run_eval import _judge_llm, _model_name
     from graph.chains.generation import RAG_SYSTEM
@@ -130,16 +146,23 @@ def run(golden: list[dict], outputs: dict[str, dict], label, delay_sec: float) -
     judge, judge_info = _judge_llm(generator, provider, _model_name(generator))
     prompts = {"previous": PREVIOUS, "revised": RAG_SYSTEM}
 
-    rows, answers = [], {}
+    rows, answered = [], {}
     skipped = {"not_in_run": [], "judge_error": []}
     for item in golden:
         saved = outputs.get(item["id"])
-        if saved is None:
+        if saved is None or (answers is not None and item["id"] not in answers):
             skipped["not_in_run"].append(item["id"])
             continue
+        texts = (
+            answers[item["id"]]
+            if answers is not None
+            else {
+                name: _generate(item, saved, system, generator, delay_sec)
+                for name, system in prompts.items()
+            }
+        )
         results = {
-            name: _answer_and_score(item, saved, system, generator, judge, delay_sec)
-            for name, system in prompts.items()
+            name: _score(item, saved, texts[name], judge, delay_sec) for name in NAMES
         }
         scored = {name: r for name, r in results.items() if r is not None}
         if len(scored) < len(results):
@@ -150,13 +173,13 @@ def run(golden: list[dict], outputs: dict[str, dict], label, delay_sec: float) -
                 "id": item["id"],
                 "language": item.get("language"),
                 "expected_behavior": item["expected_behavior"],
-                **{name: r["scores"] for name, r in scored.items()},
+                **scored,
             }
         )
-        answers[item["id"]] = {name: r["answer"] for name, r in scored.items()}
+        answered[item["id"]] = {name: texts[name] for name in NAMES}
         print(
             f"  [{len(rows)}] {item['id']}: "
-            + ", ".join(f"{n} {r['scores']['error_type']}" for n, r in scored.items()),
+            + ", ".join(f"{n} {r['error_type']}" for n, r in scored.items()),
             file=sys.stderr,
         )
     return {
@@ -172,7 +195,7 @@ def run(golden: list[dict], outputs: dict[str, dict], label, delay_sec: float) -
         "summary": summarize(rows),
         "skipped": skipped,
         "rows": rows,
-        "answers": answers,
+        "answers": answered,
     }
 
 
@@ -219,6 +242,13 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--log", type=Path, default=DEFAULT_LOG)
     parser.add_argument("--reports", type=Path, default=DEFAULT_REPORTS)
+    parser.add_argument(
+        "--rejudge",
+        type=Path,
+        default=None,
+        help="Judge the answers of an earlier prompt test again "
+        "(eval/reports/prompt_test_<run_id>.json) instead of generating",
+    )
     args = parser.parse_args()
 
     if git_info().get("dirty"):
@@ -228,12 +258,30 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+    earlier = None
+    if args.rejudge is not None:
+        earlier = json.loads(args.rejudge.read_text(encoding="utf-8"))
+        if earlier["config"]["contexts_from"] != args.outputs.name:
+            print(
+                f"{args.rejudge.name} answered the contexts of "
+                f"{earlier['config']['contexts_from']}, not of {args.outputs.name}.",
+                file=sys.stderr,
+            )
+            return 1
     golden = json.loads(args.golden.read_text(encoding="utf-8"))[: args.limit]
     outputs = load_outputs(args.outputs)
     record = run(
-        golden, outputs, args.label, _delay_sec("EVAL_DELAY_AFTER_GRAPH_SEC", 5.0)
+        golden,
+        outputs,
+        args.label,
+        _delay_sec("EVAL_DELAY_AFTER_GRAPH_SEC", 5.0),
+        answers=earlier["answers"] if earlier else None,
     )
     record["config"]["contexts_from"] = args.outputs.name
+    if earlier:
+        # the answers are the earlier run's, so is the model that wrote them
+        record["config"]["llm_model"] = earlier["config"]["llm_model"]
+        record["config"]["rejudged_from"] = earlier["run_id"]
     answers = record.pop("answers")
     args.reports.mkdir(parents=True, exist_ok=True)
     report = args.reports / f"prompt_test_{record['run_id']}.json"

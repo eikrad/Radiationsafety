@@ -216,6 +216,11 @@ code, since the commit has to say which prompt was tested.
 uv run python -m eval.prompt_test --outputs eval/reports/outputs_20261003_132636.json --label prompt-145
 ```
 
+After a judge change, `--rejudge eval/reports/prompt_test_<run_id>.json` judges
+the saved answers of both prompts again instead of generating new ones (about
+4–6 calls per question); `--outputs` must be the run whose contexts they
+answered.
+
 ## Checking the judge
 
 ```bash

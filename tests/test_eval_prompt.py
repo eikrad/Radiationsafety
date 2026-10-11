@@ -177,7 +177,7 @@ def test_the_summary_checks_the_adoption_rule_set_before_measuring():
     assert summarize(rows + [another_loss])["rule_met"] is False
 
 
-def _main(monkeypatch, tmp_path, dirty=False):
+def _main(monkeypatch, tmp_path, dirty=False, extra=()):
     import json
 
     import eval.history
@@ -217,6 +217,7 @@ def _main(monkeypatch, tmp_path, dirty=False):
             str(log),
             "--reports",
             str(reports),
+            *extra,
         ],
     )
     return prompt_test.main(), log, reports
@@ -241,6 +242,83 @@ def test_a_prompt_test_records_where_its_contexts_came_from_and_reports_the_answ
 
 def test_a_prompt_test_refuses_to_run_on_uncommitted_code(monkeypatch, tmp_path):
     code, log, _ = _main(monkeypatch, tmp_path, dirty=True)
+
+    assert code == 1
+    assert not log.exists()
+
+
+def test_saved_answers_are_judged_again_without_generating(monkeypatch):
+    import eval.prompt_test as prompt_test
+    import graph.llm_factory
+
+    seen = _fake_models(monkeypatch, {"previous": {}, "revised": {}})
+
+    def must_not_generate(prompt_value):
+        raise AssertionError("a re-judged run must not generate")
+
+    monkeypatch.setattr(
+        graph.llm_factory, "get_llm", lambda: RunnableLambda(must_not_generate)
+    )
+    saved_answers = {
+        "q": {"previous": "20 mSv", "revised": "20 mSv"},
+        "r": {"previous": "The SAR limit is 2 W/kg.", "revised": "MRI is not covered."},
+    }
+
+    record = prompt_test.run(
+        [ANSWER, REFUSE], OUTPUTS, "rejudged", 0, answers=saved_answers
+    )
+
+    assert record["summary"]["passed"] == {"previous": 1, "revised": 2}
+    assert {answer for _, answer, _, _ in seen["judged"]} == {
+        "20 mSv",
+        "The SAR limit is 2 W/kg.",
+        "MRI is not covered.",
+    }
+    assert record["answers"] == saved_answers
+
+
+def _report(tmp_path, contexts_from="outputs_20261003_132636.json"):
+    import json
+
+    report = tmp_path / "prompt_test_20261010_215307.json"
+    report.write_text(
+        json.dumps(
+            {
+                "run_id": "20261010_215307",
+                "config": {"llm_model": "gemma-4", "contexts_from": contexts_from},
+                "answers": {
+                    "q": {"previous": "20 mSv", "revised": "20 mSv"},
+                    "r": {"previous": "2 W/kg.", "revised": "MRI is not covered."},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    return report
+
+
+def test_a_rejudged_prompt_test_records_the_run_and_model_it_came_from(
+    monkeypatch, tmp_path
+):
+    import json
+
+    code, log, _ = _main(
+        monkeypatch, tmp_path, extra=("--rejudge", str(_report(tmp_path)))
+    )
+
+    assert code == 0
+    (record,) = [json.loads(line) for line in log.read_text().splitlines()]
+    assert record["config"]["rejudged_from"] == "20261010_215307"
+    assert record["config"]["llm_model"] == "gemma-4"
+    assert record["summary"]["passed"] == {"previous": 1, "revised": 2}
+
+
+def test_rejudging_against_other_contexts_than_the_answers_had_is_refused(
+    monkeypatch, tmp_path
+):
+    report = _report(tmp_path, contexts_from="outputs_20260101_000000.json")
+
+    code, log, _ = _main(monkeypatch, tmp_path, extra=("--rejudge", str(report)))
 
     assert code == 1
     assert not log.exists()
