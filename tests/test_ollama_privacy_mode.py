@@ -170,13 +170,30 @@ class TestOllamaEmbeddingProvider:
 class TestOllamaCollections:
     """Ollama must use separate Chroma collections so cloud indexes are preserved."""
 
-    def test_collection_names_have_ollama_suffix(self):
+    def test_collection_names_have_ollama_suffix(self, monkeypatch):
         """Ollama collections should have '-ollama' suffix."""
+        monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
         from ingestion import get_collection_names
 
         iaea, dk = get_collection_names("ollama")
         assert iaea == "radiation-iaea-ollama"
         assert dk == "radiation-dk-law-ollama"
+
+    def test_another_local_embedding_model_gets_its_own_collections(self, monkeypatch):
+        """Local embedders are built side by side and compared, as Scaleway's
+        are; the default model keeps the collections privacy users have."""
+        from ingestion import get_collection_names
+
+        monkeypatch.setenv("OLLAMA_EMBED_MODEL", "bge-m3")
+        assert get_collection_names("ollama") == (
+            "radiation-iaea-ollama-bge-m3",
+            "radiation-dk-law-ollama-bge-m3",
+        )
+        monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text:latest")
+        assert get_collection_names("ollama") == (
+            "radiation-iaea-ollama",
+            "radiation-dk-law-ollama",
+        )
 
     def test_collection_names_dont_collide_with_gemini(self):
         """Ollama and Gemini must use different collection names."""
