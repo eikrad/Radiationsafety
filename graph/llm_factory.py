@@ -245,7 +245,19 @@ def get_llm(
         env_model = (os.getenv("OLLAMA_MODEL") or "").strip()
         model = model_variant or env_model or "llama3.1:8b"
         timeout = _env_number("OLLAMA_REQUEST_TIMEOUT_SEC", _DEFAULT_OLLAMA_TIMEOUT_SEC)
-        return ChatOllama(
+
+        class OllamaChat(ChatOllama):
+            # llama3.1:8b sometimes replies {} to a grader; ask once more, as
+            # for Scaleway, before the caller treats the verdict as missing
+            def with_structured_output(
+                self, schema=None, *, include_raw=False, **kwargs
+            ):
+                structured = super().with_structured_output(
+                    schema, include_raw=True, **kwargs
+                )
+                return with_text_fallback(structured, schema, include_raw)
+
+        return OllamaChat(
             model=model,
             temperature=0,
             base_url=base_url,

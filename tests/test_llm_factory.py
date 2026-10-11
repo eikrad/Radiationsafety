@@ -85,9 +85,9 @@ def test_get_embeddings_returns_gemini_when_chosen(monkeypatch):
 
         emb = get_embeddings()
     cls = type(emb)
-    assert (
-        cls.__name__ == "GoogleGenerativeAIEmbeddings"
-    ), f"expected GoogleGenerativeAIEmbeddings, got {cls.__name__}"
+    assert cls.__name__ == "GoogleGenerativeAIEmbeddings", (
+        f"expected GoogleGenerativeAIEmbeddings, got {cls.__name__}"
+    )
 
 
 # --- Scaleway Generative APIs (OpenAI-compatible) ---------------------------
@@ -256,6 +256,39 @@ def test_a_reply_without_a_verdict_is_asked_once_more_for_the_json(scaleway_repl
     assert second["messages"][-2]["content"] == "Yes, every claim is supported."
     correction = second["messages"][-1]["content"]
     assert "JSON" in correction and "passed" in correction
+
+
+def test_a_local_model_without_a_verdict_is_asked_once_more_for_the_json(monkeypatch):
+    """Privacy run 2026-10-11: llama3.1:8b answered the sufficiency grader with
+    {} and the run ended; the Scaleway models are asked again, Ollama was not."""
+    import ollama
+
+    sent: list[list[dict]] = []
+    replies = ["{}", '{"passed": true, "missing_info": ""}']
+
+    def chat(self, *args, messages=None, **kwargs):
+        sent.append([dict(m) for m in messages])
+        content = replies.pop(0)
+        return iter(
+            [
+                {
+                    "model": "llama3.1:8b",
+                    "created_at": "2026-10-11T12:00:00Z",
+                    "message": {"role": "assistant", "content": content},
+                    "done": True,
+                    "done_reason": "stop",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(ollama.Client, "chat", chat)
+
+    verdict = get_llm(provider="ollama").with_structured_output(_Verdict).invoke("ok?")
+
+    assert verdict == _Verdict(passed=True)
+    first, second = sent
+    assert second[-2]["content"] == "{}"
+    assert "JSON" in second[-1]["content"]
 
 
 # --- Embeddings chosen separately from the answer model ----------------------
