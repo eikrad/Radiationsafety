@@ -85,9 +85,9 @@ def test_get_embeddings_returns_gemini_when_chosen(monkeypatch):
 
         emb = get_embeddings()
     cls = type(emb)
-    assert cls.__name__ == "GoogleGenerativeAIEmbeddings", (
-        f"expected GoogleGenerativeAIEmbeddings, got {cls.__name__}"
-    )
+    assert (
+        cls.__name__ == "GoogleGenerativeAIEmbeddings"
+    ), f"expected GoogleGenerativeAIEmbeddings, got {cls.__name__}"
 
 
 # --- Scaleway Generative APIs (OpenAI-compatible) ---------------------------
