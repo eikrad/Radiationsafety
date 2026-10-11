@@ -29,8 +29,11 @@ def run_graph(
     llm=None,
     embedding_provider: str | None = None,
     config: dict | None = None,
+    privacy_mode: bool = False,
 ) -> dict:
-    """Run the graph once and return the final answer plus captured intermediates."""
+    """Run the graph once and return the final answer plus captured intermediates.
+
+    privacy_mode: as the API sets it for Ollama; keeps the graph off the web."""
     graph_input = {
         "question": question,
         "generation": "",
@@ -38,6 +41,7 @@ def run_graph(
         "documents": [],
         "web_search_attempted": False,
         "chat_history": [],
+        "privacy_mode": privacy_mode,
     }
     if llm is not None:
         graph_input["llm"] = llm

@@ -758,3 +758,28 @@ def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, worksp
     [run] = load_runs(workspace.history)
     assert run["config"]["llm_provider"] == "ollama"
     assert run["config"]["llm_num_ctx"] == 8192
+
+
+def test_a_privacy_mode_run_is_recorded_without_web_search(monkeypatch, workspace):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    # _run passes --no-web-search, which would hide the point of this test
+    argv = [
+        "run_eval",
+        "--golden",
+        str(workspace.golden),
+        "--output-dir",
+        str(workspace.reports),
+        "--history-file",
+        str(workspace.history),
+        "--delay-after-graph",
+        "0",
+        "--delay-between-items",
+        "0",
+    ]
+    monkeypatch.setattr("sys.argv", argv)
+
+    assert run_eval.main() == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["web_search"] is False

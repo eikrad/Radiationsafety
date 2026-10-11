@@ -136,7 +136,15 @@ def _invoke_graph(question: str, graph, llm) -> dict:
         llm=llm,
         embedding_provider=get_embedding_provider(),
         config=config,
+        privacy_mode=_privacy_mode(),
     )
+
+
+def _privacy_mode() -> bool:
+    """LLM_PROVIDER=ollama: fully local, as the API runs it (no web search)."""
+    from graph.llm_factory import DEFAULT_PROVIDER
+
+    return (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower() == "ollama"
 
 
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
@@ -390,7 +398,8 @@ def _run_eval(
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
-            "web_search": env_bool("WEB_SEARCH_ENABLED"),
+            # privacy mode keeps the graph off the web whatever the switch says
+            "web_search": env_bool("WEB_SEARCH_ENABLED") and not _privacy_mode(),
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
