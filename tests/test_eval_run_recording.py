@@ -783,3 +783,51 @@ def test_a_privacy_mode_run_is_recorded_without_web_search(monkeypatch, workspac
 
     [run] = load_runs(workspace.history)
     assert run["config"]["web_search"] is False
+
+
+def test_a_question_whose_graph_run_crashes_counts_as_failed_and_the_run_goes_on(
+    monkeypatch, workspace
+):
+    """Privacy run 2026-10-11: one grader reply ended the run after 36 answers,
+    and nothing was recorded."""
+    answer = run_eval._invoke_graph
+
+    def crashing(question, graph, llm):
+        if question == "What is the transport index?":
+            raise ValueError("1 validation error for GradeSufficiency")
+        return answer(question, graph, llm)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", crashing)
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    crashed = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
+    assert (crashed["pass"], crashed["error_type"]) == (False, "graph_error")
+    assert "GradeSufficiency" in crashed["error"]
+    assert run["summary"]["error_counts"]["graph_error"] == 1
+    assert run["summary"]["judged"] == len(GOLDEN)
+
+
+def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, workspace):
+    """Ollama restarts itself after the OOM killer stops it."""
+    import httpx
+
+    answer = run_eval._invoke_graph
+    asked = []
+
+    def flaky(question, graph, llm):
+        asked.append(question)
+        if question == "What is the transport index?" and asked.count(question) == 1:
+            raise httpx.RemoteProtocolError("Server disconnected without a response.")
+        return answer(question, graph, llm)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", flaky)
+    monkeypatch.setattr(run_eval, "_GRAPH_RETRY_WAIT_SEC", 0, raising=False)
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    result = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
+    assert result["error_type"] != "graph_error"
+    assert asked.count("What is the transport index?") == 2
