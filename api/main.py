@@ -194,12 +194,10 @@ def _is_timeout(exc: BaseException) -> bool:
 
 def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
     """Return a user-friendly error message for Ollama failures."""
-    import os
-
     err = str(exc).lower()
-    from graph.llm_factory import get_embedding_model_name
+    from graph.llm_factory import get_embedding_model_name, ollama_model_name
 
-    llm_model = model_variant or os.getenv("OLLAMA_MODEL") or "llama3.1:8b"
+    llm_model = model_variant or ollama_model_name()
     embed_model = get_embedding_model_name("ollama")
     if "not found" in err or "404" in err:
         # Which model? Check if it's the embedding or LLM model

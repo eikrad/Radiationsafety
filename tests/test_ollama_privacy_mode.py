@@ -43,13 +43,23 @@ class TestOllamaLLM:
         llm = get_llm(provider="ollama")
         assert getattr(llm, "model", None) == "mistral:7b"
 
-    def test_default_model_is_llama(self, monkeypatch):
-        """Without OLLAMA_MODEL, default should be llama3.1:8b."""
+    def test_default_model_fits_a_small_gpu(self, monkeypatch):
+        """qwen3.5:4b runs fully in 6 GB of VRAM, 2.5x faster than llama3.1:8b,
+        which spilled ~10 GB into RAM; answer quality was even under an
+        independent judge (ROADMAP, privacy mode step P2)."""
         monkeypatch.delenv("OLLAMA_MODEL", raising=False)
         from graph.llm_factory import get_llm
 
         llm = get_llm(provider="ollama")
-        assert getattr(llm, "model", None) == "llama3.1:8b"
+        assert getattr(llm, "model", None) == "qwen3.5:4b"
+
+    def test_a_missing_answer_model_names_the_one_to_pull(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+        from api.main import _ollama_error_detail
+
+        detail = _ollama_error_detail(Exception('model "qwen3.5:4b" not found (404)'))
+
+        assert "ollama pull qwen3.5:4b" in detail
 
     def test_model_variant_overrides_env(self, monkeypatch):
         """model_variant parameter should take precedence over OLLAMA_MODEL env."""

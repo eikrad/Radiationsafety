@@ -145,6 +145,12 @@ def _env_number(name: str, default: float) -> float:
     return value if value >= 0 else default
 
 
+def ollama_model_name() -> str:
+    """The local answer model (OLLAMA_MODEL). qwen3.5:4b runs fully in 6 GB of
+    VRAM, 2.5x faster than llama3.1:8b at even quality (ROADMAP, step P2)."""
+    return (os.getenv("OLLAMA_MODEL") or "").strip() or "qwen3.5:4b"
+
+
 def ollama_num_ctx() -> int:
     """Context window of the local model in tokens (OLLAMA_NUM_CTX)."""
     return int(_env_number("OLLAMA_NUM_CTX", _DEFAULT_OLLAMA_NUM_CTX)) or (
@@ -242,13 +248,12 @@ def get_llm(
         from langchain_ollama import ChatOllama
 
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        env_model = (os.getenv("OLLAMA_MODEL") or "").strip()
-        model = model_variant or env_model or "llama3.1:8b"
+        model = model_variant or ollama_model_name()
         timeout = _env_number("OLLAMA_REQUEST_TIMEOUT_SEC", _DEFAULT_OLLAMA_TIMEOUT_SEC)
 
         class OllamaChat(ChatOllama):
-            # llama3.1:8b sometimes replies {} to a grader; ask once more, as
-            # for Scaleway, before the caller treats the verdict as missing
+            # a local model sometimes replies {} to a grader (llama3.1:8b did); ask
+            # once more, as for Scaleway, before the caller treats it as missing
             def with_structured_output(
                 self, schema=None, *, include_raw=False, **kwargs
             ):

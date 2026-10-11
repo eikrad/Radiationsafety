@@ -192,7 +192,7 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 2. Pull models:
    ```bash
-   ollama pull llama3.1:8b
+   ollama pull qwen3.5:4b
    ollama pull bge-m3
    ```
 3. Set `LLM_PROVIDER=ollama` in `.env`

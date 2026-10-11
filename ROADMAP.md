@@ -510,6 +510,27 @@ llama run (20/39), with per-question changes and a sign test reported, and
 llama does under that judge. Minutes per run and the share of the model in
 VRAM are reported alongside. `qwen3.5:9b` (6.6 GB) does not fit the 6 GB card
 and would spill into RAM like llama; only its memory footprint is checked.
+Result (2026-10-11, `privacy-qwen35-4b-k5`, rule not met): under
+`qwen3.8-27b` qwen passed 23/39 against llama's 20/39 (8 questions better,
+5 worse, sign test p = 0.58); under `mistral-medium` both passed 22/39 (6
+better, 6 worse). Condition 2 failed: the lead appeared only under the judge
+of the candidate's own family, and three questions are within run-to-run
+noise anyway. Lenient vital recall was higher for qwen under both judges
+(0.92 vs 0.80; 0.95 vs 0.89), unsupported claims equal or slightly more
+(12 vs 12; 12 vs 10). What did differ: qwen3.5:4b runs fully on the GPU at a
+12288-token window (3.0 GB; 68 tokens/s against llama's 23, 71 % on the GPU),
+and the run took 38 minutes against 94. `qwen3.5:9b` holds 53 % of 6.0 GB on
+the GPU and generates 13 tokens/s, slower than llama.
+Decision: **qwen3.5:4b becomes the default for hardware reasons, not for
+answer quality**, which the rule did not show to differ. Privacy mode targets
+laptops; on this 13 GB one llama3.1:8b held about 9.7 GB of RAM and once
+brought the OOM killer down on Ollama. `OLLAMA_MODEL=llama3.1:8b` still
+selects llama. Open: the 12 unsupported claims, now the main failure in
+privacy mode as well (the #145 prompt is already in place), and a second
+qwen run to measure the noise.
+Also measured: llama at k = 4 with an 8192-token window passed 22/39 in 64
+minutes, against 20/39 in 94 minutes at k = 5 (12288), so k = 4 was not worse
+and faster for a model that spills into RAM.
 
 ---
 
