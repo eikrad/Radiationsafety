@@ -141,6 +141,8 @@ def run(
     from graph.chains.generation import RAG_SYSTEM
     from graph.llm_factory import DEFAULT_PROVIDER, get_llm
 
+    # Before the run: describes the code that ran, not edits made while it ran.
+    git = git_info()
     generator = get_llm()
     provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     judge, judge_info = _judge_llm(generator, provider, _model_name(generator))
@@ -186,7 +188,7 @@ def run(
         "run_id": datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
         "label": label,
         "timestamp": datetime.now(UTC).isoformat(),
-        "git": git_info(),
+        "git": git,
         "config": {
             "llm_model": _model_name(generator),
             **judge_info,

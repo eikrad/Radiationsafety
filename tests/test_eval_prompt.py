@@ -322,3 +322,31 @@ def test_rejudging_against_other_contexts_than_the_answers_had_is_refused(
 
     assert code == 1
     assert not log.exists()
+
+
+def test_the_record_describes_the_code_as_it_was_when_the_test_started(monkeypatch):
+    import eval.history
+    import eval.prompt_test as prompt_test
+    import graph.llm_factory
+
+    _fake_models(monkeypatch, {"previous": {}, "revised": {}})
+    edited = []
+
+    def generate_while_someone_edits(prompt_value):
+        edited.append(True)
+        return "20 mSv"
+
+    monkeypatch.setattr(
+        graph.llm_factory,
+        "get_llm",
+        lambda: RunnableLambda(generate_while_someone_edits),
+    )
+    monkeypatch.setattr(
+        eval.history,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "b", "dirty": bool(edited)},
+    )
+
+    record = prompt_test.run([ANSWER], OUTPUTS, "test", 0)
+
+    assert record["git"]["dirty"] is False
