@@ -495,6 +495,22 @@ laptop `llama-server` held about 9.7 GB (5.0 in RAM, 4.7 swapped out), so
 questions waited on swap; the next step is a smaller answer model that fits
 the GPU.
 
+**Step P2: a local answer model that fits the GPU.** `qwen3.5:4b` (Ollama,
+3.3 GB, 201 languages) against `llama3.1:8b` (8 official languages, Danish
+not among them), with everything else as in `privacy-bge-m3-k5`: `bge-m3`,
+k = 5, a 12288-token window, the same judge. Local models now answer with
+thinking off (`think=false`), or qwen3.5's `<think>` blocks would end up in
+answers and grader JSON. The judge `qwen3.8-27b` is of the same family as
+the candidate, so both runs are also re-scored by `mistral-medium-3.5-128b`
+(neither Qwen nor Llama; it passed all 18 judge fixtures twice).
+Adoption rule, set before measuring: `qwen3.5:4b` becomes the privacy-mode
+default answer model if (1) its full run passes more questions than the
+llama run (20/39), with per-question changes and a sign test reported, and
+(2) under the `mistral-medium` judge it also passes more questions than
+llama does under that judge. Minutes per run and the share of the model in
+VRAM are reported alongside. `qwen3.5:9b` (6.6 GB) does not fit the 6 GB card
+and would spill into RAM like llama; only its memory footprint is checked.
+
 ---
 
 ## Phase 1 — Continuous Scoring
