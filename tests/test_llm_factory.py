@@ -291,6 +291,34 @@ def test_a_local_model_without_a_verdict_is_asked_once_more_for_the_json(monkeyp
     assert "JSON" in second[-1]["content"]
 
 
+def test_a_local_model_answers_without_thinking_first(monkeypatch):
+    """qwen3.5 thinks by default; its <think> block would end up in answers and
+    grader JSON, and cost time. llama3.1 accepts the switch and ignores it."""
+    import ollama
+
+    requests: list[dict] = []
+
+    def chat(self, *args, **kwargs):
+        requests.append(kwargs)
+        return iter(
+            [
+                {
+                    "model": "qwen3.5:4b",
+                    "created_at": "2026-10-11T12:00:00Z",
+                    "message": {"role": "assistant", "content": "20 mSv"},
+                    "done": True,
+                    "done_reason": "stop",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(ollama.Client, "chat", chat)
+
+    get_llm(provider="ollama").invoke("Hvad er dosisgrænsen?")
+
+    assert requests[0]["think"] is False
+
+
 # --- Embeddings chosen separately from the answer model ----------------------
 
 

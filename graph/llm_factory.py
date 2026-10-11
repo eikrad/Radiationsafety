@@ -262,6 +262,9 @@ def get_llm(
             temperature=0,
             base_url=base_url,
             num_ctx=ollama_num_ctx(),
+            # thinking models (qwen3.5) would put <think> blocks into answers and
+            # grader JSON; models without thinking ignore the switch
+            reasoning=False,
             client_kwargs={"timeout": timeout},
         )
 
