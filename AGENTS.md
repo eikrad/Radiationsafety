@@ -25,6 +25,7 @@ graph/nodes/             — retrieve, grade_documents, grade_generation, retrie
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
 graph/llm_factory.py     — LLM and embedding provider selection (Scaleway default; Gemini/OpenAI/Mistral/Ollama)
+graph/provider_status.py — per-provider readiness for GET /config (answer model, embedding key, search index)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population
@@ -84,9 +85,11 @@ RETRIEVE → GRADE_DOCUMENTS
 ## 3. Development Conventions
 
 - **Python**: `uv` for dependencies, `uv run pytest tests/ -v` for tests
-- **Frontend**: `npm -C frontend run test`, `npm -C frontend run build`
+- **Frontend**: `npm -C frontend run test`, `npm -C frontend run build` (type-checks first)
+- **Visual tests**: `npm -C frontend run test:visual:docker`; after an intended UI change, `npm -C frontend run test:visual:update` and commit the PNGs in `frontend/visual/__screenshots__/`
 - **Linting**: pre-commit hooks (`.pre-commit-config.yaml`)
 - **Environment variables**: always update `.env.example` when adding new variables
+- **Commit messages**: Conventional Commits (`feat:`, `fix:`, `feat!:`, `docs:`, `chore:` …), enforced in PRs; release-please derives versions and the CHANGELOG from them (see `docs/releasing.md`). Never edit version numbers by hand
 - **Chroma collections**: `radiation-iaea` and `radiation-dk-law` (Gemini) — do not rename without re-ingestion; other embeddings use suffixed pairs (`-ollama`, `-scw-<model>`)
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
 
