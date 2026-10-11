@@ -433,6 +433,43 @@ corpus lacks the amount, but with the web search on, the amount in the fee
 order on retsinformation.dk would be a good answer. Its label is defined
 relative to the corpus, not to the web search.
 
+## Privacy mode — local models (2026-10-11)
+
+The first full privacy-mode run (`llama3.1:8b`, `nomic-embed-text`) first
+exposed three faults, fixed in #160: Ollama cut every prompt to its own
+4096-token window (a 7241-token prompt was read as 4095 tokens), privacy-mode
+eval runs searched the web although the API keeps privacy mode off it, and
+the local Danish collection still held the chunks from before step 1. A
+rebuild while `llama3.1:8b` occupied the GPU then indexed the two guidance
+PDFs as 4 chunks instead of 636: docling could not run and ingestion fell
+back to pypdf without failing; with the GPU free the local index matches the
+Scaleway one chunk for chunk.
+The run itself (k = 4, `OLLAMA_NUM_CTX=8192`) was stopped after 35 of 39
+judged answers: 8 passed, 22 failed on retrieval (18 of the 22 Danish
+questions, 4 of 13 IAEA ones), against 1 retrieval miss in normal mode. The
+embedder is the bottleneck: `nomic-embed-text` v1.5 is English-only, and its
+model card says the text "must" carry a task prefix (`search_query:`,
+`search_document:`), which the code never added.
+
+**Step P1: a multilingual local embedder.** `bge-m3` (Ollama, 1.2 GB, more
+than 100 languages, 8K context, no instruction for dense retrieval) is
+compared with `nomic-embed-text` as it is today, retrieval-only, on the same
+chunks: its collections are re-embedded from the Scaleway index
+(`--reembed-from scaleway`), and local models now get collections of their
+own (`-ollama-<model>`; the default keeps `-ollama`). Questions are embedded
+on the CPU: next to `llama3.1:8b` on a 6 GB card, `bge-m3` on the GPU forced
+a reload of 4-7 s per switch, on the CPU a question takes 0.3 s with the
+same vector.
+Adoption rule, set before measuring: `bge-m3` becomes the privacy-mode
+default if, against `nomic-embed-text`, (1) it ranks the evidence higher for
+more questions than lower (sign test reported), (2) recall@5 rises overall
+and on the questions about Danish law (`source: dk-law`, either language),
+and (3) a full privacy-mode run at k = 5 then passes more questions than the
+stopped nomic run (8 of 35 judged). Otherwise `nomic-embed-text` with its
+task prefixes is the next candidate. Privacy-mode users would have to build
+the new collections (`ingestion.py`), which the "index not ready" message
+already tells them.
+
 ---
 
 ## Phase 1 — Continuous Scoring
