@@ -115,7 +115,9 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     """Return (iaea_collection_name, dk_collection_name) for the given embedding provider.
 
     Scaleway collections carry the model id (SCW_EMBED_MODEL), so several
-    Scaleway models can be built side by side and compared.
+    Scaleway models can be built side by side and compared. So do local ones
+    (OLLAMA_EMBED_MODEL), except the default nomic-embed-text, whose
+    collections keep the name privacy-mode users already have.
     """
     if embedding_provider == "scaleway":
         suffix = f"-scw-{get_embedding_model_name('scaleway')}"
@@ -123,7 +125,12 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     if embedding_provider == "mistral":
         return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
     if embedding_provider == "ollama":
-        return (f"{IAEA_COLLECTION}-ollama", f"{DK_LAW_COLLECTION}-ollama")
+        model = get_embedding_model_name("ollama").removesuffix(":latest")
+        suffix = "-ollama"
+        if model != "nomic-embed-text":
+            # Chroma allows letters, digits, '.', '_' and '-' in names
+            suffix += "-" + re.sub(r"[^A-Za-z0-9._-]", "-", model)
+        return (f"{IAEA_COLLECTION}{suffix}", f"{DK_LAW_COLLECTION}{suffix}")
     return (IAEA_COLLECTION, DK_LAW_COLLECTION)
 
 

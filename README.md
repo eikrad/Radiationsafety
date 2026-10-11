@@ -192,8 +192,8 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 2. Pull models:
    ```bash
-   ollama pull llama3.1:8b
-   ollama pull nomic-embed-text
+   ollama pull qwen3.5:4b
+   ollama pull bge-m3
    ```
 3. Set `LLM_PROVIDER=ollama` in `.env`
 4. Run ingestion (one-time, builds local embedding collections):
@@ -202,7 +202,7 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 5. Start backend and frontend as usual, select **Ollama (Local)** in the UI dropdown.
 
-Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist with the cloud collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
+Local collections (`radiation-iaea-ollama-bge-m3`, `radiation-dk-law-ollama-bge-m3`) coexist with the cloud collections. Upgrading from `nomic-embed-text` (English-only, the earlier default): pull `bge-m3` and run the ingestion again, or set `OLLAMA_EMBED_MODEL=nomic-embed-text` to keep the old collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
 
 ## Evaluation
 
