@@ -485,6 +485,15 @@ the JSON. The k = 5 run for condition 3 is repeated with a 12288-token
 window: privacy-mode prompts reach about 4200 tokens before
 `retrieve_missing`, and the smaller window keeps about half as much of the
 model in RAM.
+Confirmation (2026-10-11, full run `privacy-bge-m3-k5`, condition 3 met,
+**adopted**): 20/39 pass (the stopped nomic run: 8 of 35); retrieval misses
+22 → 4, evidence in the generator context 0.90. `bge-m3` is the privacy-mode
+default; `OLLAMA_EMBED_MODEL=nomic-embed-text` keeps the old collections.
+The failures are now the answer model's: 12 unsupported claims and 2
+generator misses from `llama3.1:8b`. The run took 94 minutes: on the 13 GB
+laptop `llama-server` held about 9.7 GB (5.0 in RAM, 4.7 swapped out), so
+questions waited on swap; the next step is a smaller answer model that fits
+the GPU.
 
 ---
 

@@ -178,14 +178,28 @@ class TestOllamaEmbeddingProvider:
             (["§ 1. Bekendtgørelsen gælder ..."], None),
         ]
 
-    def test_default_embed_model_is_nomic(self, monkeypatch):
-        """Without OLLAMA_EMBED_MODEL, default should be nomic-embed-text."""
+    def test_default_embed_model_is_multilingual(self, monkeypatch):
+        """bge-m3 (100+ languages) replaced the English-only nomic-embed-text:
+        recall@5 0.40 -> 0.90, on Danish law 0.18 -> 0.89 (ROADMAP, step P1)."""
         monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
         monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
         from graph.llm_factory import get_embeddings
+        from ingestion import get_collection_names
 
         emb = get_embeddings("ollama")
-        assert getattr(emb, "model", None) == "nomic-embed-text"
+        assert getattr(emb, "model", None) == "bge-m3"
+        assert get_collection_names("ollama") == (
+            "radiation-iaea-ollama-bge-m3",
+            "radiation-dk-law-ollama-bge-m3",
+        )
+
+    def test_a_missing_embedding_model_names_the_one_to_pull(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
+        from api.main import _ollama_error_detail
+
+        detail = _ollama_error_detail(Exception('model "bge-m3" not found (404)'))
+
+        assert "ollama pull bge-m3" in detail
 
 
 # ---------------------------------------------------------------------------
@@ -197,8 +211,8 @@ class TestOllamaCollections:
     """Ollama must use separate Chroma collections so cloud indexes are preserved."""
 
     def test_collection_names_have_ollama_suffix(self, monkeypatch):
-        """Ollama collections should have '-ollama' suffix."""
-        monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
+        """nomic-embed-text, the earlier default, keeps its '-ollama' collections."""
+        monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
         from ingestion import get_collection_names
 
         iaea, dk = get_collection_names("ollama")

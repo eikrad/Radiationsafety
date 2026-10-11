@@ -197,7 +197,7 @@ flowchart TD
 - Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The Gemini collection names (`radiation-iaea`, `radiation-dk-law`) and their suffixed variants must not be renamed without re-ingesting.
-- **Ollama mode** uses `nomic-embed-text` for embeddings and stores them in separate `radiation-iaea-ollama` and `radiation-dk-law-ollama` collections.
+- **Ollama mode** uses `bge-m3` for embeddings and stores them in separate `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` collections. Every local embedding model gets its own pair (`-ollama-<model>`); the earlier default `nomic-embed-text` keeps `radiation-iaea-ollama` / `radiation-dk-law-ollama`.
 
 ### Updating documents
 
@@ -269,8 +269,9 @@ The frontend can pass API keys directly (stored in `sessionStorage`, never persi
 When `LLM_PROVIDER=ollama`, the system uses local models and local embeddings — no data leaves your machine.
 
 - **LLM:** `llama3.1:8b` by default (configurable via `OLLAMA_MODEL`)
-- **Embeddings:** `nomic-embed-text` (configurable via `OLLAMA_EMBED_MODEL`)
-- **Collections:** `radiation-iaea-ollama` and `radiation-dk-law-ollama` (separate from cloud collections; requires a one-time re-ingestion)
+- **Embeddings:** `bge-m3`, multilingual (configurable via `OLLAMA_EMBED_MODEL`). Questions are embedded on the CPU so the answer model keeps the GPU; documents use the GPU while indexing.
+- **Collections:** `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` (separate from cloud collections; requires a one-time re-ingestion)
+- **Context window:** `OLLAMA_NUM_CTX` (default 16384); Ollama's own 4096 would cut longer prompts
 - **Auto-disabled:** LangSmith tracing and web search fallback
 
 Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud provider restores the original collections without re-ingestion.

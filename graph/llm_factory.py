@@ -370,7 +370,9 @@ def get_embedding_model_name(embedding_provider: str | None = None) -> str:
         else get_embedding_provider()
     )
     if ep == "ollama":
-        return (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "nomic-embed-text"
+        # multilingual; the English-only nomic-embed-text missed most Danish
+        # evidence (ROADMAP, privacy mode step P1)
+        return (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "bge-m3"
     if ep == "gemini":
         return "models/gemini-embedding-001"
     if ep == "scaleway":
