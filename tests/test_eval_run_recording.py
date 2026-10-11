@@ -747,3 +747,14 @@ def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
         not in _results(run)["iaea-transport-index"]["metrics"]
     )
     assert run["summary"]["grade_documents_ablation_correct_mean"] == 1.0
+
+
+def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_NUM_CTX", "8192")
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["llm_provider"] == "ollama"
+    assert run["config"]["llm_num_ctx"] == 8192

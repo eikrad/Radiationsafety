@@ -372,7 +372,7 @@ def _run_eval(
     from eval.history import prompt_fingerprints
     from graph.consts import env_bool
     from graph.graph import app as graph
-    from graph.llm_factory import get_llm
+    from graph.llm_factory import get_llm, ollama_num_ctx
     from ingestion import RETRIEVER_K
 
     graph_llm = get_llm()
@@ -384,6 +384,8 @@ def _run_eval(
             "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
+            # a local model reads at most this many tokens of the prompt
+            **({"llm_num_ctx": ollama_num_ctx()} if llm_provider == "ollama" else {}),
             **judge_info,
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),

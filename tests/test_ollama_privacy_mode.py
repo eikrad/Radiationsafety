@@ -80,6 +80,20 @@ class TestOllamaLLM:
         base_url = str(getattr(llm, "base_url", ""))
         assert "localhost" in base_url or "127.0.0.1" in base_url
 
+    def test_reads_the_whole_retrieved_context(self, monkeypatch):
+        """Ollama's own 4096-token window cut the k=5 prompts (up to ~7200
+        tokens) without a warning; the window defaults to 16384."""
+        monkeypatch.delenv("OLLAMA_NUM_CTX", raising=False)
+        from graph.llm_factory import get_llm
+
+        assert get_llm(provider="ollama").num_ctx == 16384
+
+    def test_context_window_can_be_set_for_a_small_gpu(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_NUM_CTX", "8192")
+        from graph.llm_factory import get_llm
+
+        assert get_llm(provider="ollama").num_ctx == 8192
+
     def test_ollama_in_allowed_providers(self):
         """'ollama' must be in ALLOWED_PROVIDERS."""
         from graph.llm_factory import ALLOWED_PROVIDERS
@@ -381,6 +395,7 @@ class TestEnvExample:
         assert "OLLAMA_BASE_URL" in content
         assert "OLLAMA_MODEL" in content
         assert "OLLAMA_EMBED_MODEL" in content
+        assert "OLLAMA_NUM_CTX" in content
 
     def test_env_example_mentions_privacy_mode(self):
         from pathlib import Path
