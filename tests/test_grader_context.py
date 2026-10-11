@@ -301,3 +301,34 @@ def test_no_generation_verdict_counts_as_not_passed():
         )
 
     assert out == {"generation_passed_grading": False, "reflection": "retry"}
+
+
+def test_no_sufficiency_verdict_after_another_search_counts_as_insufficient():
+    """llama3.1 sometimes replies {} to the sufficiency grader; retrieve_missing
+    let that end the whole request."""
+    from graph.nodes.retrieve_missing import retrieve_missing
+
+    with (
+        patch(
+            "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
+        ),
+        patch(
+            "graph.nodes.retrieve_missing.invoke_dual_retrievers", return_value=([], [])
+        ),
+        patch(
+            "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
+            return_value=_broken_grader(),
+        ),
+        patch("graph.nodes.retrieve_missing.throttle_llm_if_needed"),
+    ):
+        out = retrieve_missing(
+            {
+                "question": "q",
+                "documents": [LONG_CHUNK],
+                "llm": MagicMock(),
+                "chat_history": [],
+            }
+        )
+
+    assert out["sufficient_after_missing"] is False
+    assert out["documents"] == [LONG_CHUNK]
