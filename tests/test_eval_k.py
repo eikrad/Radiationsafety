@@ -124,3 +124,51 @@ def test_a_run_answers_each_question_from_both_contexts(monkeypatch):
     assert refuse_row["stratum"] == "should refuse"
     assert (refuse_row["k3"], refuse_row["k5"]) == (1.0, 0.0)
     assert record["summary"]["all"]["k5_better"] == 1
+
+
+def test_the_record_describes_the_code_as_it_was_when_the_test_started(monkeypatch):
+    import eval.history
+    import eval.judge
+    import eval.k_test as k_test
+    import eval.run_eval
+    import graph.chains.generation
+    import graph.llm_factory
+
+    docs = [Document(page_content="grænsen er 20 mSv pr. år")]
+    monkeypatch.setattr(
+        eval.run_eval, "_retrieve_ranked", lambda q, ep, depth: {"iaea": docs, "dk": []}
+    )
+    monkeypatch.setattr(graph.llm_factory, "get_llm", lambda: object())
+    monkeypatch.setattr(
+        eval.run_eval, "_judge_llm", lambda g, p, m: (object(), {"judge_model": "j"})
+    )
+    edited = []
+
+    class ChainWhileSomeoneEdits:
+        def invoke(self, inputs):
+            edited.append(True)
+            return "20 mSv"
+
+    monkeypatch.setattr(
+        graph.chains.generation,
+        "get_generation_chain",
+        lambda llm: ChainWhileSomeoneEdits(),
+    )
+    monkeypatch.setattr(
+        eval.judge,
+        "judge_item",
+        lambda item, answer, context, llm, votes=1: {
+            "nuggets": ["support"] * len(item["nuggets"]),
+            "unsupported_claims": [],
+            "refused": False,
+        },
+    )
+    monkeypatch.setattr(
+        eval.history,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "b", "dirty": bool(edited)},
+    )
+
+    record = k_test.run([ANSWER], "test", delay_sec=0)
+
+    assert record["git"]["dirty"] is False

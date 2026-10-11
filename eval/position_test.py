@@ -119,6 +119,8 @@ def run(golden: list[dict], label: str | None, delay_sec: float) -> dict:
     from eval.run_eval import _judge_llm, _model_name, _retrieve_initial
     from graph.llm_factory import DEFAULT_PROVIDER, get_embedding_provider, get_llm
 
+    # Before the run: describes the code that ran, not edits made while it ran.
+    git = git_info()
     generator = get_llm()
     provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     judge, judge_info = _judge_llm(generator, provider, _model_name(generator))
@@ -163,7 +165,7 @@ def run(golden: list[dict], label: str | None, delay_sec: float) -> dict:
         "run_id": datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
         "label": label,
         "timestamp": datetime.now(UTC).isoformat(),
-        "git": git_info(),
+        "git": git,
         "config": {
             "llm_model": _model_name(generator),
             **judge_info,
