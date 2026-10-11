@@ -131,6 +131,9 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
 # stalled provider call could hold a /query open for half an hour.
 _DEFAULT_REQUEST_TIMEOUT_SEC = 60.0
 _DEFAULT_OLLAMA_TIMEOUT_SEC = 300.0  # local models on a CPU answer slowly
+# Ollama's own window (4096) cut longer prompts silently; at k=5 the first
+# retrieval alone reaches ~4200 tokens, and retrieve_missing adds chunks
+_DEFAULT_OLLAMA_NUM_CTX = 16384
 _DEFAULT_MAX_RETRIES = 1
 
 
@@ -140,6 +143,13 @@ def _env_number(name: str, default: float) -> float:
     except ValueError:
         return default
     return value if value >= 0 else default
+
+
+def ollama_num_ctx() -> int:
+    """Context window of the local model in tokens (OLLAMA_NUM_CTX)."""
+    return int(_env_number("OLLAMA_NUM_CTX", _DEFAULT_OLLAMA_NUM_CTX)) or (
+        _DEFAULT_OLLAMA_NUM_CTX
+    )
 
 
 def request_timeout() -> float:
@@ -239,6 +249,7 @@ def get_llm(
             model=model,
             temperature=0,
             base_url=base_url,
+            num_ctx=ollama_num_ctx(),
             client_kwargs={"timeout": timeout},
         )
 

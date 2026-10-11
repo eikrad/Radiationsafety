@@ -747,3 +747,39 @@ def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
         not in _results(run)["iaea-transport-index"]["metrics"]
     )
     assert run["summary"]["grade_documents_ablation_correct_mean"] == 1.0
+
+
+def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_NUM_CTX", "8192")
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["llm_provider"] == "ollama"
+    assert run["config"]["llm_num_ctx"] == 8192
+
+
+def test_a_privacy_mode_run_is_recorded_without_web_search(monkeypatch, workspace):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    # _run passes --no-web-search, which would hide the point of this test
+    argv = [
+        "run_eval",
+        "--golden",
+        str(workspace.golden),
+        "--output-dir",
+        str(workspace.reports),
+        "--history-file",
+        str(workspace.history),
+        "--delay-after-graph",
+        "0",
+        "--delay-between-items",
+        "0",
+    ]
+    monkeypatch.setattr("sys.argv", argv)
+
+    assert run_eval.main() == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["web_search"] is False

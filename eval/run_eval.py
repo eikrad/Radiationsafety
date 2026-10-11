@@ -136,7 +136,15 @@ def _invoke_graph(question: str, graph, llm) -> dict:
         llm=llm,
         embedding_provider=get_embedding_provider(),
         config=config,
+        privacy_mode=_privacy_mode(),
     )
+
+
+def _privacy_mode() -> bool:
+    """LLM_PROVIDER=ollama: fully local, as the API runs it (no web search)."""
+    from graph.llm_factory import DEFAULT_PROVIDER
+
+    return (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower() == "ollama"
 
 
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
@@ -372,7 +380,7 @@ def _run_eval(
     from eval.history import prompt_fingerprints
     from graph.consts import env_bool
     from graph.graph import app as graph
-    from graph.llm_factory import get_llm
+    from graph.llm_factory import get_llm, ollama_num_ctx
     from ingestion import RETRIEVER_K
 
     graph_llm = get_llm()
@@ -384,11 +392,14 @@ def _run_eval(
             "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
+            # a local model reads at most this many tokens of the prompt
+            **({"llm_num_ctx": ollama_num_ctx()} if llm_provider == "ollama" else {}),
             **judge_info,
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
-            "web_search": env_bool("WEB_SEARCH_ENABLED"),
+            # privacy mode keeps the graph off the web whatever the switch says
+            "web_search": env_bool("WEB_SEARCH_ENABLED") and not _privacy_mode(),
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
