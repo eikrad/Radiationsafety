@@ -469,6 +469,22 @@ stopped nomic run (8 of 35 judged). Otherwise `nomic-embed-text` with its
 task prefixes is the next candidate. Privacy-mode users would have to build
 the new collections (`ingestion.py`), which the "index not ready" message
 already tells them.
+Retrieval-only result (2026-10-11, `privacy-emb-nomic` vs
+`privacy-emb-bge-m3`, conditions 1 and 2 met): evidence ranked higher for 25
+questions and lower for 3 (sign test p < 0.001); recall@5 0.40 → 0.90, on
+Danish law 0.18 → 0.89, IAEA 0.82 → 0.91; recall@1 0.17 → 0.47, MRR
+0.28 → 0.66 (Scaleway's `bge-multilingual-gemma2`: recall@5 0.97).
+The first two full runs for condition 3 did not finish. At k = 5 with the
+default 16384-token window the kernel's OOM killer stopped Ollama after 20
+answers: on the 13 GB test laptop `llama3.1:8b` held 6.2 GB of RAM next to
+`bge-m3` on the CPU and the other programs. At k = 4 (8192 tokens) llama
+replied `{}` to the sufficiency grader in `retrieve_missing`, which, unlike
+the other graders, let the error end the request; it now counts a missing
+verdict as insufficient, and Ollama, like Scaleway, is asked once more for
+the JSON. The k = 5 run for condition 3 is repeated with a 12288-token
+window: privacy-mode prompts reach about 4200 tokens before
+`retrieve_missing`, and the smaller window keeps about half as much of the
+model in RAM.
 
 ---
 
