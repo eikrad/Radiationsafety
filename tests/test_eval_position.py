@@ -125,3 +125,52 @@ def test_a_run_answers_each_question_twice_and_skips_what_cannot_be_moved(monkey
     [row] = record["rows"]
     assert (row["first"], row["middle"], row["evidence_at"]) == (1.0, 0.0, [2])
     assert record["summary"]["first_better"] == 1
+
+
+def test_the_record_describes_the_code_as_it_was_when_the_test_started(monkeypatch):
+    import eval.history
+    import eval.judge
+    import eval.position_test as position_test
+    import eval.run_eval
+    import graph.chains.generation
+    import graph.llm_factory
+
+    monkeypatch.setattr(
+        eval.run_eval,
+        "_retrieve_initial",
+        lambda q, ep: _docs("IAEA one", "grænsen er 20 mSv pr. år", "other"),
+    )
+    monkeypatch.setattr(graph.llm_factory, "get_llm", lambda: object())
+    monkeypatch.setattr(
+        eval.run_eval, "_judge_llm", lambda g, p, m: (object(), {"judge_model": "j"})
+    )
+    edited = []
+
+    class ChainWhileSomeoneEdits:
+        def invoke(self, inputs):
+            edited.append(True)
+            return "20 mSv"
+
+    monkeypatch.setattr(
+        graph.chains.generation,
+        "get_generation_chain",
+        lambda llm: ChainWhileSomeoneEdits(),
+    )
+    monkeypatch.setattr(
+        eval.judge,
+        "judge_item",
+        lambda item, answer, context, llm, votes=1: {
+            "nuggets": ["support", "not_support"],
+            "unsupported_claims": [],
+            "refused": False,
+        },
+    )
+    monkeypatch.setattr(
+        eval.history,
+        "git_info",
+        lambda: {"commit": "abc1234", "branch": "b", "dirty": bool(edited)},
+    )
+
+    record = position_test.run([ITEM], "test", delay_sec=0)
+
+    assert record["git"]["dirty"] is False

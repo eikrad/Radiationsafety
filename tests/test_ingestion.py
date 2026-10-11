@@ -1,5 +1,6 @@
 """Ingestion pipeline tests."""
 
+import os
 from types import SimpleNamespace
 
 import ingestion
@@ -531,3 +532,136 @@ def test_a_pdf_is_backed_up_only_when_the_download_differs(tmp_path):
 
     ingestion._backup_previous(current, newer, backups, "gsr-3", "pdf")
     assert [p.read_bytes() for p in backups.iterdir()] == [b"%PDF v1"]
+
+
+def _docling_that_fails(monkeypatch, error="CUDA out of memory"):
+    """docling as it behaved with the GPU full: its models could not run."""
+
+    class Tokenizer:
+        @classmethod
+        def from_pretrained(cls, **kwargs):
+            return cls()
+
+    class FailingLoader:
+        def __init__(self, **kwargs):
+            pass
+
+        def load(self):
+            raise RuntimeError(error)
+
+    monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
+    monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
+    monkeypatch.setattr(ingestion, "DoclingLoader", FailingLoader)
+
+
+def _one_guidance_pdf(monkeypatch, tmp_path):
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    (folder / "vejledning.pdf").write_bytes(b"%PDF-1.4 not really")
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+
+def test_a_pdf_docling_cannot_read_stops_the_ingestion_and_names_the_file(
+    monkeypatch, tmp_path
+):
+    """2026-10-11: with the GPU full, two guidance PDFs fell back to pypdf and
+    were indexed as 4 chunks instead of 636, and ingestion reported success."""
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_guidance_pdf(monkeypatch, tmp_path)
+    _docling_that_fails(monkeypatch)
+
+    with pytest.raises(RuntimeError, match="vejledning.pdf") as stopped:
+        ingestion.load_dk_law_docs()
+
+    assert "CUDA out of memory" in str(stopped.value)
+    assert "--allow-pypdf-fallback" in str(stopped.value)
+
+
+def test_with_the_fallback_allowed_the_pdf_is_read_as_plain_text(monkeypatch, tmp_path):
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    _one_guidance_pdf(monkeypatch, tmp_path)
+    _docling_that_fails(monkeypatch)
+
+    class Page:
+        def extract_text(self):
+            return "1. Indledning. Vejledningen beskriver brug af åbne kilder."
+
+    monkeypatch.setattr(
+        ingestion, "PdfReader", lambda path: type("R", (), {"pages": [Page()]})()
+    )
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    docs = ingestion.load_dk_law_docs()
+
+    assert [d.page_content for d in docs] == [
+        "1. Indledning. Vejledningen beskriver brug af åbne kilder."
+    ]
+
+
+def test_the_fallback_is_allowed_from_the_command_line(monkeypatch):
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    seen = {}
+
+    def ingest(dk_only=False):
+        seen["allowed"] = os.environ.get("INGEST_ALLOW_PYPDF_FALLBACK")
+        seen["dk_only"] = dk_only
+
+    monkeypatch.setattr(ingestion, "ingest", ingest)
+
+    ingestion.main(["--dk-only", "--allow-pypdf-fallback"])
+
+    assert seen == {"allowed": "true", "dk_only": True}
+
+
+def test_a_pdf_that_yields_almost_no_text_is_reported(monkeypatch, tmp_path, capsys):
+    """The scanned guidance PDF (2.4 MB) came out of docling as one chunk of 65
+    characters when its OCR could not run; nothing said so."""
+    _one_guidance_pdf(monkeypatch, tmp_path)
+
+    class Tokenizer:
+        @classmethod
+        def from_pretrained(cls, **kwargs):
+            return cls()
+
+    class NearlyEmptyLoader:
+        def __init__(self, **kwargs):
+            pass
+
+        def load(self):
+            return [ingestion.Document(page_content="Sundhedsstyrelsen, 2025")]
+
+    monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
+    monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
+    monkeypatch.setattr(ingestion, "DoclingLoader", NearlyEmptyLoader)
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    ingestion.load_dk_law_docs()
+
+    out = capsys.readouterr().out
+    assert "vejledning.pdf" in out and "almost no text" in out
+
+
+def test_a_docling_failure_leaves_the_existing_collections_untouched(monkeypatch):
+    """ingest() emptied the collections before reading the documents, so a stop
+    while reading would have left the app with no Danish index at all."""
+    cleared = []
+    monkeypatch.setattr(ingestion, "get_embedding_provider", lambda *a: "scaleway")
+    monkeypatch.setattr(
+        ingestion, "_clear_chroma_collections", lambda *a, **k: cleared.append(k)
+    )
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep: object())
+    monkeypatch.setattr(
+        ingestion, "_load_docs_from_registry", lambda include_iaea=True: ([], [])
+    )
+    monkeypatch.setattr(ingestion, "load_iaea_docs", lambda: [])
+    monkeypatch.setattr(ingestion, "_add_documents_rate_limited", lambda *a, **k: None)
+
+    def unreadable(skip_law_keys=frozenset()):
+        raise ingestion.DoclingFailedError("docling could not read vejledning.pdf")
+
+    monkeypatch.setattr(ingestion, "load_dk_law_docs", unreadable)
+
+    with pytest.raises(ingestion.DoclingFailedError):
+        ingestion.ingest()
+
+    assert cleared == []

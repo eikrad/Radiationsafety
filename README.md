@@ -13,7 +13,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **Web search fallback** — Brave Search kicks in when local documents don't cover the query
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
-- **Evaluation harness** — RAGAS-style scoring (faithfulness, relevance, precision, recall) against a golden Q&A dataset
+- **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
 
 ## How it works
 
@@ -74,9 +74,12 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 
 | File | What it covers |
 |------|----------------|
+| [docs/README.md](docs/README.md) | Index of all documentation |
 | [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes — with Mermaid diagrams |
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
-| [docs/maintenance.md](docs/maintenance.md) | Dependency upgrade notes and document update procedures |
+| [docs/maintenance.md](docs/maintenance.md) | Dated log of dependency checks and upgrade notes |
+| [docs/releasing.md](docs/releasing.md) | How versions, tags and the CHANGELOG are produced |
+| [eval/README.md](eval/README.md) | Evaluation harness |
 
 ## Ingestion overview
 
@@ -144,6 +147,8 @@ Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDE
    uv run python ingestion.py --dk-only
    ```
 
+   PDFs are read with docling (layout and OCR). If docling cannot read one, for example because a local model fills the GPU, ingestion stops and names the file before any collection is emptied. Free the GPU and run it again, or pass `--allow-pypdf-fallback` to index that PDF as plain text (a scanned PDF then gives no text). A PDF that yields almost no text is reported as well.
+
 4. Start the backend:
    ```bash
    uv run uvicorn api.main:app --reload --port 8000
@@ -189,8 +194,8 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 2. Pull models:
    ```bash
-   ollama pull llama3.1:8b
-   ollama pull nomic-embed-text
+   ollama pull qwen3.5:4b
+   ollama pull bge-m3
    ```
 3. Set `LLM_PROVIDER=ollama` in `.env`
 4. Run ingestion (one-time, builds local embedding collections):
@@ -199,7 +204,7 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 5. Start backend and frontend as usual, select **Ollama (Local)** in the UI dropdown.
 
-Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist with the cloud collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
+Local collections (`radiation-iaea-ollama-bge-m3`, `radiation-dk-law-ollama-bge-m3`) coexist with the cloud collections. Upgrading from `nomic-embed-text` (English-only, the earlier default): pull `bge-m3` and run the ingestion again, or set `OLLAMA_EMBED_MODEL=nomic-embed-text` to keep the old collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
 
 ## Evaluation
 

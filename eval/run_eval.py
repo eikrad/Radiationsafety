@@ -86,6 +86,10 @@ NUMERIC_METRICS = (
 )
 
 
+# Ollama restarts itself after a crash (e.g. the OOM killer); then ask once more
+_GRAPH_RETRY_WAIT_SEC = 10.0
+
+
 def _is_rate_limit_error(e: BaseException) -> bool:
     msg = str(e).lower()
     return (
@@ -124,6 +128,37 @@ def _invoke_with_retry(fn, *args, **kwargs):
     raise last_error
 
 
+def _is_connection_error(e: BaseException) -> bool:
+    """A dropped or refused connection, also when wrapped in another error."""
+    import httpx
+
+    current: BaseException | None = e
+    while current is not None:
+        if isinstance(current, ConnectionError | httpx.TransportError):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
+def _answer(item: dict, graph, llm) -> dict:
+    """The graph's output for one question, or a record of why it failed: one
+    question must not end a run that has answered the others. A dropped
+    connection is tried once more (Ollama restarts itself after a crash)."""
+    for attempt in (1, 2):
+        try:
+            return _invoke_with_retry(_invoke_graph, item["question"], graph, llm)
+        except Exception as e:
+            if attempt == 1 and _is_connection_error(e):
+                print(
+                    f"  {item['id']}: {type(e).__name__}, trying once more",
+                    file=sys.stderr,
+                )
+                time.sleep(_GRAPH_RETRY_WAIT_SEC)
+                continue
+            return {"generation": "", "error": f"{type(e).__name__}: {e}"}
+    raise AssertionError("unreachable")
+
+
 def _invoke_graph(question: str, graph, llm) -> dict:
     """Run graph for one question; final answer plus first retrieval, sufficiency and node path."""
     from eval.graph_run import run_graph
@@ -136,7 +171,15 @@ def _invoke_graph(question: str, graph, llm) -> dict:
         llm=llm,
         embedding_provider=get_embedding_provider(),
         config=config,
+        privacy_mode=_privacy_mode(),
     )
+
+
+def _privacy_mode() -> bool:
+    """LLM_PROVIDER=ollama: fully local, as the API runs it (no web search)."""
+    from graph.llm_factory import DEFAULT_PROVIDER
+
+    return (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower() == "ollama"
 
 
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
@@ -269,24 +312,30 @@ def score_outputs(
     results = []
     for n, item in enumerate(golden, start=1):
         run = outputs[item["id"]]
-        verdict = _invoke_with_retry(
-            judge_item,
-            item,
-            run["generation"],
-            run.get("context_used_for_generation") or "",
-            judge_llm,
-            votes=votes,
-        )
-        scores = score_item(
-            item,
-            {
-                "initial_documents": run.get("initial_documents") or [],
-                "context": run.get("context_used_for_generation") or "",
-                "sufficient": run.get("sufficient"),
-                "retrieval_warning": run.get("retrieval_warning"),
-            },
-            verdict,
-        )
+        output = {
+            "initial_documents": run.get("initial_documents") or [],
+            "context": run.get("context_used_for_generation") or "",
+            "sufficient": run.get("sufficient"),
+            "retrieval_warning": run.get("retrieval_warning"),
+        }
+        if run.get("error"):
+            # the graph crashed: nothing to judge, and a user would have got no answer
+            verdict = None
+            scores = {
+                **score_item(item, output, None),
+                "error_type": "graph_error",
+                "pass": False,
+            }
+        else:
+            verdict = _invoke_with_retry(
+                judge_item,
+                item,
+                run["generation"],
+                output["context"],
+                judge_llm,
+                votes=votes,
+            )
+            scores = score_item(item, output, verdict)
         results.append(_result(item, run, scores, verdict))
         print(
             f"  [{n}/{len(golden)}] judged {item['id']}: {scores['error_type']}",
@@ -315,6 +364,7 @@ def _result(item: dict, run: dict, scores: dict, verdict: dict | None) -> dict:
         "retrieval_warning": run.get("retrieval_warning"),
         "web_search_attempted": run.get("web_search_attempted", False),
         "node_path": run.get("node_path") or [],
+        "error": run.get("error"),
         # the raw verdict, so a failure can be checked without re-judging
         "judge": verdict,
     }
@@ -372,7 +422,7 @@ def _run_eval(
     from eval.history import prompt_fingerprints
     from graph.consts import env_bool
     from graph.graph import app as graph
-    from graph.llm_factory import get_llm
+    from graph.llm_factory import get_llm, ollama_num_ctx
     from ingestion import RETRIEVER_K
 
     graph_llm = get_llm()
@@ -384,11 +434,14 @@ def _run_eval(
             "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
+            # a local model reads at most this many tokens of the prompt
+            **({"llm_num_ctx": ollama_num_ctx()} if llm_provider == "ollama" else {}),
             **judge_info,
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
-            "web_search": env_bool("WEB_SEARCH_ENABLED"),
+            # privacy mode keeps the graph off the web whatever the switch says
+            "web_search": env_bool("WEB_SEARCH_ENABLED") and not _privacy_mode(),
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
@@ -409,11 +462,10 @@ def _run_eval(
     outputs: dict[str, dict] = {}
     for n, item in enumerate(golden, start=1):
         started = time.monotonic()
-        outputs[item["id"]] = _invoke_with_retry(
-            _invoke_graph, item["question"], graph, graph_llm
-        )
+        outputs[item["id"]] = _answer(item, graph, graph_llm)
+        status = "failed" if outputs[item["id"]].get("error") else "answered"
         print(
-            f"  [{n}/{len(golden)}] answered {item['id']} "
+            f"  [{n}/{len(golden)}] {status} {item['id']} "
             f"({time.monotonic() - started:.1f} s)",
             file=sys.stderr,
         )
@@ -421,6 +473,10 @@ def _run_eval(
             time.sleep(delay_after_graph_sec)
         if delay_between_items_sec > 0 and item is not golden[-1]:
             time.sleep(delay_between_items_sec)
+    errors = [o["error"] for o in outputs.values() if o.get("error")]
+    if errors and len(errors) == len(outputs):
+        # nothing was answered: a broken setup, not a measurement
+        raise RuntimeError(f"Every question failed; the first: {errors[0]}")
     save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
     results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])

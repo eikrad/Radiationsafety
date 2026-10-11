@@ -194,11 +194,11 @@ def _is_timeout(exc: BaseException) -> bool:
 
 def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
     """Return a user-friendly error message for Ollama failures."""
-    import os
-
     err = str(exc).lower()
-    llm_model = model_variant or os.getenv("OLLAMA_MODEL") or "llama3.1:8b"
-    embed_model = os.getenv("OLLAMA_EMBED_MODEL") or "nomic-embed-text"
+    from graph.llm_factory import get_embedding_model_name, ollama_model_name
+
+    llm_model = model_variant or ollama_model_name()
+    embed_model = get_embedding_model_name("ollama")
     if "not found" in err or "404" in err:
         # Which model? Check if it's the embedding or LLM model
         if embed_model.lower() in err:
@@ -207,8 +207,7 @@ def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> st
                 f"Run: ollama pull {embed_model}"
             )
         return (
-            f"Ollama model '{llm_model}' is not installed. "
-            f"Run: ollama pull {llm_model}"
+            f"Ollama model '{llm_model}' is not installed. Run: ollama pull {llm_model}"
         )
     if "connect" in type(exc).__name__.lower() or "connection refused" in err:
         return "Ollama is not running. Start it with: ollama serve"
@@ -546,7 +545,7 @@ async def documents_add_pdf(
     if len(content) > _MAX_PDF_UPLOAD_BYTES:
         raise HTTPException(
             status_code=400,
-            detail=f"PDF must be at most {_MAX_PDF_UPLOAD_BYTES // (1024*1024)} MB.",
+            detail=f"PDF must be at most {_MAX_PDF_UPLOAD_BYTES // (1024 * 1024)} MB.",
         )
     safe_name = (
         "".join(c for c in file.filename if c.isalnum() or c in "._- ").strip()

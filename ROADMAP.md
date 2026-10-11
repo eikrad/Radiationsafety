@@ -335,6 +335,203 @@ Each step states its adoption rule before the measurement; parameters are not
 tuned (RRF k = 60, fixed header format). A change that wins is switched on by
 default in its own small PR.
 
+## Generation — after retrieval (2026-10-10)
+
+**The generation prompt (#145).** In the full run `k5` (32/39) the vital
+evidence reached the generator for 34 of 35 answerable questions; 6 of the 7
+failures happened after retrieval. The judge's reasons show what went wrong:
+the three unsupported claims are legal conditions restated with a different
+meaning ("samt efter indgreb" became "eller efter indgreb", "kan medvirke til"
+became "nødvendigt", "anlægget" became "området", and in the same answer
+GSR-7's "shall" became "bør"); pre-disposal steps left out "from generation up
+to disposal"; the MRI question was answered from two web pages; the power-line
+question was refused, but the refusal added a related figure misquoted (< 1 %
+for 1 %). The prompt had a typo in its key rule ("Uso only information"),
+said nothing about scope or jurisdiction, and nothing about facts on topic but
+absent from the context.
+
+The revised prompt (`graph/chains/generation.py`) adds numbered rules: only
+the context; keep the meaning of requirements, conditions, definitions and
+limits exact (how binding, how conditions combine, what or whom a rule
+applies to, numbers, units, references); say whether a statement is Danish
+or IAEA, an IAEA requirement is not a Danish rule; give a definition or list
+asked for in full; name what the context does not answer and do not fill the
+gap; non-ionising radiation is out of scope even if a web source answers it.
+The rules name categories, not the words of the failed answers (no "samt",
+no MRI, no power lines), so that the measurement on these same questions
+does not reward a prompt written for them. Trust-Score found that prompting
+alone does not stop models from answering from their own knowledge, and
+GroUSE that over-refusal is a failure mode of its own; so the change is
+measured, including for refusals of answerable questions.
+
+`eval.prompt_test` replays the context each question's generator saw in the
+`k5` run (web results included) and answers it with the previous and the
+revised prompt; only the prompt differs. Both answers are scored as in a
+full run, with 3 groundedness votes.
+Adoption rule, set before measuring: the revised prompt is kept if, on the
+39 replayed contexts, (1) fewer answers carry an unsupported claim; (2) on
+lenient vital recall it scores lower on at most 1 more answerable question
+than it scores higher; (3) all 4 questions to refuse are refused without an
+unsupported claim (the two out-of-scope questions answered in `k5`
+included); (4) no more answerable questions are refused although their
+evidence was in the context (`wrong_refusal`); and then (5) a full run passes
+at least 32/39. Otherwise the previous prompt returns with only the typo
+fixed, and a scope check before retrieval (#150) is the next step for the
+refusals. The caveat stays: the rules come from the failures of the same 39
+questions, so a held-out check needs new golden questions (#133).
+First measurement (2026-10-10, `prompt-145`, rule not met): passed 33 → 35;
+lenient vital recall higher on 3 answerable questions (emergency exposure,
+pre-disposal steps, safety-assessment definition), lower on none; no
+`wrong_refusal` with either prompt. Conditions 1 and 3 failed: 3 answers with
+an unsupported claim for each prompt, and 1 clean refusal of 4 (previous 2).
+The revised prompt refused all 4 questions to refuse, but the judge flagged
+the refusal itself in the three out-of-scope answers: "non-ionising radiation
+is outside the scope of the provided documents" counted as contradicted,
+because the context held web pages on MRI SAR, laser classes and power-line
+fields. The judge exempts "the information is missing" from unsupported
+claims, not "this is out of scope", so it would flag the expected answer in
+`golden.json` too. On answerable questions the revised prompt had no
+unsupported claim (previous 1). Decision: not adopted on this measurement.
+The judge gets a narrow fix, checked on new calibration fixtures with a
+different topic (not on these answers), and the saved answers of both prompts
+are judged again under the same rule.
+Judge fix (2026-10-11): statements that a question lies outside the scope of
+the documents, and why, are no longer unsupported claims, and such an answer
+counts as a refusal. Two fixtures on UV tanning beds check it: a scope refusal
+despite an answering web source (failed 3 of 3 runs before, passes after) and
+a scope refusal that adds a wrong standard number (must still be flagged);
+all 18 fixtures pass twice with `qwen3.8-27b`.
+Second measurement (2026-10-11, `prompt-145-rejudged`, the same answers judged
+again, rule met on all four conditions): passed 34 → 38; answers with an
+unsupported claim 1 → 0 (the previous prompt's power-line refusal with the
+misquoted "< 1 %"); clean refusals 2 → 4 of 4; lenient vital recall higher on
+2 answerable questions, lower on none; no `wrong_refusal`. The area
+classification answer of the previous prompt was flagged in the first
+judging and not in the second: judge noise, which the paired design puts on
+both prompts alike.
+Confirmation (2026-10-11, full run `prompt-145`): 38/39 pass (`k5`: 32/39),
+vital recall 0.98 → 1.00; the one failure is the known retrieval miss
+(safety-assessment definition). Part of the gain is the judge fix, which
+`k5` did not have: under the fixed judge the previous prompt reached 34/39 on
+the replayed contexts, so the prompt's own share is about 34 → 38, from one
+full run. **Adopted**: the revised prompt is the default.
+
+**Scope: the web search widens sources, not the topic (2026-10-11).** A
+refusal "even if a web source in the context answers it" raises the
+question what the web search is for. It fills gaps of the index within the
+subject: IAEA publications that are not indexed, newer versions, other
+Danish orders and SST guidance; there `verify_trusted` can check the answer
+against iaea.org, retsinformation.dk and sst.dk. Non-ionising radiation
+belongs to other authorities and standards (Arbejdstilsynet, ICNIRP, IEC),
+which the system cannot verify against, and answering it would turn the RAG
+into a general web search. So questions outside ionising radiation are
+refused whatever the web search finds. The out-of-scope questions still
+reach the web search before they are refused; a scope check before retrieval
+(#150) would save those calls. Open for the golden set: the annual fee
+question (`dk-fee-open-sources-amount`) is labelled "refuse" because the
+corpus lacks the amount, but with the web search on, the amount in the fee
+order on retsinformation.dk would be a good answer. Its label is defined
+relative to the corpus, not to the web search.
+
+## Privacy mode — local models (2026-10-11)
+
+The first full privacy-mode run (`llama3.1:8b`, `nomic-embed-text`) first
+exposed three faults, fixed in #160: Ollama cut every prompt to its own
+4096-token window (a 7241-token prompt was read as 4095 tokens), privacy-mode
+eval runs searched the web although the API keeps privacy mode off it, and
+the local Danish collection still held the chunks from before step 1. A
+rebuild while `llama3.1:8b` occupied the GPU then indexed the two guidance
+PDFs as 4 chunks instead of 636: docling could not run and ingestion fell
+back to pypdf without failing; with the GPU free the local index matches the
+Scaleway one chunk for chunk.
+The run itself (k = 4, `OLLAMA_NUM_CTX=8192`) was stopped after 35 of 39
+judged answers: 8 passed, 22 failed on retrieval (18 of the 22 Danish
+questions, 4 of 13 IAEA ones), against 1 retrieval miss in normal mode. The
+embedder is the bottleneck: `nomic-embed-text` v1.5 is English-only, and its
+model card says the text "must" carry a task prefix (`search_query:`,
+`search_document:`), which the code never added.
+
+**Step P1: a multilingual local embedder.** `bge-m3` (Ollama, 1.2 GB, more
+than 100 languages, 8K context, no instruction for dense retrieval) is
+compared with `nomic-embed-text` as it is today, retrieval-only, on the same
+chunks: its collections are re-embedded from the Scaleway index
+(`--reembed-from scaleway`), and local models now get collections of their
+own (`-ollama-<model>`; the default keeps `-ollama`). Questions are embedded
+on the CPU: next to `llama3.1:8b` on a 6 GB card, `bge-m3` on the GPU forced
+a reload of 4-7 s per switch, on the CPU a question takes 0.3 s with the
+same vector.
+Adoption rule, set before measuring: `bge-m3` becomes the privacy-mode
+default if, against `nomic-embed-text`, (1) it ranks the evidence higher for
+more questions than lower (sign test reported), (2) recall@5 rises overall
+and on the questions about Danish law (`source: dk-law`, either language),
+and (3) a full privacy-mode run at k = 5 then passes more questions than the
+stopped nomic run (8 of 35 judged). Otherwise `nomic-embed-text` with its
+task prefixes is the next candidate. Privacy-mode users would have to build
+the new collections (`ingestion.py`), which the "index not ready" message
+already tells them.
+Retrieval-only result (2026-10-11, `privacy-emb-nomic` vs
+`privacy-emb-bge-m3`, conditions 1 and 2 met): evidence ranked higher for 25
+questions and lower for 3 (sign test p < 0.001); recall@5 0.40 → 0.90, on
+Danish law 0.18 → 0.89, IAEA 0.82 → 0.91; recall@1 0.17 → 0.47, MRR
+0.28 → 0.66 (Scaleway's `bge-multilingual-gemma2`: recall@5 0.97).
+The first two full runs for condition 3 did not finish. At k = 5 with the
+default 16384-token window the kernel's OOM killer stopped Ollama after 20
+answers: on the 13 GB test laptop `llama3.1:8b` held 6.2 GB of RAM next to
+`bge-m3` on the CPU and the other programs. At k = 4 (8192 tokens) llama
+replied `{}` to the sufficiency grader in `retrieve_missing`, which, unlike
+the other graders, let the error end the request; it now counts a missing
+verdict as insufficient, and Ollama, like Scaleway, is asked once more for
+the JSON. The k = 5 run for condition 3 is repeated with a 12288-token
+window: privacy-mode prompts reach about 4200 tokens before
+`retrieve_missing`, and the smaller window keeps about half as much of the
+model in RAM.
+Confirmation (2026-10-11, full run `privacy-bge-m3-k5`, condition 3 met,
+**adopted**): 20/39 pass (the stopped nomic run: 8 of 35); retrieval misses
+22 → 4, evidence in the generator context 0.90. `bge-m3` is the privacy-mode
+default; `OLLAMA_EMBED_MODEL=nomic-embed-text` keeps the old collections.
+The failures are now the answer model's: 12 unsupported claims and 2
+generator misses from `llama3.1:8b`. The run took 94 minutes: on the 13 GB
+laptop `llama-server` held about 9.7 GB (5.0 in RAM, 4.7 swapped out), so
+questions waited on swap; the next step is a smaller answer model that fits
+the GPU.
+
+**Step P2: a local answer model that fits the GPU.** `qwen3.5:4b` (Ollama,
+3.3 GB, 201 languages) against `llama3.1:8b` (8 official languages, Danish
+not among them), with everything else as in `privacy-bge-m3-k5`: `bge-m3`,
+k = 5, a 12288-token window, the same judge. Local models now answer with
+thinking off (`think=false`), or qwen3.5's `<think>` blocks would end up in
+answers and grader JSON. The judge `qwen3.8-27b` is of the same family as
+the candidate, so both runs are also re-scored by `mistral-medium-3.5-128b`
+(neither Qwen nor Llama; it passed all 18 judge fixtures twice).
+Adoption rule, set before measuring: `qwen3.5:4b` becomes the privacy-mode
+default answer model if (1) its full run passes more questions than the
+llama run (20/39), with per-question changes and a sign test reported, and
+(2) under the `mistral-medium` judge it also passes more questions than
+llama does under that judge. Minutes per run and the share of the model in
+VRAM are reported alongside. `qwen3.5:9b` (6.6 GB) does not fit the 6 GB card
+and would spill into RAM like llama; only its memory footprint is checked.
+Result (2026-10-11, `privacy-qwen35-4b-k5`, rule not met): under
+`qwen3.8-27b` qwen passed 23/39 against llama's 20/39 (8 questions better,
+5 worse, sign test p = 0.58); under `mistral-medium` both passed 22/39 (6
+better, 6 worse). Condition 2 failed: the lead appeared only under the judge
+of the candidate's own family, and three questions are within run-to-run
+noise anyway. Lenient vital recall was higher for qwen under both judges
+(0.92 vs 0.80; 0.95 vs 0.89), unsupported claims equal or slightly more
+(12 vs 12; 12 vs 10). What did differ: qwen3.5:4b runs fully on the GPU at a
+12288-token window (3.0 GB; 68 tokens/s against llama's 23, 71 % on the GPU),
+and the run took 38 minutes against 94. `qwen3.5:9b` holds 53 % of 6.0 GB on
+the GPU and generates 13 tokens/s, slower than llama.
+Decision: **qwen3.5:4b becomes the default for hardware reasons, not for
+answer quality**, which the rule did not show to differ. Privacy mode targets
+laptops; on this 13 GB one llama3.1:8b held about 9.7 GB of RAM and once
+brought the OOM killer down on Ollama. `OLLAMA_MODEL=llama3.1:8b` still
+selects llama. Open: the 12 unsupported claims, now the main failure in
+privacy mode as well (the #145 prompt is already in place), and a second
+qwen run to measure the noise.
+Also measured: llama at k = 4 with an 8192-token window passed 22/39 in 64
+minutes, against 20/39 in 94 minutes at k = 5 (12288), so k = 4 was not worse
+and faster for a model that spills into RAM.
+
 ---
 
 ## Phase 1 — Continuous Scoring

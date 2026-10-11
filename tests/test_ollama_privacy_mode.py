@@ -43,13 +43,23 @@ class TestOllamaLLM:
         llm = get_llm(provider="ollama")
         assert getattr(llm, "model", None) == "mistral:7b"
 
-    def test_default_model_is_llama(self, monkeypatch):
-        """Without OLLAMA_MODEL, default should be llama3.1:8b."""
+    def test_default_model_fits_a_small_gpu(self, monkeypatch):
+        """qwen3.5:4b runs fully in 6 GB of VRAM, 2.5x faster than llama3.1:8b,
+        which spilled ~10 GB into RAM; answer quality was even under an
+        independent judge (ROADMAP, privacy mode step P2)."""
         monkeypatch.delenv("OLLAMA_MODEL", raising=False)
         from graph.llm_factory import get_llm
 
         llm = get_llm(provider="ollama")
-        assert getattr(llm, "model", None) == "llama3.1:8b"
+        assert getattr(llm, "model", None) == "qwen3.5:4b"
+
+    def test_a_missing_answer_model_names_the_one_to_pull(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_MODEL", raising=False)
+        from api.main import _ollama_error_detail
+
+        detail = _ollama_error_detail(Exception('model "qwen3.5:4b" not found (404)'))
+
+        assert "ollama pull qwen3.5:4b" in detail
 
     def test_model_variant_overrides_env(self, monkeypatch):
         """model_variant parameter should take precedence over OLLAMA_MODEL env."""
@@ -79,6 +89,20 @@ class TestOllamaLLM:
         llm = get_llm(provider="ollama")
         base_url = str(getattr(llm, "base_url", ""))
         assert "localhost" in base_url or "127.0.0.1" in base_url
+
+    def test_reads_the_whole_retrieved_context(self, monkeypatch):
+        """Ollama's own 4096-token window cut the k=5 prompts (up to ~7200
+        tokens) without a warning; the window defaults to 16384."""
+        monkeypatch.delenv("OLLAMA_NUM_CTX", raising=False)
+        from graph.llm_factory import get_llm
+
+        assert get_llm(provider="ollama").num_ctx == 16384
+
+    def test_context_window_can_be_set_for_a_small_gpu(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_NUM_CTX", "8192")
+        from graph.llm_factory import get_llm
+
+        assert get_llm(provider="ollama").num_ctx == 8192
 
     def test_ollama_in_allowed_providers(self):
         """'ollama' must be in ALLOWED_PROVIDERS."""
@@ -138,14 +162,54 @@ class TestOllamaEmbeddingProvider:
         emb = get_embeddings("ollama")
         assert getattr(emb, "model", None) == "mxbai-embed-large"
 
-    def test_default_embed_model_is_nomic(self, monkeypatch):
-        """Without OLLAMA_EMBED_MODEL, default should be nomic-embed-text."""
+    def test_a_question_is_embedded_on_the_cpu_so_the_answer_model_keeps_the_gpu(
+        self, monkeypatch
+    ):
+        """bge-m3 on the GPU pushed llama3.1:8b out of a 6 GB card, 4-7 s per
+        switch; on the CPU a question takes 0.3 s and llama stays. Indexing
+        many chunks still uses the GPU."""
+        import ollama
+
+        sent = []
+
+        def fake_embed(self, model, input, **kwargs):
+            sent.append((list(input), (kwargs.get("options") or {}).get("num_gpu")))
+            return {"embeddings": [[0.0] for _ in input]}
+
+        monkeypatch.setattr(ollama.Client, "embed", fake_embed)
+        from graph.llm_factory import get_embeddings
+
+        embeddings = get_embeddings("ollama")
+        embeddings.embed_query("Hvad er dosisgrænsen?")
+        embeddings.embed_documents(["§ 1. Bekendtgørelsen gælder ..."])
+
+        assert sent == [
+            (["Hvad er dosisgrænsen?"], 0),
+            (["§ 1. Bekendtgørelsen gælder ..."], None),
+        ]
+
+    def test_default_embed_model_is_multilingual(self, monkeypatch):
+        """bge-m3 (100+ languages) replaced the English-only nomic-embed-text:
+        recall@5 0.40 -> 0.90, on Danish law 0.18 -> 0.89 (ROADMAP, step P1)."""
         monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
         monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
         from graph.llm_factory import get_embeddings
+        from ingestion import get_collection_names
 
         emb = get_embeddings("ollama")
-        assert getattr(emb, "model", None) == "nomic-embed-text"
+        assert getattr(emb, "model", None) == "bge-m3"
+        assert get_collection_names("ollama") == (
+            "radiation-iaea-ollama-bge-m3",
+            "radiation-dk-law-ollama-bge-m3",
+        )
+
+    def test_a_missing_embedding_model_names_the_one_to_pull(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
+        from api.main import _ollama_error_detail
+
+        detail = _ollama_error_detail(Exception('model "bge-m3" not found (404)'))
+
+        assert "ollama pull bge-m3" in detail
 
 
 # ---------------------------------------------------------------------------
@@ -156,13 +220,30 @@ class TestOllamaEmbeddingProvider:
 class TestOllamaCollections:
     """Ollama must use separate Chroma collections so cloud indexes are preserved."""
 
-    def test_collection_names_have_ollama_suffix(self):
-        """Ollama collections should have '-ollama' suffix."""
+    def test_collection_names_have_ollama_suffix(self, monkeypatch):
+        """nomic-embed-text, the earlier default, keeps its '-ollama' collections."""
+        monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
         from ingestion import get_collection_names
 
         iaea, dk = get_collection_names("ollama")
         assert iaea == "radiation-iaea-ollama"
         assert dk == "radiation-dk-law-ollama"
+
+    def test_another_local_embedding_model_gets_its_own_collections(self, monkeypatch):
+        """Local embedders are built side by side and compared, as Scaleway's
+        are; the default model keeps the collections privacy users have."""
+        from ingestion import get_collection_names
+
+        monkeypatch.setenv("OLLAMA_EMBED_MODEL", "bge-m3")
+        assert get_collection_names("ollama") == (
+            "radiation-iaea-ollama-bge-m3",
+            "radiation-dk-law-ollama-bge-m3",
+        )
+        monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text:latest")
+        assert get_collection_names("ollama") == (
+            "radiation-iaea-ollama",
+            "radiation-dk-law-ollama",
+        )
 
     def test_collection_names_dont_collide_with_gemini(self):
         """Ollama and Gemini must use different collection names."""
@@ -381,6 +462,7 @@ class TestEnvExample:
         assert "OLLAMA_BASE_URL" in content
         assert "OLLAMA_MODEL" in content
         assert "OLLAMA_EMBED_MODEL" in content
+        assert "OLLAMA_NUM_CTX" in content
 
     def test_env_example_mentions_privacy_mode(self):
         from pathlib import Path

@@ -112,3 +112,23 @@ def test_saved_outputs_read_back_with_documents_and_metadata(tmp_path):
     assert [d.page_content for d in restored["documents"]] == [
         d.page_content for d in run["documents"]
     ]
+
+
+def test_an_eval_in_privacy_mode_runs_the_graph_in_privacy_mode(monkeypatch):
+    """The API sets privacy_mode for Ollama, which keeps the graph off the web;
+    an eval run must do the same, or it measures a mode no user gets."""
+    from eval.run_eval import _invoke_graph
+
+    class RecordingGraph:
+        inputs: list[dict] = []
+
+        def stream(self, graph_input, config=None, stream_mode=None):
+            self.inputs.append(graph_input)
+            return iter(())
+
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    graph = RecordingGraph()
+
+    _invoke_graph("Hvad er dosisgrænsen?", graph, llm=None)
+
+    assert graph.inputs[0].get("privacy_mode") is True
