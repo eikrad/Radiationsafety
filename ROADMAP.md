@@ -395,6 +395,43 @@ unsupported claim (previous 1). Decision: not adopted on this measurement.
 The judge gets a narrow fix, checked on new calibration fixtures with a
 different topic (not on these answers), and the saved answers of both prompts
 are judged again under the same rule.
+Judge fix (2026-10-11): statements that a question lies outside the scope of
+the documents, and why, are no longer unsupported claims, and such an answer
+counts as a refusal. Two fixtures on UV tanning beds check it: a scope refusal
+despite an answering web source (failed 3 of 3 runs before, passes after) and
+a scope refusal that adds a wrong standard number (must still be flagged);
+all 18 fixtures pass twice with `qwen3.8-27b`.
+Second measurement (2026-10-11, `prompt-145-rejudged`, the same answers judged
+again, rule met on all four conditions): passed 34 → 38; answers with an
+unsupported claim 1 → 0 (the previous prompt's power-line refusal with the
+misquoted "< 1 %"); clean refusals 2 → 4 of 4; lenient vital recall higher on
+2 answerable questions, lower on none; no `wrong_refusal`. The area
+classification answer of the previous prompt was flagged in the first
+judging and not in the second: judge noise, which the paired design puts on
+both prompts alike.
+Confirmation (2026-10-11, full run `prompt-145`): 38/39 pass (`k5`: 32/39),
+vital recall 0.98 → 1.00; the one failure is the known retrieval miss
+(safety-assessment definition). Part of the gain is the judge fix, which
+`k5` did not have: under the fixed judge the previous prompt reached 34/39 on
+the replayed contexts, so the prompt's own share is about 34 → 38, from one
+full run. **Adopted**: the revised prompt is the default.
+
+**Scope: the web search widens sources, not the topic (2026-10-11).** A
+refusal "even if a web source in the context answers it" raises the
+question what the web search is for. It fills gaps of the index within the
+subject: IAEA publications that are not indexed, newer versions, other
+Danish orders and SST guidance; there `verify_trusted` can check the answer
+against iaea.org, retsinformation.dk and sst.dk. Non-ionising radiation
+belongs to other authorities and standards (Arbejdstilsynet, ICNIRP, IEC),
+which the system cannot verify against, and answering it would turn the RAG
+into a general web search. So questions outside ionising radiation are
+refused whatever the web search finds. The out-of-scope questions still
+reach the web search before they are refused; a scope check before retrieval
+(#150) would save those calls. Open for the golden set: the annual fee
+question (`dk-fee-open-sources-amount`) is labelled "refuse" because the
+corpus lacks the amount, but with the web search on, the amount in the fee
+order on retsinformation.dk would be a good answer. Its label is defined
+relative to the corpus, not to the web search.
 
 ---
 
