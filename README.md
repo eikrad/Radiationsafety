@@ -147,6 +147,8 @@ Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDE
    uv run python ingestion.py --dk-only
    ```
 
+   PDFs are read with docling (layout and OCR). If docling cannot read one, for example because a local model fills the GPU, ingestion stops and names the file before any collection is emptied. Free the GPU and run it again, or pass `--allow-pypdf-fallback` to index that PDF as plain text (a scanned PDF then gives no text). A PDF that yields almost no text is reported as well.
+
 4. Start the backend:
    ```bash
    uv run uvicorn api.main:app --reload --port 8000
