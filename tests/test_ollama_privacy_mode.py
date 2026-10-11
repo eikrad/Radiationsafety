@@ -152,6 +152,32 @@ class TestOllamaEmbeddingProvider:
         emb = get_embeddings("ollama")
         assert getattr(emb, "model", None) == "mxbai-embed-large"
 
+    def test_a_question_is_embedded_on_the_cpu_so_the_answer_model_keeps_the_gpu(
+        self, monkeypatch
+    ):
+        """bge-m3 on the GPU pushed llama3.1:8b out of a 6 GB card, 4-7 s per
+        switch; on the CPU a question takes 0.3 s and llama stays. Indexing
+        many chunks still uses the GPU."""
+        import ollama
+
+        sent = []
+
+        def fake_embed(self, model, input, **kwargs):
+            sent.append((list(input), (kwargs.get("options") or {}).get("num_gpu")))
+            return {"embeddings": [[0.0] for _ in input]}
+
+        monkeypatch.setattr(ollama.Client, "embed", fake_embed)
+        from graph.llm_factory import get_embeddings
+
+        embeddings = get_embeddings("ollama")
+        embeddings.embed_query("Hvad er dosisgrænsen?")
+        embeddings.embed_documents(["§ 1. Bekendtgørelsen gælder ..."])
+
+        assert sent == [
+            (["Hvad er dosisgrænsen?"], 0),
+            (["§ 1. Bekendtgørelsen gælder ..."], None),
+        ]
+
     def test_default_embed_model_is_nomic(self, monkeypatch):
         """Without OLLAMA_EMBED_MODEL, default should be nomic-embed-text."""
         monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)

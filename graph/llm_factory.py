@@ -402,6 +402,25 @@ def _with_query_instruction(embeddings, template: str | None):
     return QueryInstructionEmbeddings()
 
 
+def _queries_on_cpu(on_gpu, on_cpu):
+    """Local embeddings that embed questions on the CPU and documents as Ollama
+    decides. An embedder on the GPU can push the answer model out of a small
+    card (4-7 s to reload per switch, measured with bge-m3 next to
+    llama3.1:8b on 6 GB); a question takes about 0.3 s on the CPU."""
+    from langchain_core.embeddings import Embeddings
+
+    class OllamaQueriesOnCpuEmbeddings(Embeddings):
+        model = on_gpu.model
+
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            return on_gpu.embed_documents(texts)
+
+        def embed_query(self, text: str) -> list[float]:
+            return on_cpu.embed_query(text)
+
+    return OllamaQueriesOnCpuEmbeddings()
+
+
 def get_embeddings(embedding_provider: str | None = None):
     """Return embeddings instance for the given provider.
 
@@ -419,7 +438,10 @@ def get_embeddings(embedding_provider: str | None = None):
         from langchain_ollama import OllamaEmbeddings
 
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        return OllamaEmbeddings(model=model, base_url=base_url)
+        return _queries_on_cpu(
+            OllamaEmbeddings(model=model, base_url=base_url),
+            OllamaEmbeddings(model=model, base_url=base_url, num_gpu=0),
+        )
     if ep == "gemini":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
