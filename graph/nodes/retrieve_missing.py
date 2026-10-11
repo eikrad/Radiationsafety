@@ -48,11 +48,14 @@ def retrieve_missing(
         context = format_context(merged, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
         throttle_llm_if_needed()
         sufficiency = get_context_sufficiency_grader(llm)
-        result = sufficiency.invoke(
-            {"question": question, "context": context},
-            config=cfg,
-        )
-        sufficient = bool(result.binary_score)
+        try:
+            result = sufficiency.invoke(
+                {"question": question, "context": context},
+                config=cfg,
+            )
+            sufficient = bool(result.binary_score)
+        except ValueError:  # no verdict even when asked again: not shown sufficient
+            sufficient = False
 
     out: dict[str, Any] = {
         "documents": merged,
