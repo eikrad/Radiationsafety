@@ -8,7 +8,8 @@ failure modes (Muller et al. 2024: correct answers, partial answers,
 fabrications, correct and wrong refusals, answering from own knowledge, an
 absurd context the judge must follow rather than its own knowledge) plus
 radiation-specific errors: Gy vs Sv, µSv vs mSv, wrong annex, a foreign rule
-instead of the Danish one.
+instead of the Danish one, and a question on non-ionising radiation declined as
+out of scope although a web source in the context answers it.
 
 Correlation with a strong model is not enough; a judge must pass these unit
 tests (GroUSE). Run this when the judge prompt or model changes; it costs
