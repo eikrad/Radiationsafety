@@ -258,6 +258,67 @@ def test_a_reply_without_a_verdict_is_asked_once_more_for_the_json(scaleway_repl
     assert "JSON" in correction and "passed" in correction
 
 
+def test_a_local_model_without_a_verdict_is_asked_once_more_for_the_json(monkeypatch):
+    """Privacy run 2026-10-11: llama3.1:8b answered the sufficiency grader with
+    {} and the run ended; the Scaleway models are asked again, Ollama was not."""
+    import ollama
+
+    sent: list[list[dict]] = []
+    replies = ["{}", '{"passed": true, "missing_info": ""}']
+
+    def chat(self, *args, messages=None, **kwargs):
+        sent.append([dict(m) for m in messages])
+        content = replies.pop(0)
+        return iter(
+            [
+                {
+                    "model": "llama3.1:8b",
+                    "created_at": "2026-10-11T12:00:00Z",
+                    "message": {"role": "assistant", "content": content},
+                    "done": True,
+                    "done_reason": "stop",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(ollama.Client, "chat", chat)
+
+    verdict = get_llm(provider="ollama").with_structured_output(_Verdict).invoke("ok?")
+
+    assert verdict == _Verdict(passed=True)
+    first, second = sent
+    assert second[-2]["content"] == "{}"
+    assert "JSON" in second[-1]["content"]
+
+
+def test_a_local_model_answers_without_thinking_first(monkeypatch):
+    """qwen3.5 thinks by default; its <think> block would end up in answers and
+    grader JSON, and cost time. llama3.1 accepts the switch and ignores it."""
+    import ollama
+
+    requests: list[dict] = []
+
+    def chat(self, *args, **kwargs):
+        requests.append(kwargs)
+        return iter(
+            [
+                {
+                    "model": "qwen3.5:4b",
+                    "created_at": "2026-10-11T12:00:00Z",
+                    "message": {"role": "assistant", "content": "20 mSv"},
+                    "done": True,
+                    "done_reason": "stop",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(ollama.Client, "chat", chat)
+
+    get_llm(provider="ollama").invoke("Hvad er dosisgrænsen?")
+
+    assert requests[0]["think"] is False
+
+
 # --- Embeddings chosen separately from the answer model ----------------------
 
 
