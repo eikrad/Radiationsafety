@@ -153,6 +153,7 @@ Metrics that do not apply (e.g. vital recall of a refuse item) are left out rath
 | `generator_miss` | evidence was there, but a vital fact is missing from the answer |
 | `missed_refusal` | a question the sources do not answer was answered anyway |
 | `judge_error` | the judge failed twice; the question is left out of the pass rate |
+| `graph_error` | the graph raised (after one more try if the connection dropped); counts as failed, the error is recorded, and the run goes on; if every question fails, the run stops unrecorded |
 
 Matching evidence quotes ignores case, whitespace, soft hyphens, zero-width characters (present in the Danish XML) and typographic dashes.
 

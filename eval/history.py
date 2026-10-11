@@ -113,6 +113,7 @@ def build_run_record(
                 ),
                 "web_search_attempted": r.get("web_search_attempted"),
                 "retrieval_warning": bool(r.get("retrieval_warning")),
+                **({"error": r["error"]} if r.get("error") else {}),
             }
             for r in results
         ],
