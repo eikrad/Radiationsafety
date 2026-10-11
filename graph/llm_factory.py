@@ -131,7 +131,8 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
 # stalled provider call could hold a /query open for half an hour.
 _DEFAULT_REQUEST_TIMEOUT_SEC = 60.0
 _DEFAULT_OLLAMA_TIMEOUT_SEC = 300.0  # local models on a CPU answer slowly
-# k=5 prompts reach ~7200 tokens; Ollama's own window (4096) cut them silently
+# Ollama's own window (4096) cut longer prompts silently; at k=5 the first
+# retrieval alone reaches ~4200 tokens, and retrieve_missing adds chunks
 _DEFAULT_OLLAMA_NUM_CTX = 16384
 _DEFAULT_MAX_RETRIES = 1
 
