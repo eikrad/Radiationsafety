@@ -31,6 +31,7 @@ from langchain_docling.loader import BaseMetaExtractor
 from pypdf import PdfReader
 from tqdm import tqdm
 
+from graph.consts import env_bool
 from graph.llm_factory import (
     get_embedding_model_name,
     get_embedding_provider,
@@ -436,9 +437,15 @@ def load_iaea_docs() -> list[Document]:
                 for d in docs:
                     d.metadata["document_type"] = "IAEA"
                 all_docs.extend(docs)
+            except DoclingFailedError:
+                raise
             except Exception as e:
                 tqdm.write(f"  Warning: skipped {pdf_path.name}: {e}")
     return all_docs
+
+
+class DoclingFailedError(RuntimeError):
+    """docling could not read a PDF, and the pypdf fallback was not allowed."""
 
 
 def _load_pdf_with_docling(
@@ -465,8 +472,18 @@ def _load_pdf_with_docling(
         docs = loader.load()
         for d in docs:
             d.metadata["source"] = label
+        _warn_if_almost_no_text(file_path, docs)
         return docs
     except Exception as e:
+        if not env_bool("INGEST_ALLOW_PYPDF_FALLBACK"):
+            # pypdf reads plain text only, and nothing from a scanned PDF: with the
+            # GPU full, two PDFs became 4 chunks instead of 636 without a failure
+            raise DoclingFailedError(
+                f"docling could not read {Path(file_path).name}: {e}. Its pypdf "
+                "fallback indexes plain text only (nothing from a scanned PDF). "
+                "Free the GPU (e.g. unload the Ollama model) and run again, or pass "
+                "--allow-pypdf-fallback to index it as plain text anyway."
+            ) from e
         tqdm.write(
             f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"
         )
@@ -482,7 +499,23 @@ def _load_pdf_with_docling(
                     metadata={"source": label, "page": i},
                 )
             )
+    _warn_if_almost_no_text(file_path, docs)
     return docs
+
+
+# a page of text holds some 2000 characters; a whole PDF with fewer was not read
+_MIN_PDF_TEXT_CHARS = 200
+
+
+def _warn_if_almost_no_text(file_path: str | Path, docs: list[Document]) -> None:
+    """A scanned PDF yields text only through OCR, which can fail without an
+    error (the 2.4 MB guidance PDF once gave one chunk of 65 characters)."""
+    chars = sum(len(d.page_content) for d in docs)
+    if chars < _MIN_PDF_TEXT_CHARS:
+        tqdm.write(
+            f"  Warning: {Path(file_path).name} gave almost no text ({chars} "
+            "characters); a scanned PDF needs OCR, which may not have run"
+        )
 
 
 def _extract_and_load_attachments(
@@ -598,6 +631,8 @@ def load_dk_law_docs(skip_law_keys: set[str] | frozenset[str] = frozenset()):
                 if attach_docs:
                     tqdm.write(f"    + {len(attach_docs)} pages from attachments")
                     all_docs.extend(attach_docs)
+        except DoclingFailedError:
+            raise
         except Exception as e:
             tqdm.write(f"    Warning: skipped {pdf_path.name}: {e}")
     return all_docs
@@ -758,9 +793,8 @@ def ingest(dk_only: bool = False):
         disable=False,
         position=0,
     ) as overall_progress:
-        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
-        embeddings = get_embeddings(ep)
-        overall_progress.update(1)
+        # Read every document before emptying a collection: a stop while reading
+        # (e.g. docling failing on a PDF) leaves the existing index as it was.
 
         # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
         iaea_from_url, dk_from_url = _load_docs_from_registry(include_iaea=not dk_only)
@@ -775,15 +809,11 @@ def ingest(dk_only: bool = False):
         overall_progress.update(1)
 
         # IAEA collection: local dirs + registry URLs — all pre-chunked
+        iaea_docs = []
         if not dk_only:
             iaea_docs = load_iaea_docs()
             iaea_docs.extend(iaea_from_url)
-            if iaea_docs:
-                _add_documents_rate_limited(
-                    iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
-                )
-                tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
-        overall_progress.update(2)
+        overall_progress.update(1)
 
         # Danish law collection: registry XML + local PDFs not already read from XML
         xml_laws = {
@@ -793,6 +823,17 @@ def ingest(dk_only: bool = False):
         }
         dk_docs = load_dk_law_docs(skip_law_keys=xml_laws)
         dk_docs.extend(dk_from_url)
+        overall_progress.update(1)
+
+        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
+        embeddings = get_embeddings(ep)
+        overall_progress.update(1)
+
+        if iaea_docs:
+            _add_documents_rate_limited(
+                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+            )
+            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
         overall_progress.update(1)
 
         if dk_docs:
@@ -1029,10 +1070,10 @@ def get_retrievers(embedding_provider: str | None = None):
     return _retrievers_cache[key]
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description=ingest.__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--reembed-from",
         metavar="PROVIDER",
@@ -1044,8 +1085,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Rebuild only the Danish law collection; the IAEA collection is kept",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--allow-pypdf-fallback",
+        action="store_true",
+        help="Index a PDF docling cannot read as plain text (pypdf) instead of "
+        "stopping; nothing is read from a scanned PDF that way",
+    )
+    args = parser.parse_args(argv)
+    if args.allow_pypdf_fallback:
+        os.environ["INGEST_ALLOW_PYPDF_FALLBACK"] = "true"
     if args.reembed_from:
         reembed_from(args.reembed_from, target=reembed_target())
     else:
         ingest(dk_only=args.dk_only)
+
+
+if __name__ == "__main__":
+    main()
