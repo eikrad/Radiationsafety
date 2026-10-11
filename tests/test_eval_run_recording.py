@@ -114,6 +114,8 @@ def workspace(tmp_path, monkeypatch):
             model=model_variant or f"{provider or 'gemini'}-model"
         ),
     )
+    # main() loads .env, which would bring back variables deleted below
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     # pinned: these tests are about recording, not about the default embeddings
     monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")

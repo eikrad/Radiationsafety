@@ -92,12 +92,15 @@ does not support. Paraphrase and translation (Danish/English) are fine. A \
 statement is unsupported if its numbers, units (Gy vs Sv, mSv vs µSv), thresholds, \
 legal references (paragraph, annex, order number) or jurisdiction (Danish rule \
 vs IAEA recommendation) differ from the context, or if it adds facts the context \
-does not contain. Do not list statements that only say information is missing, or \
-general advice to consult an authority.
+does not contain. Do not list statements that only say information is missing, \
+statements that the question lies outside the scope of the system's documents and \
+why (e.g. that its topic is non-ionising radiation), or general advice to consult \
+an authority.
 
 refused: true if the answer does not substantively answer the question, e.g. \
-states that the sources do not contain the information, even if it adds related \
-information; false if it gives an answer."""
+states that the sources do not contain the information or that the question is \
+outside their scope, even if it adds related information; false if it gives an \
+answer."""
 
 _GROUNDED_HUMAN = """Question: {question}
 

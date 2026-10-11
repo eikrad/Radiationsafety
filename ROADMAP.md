@@ -335,6 +335,104 @@ Each step states its adoption rule before the measurement; parameters are not
 tuned (RRF k = 60, fixed header format). A change that wins is switched on by
 default in its own small PR.
 
+## Generation — after retrieval (2026-10-10)
+
+**The generation prompt (#145).** In the full run `k5` (32/39) the vital
+evidence reached the generator for 34 of 35 answerable questions; 6 of the 7
+failures happened after retrieval. The judge's reasons show what went wrong:
+the three unsupported claims are legal conditions restated with a different
+meaning ("samt efter indgreb" became "eller efter indgreb", "kan medvirke til"
+became "nødvendigt", "anlægget" became "området", and in the same answer
+GSR-7's "shall" became "bør"); pre-disposal steps left out "from generation up
+to disposal"; the MRI question was answered from two web pages; the power-line
+question was refused, but the refusal added a related figure misquoted (< 1 %
+for 1 %). The prompt had a typo in its key rule ("Uso only information"),
+said nothing about scope or jurisdiction, and nothing about facts on topic but
+absent from the context.
+
+The revised prompt (`graph/chains/generation.py`) adds numbered rules: only
+the context; keep the meaning of requirements, conditions, definitions and
+limits exact (how binding, how conditions combine, what or whom a rule
+applies to, numbers, units, references); say whether a statement is Danish
+or IAEA, an IAEA requirement is not a Danish rule; give a definition or list
+asked for in full; name what the context does not answer and do not fill the
+gap; non-ionising radiation is out of scope even if a web source answers it.
+The rules name categories, not the words of the failed answers (no "samt",
+no MRI, no power lines), so that the measurement on these same questions
+does not reward a prompt written for them. Trust-Score found that prompting
+alone does not stop models from answering from their own knowledge, and
+GroUSE that over-refusal is a failure mode of its own; so the change is
+measured, including for refusals of answerable questions.
+
+`eval.prompt_test` replays the context each question's generator saw in the
+`k5` run (web results included) and answers it with the previous and the
+revised prompt; only the prompt differs. Both answers are scored as in a
+full run, with 3 groundedness votes.
+Adoption rule, set before measuring: the revised prompt is kept if, on the
+39 replayed contexts, (1) fewer answers carry an unsupported claim; (2) on
+lenient vital recall it scores lower on at most 1 more answerable question
+than it scores higher; (3) all 4 questions to refuse are refused without an
+unsupported claim (the two out-of-scope questions answered in `k5`
+included); (4) no more answerable questions are refused although their
+evidence was in the context (`wrong_refusal`); and then (5) a full run passes
+at least 32/39. Otherwise the previous prompt returns with only the typo
+fixed, and a scope check before retrieval (#150) is the next step for the
+refusals. The caveat stays: the rules come from the failures of the same 39
+questions, so a held-out check needs new golden questions (#133).
+First measurement (2026-10-10, `prompt-145`, rule not met): passed 33 → 35;
+lenient vital recall higher on 3 answerable questions (emergency exposure,
+pre-disposal steps, safety-assessment definition), lower on none; no
+`wrong_refusal` with either prompt. Conditions 1 and 3 failed: 3 answers with
+an unsupported claim for each prompt, and 1 clean refusal of 4 (previous 2).
+The revised prompt refused all 4 questions to refuse, but the judge flagged
+the refusal itself in the three out-of-scope answers: "non-ionising radiation
+is outside the scope of the provided documents" counted as contradicted,
+because the context held web pages on MRI SAR, laser classes and power-line
+fields. The judge exempts "the information is missing" from unsupported
+claims, not "this is out of scope", so it would flag the expected answer in
+`golden.json` too. On answerable questions the revised prompt had no
+unsupported claim (previous 1). Decision: not adopted on this measurement.
+The judge gets a narrow fix, checked on new calibration fixtures with a
+different topic (not on these answers), and the saved answers of both prompts
+are judged again under the same rule.
+Judge fix (2026-10-11): statements that a question lies outside the scope of
+the documents, and why, are no longer unsupported claims, and such an answer
+counts as a refusal. Two fixtures on UV tanning beds check it: a scope refusal
+despite an answering web source (failed 3 of 3 runs before, passes after) and
+a scope refusal that adds a wrong standard number (must still be flagged);
+all 18 fixtures pass twice with `qwen3.8-27b`.
+Second measurement (2026-10-11, `prompt-145-rejudged`, the same answers judged
+again, rule met on all four conditions): passed 34 → 38; answers with an
+unsupported claim 1 → 0 (the previous prompt's power-line refusal with the
+misquoted "< 1 %"); clean refusals 2 → 4 of 4; lenient vital recall higher on
+2 answerable questions, lower on none; no `wrong_refusal`. The area
+classification answer of the previous prompt was flagged in the first
+judging and not in the second: judge noise, which the paired design puts on
+both prompts alike.
+Confirmation (2026-10-11, full run `prompt-145`): 38/39 pass (`k5`: 32/39),
+vital recall 0.98 → 1.00; the one failure is the known retrieval miss
+(safety-assessment definition). Part of the gain is the judge fix, which
+`k5` did not have: under the fixed judge the previous prompt reached 34/39 on
+the replayed contexts, so the prompt's own share is about 34 → 38, from one
+full run. **Adopted**: the revised prompt is the default.
+
+**Scope: the web search widens sources, not the topic (2026-10-11).** A
+refusal "even if a web source in the context answers it" raises the
+question what the web search is for. It fills gaps of the index within the
+subject: IAEA publications that are not indexed, newer versions, other
+Danish orders and SST guidance; there `verify_trusted` can check the answer
+against iaea.org, retsinformation.dk and sst.dk. Non-ionising radiation
+belongs to other authorities and standards (Arbejdstilsynet, ICNIRP, IEC),
+which the system cannot verify against, and answering it would turn the RAG
+into a general web search. So questions outside ionising radiation are
+refused whatever the web search finds. The out-of-scope questions still
+reach the web search before they are refused; a scope check before retrieval
+(#150) would save those calls. Open for the golden set: the annual fee
+question (`dk-fee-open-sources-amount`) is labelled "refuse" because the
+corpus lacks the amount, but with the web search on, the amount in the fee
+order on retsinformation.dk would be a good answer. Its label is defined
+relative to the corpus, not to the web search.
+
 ---
 
 ## Phase 1 — Continuous Scoring
