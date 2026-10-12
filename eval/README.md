@@ -107,6 +107,12 @@ No LLM decides relevance here: LLM relevance labels agree with people on system 
 - **`expected_behavior: refuse`** marks questions the sources do not answer; the system should say so. These items have no nuggets.
 - **Tags**: `topics` (one or more of `medical`, `industrial`, `research`, `transport`, `waste`, `emergency`, `occupational`, `general`), `language` of the question, `source` where the answer lives (`dk-law`, `iaea`, `both`). They power the dashboard's per-topic view and are left out of the dataset fingerprint, so retagging keeps runs comparable.
 
+### Held-out test questions
+
+`eval/data/golden_test.json` holds questions that are kept apart from the development set (#167). They were written from the source documents, before any system answer was looked at. Nothing is tuned on them: after a tuning step they count as development questions and a confirmation needs new ones. Run them with `--golden eval/data/golden_test.json`; their `questions_hash` then never mixes into the development trend.
+
+They weight what separates models and settings: conditions where "eller"/"samt" decide the outcome (category A vs B), boundary values, numbers and units in annex tables, definition lists, short intervals and retention periods, Danish rule vs IAEA value (the radon reference level, 100 vs 300 Bq/m3, as a pair), English questions about Danish law, and four questions to refuse. Evidence quotes were checked against the text of the source files; run `uv run python -m eval.golden --golden eval/data/golden_test.json --check-index` against the real index, because quotes from tables (e.g. the emergency-worker guidance values in GSR Part 3) depend on how the table was chunked.
+
 `run_eval` validates the file and lists every problem at once (unknown topic, vital nugget without evidence, refuse item with nuggets, the v1 `key_facts` format, …).
 
 Check the evidence quotes against the chunks actually in the search index, after editing the golden set and after any re-chunking:

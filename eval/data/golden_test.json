@@ -1,0 +1,1140 @@
+[
+ {
+  "id": "test-dk-kategori-øjelinse",
+  "question": "En arbejdstager forventes at modtage en effektiv dosis på 4 mSv pr. år, men en ækvivalent dosis til øjelinsen på 20 mSv pr. år. Hvilken kategori af stråleudsat arbejdstager skal vedkommende placeres i?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Kategori A: øjelinsedosis over 15 mSv pr. år er alene tilstrækkelig (§ 36), selv om den effektive dosis ligger i kategori B's interval (§ 37).",
+  "nuggets": [
+   {
+    "text": "Arbejdstageren skal placeres i kategori A",
+    "importance": "vital",
+    "evidence": [
+     "skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+    ]
+   },
+   {
+    "text": "Det afgørende er, at øjelinsedosis forventes at overstige 15 mSv pr. år; kriterierne er alternative",
+    "importance": "vital",
+    "evidence": [
+     "ækvivalent dosis til øjelinsen på mere end 15 mSv pr. år eller en ækvivalent dosis til hud eller ekstremiteter på mere end 150 mSv pr. år"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-kategori-b-grænse",
+  "question": "Hvilken kategori skal en arbejdstager placeres i, hvis vedkommende forventes at modtage præcis 6 mSv effektiv dosis pr. år og ingen ækvivalente doser over kategorigrænserne?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Kategori B: kategori A kræver mere end 6 mSv; kategori B gælder for mere end 1 mSv, dog højst 6 mSv pr. år (§§ 36-37).",
+  "nuggets": [
+   {
+    "text": "Arbejdstageren skal placeres i kategori B, ikke A",
+    "importance": "vital",
+    "evidence": [
+     "mere end 1 mSv pr. år, dog højst 6 mSv pr. år, eller en ækvivalent dosis til hud eller ekstremiteter"
+    ]
+   },
+   {
+    "text": "Kategori A kræver, at den forventede effektive dosis er større end 6 mSv pr. år",
+    "importance": "okay",
+    "evidence": [
+     "kan forventes at modtage en effektiv dosis på mere end 6 mSv pr. år eller en ækvivalent dosis til øjelinsen"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-dosimeter-måleperiode",
+  "question": "Hvor lang må måleperioden for et persondosimeter højst være for en arbejdstager, der forventes at modtage mellem 1 og 6 mSv pr. år fra ekstern bestråling, og hvad gælder, hvis forventningen er over 6 mSv pr. år?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Mellem 1 og 6 mSv pr. år: højst 3 måneder. Over 6 mSv pr. år: højst 1 måned.",
+  "nuggets": [
+   {
+    "text": "Ved 1-6 mSv pr. år må måleperioden højst være 3 måneder",
+    "importance": "vital",
+    "evidence": [
+     "lig 6 mSv pr. år, fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 3 måneder"
+    ]
+   },
+   {
+    "text": "Ved mere end 6 mSv pr. år må måleperioden højst være 1 måned",
+    "importance": "vital",
+    "evidence": [
+     "større end 6 mSv pr. år fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 1 måned"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-register-persondosimetri-opbevaring",
+  "question": "Hvor længe skal data i Sundhedsstyrelsens Register for Persondosimetri bevares?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "I hele arbejdsperioden og derefter indtil personen er fyldt eller ville være fyldt 75 år, men ikke mindre end 30 år efter arbejdets afslutning.",
+  "nuggets": [
+   {
+    "text": "Data bevares indtil personen er fyldt eller ville være fyldt 75 år",
+    "importance": "vital",
+    "evidence": [
+     "indtil den pågældende er fyldt eller ville være fyldt 75 år"
+    ]
+   },
+   {
+    "text": "Dog ikke mindre end 30 år efter afslutningen af det arbejde, der indebar stråleudsættelsen",
+    "importance": "vital",
+    "evidence": [
+     "men ikke mindre end 30 år efter afslutningen af det arbejde"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-dose-records-employer",
+  "question": "In Denmark, for how many years back must an employer be able to document the doses of its dose-monitored workers?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "The doses for the last 5 calendar years, including the current year, as far as the worker has been employed.",
+  "nuggets": [
+   {
+    "text": "The employer must be able to document doses for the last 5 calendar years, including the current year",
+    "importance": "vital",
+    "evidence": [
+     "for de seneste 5 kalenderår, inklusive det indeværende år"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-dosimetrisk-tjeneste-frist",
+  "question": "Inden for hvilken frist skal en dosimetrisk tjeneste indberette resultaterne af individuel dosisovervågning til Sundhedsstyrelsens Register for Persondosimetri?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Senest 5 uger fra måleperiodens udløb.",
+  "nuggets": [
+   {
+    "text": "Indberetning skal ske senest 5 uger efter måleperiodens udløb",
+    "importance": "vital",
+    "evidence": [
+     "senest 5 uger fra måleperiodens udløb"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-radon-reference",
+  "question": "Under Danish rules, what is the reference level for the annual average radon concentration in buildings?",
+  "topics": [
+   "occupational",
+   "general"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "100 Bq/m3 (the same figure is used as starting point for optimisation at workplaces).",
+  "nuggets": [
+   {
+    "text": "The reference level is 100 Bq/m3 as annual average",
+    "importance": "vital",
+    "evidence": [
+     "Referenceniveauet for årlig gennemsnitlig aktivitetskoncentration af radon i bygninger er 100 Bq/m"
+    ]
+   },
+   {
+    "text": "At workplaces, optimisation starts from the same 100 Bq/m3 reference level",
+    "importance": "okay",
+    "evidence": [
+     "optimering af strålebeskyttelsen i forbindelse med arbejdstageres udsættelse for radon udføres med udgangspunkt i et referenceniveau"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-radon-arbejdsplads-tilladelse",
+  "question": "Hvornår kræver erhvervsmæssig udsættelse for radon tilladelse fra Sundhedsstyrelsen?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Når udsættelsen kan medføre en effektiv dosis større end 6 mSv pr. år.",
+  "nuggets": [
+   {
+    "text": "Tilladelse kræves, når radonudsættelsen kan medføre en effektiv dosis større end 6 mSv pr. år",
+    "importance": "vital",
+    "evidence": [
+     "Erhvervsmæssig udsættelse for radon, der kan medføre en effektiv dosis større end 6 mSv pr. år, kræver tilladelse"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-both-radon-dk-vs-iaea",
+  "question": "Hvordan adskiller referenceniveauet for radon i bygninger sig mellem dansk lovgivning og IAEA's GSR Part 3?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "both",
+  "expected_behavior": "answer",
+  "expected_answer": "Danmark: 100 Bq/m3 årligt gennemsnit. IAEA GSR Part 3: nationale referenceniveauer bør generelt ikke overstige 300 Bq/m3.",
+  "nuggets": [
+   {
+    "text": "Det danske referenceniveau er 100 Bq/m3",
+    "importance": "vital",
+    "evidence": [
+     "Referenceniveauet for årlig gennemsnitlig aktivitetskoncentration af radon i bygninger er 100 Bq/m"
+    ]
+   },
+   {
+    "text": "IAEA's niveau bør generelt ikke overstige 300 Bq/m3 som årligt gennemsnit",
+    "importance": "vital",
+    "evidence": [
+     "will not exceed an annual average activity concentration due to 222Rn of 300 Bq/m3"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-radon-reference",
+  "question": "According to IAEA GSR Part 3, what annual average radon activity concentration should national reference levels in general not exceed for dwellings?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "300 Bq/m3 annual average 222Rn, with exposure reduced to levels at which protection is optimized.",
+  "nuggets": [
+   {
+    "text": "Reference levels should in general not exceed 300 Bq/m3 annual average",
+    "importance": "vital",
+    "evidence": [
+     "will not exceed an annual average activity concentration due to 222Rn of 300 Bq/m3"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-exposure-records-retention",
+  "question": "According to the IAEA safety standards, how long must records of a worker's occupational exposure be maintained?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "During and after the working life, at least until the former worker attains or would have attained 75 years of age, and not less than 30 years after cessation of the work involving exposure.",
+  "nuggets": [
+   {
+    "text": "At least until the worker attains or would have attained the age of 75",
+    "importance": "vital",
+    "evidence": [
+     "at least until the former worker attains or would have attained the age of 75 years"
+    ]
+   },
+   {
+    "text": "And not less than 30 years after cessation of the work with exposure",
+    "importance": "vital",
+    "evidence": [
+     "and for not less than 30 years after cessation of the work in which the worker was subject to occupational exposure"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-transport-forhåndsmeddelelse",
+  "question": "Hvilke transporter af radioaktivt materiale kræver meddelelse til Sundhedsstyrelsen forud for transporten?",
+  "topics": [
+   "transport"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Type C og B(U) kolli over 3000 A1/A2 eller 1000 TBq, type B(M) kolli, transport som særligt arrangement og transport af fissilt materiale.",
+  "nuggets": [
+   {
+    "text": "Transport af type B(M) kolli kræver forudgående meddelelse",
+    "importance": "vital",
+    "evidence": [
+     "Transport af type B(M) kolli"
+    ]
+   },
+   {
+    "text": "Transport som særligt arrangement kræver forudgående meddelelse",
+    "importance": "vital",
+    "evidence": [
+     "Transport som særligt arrangement. 5) Transport af fissilt materiale"
+    ]
+   },
+   {
+    "text": "Transport af fissilt materiale kræver forudgående meddelelse",
+    "importance": "vital",
+    "evidence": [
+     "5) Transport af fissilt materiale"
+    ]
+   },
+   {
+    "text": "Type C og B(U) kolli kræver meddelelse, når aktiviteten overstiger 3000 A1/A2 eller 1000 TBq",
+    "importance": "vital",
+    "evidence": [
+     "Transport af type B(U) kolli, der indeholder radioaktivt materiale med en aktivitetsmængde"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-transport-opbevaring-intervaller",
+  "question": "Hvor lang tid må der højst gå mellem eftersyn og radiologisk kontrol af et anlæg til opbevaring af kolli med radioaktivt materiale, og for hvor mange års opbevaring skal fortegnelsen over kolli omfatte?",
+  "topics": [
+   "transport"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Intervallet må ikke være længere end 25 måneder; fortegnelsen skal omfatte de seneste 5 års opbevaring af kolli.",
+  "nuggets": [
+   {
+    "text": "Intervallet mellem eftersyn og radiologisk kontrol må højst være 25 måneder",
+    "importance": "vital",
+    "evidence": [
+     "Intervallet mellem eftersyn og radiologisk kontrol må ikke være længere end 25 måneder"
+    ]
+   },
+   {
+    "text": "Fortegnelsen over opbevarede kolli skal omfatte de seneste 5 år",
+    "importance": "vital",
+    "evidence": [
+     "Fortegnelsen efter stk. 1 skal omfatte de seneste 5 års opbevaring af kolli"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-transport-højrisikogods",
+  "question": "Hvad kræves ifølge bekendtgørelsen om transport af radioaktivt materiale ved transport af højrisikogods, ud over det der gælder for almindelig transport?",
+  "topics": [
+   "transport"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "En sikringsplan godkendt af Sundhedsstyrelsen forud for transport, en udpeget sikringsansvarlig og et beredskab; afsenderen skal påse, at transportøren har en sikringsplan.",
+  "nuggets": [
+   {
+    "text": "Der skal udarbejdes en sikringsplan, som skal være godkendt af Sundhedsstyrelsen forud for transport",
+    "importance": "vital",
+    "evidence": [
+     "Sikringsplanen, jf. stk. 1, skal være godkendt af Sundhedsstyrelsen, forud for transport"
+    ]
+   },
+   {
+    "text": "Der skal udpeges en sikringsansvarlig",
+    "importance": "vital",
+    "evidence": [
+     "Ved transport af højrisikogods skal der udpeges en sikringsansvarlig"
+    ]
+   },
+   {
+    "text": "Der skal være et beredskab, som aktiveres ved bl.a. utilsigtet adgang, tyveri eller misbrug",
+    "importance": "vital",
+    "evidence": [
+     "For transport af højrisikogods skal der være et beredskab"
+    ]
+   },
+   {
+    "text": "Afsenderen skal påse, at transportøren har en sikringsplan",
+    "importance": "okay",
+    "evidence": [
+     "Afsenderen af højrisikogods skal påse, at transportøren har en sikringsplan"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-transportindeks-definition",
+  "question": "Hvordan defineres transportindeks (TI) i bekendtgørelsen om transport af radioaktivt materiale?",
+  "topics": [
+   "transport"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade ganget med 100.",
+  "nuggets": [
+   {
+    "text": "TI er den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade",
+    "importance": "vital",
+    "evidence": [
+     "Den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade ganget med 100"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-referenceniveau-definitioner",
+  "question": "Hvilken statistik i den nationale fordeling ligger til grund for henholdsvis det primære, det opnåelige og det nedre diagnostiske referenceniveau?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Primært: tredje kvartil. Opnåeligt: medianen. Nedre: første kvartil.",
+  "nuggets": [
+   {
+    "text": "Det primære referenceniveau fastsættes ud fra tredje kvartil",
+    "importance": "vital",
+    "evidence": [
+     "fastsat ud fra tredje kvartil i den nationale fordeling"
+    ]
+   },
+   {
+    "text": "Det opnåelige referenceniveau fastsættes ud fra medianen",
+    "importance": "vital",
+    "evidence": [
+     "fastsat ud fra medianen i den nationale fordeling"
+    ]
+   },
+   {
+    "text": "Det nedre referenceniveau fastsættes ud fra første kvartil",
+    "importance": "vital",
+    "evidence": [
+     "fastsat ud fra første kvartil i den nationale fordeling"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-patientdosimetri-intervaller",
+  "question": "Hvor ofte skal patientdosimetri og analyse af repræsentative niveauer gentages inden for henholdsvis CT, kiropraktik og odontologi?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "CT hvert 2. år, kiropraktik hvert 4. år og odontologi hvert 5. år.",
+  "nuggets": [
+   {
+    "text": "CT: hvert 2. år",
+    "importance": "vital",
+    "evidence": [
+     "CT 2 år"
+    ]
+   },
+   {
+    "text": "Kiropraktik: hvert 4. år",
+    "importance": "vital",
+    "evidence": [
+     "Kiropraktik 4 år"
+    ]
+   },
+   {
+    "text": "Odontologi: hvert 5. år",
+    "importance": "vital",
+    "evidence": [
+     "Odontologi 5 år"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-drl-ct-cerebrum",
+  "question": "Hvad er det primære diagnostiske referenceniveau for CTDIvol og DLP ved CT af cerebrum hos voksne ved mistanke om blødning?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "CTDIvol 50 mGy og DLP 850 mGy·cm.",
+  "nuggets": [
+   {
+    "text": "Primært referenceniveau for CTDIvol er 50 mGy",
+    "importance": "vital",
+    "evidence": [
+     "Cerebrum Obs. blødning CTDI vol [mGy] 50 43 37"
+    ]
+   },
+   {
+    "text": "Primært referenceniveau for DLP er 850 mGy·cm",
+    "importance": "vital",
+    "evidence": [
+     "DLP [mGy⋅cm] 850 715 640"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-drl-mammografi-50mm",
+  "question": "Hvad er det primære diagnostiske referenceniveau for middeldosis til kirtelvævet ved mammografi med 50 mm PMMA-tykkelse?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "1,09 mGy.",
+  "nuggets": [
+   {
+    "text": "Det primære referenceniveau er 1,09 mGy",
+    "importance": "vital",
+    "evidence": [
+     "50 60 1,09 1,03 0,99"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-første-patientdosimetri-ændrede-protokoller",
+  "question": "Hvornår skal første patientdosimetri udføres, og i hvilke situationer udløser det kravet?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Inden for 6 måneder efter idriftsættelse af ny strålekilde, nyt udstyr eller ændrede protokoller.",
+  "nuggets": [
+   {
+    "text": "Inden for 6 måneder efter idriftsættelse",
+    "importance": "vital",
+    "evidence": [
+     "inden for 6 måneder efter idriftsættelse af ny strålekilde, nyt udstyr eller ændrede protokoller"
+    ]
+   },
+   {
+    "text": "Også ændrede protokoller udløser kravet, ikke kun ny strålekilde eller nyt udstyr",
+    "importance": "vital",
+    "evidence": [
+     "nyt udstyr eller ændrede protokoller"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-kvalitetsaudit-interval",
+  "question": "Hvor ofte skal der ved medicinsk anvendelse udføres audit af kvalitetsstyringssystemet, og hvilken undtagelse gælder for strålingsgeneratorer?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Højst 25 måneders mellemrum; for strålingsgeneratorer, der ikke er omfattet af krav om sikkerhedsvurdering, højst 3 års mellemrum.",
+  "nuggets": [
+   {
+    "text": "Audit højst hver 25. måned ved medicinsk anvendelse",
+    "importance": "vital",
+    "evidence": [
+     "med højst 25 måneders mellemrum, jf. dog stk. 2"
+    ]
+   },
+   {
+    "text": "Strålingsgeneratorer uden krav om sikkerhedsvurdering: højst hvert 3. år",
+    "importance": "vital",
+    "evidence": [
+     "skal audit udføres med højst 3 års mellemrum"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-dokumentation-konstanskontrol",
+  "question": "Hvor lang tid tilbage skal en virksomhed bevare dokumentation for konstanskontrol ved medicinsk anvendelse?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "De seneste 5 års konstanskontroller (mens statuskontrol gælder de seneste 5 kontroller).",
+  "nuggets": [
+   {
+    "text": "Dokumentation for de seneste 5 års konstanskontroller skal bevares",
+    "importance": "vital",
+    "evidence": [
+     "de seneste 5 års konstanskontroller"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-forskning-bestråling-forsøgspersoner",
+  "question": "Hvilke krav gælder for biomedicinske forskningsprojekter, hvor forsøgspersoner bestråles?",
+  "topics": [
+   "research",
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Godkendelse i en videnskabsetisk komité; forud beregnet dosis og kræftrisiko vurderet af en medicinsk-fysisk ekspert og med i protokollen; raske forsøgspersoner må ikke bestråles i forsøg med kurativ eller palliativ intention.",
+  "nuggets": [
+   {
+    "text": "Forskningsprojektet kræver godkendelse i en videnskabsetisk komité",
+    "importance": "vital",
+    "evidence": [
+     "må først finde sted efter godkendelse i en videnskabsetisk komité"
+    ]
+   },
+   {
+    "text": "Dosis og risiko for stråleinduceret kræft skal beregnes på forhånd, vurderes af en medicinsk-fysisk ekspert og fremgå af protokollen",
+    "importance": "vital",
+    "evidence": [
+     "Dosis og risiko skal vurderes af en medicinsk-fysisk ekspert og skal fremgå af forsøgsprotokollen"
+    ]
+   },
+   {
+    "text": "Raske forsøgspersoner må ikke bestråles i forsøg med kurativ eller palliativ intention",
+    "importance": "okay",
+    "evidence": [
+     "Raske forsøgspersoner må ikke bestråles som led i forsøg, der har kurativ eller palliativ intention"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-koordinator-undtaget-godkendelse",
+  "question": "Hvilke strålebeskyttelseskoordinatorer er undtaget fra kravet om godkendelse af Sundhedsstyrelsen, og hvor ofte skal en strålebeskyttelsesekspert have fornyet sin godkendelse?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Koordinatorer for skolekilder til undervisning og koordinatorer for medicinsk anvendelse af strålingsgeneratorer omfattet af underretningskrav; eksperter fornyer godkendelsen hvert 5. år.",
+  "nuggets": [
+   {
+    "text": "Koordinatorer for anvendelse af skolekilder til undervisningsformål er undtaget",
+    "importance": "vital",
+    "evidence": [
+     "Stk. 1 gælder ikke for strålebeskyttelseskoordinatorer for anvendelse af skolekilder til undervisningsformål"
+    ]
+   },
+   {
+    "text": "Koordinatorer for medicinsk anvendelse af strålingsgeneratorer omfattet af underretning er undtaget",
+    "importance": "vital",
+    "evidence": [
+     "medicinsk anvendelse af strålingsgeneratorer, der er omfattet af krav om underretning til Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Godkendelse som strålebeskyttelsesekspert skal fornyes hvert 5. år",
+    "importance": "vital",
+    "evidence": [
+     "Godkendelse af en strålebeskyttelsesekspert skal fornyes hvert 5. år"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-definition-stråleudsat-arbejdstager",
+  "question": "Hvem er en stråleudsat arbejdstager ifølge strålebeskyttelsesbekendtgørelsen? Gælder definitionen også personer under 18 år?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Arbejdstager over 18 år direkte involveret i eller nødvendig for brug af strålekilder i områder med strålekilder; over 18 år planlagt udsat fra eksisterende bestrålingssituation over referenceniveau; personer over 16 år i en reguleret erhvervskompetencegivende uddannelse; personer 16-18 år, der har afsluttet en sådan uddannelse.",
+  "nuggets": [
+   {
+    "text": "Arbejdstagere over 18 år, der er direkte involveret i eller nødvendige for brug af strålekilder i områder med brug af strålekilder",
+    "importance": "vital",
+    "evidence": [
+     "Arbejdstager over 18 år, der er direkte involveret i eller nødvendig for en brug af strålekilder"
+    ]
+   },
+   {
+    "text": "Personer over 16 år i en reguleret erhvervskompetencegivende uddannelse, hvor strålekilder indgår, er omfattet",
+    "importance": "vital",
+    "evidence": [
+     "Person over 16 år, der er i en erhvervskompetencegivende uddannelse"
+    ]
+   },
+   {
+    "text": "Personer mellem 16 og 18 år, der har afsluttet en sådan uddannelse og skal bruge strålekilder i beskæftigelsen, er omfattet",
+    "importance": "vital",
+    "evidence": [
+     "Person mellem 16 og 18 år, der har afsluttet en uddannelse"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-definition-omsorgsperson",
+  "question": "Hvad forstås ved en omsorgsperson i strålebeskyttelsesbekendtgørelsen?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Pårørende eller hjælper over 18 år, der bevidst og frivilligt, uden at det er led i arbejdet, udsætter sig for stråling for at pleje, støtte og hjælpe personer, der gennemgår medicinsk bestråling.",
+  "nuggets": [
+   {
+    "text": "En pårørende eller hjælper over 18 år",
+    "importance": "vital",
+    "evidence": [
+     "Pårørende, eller hjælper over 18 år"
+    ]
+   },
+   {
+    "text": "Udsætter sig bevidst og frivilligt og ikke som led i sit arbejde",
+    "importance": "vital",
+    "evidence": [
+     "bevidst og frivilligt, og uden at det er et led i den pågældendes arbejde"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-breastfeeding-worker",
+  "question": "Under Danish rules, may a breast-feeding worker be employed where radioactive contamination is possible?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Not under conditions that may cause contamination to an extent of radiological significance for the child (§ 39).",
+  "nuggets": [
+   {
+    "text": "A breast-feeding worker may not be employed under conditions that can cause contamination of radiological significance for the child",
+    "importance": "vital",
+    "evidence": [
+     "forhold, der kan medføre forurening med radioaktivt materiale i et omfang, der har strålebeskyttelsesmæssig betydning for barnet"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-undtagelse-dosiskriterium",
+  "question": "Under Danish rules, what dose criterion must be met before radioactive material can be released, and does it differ between artificial and naturally occurring radionuclides?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Dose to members of the public of the order of 0.01 mSv per year or less for artificial radionuclides, and of the order of 1 mSv per year or less for naturally occurring radionuclides; the use must be justified and radiologically sound without protective measures.",
+  "nuggets": [
+   {
+    "text": "About 0.01 mSv per year or less for artificial radionuclides",
+    "importance": "vital",
+    "evidence": [
+     "i størrelsesordenen 0,01 mSv pr. år eller mindre for kunstige radionuklider"
+    ]
+   },
+   {
+    "text": "About 1 mSv per year or less for naturally occurring radionuclides",
+    "importance": "vital",
+    "evidence": [
+     "eller i størrelsesordenen 1 mSv pr. år eller mindre for naturligt forekommende radionuklider"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-overfladeforurening-co60",
+  "question": "Hvilke værdier for aktivitetskoncentration gælder for Co-60, dels ved frigivelse af bygninger, anlæg og genstande, dels for overflader i kontrollerede områder?",
+  "topics": [
+   "waste",
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Frigivelse: 0,1 Bq/cm2. Overflader i kontrollerede områder: 10 Bq/cm2.",
+  "nuggets": [
+   {
+    "text": "Frigivelse af bygninger, anlæg og genstande: 0,1 Bq/cm2",
+    "importance": "vital",
+    "evidence": [
+     "Co-58 1 100 Co-60 0,1 10 Ni-59"
+    ]
+   },
+   {
+    "text": "Overflader i kontrollerede områder: 10 Bq/cm2",
+    "importance": "vital",
+    "evidence": [
+     "Co-58 1 100 Co-60 0,1 10 Ni-59"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-sikringsgruppe-cs137",
+  "question": "Hvilken nedre værdi for aktivitetsmængde gælder for sikringsgruppe C for Cs-137?",
+  "topics": [
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "0,1 TBq (A: 100 TBq, B: 1 TBq).",
+  "nuggets": [
+   {
+    "text": "Sikringsgruppe C for Cs-137 begynder ved 0,1 TBq",
+    "importance": "vital",
+    "evidence": [
+     "Cs-137 100 1 0,1"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-myndighedskontrol-lukkede-kilder",
+  "question": "Hvilket myndighedskontrolniveau gælder for besiddelse af lukkede radioaktive kilder, afhængigt af indeksværdien for aktivitetsmængde?",
+  "topics": [
+   "industrial",
+   "research"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Indeksværdi ≤ 1: undtaget fra tilladelse og underretning; 1 < I_A ≤ 100: underretning; I_A > 100: tilladelse.",
+  "nuggets": [
+   {
+    "text": "Op til indeksværdi 1 er kilden undtaget, mellem 1 og 100 kræves underretning, og over 100 kræves tilladelse",
+    "importance": "vital",
+    "evidence": [
+     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse Tabel 1.2"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-emergency-worker-guidance",
+  "question": "According to the IAEA safety standards (GSR Part 3), what guidance values restrict the dose to emergency workers for life-saving actions and for actions to avert a large collective dose?",
+  "topics": [
+   "emergency",
+   "occupational"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Life-saving actions: Hp(10) below 500 mSv (may be exceeded if benefits to others clearly outweigh the risk and the worker volunteers and understands the risks). Averting a large collective dose: below 100 mSv.",
+  "nuggets": [
+   {
+    "text": "Life-saving actions: guidance value below 500 mSv, exceedable only for volunteers who understand and accept the risks",
+    "importance": "vital",
+    "evidence": [
+     "Life saving actions benefits to others clearly outweigh the emergency worker"
+    ]
+   },
+   {
+    "text": "Actions to avert a large collective dose: below 100 mSv",
+    "importance": "vital",
+    "evidence": [
+     "Actions to avert a large collective dose Hp(10) < 100 mSv"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsg2-fetus-criterion",
+  "question": "According to IAEA GSG-2, which generic criteria for projected dose to the fetus and effective dose in the first 7 days call for urgent protective actions?",
+  "topics": [
+   "emergency"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Projected fetal dose of 100 mSv in the first 7 days and effective dose of 100 mSv in the first 7 days (thyroid 50 mSv for iodine blocking).",
+  "nuggets": [
+   {
+    "text": "Fetus: 100 mSv in the first 7 days",
+    "importance": "vital",
+    "evidence": [
+     "HFetus 100 mSv in the first 7 days"
+    ]
+   },
+   {
+    "text": "Effective dose: 100 mSv in the first 7 days",
+    "importance": "vital",
+    "evidence": [
+     "E 100 mSv in the first 7 days"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-transport-category-yellow",
+  "question": "According to the IAEA transport regulations (SSR-6), what transport index and surface dose rate conditions place a package in category II-YELLOW?",
+  "topics": [
+   "transport"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "TI more than 0 but not more than 1, and a maximum surface dose rate more than 0.005 mSv/h but not more than 0.5 mSv/h.",
+  "nuggets": [
+   {
+    "text": "TI more than 0 but not more than 1",
+    "importance": "vital",
+    "evidence": [
+     "More than 0 but not more than 1a More than 0.005 mSv/h but II-YELLOW not more than 0.5 mSv/h"
+    ]
+   },
+   {
+    "text": "Surface dose rate more than 0.005 mSv/h but not more than 0.5 mSv/h",
+    "importance": "vital",
+    "evidence": [
+     "More than 0.005 mSv/h but II-YELLOW not more than 0.5 mSv/h"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-contamination-definition",
+  "question": "In the IAEA transport regulations (SSR-6), above what level of surface activity is a surface regarded as contaminated for beta and gamma emitters, and what is the level for other alpha emitters?",
+  "topics": [
+   "transport"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "More than 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters; 0.04 Bq/cm2 for all other alpha emitters.",
+  "nuggets": [
+   {
+    "text": "0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters",
+    "importance": "vital",
+    "evidence": [
+     "in excess of 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters"
+    ]
+   },
+   {
+    "text": "0.04 Bq/cm2 for all other alpha emitters",
+    "importance": "vital",
+    "evidence": [
+     "or 0.04 Bq/cm2 for all other alpha emitters"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-decommissioning-strategy",
+  "question": "Which decommissioning strategy does IAEA GSR Part 6 prefer, and who must justify the choice of strategy?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Immediate dismantling is preferred; the licensee must justify the selection of the strategy.",
+  "nuggets": [
+   {
+    "text": "The preferred strategy is immediate dismantling",
+    "importance": "vital",
+    "evidence": [
+     "The preferred decommissioning strategy shall be immediate dismantling"
+    ]
+   },
+   {
+    "text": "The licensee justifies the selection",
+    "importance": "vital",
+    "evidence": [
+     "The selection of a decommissioning strategy shall be justified by the licensee"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-radioiodine-pregnancy",
+  "question": "What does IAEA SSG-46 say about radioiodine therapy for a pregnant patient?",
+  "topics": [
+   "medical"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "A pregnant patient should not be given radioiodine therapy unless it is lifesaving; otherwise it should be deferred until after pregnancy and any breast-feeding.",
+  "nuggets": [
+   {
+    "text": "Radioiodine therapy should not be given to a pregnant patient unless lifesaving",
+    "importance": "vital",
+    "evidence": [
+     "a pregnant patient should not be subject to radioiodine therapy unless the application is lifesaving"
+    ]
+   },
+   {
+    "text": "Otherwise it should be deferred until after pregnancy and breast-feeding",
+    "importance": "vital",
+    "evidence": [
+     "deferred until after the pregnancy and after any period of breast-feeding"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-dose-constraint-bands",
+  "question": "According to IAEA GSR Part 3, which dose ranges are used for dose constraints and reference levels in public exposure in planned situations, for occupational exposure in planned situations, and for the residual dose after an emergency?",
+  "topics": [
+   "general",
+   "emergency"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Public planned exposure: at the low end, an increase of up to about 1 mSv over natural background. Occupational planned exposure (and public reference levels in existing situations): 1-20 mSv. Residual dose after an emergency: 20-100 mSv.",
+  "nuggets": [
+   {
+    "text": "For little-benefit sources (public exposure in planned situations) the value is at the low end, an increase of up to about 1 mSv",
+    "importance": "vital",
+    "evidence": [
+     "represents an increase, of up to about 1 mSv"
+    ]
+   },
+   {
+    "text": "1-20 mSv is used for occupational exposure in planned situations",
+    "importance": "vital",
+    "evidence": [
+     "Dose constraints or reference levels of 1–20 mSv would be used when the exposure situation"
+    ]
+   },
+   {
+    "text": "20-100 mSv is used for the residual dose after a nuclear or radiological emergency",
+    "importance": "vital",
+    "evidence": [
+     "Reference levels of 20–100 mSv would be used where individuals are exposed to radiation from sources that are not under control"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-xray-maintenance-frequency",
+  "question": "According to IAEA SSG-11, how often should industrial X ray equipment be maintained, and under which conditions more often?",
+  "topics": [
+   "industrial"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "At least annually, and more frequently in severe environments such as excessively dirty or humid conditions, or if the equipment is frequently moved.",
+  "nuggets": [
+   {
+    "text": "Maintenance should be performed at least annually",
+    "importance": "vital",
+    "evidence": [
+     "The maintenance should be performed at least annually"
+    ]
+   },
+   {
+    "text": "More often in severe environments (dirty or humid) or when the equipment is frequently moved",
+    "importance": "vital",
+    "evidence": [
+     "or if the equipment is frequently moved"
+    ]
+   },
+   {
+    "text": "Only the supplier or specially trained operators should perform the maintenance",
+    "importance": "okay",
+    "evidence": [
+     "only the supplier or specially trained operators should perform this maintenance"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-research-students-pregnancy",
+  "question": "According to IAEA SSG-87, what should registrants and licensees arrange for graduate students who also use radiation sources at other research organizations, and for pregnant or breastfeeding research workers?",
+  "topics": [
+   "research",
+   "occupational"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "A system ensuring that total annual exposure, including exposure at other research organizations, does not exceed the occupational dose limits; and arrangements for pregnant or breastfeeding workers or students to meet para. 3.114 of GSR Part 3.",
+  "nuggets": [
+   {
+    "text": "A system must ensure the total annual exposure, including exposure at other organizations, stays within occupational dose limits",
+    "importance": "vital",
+    "evidence": [
+     "including any exposure received by them when they are using radiation sources at other research organizations"
+    ]
+   },
+   {
+    "text": "Arrangements for pregnant or breastfeeding research workers must meet para. 3.114 of GSR Part 3",
+    "importance": "vital",
+    "evidence": [
+     "arrangements for pregnant or breastfeeding research workers or graduate students to meet the requirements of para. 3.114"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-refuse-sagsbehandlingstid",
+  "question": "Hvad er Sundhedsstyrelsens sagsbehandlingstid for en ansøgning om tilladelse til brug af strålekilder?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "refuse",
+  "expected_answer": "Kilderne angiver ikke en sagsbehandlingstid; et godt svar siger det."
+ },
+ {
+  "id": "test-refuse-koordinator-kursustimer",
+  "question": "Hvor mange timer skal det godkendte kursus i grundlæggende strålebeskyttelse for en strålebeskyttelseskoordinator mindst vare?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "refuse",
+  "expected_answer": "Bekendtgørelserne kræver et godkendt kursus, men angiver ikke et timetal; et godt svar siger det."
+ },
+ {
+  "id": "test-refuse-solarium-uv",
+  "question": "Hvilken grænseværdi for UV-stråling fra solarier gælder i Danmark?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "refuse",
+  "expected_answer": "UV-stråling fra solarier er ikke-ioniserende; hverken IAEA-standarderne eller de danske bekendtgørelser i korpus angiver grænseværdier."
+ },
+ {
+  "id": "test-refuse-rf-basestation",
+  "question": "What is the exposure limit for radiofrequency fields from mobile phone base stations for members of the public?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "refuse",
+  "expected_answer": "Radiofrequency fields are non-ionising; the corpus gives no such limit."
+ }
+]
