@@ -532,6 +532,51 @@ Also measured: llama at k = 4 with an 8192-token window passed 22/39 in 64
 minutes, against 20/39 in 94 minutes at k = 5 (12288), so k = 4 was not worse
 and faster for a model that spills into RAM.
 
+## Held-out questions — confirming the tuned results (2026-10-12, #167)
+
+The 39 golden questions are a development set: the generation prompt (#145),
+the chunking of Danish law, `k = 5` and the embedder were each chosen by their
+results on them, so `prompt-145` (38/39) says how well the tuned system does
+on the questions it was tuned on, not how well it generalises. The prompt
+rules name categories rather than the failed answers to limit this, which
+reduces the effect without removing it.
+
+The set is also too small to compare answer models. Measured so far:
+
+- 13 questions, k = 3, 3-vote judge (2026-09-25): `gemma-4-26b-a4b-it` 9/13,
+  `gemini-2.5-pro` 8–9/13 over three identical runs, `deepseek-v4-flash` 8/13,
+  `glm-5.2` 7/13. All four share the same 3 retrieval misses; the differences
+  are one or two questions, and Gemini alone varies by one question between
+  identical runs. No model is shown to be better; the closed model was not
+  better than the open ones.
+- 39 questions, k = 5, local models (2026-10-11): `llama3.1:8b` 20/39 and
+  22/39, `qwen3.5:4b` 23/39 and 22/39 (judge `qwen3.8-27b` / `mistral-medium-3.5-128b`),
+  against 38/39 for the cloud default. The gap is large, but it is one set and
+  one run each.
+
+One question moves the pass rate by 2.6 points, and most questions pass for
+every model, so few can separate two models.
+
+**Step H1: held-out questions** (#167). About 30–40 new questions written from
+the documents before any system answer is looked at, kept apart from the
+development questions (`eval/data/golden_test.json` or a `split` field) so
+that their `questions_hash` never mixes into the development trend. Weighted
+toward what separates models and settings: conditions that change meaning,
+numbers and units, Danish rule vs IAEA value, definitions, annex tables,
+cross-references, English questions about Danish law, more questions to
+refuse (4 of 39 now). One run per configuration (cloud default, local
+default, and for a model comparison at least one other open and one closed
+model, e.g. `gemini-2.5-pro`), the same judge with three votes plus a
+re-score with the second judge. Only the answer model changes between runs.
+Development and test are reported side by side, per pair with the sign test.
+Rule, set before measuring: nothing is tuned on the test questions; after a
+tuning step they count as development questions and a confirmation needs new
+ones. A lower test number is a result, not a reason to tune.
+
+The new questions are shared with #146: those used to design or choose a
+retrieval change become development questions, so the questions are split
+into a part for #146 and a part kept untouched as the test set.
+
 ---
 
 ## Phase 1 — Continuous Scoring
