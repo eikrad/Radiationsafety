@@ -490,26 +490,6 @@
   ]
  },
  {
-  "id": "test-dk-dokumentation-konstanskontrol",
-  "question": "Hvor lang tid tilbage skal en virksomhed bevare dokumentation for konstanskontrol ved medicinsk anvendelse?",
-  "topics": [
-   "medical"
-  ],
-  "language": "da",
-  "source": "dk-law",
-  "expected_behavior": "answer",
-  "expected_answer": "De seneste 5 års konstanskontroller (mens statuskontrol gælder de seneste 5 kontroller).",
-  "nuggets": [
-   {
-    "text": "Dokumentation for de seneste 5 års konstanskontroller skal bevares",
-    "importance": "vital",
-    "evidence": [
-     "de seneste 5 års konstanskontroller"
-    ]
-   }
-  ]
- },
- {
   "id": "test-dk-forskning-bestråling-forsøgspersoner",
   "question": "Hvilke krav stiller strålebeskyttelsesbekendtgørelsen til biomedicinske forskningsprojekter, hvor forsøgspersoner bestråles?",
   "topics": [
@@ -723,26 +703,6 @@
   ]
  },
  {
-  "id": "test-dk-sikringsgruppe-cs137",
-  "question": "Hvilken nedre værdi for aktivitetsmængde gælder for sikringsgruppe C for Cs-137?",
-  "topics": [
-   "industrial"
-  ],
-  "language": "da",
-  "source": "dk-law",
-  "expected_behavior": "answer",
-  "expected_answer": "0,1 TBq (A: 100 TBq, B: 1 TBq).",
-  "nuggets": [
-   {
-    "text": "Sikringsgruppe C for Cs-137 begynder ved 0,1 TBq",
-    "importance": "vital",
-    "evidence": [
-     "Cs-137 100 1 0,1"
-    ]
-   }
-  ]
- },
- {
   "id": "test-dk-myndighedskontrol-lukkede-kilder",
   "question": "Hvilket myndighedskontrolniveau gælder for besiddelse af lukkede radioaktive kilder, afhængigt af indeksværdien for aktivitetsmængde?",
   "topics": [
@@ -896,54 +856,41 @@
  },
  {
   "id": "test-iaea-contamination-definition",
-  "question": "In the IAEA transport regulations (SSR-6), above what surface activity is a surface defined as contaminated (a) for beta and gamma emitters and low toxicity alpha emitters, and (b) for all other alpha emitters?",
+  "question": "In the IAEA transport regulations (SSR-6), above what surface activity is a surface defined as contaminated, and what limit applies to non-fixed contamination on the accessible surface of an SCO-I object, and over what area is it averaged?",
   "topics": [
    "transport"
   ],
   "language": "en",
   "source": "iaea",
   "expected_behavior": "answer",
-  "expected_answer": "More than 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters; 0.04 Bq/cm2 for all other alpha emitters.",
+  "expected_answer": "A surface is contaminated above 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters (0.04 Bq/cm2 for all other alpha emitters). For SCO-I, non-fixed contamination averaged over 300 cm2 may not exceed 4 Bq/cm2 (beta, gamma, low toxicity alpha) or 0.4 Bq/cm2 (other alpha emitters).",
   "nuggets": [
    {
-    "text": "0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters",
+    "text": "Contamination definition: more than 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters",
     "importance": "vital",
     "evidence": [
      "in excess of 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters"
     ]
    },
    {
-    "text": "0.04 Bq/cm2 for all other alpha emitters",
+    "text": "Contamination definition: 0.04 Bq/cm2 for all other alpha emitters",
     "importance": "vital",
     "evidence": [
      "or 0.04 Bq/cm2 for all other alpha emitters"
     ]
-   }
-  ]
- },
- {
-  "id": "test-iaea-decommissioning-strategy",
-  "question": "Which decommissioning strategy does IAEA GSR Part 6 prefer, and who must justify the choice of strategy?",
-  "topics": [
-   "waste"
-  ],
-  "language": "en",
-  "source": "iaea",
-  "expected_behavior": "answer",
-  "expected_answer": "Immediate dismantling is preferred; the licensee must justify the selection of the strategy.",
-  "nuggets": [
+   },
    {
-    "text": "The preferred strategy is immediate dismantling",
+    "text": "SCO-I non-fixed contamination limit is 4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters (ten times the definition value)",
     "importance": "vital",
     "evidence": [
-     "The preferred decommissioning strategy shall be immediate dismantling"
+     "does not exceed 4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters, or 0.4 Bq/cm2 for all other alpha emitters"
     ]
    },
    {
-    "text": "The licensee justifies the selection",
+    "text": "The SCO-I value is averaged over 300 cm2 (or the whole surface if smaller)",
     "importance": "vital",
     "evidence": [
-     "The selection of a decommissioning strategy shall be justified by the licensee"
+     "averaged over 300 cm2 (or the area of the surface if less than 300 cm2)"
     ]
    }
   ]
@@ -1256,40 +1203,6 @@
     "importance": "okay",
     "evidence": [
      "3.9.2. Tidssvarende erfaring med håndtering af åbne radioaktive kilder"
-    ]
-   }
-  ]
- },
- {
-  "id": "test-dk-koordinator-borehulslogning-repetition",
-  "question": "Hvilke kursus- og uddannelseskrav gælder for en strålebeskyttelseskoordinator ved borehulslogning med lukkede radioaktive kilder, og hvor ofte skal repetitionskurset tages?",
-  "topics": [
-   "industrial"
-  ],
-  "language": "da",
-  "source": "dk-law",
-  "expected_behavior": "answer",
-  "expected_answer": "Kursus i grundlæggende strålebeskyttelse godkendt af SST, repetitionskursus mindst hvert 5. år, uddannelse i de konkrete kilder og udstyr ved producenten eller anden kompetent person samt tidssvarende erfaring.",
-  "nuggets": [
-   {
-    "text": "Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen",
-    "importance": "vital",
-    "evidence": [
-     "3.5.1. Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen"
-    ]
-   },
-   {
-    "text": "Repetitionskursus mindst hvert 5. år",
-    "importance": "vital",
-    "evidence": [
-     "3.5.2. Repetitionskursus mindst hvert 5. år"
-    ]
-   },
-   {
-    "text": "Uddannelse i de konkrete strålekilder og udstyr, forestået af producenten eller anden kompetent person",
-    "importance": "okay",
-    "evidence": [
-     "Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer strålekilder og udstyr. 3.5.4"
     ]
    }
   ]
@@ -1785,39 +1698,39 @@
  },
  {
   "id": "test-dk-indberetning-dosisværdier",
-  "question": "Ved hvilke dosisværdier for ekstern bestråling skal en arbejdsgiver straks indberette til Sundhedsstyrelsen?",
+  "question": "En arbejdstager får i løbet af en måned en effektiv dosis på 4 mSv, en ækvivalent dosis til øjelinsen på 8 mSv og en ækvivalent dosis til huden på 40 mSv fra ekstern bestråling. Skal arbejdsgiveren indberette det til Sundhedsstyrelsen, og hvorfor?",
   "topics": [
    "occupational"
   ],
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Effektiv dosis 5 mSv, ækvivalent dosis til øjelinsen 5 mSv, ækvivalent dosis til hud og/eller ekstremiteter 50 mSv.",
+  "expected_answer": "Ja, straks. Øjelinsedosis på 8 mSv overstiger indberetningsværdien på 5 mSv. Den effektive dosis (4 mSv) og hudosis (40 mSv) ligger under indberetningsværdierne på 5 mSv og 50 mSv.",
   "nuggets": [
    {
-    "text": "Effektiv dosis: 5 mSv",
+    "text": "Ja, arbejdsgiveren skal indberette, fordi øjelinsedosis overstiger indberetningsværdien på 5 mSv",
     "importance": "vital",
     "evidence": [
      "Effektiv dosis 5 Ækvivalent dosis til øjelinse 5 Ækvivalent dosis til hud og/eller ekstremiteter 50"
     ]
    },
    {
-    "text": "Ækvivalent dosis til øjelinsen: 5 mSv (ikke dosisgrænsen på 20 mSv)",
-    "importance": "vital",
+    "text": "Den effektive dosis på 4 mSv er under indberetningsværdien på 5 mSv",
+    "importance": "okay",
     "evidence": [
      "Effektiv dosis 5 Ækvivalent dosis til øjelinse 5 Ækvivalent dosis til hud og/eller ekstremiteter 50"
     ]
    },
    {
-    "text": "Ækvivalent dosis til hud og/eller ekstremiteter: 50 mSv",
-    "importance": "vital",
+    "text": "Hudosis på 40 mSv er under indberetningsværdien på 50 mSv for hud og ekstremiteter",
+    "importance": "okay",
     "evidence": [
      "Effektiv dosis 5 Ækvivalent dosis til øjelinse 5 Ækvivalent dosis til hud og/eller ekstremiteter 50"
     ]
    },
    {
     "text": "Indberetningen skal ske straks",
-    "importance": "okay",
+    "importance": "vital",
     "evidence": [
      "skal arbejdsgiveren straks indberette dette til Sundhedsstyrelsen"
     ]
@@ -2349,6 +2262,1841 @@
     "importance": "okay",
     "evidence": [
      "2.2. Brugen af det frigivne materiale er berettiget"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-cs137-sikringsgruppe-c-krav",
+  "question": "En virksomhed har en lukket Cs-137-kilde på 0,5 TBq. Hvilken sikringsgruppe hører kilden til, hvor lang tid må der højst gå mellem eftersyn og radiologisk kontrol, og hvilke krav til tekniske barrierer og til kontrol af besiddelsen gælder?",
+  "topics": [
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Sikringsgruppe C (Cs-137: 0,1 TBq til under 1 TBq). Eftersyn og radiologisk kontrol højst hver 25. måned. Mindst én teknisk barriere, og mindst én gang månedligt bekræftes og dokumenteres, at kilden er i besiddelse og ikke manipuleret. (Sikringsgruppe B ville kræve to barrierer og ugentlig bekræftelse.)",
+  "nuggets": [
+   {
+    "text": "Kilden hører til sikringsgruppe C (nedre værdi 0,1 TBq; gruppe B begynder ved 1 TBq)",
+    "importance": "vital",
+    "evidence": [
+     "Cs-137 100 1 0,1"
+    ]
+   },
+   {
+    "text": "Eftersyn og radiologisk kontrol højst hver 25. måned for sikringsgruppe C",
+    "importance": "vital",
+    "evidence": [
+     "C, jf. bilag 6, samt tilhørende anlæg og relevant udstyr må intervallet for eftersyn og radiologisk kontrol ikke være længere end 25 måneder"
+    ]
+   },
+   {
+    "text": "Der skal være mindst én teknisk barriere, der reducerer sandsynligheden for tyveri eller misbrug",
+    "importance": "vital",
+    "evidence": [
+     "Der skal være mindst én teknisk barriere, der reducerer sandsynligheden for tyveri eller misbrug af strålekilden"
+    ]
+   },
+   {
+    "text": "Det skal mindst én gang månedligt bekræftes og dokumenteres, at kilden er i virksomhedens besiddelse",
+    "importance": "vital",
+    "evidence": [
+     "Det skal mindst én gang månedligt bekræftes og dokumenteres, at strålekilden er i virksomhedens besiddelse"
+    ]
+   },
+   {
+    "text": "For sikringsgruppe B gælder skærpede krav: mindst to tekniske barrierer og ugentlig bekræftelse",
+    "importance": "okay",
+    "evidence": [
+     "Der skal være mindst to tekniske barrierer, der med stor sandsynlighed forhindrer tyveri"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-dokumentation-status-og-konstanskontrol",
+  "question": "En klinik får udført både statuskontrol og konstanskontrol af sine røntgenapparater. Hvor lang tid tilbage skal dokumentationen for hver af de to slags kontrol bevares, hvad skal den indeholde, og hvornår skal fejl indberettes til Sundhedsstyrelsen?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Dokumentation for de seneste 5 statuskontroller og de seneste 5 års konstanskontroller. Den skal indeholde måleresultater, kriterier og vurderingen, og navn på virksomhed og person. Fejl ved statuskontrol, der kan medføre utilsigtet bestråling, indberettes snarest muligt til Sundhedsstyrelsen.",
+  "nuggets": [
+   {
+    "text": "For statuskontrol bevares dokumentationen for de seneste 5 kontroller",
+    "importance": "vital",
+    "evidence": [
+     "de seneste 5 statuskontroller og de seneste 5 års konstanskontroller"
+    ]
+   },
+   {
+    "text": "For konstanskontrol bevares dokumentationen for de seneste 5 år",
+    "importance": "vital",
+    "evidence": [
+     "de seneste 5 statuskontroller og de seneste 5 års konstanskontroller"
+    ]
+   },
+   {
+    "text": "Dokumentationen skal indeholde måleresultater og kriterier for vurderingen samt resultatet af vurderingen",
+    "importance": "vital",
+    "evidence": [
+     "skal indeholde 1) måleresultater, 2) kriterier, baseret på specifikationer eller driftsbetingelser"
+    ]
+   },
+   {
+    "text": "Fejl eller mangler ved statuskontrol, der kan medføre utilsigtet bestråling, indberettes snarest muligt til Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "Hvis der ved statuskontrol konstateres fejl eller mangler ved strålekilder eller udstyr, der kan medføre utilsigtet bestråling"
+    ]
+   },
+   {
+    "text": "Navnet på virksomheden og personen, der har udført kontrollen, skal fremgå",
+    "importance": "okay",
+    "evidence": [
+     "Navnet på den virksomhed og den person, der har udført kontrollen, skal fremgå af dokumentationen"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-koordinator-borehul-densitet-håndholdt",
+  "question": "Hvilke uddannelses- og kursuskrav stilles der efter bekendtgørelsen om radioaktive stoffer til en strålebeskyttelseskoordinator ved henholdsvis borehulslogning, fugtigheds- og densitetsmåling og håndholdte apparater med lukkede radioaktive kilder, og hvem forestår uddannelsen i de to sidste tilfælde?",
+  "topics": [
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Borehulslogning: grundlæggende kursus godkendt af SST, repetitionskursus mindst hvert 5. år, uddannelse i de konkrete kilder og tidssvarende erfaring. Fugtigheds- og densitetsmåling: et kursus i anvendelse af de lukkede kilder og apparater godkendt af SST. Håndholdte apparater: uddannelse forestået af producenten eller anden kompetent person.",
+  "nuggets": [
+   {
+    "text": "Borehulslogning: kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen og repetitionskursus mindst hvert 5. år",
+    "importance": "vital",
+    "evidence": [
+     "3.5.1. Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen",
+     "3.5.2. Repetitionskursus mindst hvert 5. år"
+    ]
+   },
+   {
+    "text": "Fugtigheds- og densitetsmåling: et kursus i anvendelse af lukkede kilder og apparater til målingen, godkendt af Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "3.6.1. Kursus i anvendelse af lukkede radioaktive kilder og apparater til fugtigheds- og densitetsmåling godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Håndholdte apparater: uddannelse i de pågældende kilder og apparater forestået af producenten eller anden kompetent person",
+    "importance": "vital",
+    "evidence": [
+     "3.7.1. Uddannelse i anvendelse af de typer strålekilder og apparater, der ligger inden for strålebeskyttelseskoordinatorens opgaveområde"
+    ]
+   },
+   {
+    "text": "Borehulslogning kræver desuden tidssvarende erfaring med lukkede kilder til borehulslogning",
+    "importance": "okay",
+    "evidence": [
+     "3.5.4. Tidssvarende erfaring med anvendelse af lukkede radioaktive kilder til borehulslogning"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-decommissioning-strategy-duties",
+  "question": "Under IAEA GSR-6, which decommissioning strategy is preferred, what must the licensee demonstrate for the strategy it selects, and what happens to the strategy if the shutdown of a facility is sudden?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Immediate dismantling is preferred. The licensee justifies the selection and demonstrates that the facility stays in a safe configuration at all times, reaches the specified end state and imposes no undue burdens on future generations. After a sudden shutdown the strategy is reviewed on the basis of the situation, and after an accident the facility is first brought to a safe configuration.",
+  "nuggets": [
+   {
+    "text": "The preferred strategy is immediate dismantling",
+    "importance": "vital",
+    "evidence": [
+     "The preferred decommissioning strategy shall be immediate dismantling"
+    ]
+   },
+   {
+    "text": "The licensee must demonstrate that the facility is kept in a safe configuration at all times and reaches the specified end state",
+    "importance": "vital",
+    "evidence": [
+     "the facility will be maintained in a safe configuration at all times and will reach the specified decommissioning end state"
+    ]
+   },
+   {
+    "text": "The licensee must also demonstrate that no undue burdens are imposed on future generations",
+    "importance": "vital",
+    "evidence": [
+     "no undue burdens will be imposed on future generations"
+    ]
+   },
+   {
+    "text": "After a sudden shutdown the strategy shall be reviewed to determine whether it must be revised",
+    "importance": "vital",
+    "evidence": [
+     "the decommissioning strategy shall be reviewed on the basis of the situation that initiated the sudden shutdown"
+    ]
+   },
+   {
+    "text": "If an accident caused the shutdown, the facility must be brought to a safe configuration before the final decommissioning plan is implemented",
+    "importance": "okay",
+    "evidence": [
+     "the facility shall be brought to a safe configuration before an approved final decommissioning plan is implemented"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-ssg46-pregnancy-avoidance-periods",
+  "question": "According to IAEA SSG-46 (Appendix II), for how long should pregnancy be avoided after radiopharmaceutical therapy with 131I iodide for thyroid cancer, with 89Sr chloride for bone metastases, and with 90Y colloid for arthritic joints?",
+  "topics": [
+   "medical"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "131I iodide (thyroid cancer, up to 6000 MBq): 6-12 months. 89Sr chloride (bone metastases, up to 150 MBq): 24 months. 90Y colloid (arthritic joints, up to 400 MBq): 0 months.",
+  "nuggets": [
+   {
+    "text": "131I iodide for thyroid cancer: avoid pregnancy for 6-12 months",
+    "importance": "vital",
+    "evidence": [
+     "131 I iodide Thyroid cancer 6000 6–12"
+    ]
+   },
+   {
+    "text": "89Sr chloride for bone metastases: avoid pregnancy for 24 months",
+    "importance": "vital",
+    "evidence": [
+     "89 Sr chloride Bone metastases 150 24"
+    ]
+   },
+   {
+    "text": "90Y colloid for arthritic joints: no period of avoidance (0 months)",
+    "importance": "vital",
+    "evidence": [
+     "90 Y colloid Arthritic joints 400 0"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr4-independent-verification",
+  "question": "According to IAEA GSR Part 4, who has to check an operator's safety assessment independently before it is used or sent to the regulator, how should that check be carried out, and can the regulatory body's own review of the assessment count towards it?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "The operating organization must carry out an independent verification before using or submitting the safety assessment, performed by suitably qualified and experienced people different from those who did the assessment. It combines an overall review for comprehensiveness with detailed spot checks on the aspects with the highest impact on radiation risks, and checks that models and data represent the design and operation. The regulator does its own separate verification, which is not part of the operator's process and may not be claimed by the operator as its independent verification.",
+  "nuggets": [
+   {
+    "text": "The operating organization itself must carry out the independent verification before the safety assessment is used or submitted to the regulatory body",
+    "importance": "vital",
+    "evidence": [
+     "The operating organization shall carry out an independent verification to increase the level of confidence in the safety assessment"
+    ]
+   },
+   {
+    "text": "The verification is done by suitably qualified and experienced individuals or a group different from those who carried out the safety assessment",
+    "importance": "vital",
+    "evidence": [
+     "suitably qualified and experienced individuals or a group different from those who carried out the safety assessment"
+    ]
+   },
+   {
+    "text": "It combines an overall review of comprehensiveness with spot checks: more detailed review of the aspects with the highest impact on radiation risks",
+    "importance": "okay",
+    "evidence": [
+     "combine an overall review, to determine whether the safety assessment carried out is comprehensive, with spot checks"
+    ]
+   },
+   {
+    "text": "It determines whether the models and data used accurately represent the design and operation of the facility or activity",
+    "importance": "okay",
+    "evidence": [
+     "whether the models and data used are accurate representations of the design and operation"
+    ]
+   },
+   {
+    "text": "The regulatory body's separate verification does not count: the operator may not use or claim it as part of its own independent verification",
+    "importance": "vital",
+    "evidence": [
+     "it is not to be used or claimed by the operating organization as part of its independent verification"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr4-assessment-update-triggers",
+  "question": "Under IAEA GSR Part 4, on what occasion at the least must a safety assessment be brought up to date, and which kinds of developments can make a review necessary sooner than the predefined interval?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "As a minimum the safety assessment is updated in the periodic safety review carried out at predefined intervals set by regulatory requirements. A review may be needed more often because of changes that may significantly affect safety, significant developments in knowledge and understanding (research, operating experience), emerging safety issues from a regulatory concern or significant incident, and safety significant modifications to computer codes or changes in input data of the safety analysis.",
+  "nuggets": [
+   {
+    "text": "At a minimum the safety assessment is updated in the periodic safety review at predefined intervals in accordance with regulatory requirements",
+    "importance": "vital",
+    "evidence": [
+     "As a minimum, the safety assessment shall be updated in the periodic safety review carried out at predefined intervals"
+    ]
+   },
+   {
+    "text": "Changes that may significantly affect the safety of the facility or activity can require an earlier review",
+    "importance": "vital",
+    "evidence": [
+     "Any changes that may significantly affect the safety of the facility or activity"
+    ]
+   },
+   {
+    "text": "Significant developments in knowledge and understanding, e.g. from research or operating experience, can require an earlier review",
+    "importance": "okay",
+    "evidence": [
+     "Significant developments in knowledge and understanding (such as developments arising from research or operating experience)"
+    ]
+   },
+   {
+    "text": "Emerging safety issues due to a regulatory concern or a significant incident can require an earlier review",
+    "importance": "okay",
+    "evidence": [
+     "Emerging safety issues due to a regulatory concern or a significant incident"
+    ]
+   },
+   {
+    "text": "Safety significant modifications to computer codes or changes in the input data of the safety analysis can require an earlier review",
+    "importance": "okay",
+    "evidence": [
+     "Safety significant modifications to the computer codes, or changes in the input data used in the safety analysis"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr2-supply-chain-responsibility",
+  "question": "According to IAEA GSR Part 2, when an organization outsources work or buys in items and services that may influence safety, where does responsibility for safety lie, and what capability must the organization keep for itself regarding what is supplied?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "The organization retains responsibility for safety when contracting out processes or receiving items, products or services. It must itself keep the competence to specify the scope and standard of what it needs and to assess whether what is supplied meets the safety requirements (an 'informed customer' capability), and its management system must cover qualification, selection, evaluation, procurement and oversight of the supply chain.",
+  "nuggets": [
+   {
+    "text": "The organization retains responsibility for safety when it contracts out processes or receives items, products or services",
+    "importance": "vital",
+    "evidence": [
+     "The organization shall retain responsibility for safety when contracting out any processes"
+    ]
+   },
+   {
+    "text": "The organization must keep the competence to specify the scope and standard of a required product or service",
+    "importance": "vital",
+    "evidence": [
+     "retain the competence to specify the scope and standard of a required product or service"
+    ]
+   },
+   {
+    "text": "The organization must be able to assess whether the supplied product or service meets the applicable safety requirements",
+    "importance": "vital",
+    "evidence": [
+     "assess whether the product or service supplied meets the applicable safety requirements"
+    ]
+   },
+   {
+    "text": "This capability is called an 'informed customer' capability",
+    "importance": "okay",
+    "evidence": [
+     "is sometimes termed an ‘informed customer’ capability"
+    ]
+   },
+   {
+    "text": "The management system includes arrangements for qualification, selection, evaluation, procurement and oversight of the supply chain",
+    "importance": "okay",
+    "evidence": [
+     "arrangements for qualification, selection, evaluation, procurement, and oversight of the supply chain"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr2-independent-assessors",
+  "question": "Under IAEA GSR Part 2, what conditions apply to the people or units assigned to carry out independent assessments of an organization's management system, and may they come from outside the organization?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Independent assessments (alongside self-assessments) of the management system must be conducted regularly, and responsibility for them must be assigned. The assessors may be in-house or external; they must have sufficient authority and direct access to senior management, and individuals must not assess areas under the responsibility of their own line management.",
+  "nuggets": [
+   {
+    "text": "Individuals doing independent assessments must not assess areas under the responsibility of their own line management",
+    "importance": "vital",
+    "evidence": [
+     "shall not be assigned responsibility to assess areas under the responsibility of their own line management"
+    ]
+   },
+   {
+    "text": "The assessors must be given sufficient authority to discharge their responsibilities",
+    "importance": "vital",
+    "evidence": [
+     "given sufficient authority to discharge their responsibilities and shall have direct access to senior management"
+    ]
+   },
+   {
+    "text": "The assessors must have direct access to senior management",
+    "importance": "vital",
+    "evidence": [
+     "given sufficient authority to discharge their responsibilities and shall have direct access to senior management"
+    ]
+   },
+   {
+    "text": "The assessing organizations or entities may be in-house or external",
+    "importance": "okay",
+    "evidence": [
+     "The organizations, entities (in-house or external) and individuals assigned such responsibilities"
+    ]
+   },
+   {
+    "text": "Independent assessments and self-assessments of the management system are to be conducted regularly",
+    "importance": "okay",
+    "evidence": [
+     "Independent assessments and self-assessments of the management system shall be regularly conducted"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr1-advice-conflict-of-interest",
+  "question": "According to IAEA GSR Part 1, what should a regulatory body do if no organization in its own country can give it expert advice free of conflicting interests, and what if the advice can only be obtained from organizations whose interests may conflict with its own?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Arrangements must ensure that advisers have no conflict of interest; if this is not possible domestically, the advice is sought from organizations in other States or international organizations without such conflicts. If it can only be obtained from organizations with potentially conflicting interests, the seeking of advice is monitored and the advice is carefully assessed for conflicts of interest. Obtaining advice never relieves the regulatory body of its responsibilities, and it must keep adequate core competence to make informed decisions.",
+  "nuggets": [
+   {
+    "text": "If conflict-free advice is not possible domestically, it is sought from organizations in other States or from international organizations without such conflicts",
+    "importance": "vital",
+    "evidence": [
+     "If this is not possible domestically, then the necessary advice or assistance shall be sought from organizations in other States"
+    ]
+   },
+   {
+    "text": "If advice is only available from organizations with potentially conflicting interests, the seeking of the advice is monitored",
+    "importance": "vital",
+    "evidence": [
+     "the seeking of this advice or assistance shall be monitored, and the advice given shall be carefully assessed for conflicts of interest"
+    ]
+   },
+   {
+    "text": "In that case the advice given is carefully assessed for conflicts of interest",
+    "importance": "vital",
+    "evidence": [
+     "the seeking of this advice or assistance shall be monitored, and the advice given shall be carefully assessed for conflicts of interest"
+    ]
+   },
+   {
+    "text": "Obtaining advice does not relieve the regulatory body of its assigned responsibilities",
+    "importance": "okay",
+    "evidence": [
+     "The obtaining of advice and assistance does not relieve the regulatory body of its assigned responsibilities"
+    ]
+   },
+   {
+    "text": "The regulatory body must keep adequate core competence to assess the advice and make informed decisions",
+    "importance": "okay",
+    "evidence": [
+     "The regulatory body shall have adequate core competence to make informed decisions",
+     "maintain the competence necessary to be an ‘intelligent customer’"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-ssg44-pre-existing-facilities",
+  "question": "According to IAEA SSG-44, how should a newly established regulatory body deal with facilities and activities that were already operating when the radiation safety legislation came into force?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Such pre-existing facilities and activities should get a transitional period to comply with the law, prescribed in the legislation in some States and decided by the regulatory body in others. The regulatory body should bring them under regulatory control gradually, using a graded approach (e.g. starting with high radiation risk ones, based on the source inventory and notifications), and may already start inspections during the transitional period.",
+  "nuggets": [
+   {
+    "text": "They should be given a transitional period to comply with the law",
+    "importance": "vital",
+    "evidence": [
+     "should be given a transitional period to comply with the provisions of the law"
+    ]
+   },
+   {
+    "text": "The transitional period is set in the legislation in some States and decided by the regulatory body in others",
+    "importance": "okay",
+    "evidence": [
+     "the transitional period is prescribed in the legislation, while in others it is decided by the regulatory body"
+    ]
+   },
+   {
+    "text": "The regulatory body should bring them under regulatory control gradually, in accordance with a graded approach",
+    "importance": "vital",
+    "evidence": [
+     "The regulatory body should gradually bring all pre-existing facilities and activities under regulatory control"
+    ]
+   },
+   {
+    "text": "The regulatory body may first focus on facilities and activities with high radiation risk",
+    "importance": "okay",
+    "evidence": [
+     "the regulatory body may initially focus on facilities and activities with high radiation risk"
+    ]
+   },
+   {
+    "text": "The regulatory body may start inspections of them during the transitional period",
+    "importance": "okay",
+    "evidence": [
+     "In the transitional period, the regulatory body may start making inspections"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr3-notification-vs-registration",
+  "question": "According to IAEA GSR Part 3, under which conditions is it enough to inform the regulatory body of an intended practice without applying for an authorization, and what features make a practice suitable for registration rather than a licence?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Notification alone suffices when the expected exposures are unlikely to exceed a small fraction (specified by the regulatory body) of the relevant limits and the likelihood and magnitude of potential exposures and other detrimental consequences are negligible; otherwise authorization by registration or licensing is needed. Registration suits practices where safety is largely ensured by the design of facilities and equipment, operating procedures are simple, safety training requirements are minimal and there is a history of few safety problems, with operations not varying significantly.",
+  "nuggets": [
+   {
+    "text": "Notification suffices only if expected exposures are unlikely to exceed a small fraction, specified by the regulatory body, of the relevant limits",
+    "importance": "vital",
+    "evidence": [
+     "are unlikely to exceed a small fraction, as specified by the regulatory body, of the relevant limits"
+    ]
+   },
+   {
+    "text": "Notification also requires that the likelihood and magnitude of potential exposures and other detrimental consequences are negligible",
+    "importance": "vital",
+    "evidence": [
+     "the likelihood and magnitude of potential exposures and any other potential detrimental consequences are negligible"
+    ]
+   },
+   {
+    "text": "Otherwise an authorization is required, in the form of registration or licensing",
+    "importance": "okay",
+    "evidence": [
+     "unless notification alone is sufficient, apply to the regulatory body for authorization"
+    ]
+   },
+   {
+    "text": "Registration suits practices where safety is largely ensured by the design of facilities and equipment and operating procedures are simple to follow",
+    "importance": "vital",
+    "evidence": [
+     "(i) safety can largely be ensured by the design of the facilities and equipment; (ii) the operating procedures are simple to follow"
+    ]
+   },
+   {
+    "text": "Registration suits practices with minimal safety training requirements and a history of few safety problems in operations",
+    "importance": "okay",
+    "evidence": [
+     "(iii) the training requirements for safety are minimal; and (iv) there is a history of few problems relating to safety in operations"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr5-waste-management-approaches",
+  "question": "According to IAEA GSR Part 5, what are the principal approaches to the predisposal management of radioactive waste, which of them is the preferred option, and under what condition is releasing waste to the environment so that it spreads out acceptable?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "GSR Part 5 names three approaches: 'delay and decay' (holding waste in storage until activity has decayed), 'concentrate and contain' and 'dilute and disperse'. The preferred option, as far as reasonably practicable, is to concentrate and contain the waste and isolate it from the biosphere. 'Dilute and disperse' is legitimate only when carried out within authorized limitations established by the regulatory body.",
+  "nuggets": [
+   {
+    "text": "The three approaches are 'delay and decay', 'concentrate and contain' and 'dilute and disperse'",
+    "importance": "vital",
+    "evidence": [
+     "are commonly termed ‘delay and decay’, ‘concentrate and contain’ and ‘dilute and disperse’"
+    ]
+   },
+   {
+    "text": "The preferred option, as far as reasonably practicable, is to concentrate and contain the waste and isolate it from the biosphere",
+    "importance": "vital",
+    "evidence": [
+     "the preferred option, as far as is reasonably practicable, is to concentrate and contain the waste and to isolate it from the biosphere"
+    ]
+   },
+   {
+    "text": "'Dilute and disperse' is legitimate only within authorized limitations set by the regulatory body",
+    "importance": "vital",
+    "evidence": [
+     "‘dilute and disperse’ is a legitimate practice in the management of radioactive waste, but only when carried out within authorized limitations"
+    ]
+   },
+   {
+    "text": "'Delay and decay' means holding the waste in storage until its activity has decreased by radioactive decay",
+    "importance": "okay",
+    "evidence": [
+     "‘Delay and decay’ involves holding the waste in storage until the desired reduction in activity has occurred through radioactive decay"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-gsr6-decommissioning-plan-timing",
+  "question": "Under IAEA GSR Part 6, at what point must the licensee first submit a decommissioning plan, how often is the plan typically updated and reviewed during operation, within what period after permanent shutdown is the final decommissioning plan typically due, and which authorization covers the facility in the meantime?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "The initial decommissioning plan is submitted together with the application for authorization to operate the facility. It is updated by the licensee and reviewed by the regulatory body periodically, typically every five years or as prescribed by the regulator (and after relevant accidents as soon as possible). The final decommissioning plan is due within a period agreed with the regulator, typically within two to five years of permanent shutdown; during the transition the authorization for operation remains in place unless the regulator has approved modifications based on reduced hazards.",
+  "nuggets": [
+   {
+    "text": "The initial decommissioning plan is submitted together with the application for authorization to operate the facility",
+    "importance": "vital",
+    "evidence": [
+     "an initial decommissioning plan together with the application for authorization to operate the facility"
+    ]
+   },
+   {
+    "text": "The plan is updated and reviewed typically every five years (or as prescribed by the regulatory body)",
+    "importance": "vital",
+    "evidence": [
+     "(typically every five years or as prescribed by the regulatory body)"
+    ]
+   },
+   {
+    "text": "The final decommissioning plan is typically due within two to five years of permanent shutdown, in a period agreed with the regulatory body",
+    "importance": "vital",
+    "evidence": [
+     "within a period agreed with the regulatory body (typically within two to five years of permanent shutdown)"
+    ]
+   },
+   {
+    "text": "Between permanent shutdown and approval of the final plan, the operating authorization remains in place unless the regulator approved modifications",
+    "importance": "okay",
+    "evidence": [
+     "the authorization for operation of the facility shall remain in place unless the regulatory body has approved modifications to the authorization"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-ssg40-disused-sealed-sources",
+  "question": "According to IAEA SSG-40, how should spent or disused sealed sources arising at a nuclear power plant or research reactor be handled as waste: may they be mixed with other waste or put through volume-reduction or thermal treatment, what about their original containers and shielding, and when can conditioning be omitted?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "SSG-40 recommends segregating spent or disused sealed sources from other waste and not compacting, shredding or incinerating them. As a general principle they should not be removed from their primary containers, the container should not be physically modified, and they should be kept in their shielding. They should be conditioned unless the half-life of their radionuclides allows removal from regulatory control within a reasonably short period, e.g. two to three years.",
+  "nuggets": [
+   {
+    "text": "They should be segregated from other waste",
+    "importance": "vital",
+    "evidence": [
+     "Spent or disused sealed sources can involve potentially serious hazards and should be segregated from other waste"
+    ]
+   },
+   {
+    "text": "They should not be compacted, shredded or incinerated",
+    "importance": "vital",
+    "evidence": [
+     "Spent or disused sealed sources should not be subjected to compaction, shredding or incineration"
+    ]
+   },
+   {
+    "text": "They should not be removed from their primary containers, the container should not be modified, and they should stay in their shielding",
+    "importance": "okay",
+    "evidence": [
+     "spent or disused sealed sources should not be removed from their primary containers, nor should the container be physically modified",
+     "Spent and disused sealed sources should be kept in their shielding"
+    ]
+   },
+   {
+    "text": "Conditioning can be omitted only if the half-life allows removal from regulatory control within a short period, e.g. two to three years",
+    "importance": "vital",
+    "evidence": [
+     "unless the half-life of radionuclides contained in them is short enough to enable removal from regulatory control within a reasonably short period"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-tecdoc1380-intrusion-criteria",
+  "question": "In IAEA-TECDOC-1380 on activity limits for near surface disposal, which dose or risk constraint applies to members of the public after closure for the expected gradual evolution of the facility, does that constraint apply when judging future people accidentally digging into the waste, and which reference doses are cited for that case instead?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "For gradual processes the facility must be designed so that the dose to the public does not exceed a constraint of 0.3 mSv per year, or a risk constraint of the order of 10^-5 per year. Following ICRP, this 0.3 mSv constraint is not applicable to human intrusion because intrusion bypasses the barriers. Instead an existing annual dose of around 10 mSv is a generic reference level below which intervention is not likely to be justifiable, and around 100 mSv one above which intervention is always justifiable; reasonable efforts should be made to reduce the probability or consequences of intrusion.",
+  "nuggets": [
+   {
+    "text": "For gradual processes the constraint is 0.3 mSv per year (or a risk of the order of 10^-5 per year)",
+    "importance": "vital",
+    "evidence": [
+     "shall not exceed a dose constraint of 0.3 mSv in a year or a risk constraint of the order of 10-5 per year"
+    ]
+   },
+   {
+    "text": "The 0.3 mSv constraint does not apply to human intrusion, because intrusion bypasses the barriers",
+    "importance": "vital",
+    "evidence": [
+     "the dose constraint of 0.3 mSv per year is not applicable in evaluating the significance of human intrusion",
+     "because human intrusion bypasses the barriers that were established to provide the radiation protection of the facility"
+    ]
+   },
+   {
+    "text": "Around 10 mSv per year is a generic reference level below which intervention is not likely to be justifiable",
+    "importance": "vital",
+    "evidence": [
+     "an existing annual dose of around 10 mSv may be used as a generic reference level below which intervention is not likely to be justifiable"
+    ]
+   },
+   {
+    "text": "Around 100 mSv per year is a generic reference level above which intervention is always justifiable",
+    "importance": "vital",
+    "evidence": [
+     "an existing annual dose of around 100 mSv may be used as a generic reference level above which intervention should be considered always justifiable"
+    ]
+   },
+   {
+    "text": "Reasonable efforts should be made to reduce the probability or the consequences of intrusion",
+    "importance": "okay",
+    "evidence": [
+     "reasonable efforts should be made to reduce the probability of human intrusion or to limit its consequences"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-tecdoc1638-short-term-discharge-limits",
+  "question": "According to IAEA-TECDOC-1638, over what period is compliance with authorized discharge limits normally shown, why do some regulators add shorter-term limits, and what example values does it give for a quarterly limit and for an instantaneous release-rate limit relative to the annual figures?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "Compliance is almost always shown over one year, usually a calendar year, sometimes a rolling 12-month period. Short-term limits are added because the assumptions behind annual limits (annual-average weather, habits) may not hold for short-term discharges, so a large part of the annual allowance released in a short time could have a different impact. As examples, a calendar-quarter limit may be one half of the annual limit and an instantaneous release-rate limit 30-50 times the average annual discharge rate; short-term limits are set above the pro-rated value for operational flexibility.",
+  "nuggets": [
+   {
+    "text": "Compliance is almost always shown over one year (usually a calendar year, sometimes a rolling 12-month period)",
+    "importance": "vital",
+    "evidence": [
+     "compliance is expected to be shown is almost always one year, usually a calendar year"
+    ]
+   },
+   {
+    "text": "A quarterly limit may be one half of the annual limit",
+    "importance": "vital",
+    "evidence": [
+     "a calendar quarter limit may be one half of the annual limit"
+    ]
+   },
+   {
+    "text": "An instantaneous release-rate limit may be 30-50 times the average annual discharge rate",
+    "importance": "vital",
+    "evidence": [
+     "an instantaneous release rate limit may be 30–50 times the average annual discharge rate"
+    ]
+   },
+   {
+    "text": "Short-term limits are needed because assumptions used for annual limits may not hold for short-term discharges",
+    "importance": "okay",
+    "evidence": [
+     "the validity of the assumptions used in setting annual discharge limits may not be applicable for short-term discharges"
+    ]
+   },
+   {
+    "text": "Short-term limits are higher than the pro-rated annual value to allow operational flexibility",
+    "importance": "okay",
+    "evidence": [
+     "Short-term limits are generally higher than the pro rated value for the applicable duration, to allow for operational flexibility"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-24g-threat-rating-combination",
+  "question": "Following IAEA Nuclear Security Series No. 24-G, an adversary is rated on a 1-5 scale as 4 for capability, 2 for intention and 3 for financial resources. What overall threat rating do the highest-rating, average-rating and lowest-rating methods give, and what assumption about the adversary lies behind the highest and the lowest method?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "The highest-rating method gives 4, the average-rating method 3 ((4+2+3)/3) and the lowest-rating method 2. The highest rating is conservative and reflects the belief that adversaries will seek to reduce their weaknesses, so low-scoring attributes may rise. The lowest rating assumes the lowest score is the most demanding obstacle, which the adversary cannot succeed without overcoming.",
+  "nuggets": [
+   {
+    "text": "The highest-rating method gives an overall rating of 4",
+    "importance": "vital",
+    "evidence": [
+     "The highest rating from any attribute is applied to provide the overall threat rating for that adversary"
+    ]
+   },
+   {
+    "text": "The average-rating method gives 3",
+    "importance": "vital",
+    "evidence": [
+     "Scores from the different attributes are averaged, often by applying numerical values (e.g. on a 1–5 scale)"
+    ]
+   },
+   {
+    "text": "The lowest-rating method gives 2",
+    "importance": "vital",
+    "evidence": [
+     "The lowest rating from any attribute is applied to provide the overall threat rating for the adversary"
+    ]
+   },
+   {
+    "text": "The highest rating is conservative, assuming adversaries will try to reduce their weaknesses",
+    "importance": "okay",
+    "evidence": [
+     "This approach provides conservative threat assessments and reflects a belief that adversaries will seek to reduce their weaknesses"
+    ]
+   },
+   {
+    "text": "The lowest rating assumes it is the most demanding obstacle the adversary must overcome to succeed",
+    "importance": "okay",
+    "evidence": [
+     "the lowest rating represents the most demanding obstacle that the adversary would have to overcome"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-both-clearance-dose-criteria-dk-vs-iaea",
+  "question": "For clearing radioactive material from regulatory control, what dose criteria does the Danish order on radioactive substances set for artificial and for naturally occurring radionuclides, may material be diluted in order to be cleared, and what dose criterion does IAEA GSR Part 3 use for clearance without further consideration, including for low-probability scenarios?",
+  "topics": [
+   "waste",
+   "general"
+  ],
+  "language": "en",
+  "source": "both",
+  "expected_behavior": "answer",
+  "expected_answer": "Under the Danish order (annex 2, section 2) the effective dose to members of the public from cleared material must be of the order of 0.01 mSv per year or less for artificial radionuclides, or of the order of 1 mSv per year or less for naturally occurring radionuclides; clearance on these criteria needs prior approval from the Danish Health Authority, and diluting radioactive material so that it can be cleared is prohibited. GSR Part 3 (Schedule I) allows clearance without further consideration when the expected dose to any individual is of the order of 10 μSv or less in a year, with no more than 1 mSv in a year for low-probability scenarios.",
+  "nuggets": [
+   {
+    "text": "Danish order: of the order of 0.01 mSv per year or less for artificial radionuclides",
+    "importance": "vital",
+    "evidence": [
+     "er i størrelsesordenen 0,01 mSv pr. år eller mindre for kunstige radionuklider"
+    ]
+   },
+   {
+    "text": "Danish order: of the order of 1 mSv per year or less for naturally occurring radionuclides",
+    "importance": "vital",
+    "evidence": [
+     "i størrelsesordenen 1 mSv pr. år eller mindre for naturligt forekommende radionuklider"
+    ]
+   },
+   {
+    "text": "Danish order: diluting radioactive material so that it can be cleared is prohibited",
+    "importance": "vital",
+    "evidence": [
+     "Det er forbudt at fortynde radioaktivt materiale med henblik på at opnå"
+    ]
+   },
+   {
+    "text": "GSR Part 3: clearance without further consideration at a dose of the order of 10 μSv or less per year",
+    "importance": "vital",
+    "evidence": [
+     "dose expected to be incurred by any individual owing to the cleared material is of the order of 10 μSv or less in a year"
+    ]
+   },
+   {
+    "text": "GSR Part 3: for low-probability scenarios the dose must not exceed 1 mSv per year",
+    "importance": "okay",
+    "evidence": [
+     "the effective dose expected to be incurred by any individual for such low probability scenarios does not exceed 1 mSv in a year"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-radiography-device-shipment-notification",
+  "question": "A radiography company sends one of its gamma exposure devices, loaded with an Ir-192 source of about 3.7 TBq, by road to a work site in another country, using the device itself as the transport package. Under the IAEA safety standards, what kind of transport package do such devices usually qualify as, and must the consignor notify the competent authorities before this particular shipment? Explain the activity threshold that decides it.",
+  "topics": [
+   "transport",
+   "industrial"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "SSG-11 notes that most gamma exposure devices meet the requirements for a Type B(U) package, and radiography sources should be certified as special form material. SSR-6 para. 558 requires consignor notification for a Type B(U) package only if its contents exceed 3000 A1 (or 3000 A2) or 1000 TBq, whichever is lower; with A1 = 1 TBq for Ir-192 the threshold is 1000 TBq, so a 3.7 TBq shipment needs no per-shipment notification. Separately, para. 557 requires copies of the package design certificate to be submitted to the authorities of the origin and transit/destination countries before the first shipment of an approved design; where notification is required it must reach each authority before the shipment, preferably at least 7 days in advance.",
+  "nuggets": [
+   {
+    "text": "Gamma exposure devices usually meet the requirements for a Type B(U) transport package (SSG-11)",
+    "importance": "vital",
+    "evidence": [
+     "Most exposure devices also meet the requirements for a Type B(U) transport package"
+    ]
+   },
+   {
+    "text": "Under SSR-6, a Type B(U) shipment needs consignor notification only if its activity exceeds 3000 A1 (or 3000 A2) or 1000 TBq, whichever is lower",
+    "importance": "vital",
+    "evidence": [
+     "Type B(U) packages containing radioactive material with an activity greater than 3000A1 or 3000A2, as appropriate, or 1000 TBq, whichever is"
+    ]
+   },
+   {
+    "text": "With an A1 value of 1 TBq for Ir-192 the threshold is 1000 TBq, so this 3.7 TBq shipment does not require consignor notification",
+    "importance": "vital",
+    "evidence": [
+     "Ir-192 1 × 100 (c) 6 × 10−1"
+    ]
+   },
+   {
+    "text": "Radiography sources should be certified as special form radioactive material (so the A1 value applies)",
+    "importance": "okay",
+    "evidence": [
+     "Certified as meeting the requirements for ‘special form’ radioactive material as established in the IAEA Transport Regulations"
+    ]
+   },
+   {
+    "text": "Where notification is required, it must reach the authorities of the origin country and of each transit/destination country before the shipment starts, preferably at least 7 days in advance",
+    "importance": "okay",
+    "evidence": [
+     "This notification shall be in the possession of each competent authority prior to the commencement of the shipment, preferably at least 7 days"
+    ]
+   },
+   {
+    "text": "Before the first shipment of a package design that needs competent authority approval, copies of the approval certificate must be submitted to the authorities of the origin and each transit/destination country",
+    "importance": "okay",
+    "evidence": [
+     "copies of each applicable competent authority certificate applying to that package design have been submitted"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-release-after-radionuclide-therapy",
+  "question": "Before a patient who has had radionuclide therapy is allowed to go home, what does the IAEA Basic Safety Standards require (who is responsible, what must be established and by whom, and what the patient must be given), and what practical method does the IAEA medical safety guide suggest for judging whether the activity remaining in the patient is acceptable?",
+  "topics": [
+   "medical"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "GSR Part 3 para. 3.178: the radiological medical practitioner shall ensure that the patient is not discharged until a medical physicist or the facility's RPO has established that the retained activity keeps doses to the public and family members within the authorities' requirements, and the patient or guardian has received written instructions on keeping doses to others ALARA and avoiding contamination, plus information on the radiation risks. SSG-46 suggests estimating the acceptable retained activity by calculating the time integral of the ambient dose equivalent rate (activity, energy, effective half-life), taking the patient's living conditions into account; systematic dose monitoring is not considered necessary.",
+  "nuggets": [
+   {
+    "text": "The radiological medical practitioner is responsible for ensuring the patient is not discharged before the conditions are met (GSR Part 3)",
+    "importance": "vital",
+    "evidence": [
+     "The radiological medical practitioner shall ensure that no patient who"
+    ]
+   },
+   {
+    "text": "A medical physicist or the facility's radiation protection officer must first establish that the activity in the patient keeps doses to members of the public and family members within the requirements",
+    "importance": "vital",
+    "evidence": [
+     "established by either a medical physicist or the facility’s radiation protection officer that:",
+     "The medical physicist or RPO at the nuclear medicine facility should establish prior to the release of a patient"
+    ]
+   },
+   {
+    "text": "The patient or legal guardian must receive written instructions for keeping doses to people around the patient as low as reasonably achievable and avoiding the spread of contamination, and information on the radiation risks",
+    "importance": "okay",
+    "evidence": [
+     "Written instructions for keeping doses to persons in contact with or in the vicinity of the patient"
+    ]
+   },
+   {
+    "text": "SSG-46 suggests estimating the acceptable retained activity by calculating the time integral of the ambient dose equivalent rate, considering activity, energy and effective half-life",
+    "importance": "vital",
+    "evidence": [
+     "calculate the time integral of the ambient dose equivalent rate, considering the activity, energy and effective half-life"
+    ]
+   },
+   {
+    "text": "The patient's living conditions, such as how far he or she can be kept apart from children and pregnant women, should be considered",
+    "importance": "okay",
+    "evidence": [
+     "the living conditions of the patient, such as the extent to which he or she can be isolated from other family members"
+    ]
+   },
+   {
+    "text": "Systematic dose monitoring of the people around the patient is not considered necessary",
+    "importance": "okay",
+    "evidence": [
+     "Published data suggest that systematic dose monitoring is not necessary"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-pregnant-emergency-worker",
+  "question": "A female firefighter who was designated as an emergency worker before a radiological emergency now suspects she is pregnant. According to the IAEA safety standards, whom should she tell, should she normally be kept away from emergency tasks, can she still choose to take part, and what dose restriction then applies to the embryo or fetus?",
+  "topics": [
+   "emergency",
+   "occupational"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "GSG-7 and GSG-2: a worker who knows or suspects she is pregnant should be encouraged to notify her employer (GSG-2: the appropriate authority) and would typically be excluded from emergency tasks. GSG-7 adds that a pregnant worker designated as an emergency worker in advance may volunteer for emergency duties provided GSR Part 7 para. I.4 is applied: she must be informed of the risk and excluded from actions that might give the embryo and fetus an equivalent dose above 50 mSv over the whole in utero period, because severe deterministic effects to a fetus could occur above 100 mSv.",
+  "nuggets": [
+   {
+    "text": "She should be encouraged to notify her employer or the appropriate authority of the pregnancy",
+    "importance": "vital",
+    "evidence": [
+     "should be encouraged to notify their employer and they",
+     "pregnant should be encouraged to notify the appropriate authority and would"
+    ]
+   },
+   {
+    "text": "Pregnant workers would typically be excluded from emergency tasks",
+    "importance": "vital",
+    "evidence": [
+     "typically be excluded from emergency duties",
+     "should typically be excluded from tasks in an emergency unless such tasks can"
+    ]
+   },
+   {
+    "text": "A pregnant worker who was designated as an emergency worker in advance may still volunteer for emergency duties (GSG-7)",
+    "importance": "vital",
+    "evidence": [
+     "may volunteer to take emergency duties as long as para. I.4 of GSR Part 7"
+    ]
+   },
+   {
+    "text": "She must be informed of the risk and excluded from actions that might give the embryo and fetus an equivalent dose above 50 mSv over the whole in utero period (GSR Part 7)",
+    "importance": "vital",
+    "evidence": [
+     "dose to the embryo and fetus exceeding 50 mSv for the full period of in utero"
+    ]
+   },
+   {
+    "text": "Severe deterministic effects to a fetus could occur at an equivalent dose above 100 mSv",
+    "importance": "okay",
+    "evidence": [
+     "Severe deterministic effects to a fetus could possibly occur following an equivalent dose to the fetus of greater than 100 mSv"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-iaea-research-source-inventory",
+  "question": "A university research group holds sealed sources, unsealed radionuclides and a mobile X ray unit. Under the IAEA Basic Safety Standards, what must its inventory of these sources record, and what does the IAEA safety guide for research and education recommend that users write down when they take a source out of storage, and how often should those records be audited?",
+  "topics": [
+   "research"
+  ],
+  "language": "en",
+  "source": "iaea",
+  "expected_behavior": "answer",
+  "expected_answer": "GSR Part 3 para. 3.53: the inventory shall record the location and description of each radiation generator and radioactive source, and the activity and form of each radioactive source; para. 3.55(d) requires it to be checked periodically. SSG-87 para. 4.45: for sealed sources and mobile generators users should log their name, date and time, where the item was taken and when it was returned; for unsealed material their name, date and time and the quantity withdrawn; the radiation protection officer should audit these records at least once per month.",
+  "nuggets": [
+   {
+    "text": "The inventory must record the location and description of each radiation generator and radioactive source (GSR Part 3)",
+    "importance": "vital",
+    "evidence": [
+     "The location and description of each radiation generator or radioactive source"
+    ]
+   },
+   {
+    "text": "The inventory must also record the activity and form of each radioactive source",
+    "importance": "vital",
+    "evidence": [
+     "The activity and form of each radioactive source for which they are"
+    ]
+   },
+   {
+    "text": "The inventory must be checked periodically to confirm that the sources are in their assigned locations and under control",
+    "importance": "okay",
+    "evidence": [
+     "sources is checked periodically to confirm that they are in their assigned locations",
+     "to periodically check these inventories to confirm that sources are in their assigned locations"
+    ]
+   },
+   {
+    "text": "For sealed sources and mobile generators, users should log their name, the date and time, where the item was taken and when it was returned to storage (SSG-87)",
+    "importance": "vital",
+    "evidence": [
+     "the users should log their name, the date and time, the location the source or the generator was taken to"
+    ]
+   },
+   {
+    "text": "For unsealed material, users should log their name, the date and time and the quantity withdrawn",
+    "importance": "okay",
+    "evidence": [
+     "log their name, the date and time, and the quantity of the source withdrawn"
+    ]
+   },
+   {
+    "text": "The radiation protection officer should audit these records at least once a month",
+    "importance": "vital",
+    "evidence": [
+     "the radiation protection officer at least once per month to confirm that all radiation"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-both-dose-records-retention-dk-vs-iaea",
+  "question": "How long must records of a worker's occupational exposure be kept, and by whom? Compare the IAEA Basic Safety Standards with the Danish radiation protection order, covering both what the Danish employer must be able to document and what is kept centrally.",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "both",
+  "expected_behavior": "answer",
+  "expected_answer": "GSR Part 3 paras 3.103-3.107: employers, registrants and licensees keep exposure records at least until the former worker reaches (or would have reached) 75, and for not less than 30 years after the exposed work ended; if they stop operating, retention passes to the regulatory body, a State registry or another employer. In Denmark the employer only has to be able to document doses for the last 5 calendar years including the current one (§ 82), while the Danish Health Authority's Register for Persondosimetri keeps the data until age 75 but at least 30 years after the work ended (§ 87); dosimetry services report to the register within 5 weeks of each measurement period.",
+  "nuggets": [
+   {
+    "text": "Under GSR Part 3, exposure records are kept at least until the former worker reaches or would have reached 75, and for not less than 30 years after the exposed work ended",
+    "importance": "vital",
+    "evidence": [
+     "at least until the former worker attains or would have attained the age of 75 years"
+    ]
+   },
+   {
+    "text": "Under GSR Part 3, employers, registrants and licensees maintain the records",
+    "importance": "okay",
+    "evidence": [
+     "Employers, registrants and licensees shall maintain records of occupational exposure"
+    ]
+   },
+   {
+    "text": "Under GSR Part 3, if they cease the activities, the records are to be retained by the regulatory body, a State registry or a relevant employer",
+    "importance": "okay",
+    "evidence": [
+     "arrangements for the retention of workers’ records of occupational exposure by the regulatory body or a State registry"
+    ]
+   },
+   {
+    "text": "Under Danish rules the employer must be able to document doses only for the last 5 calendar years, including the current year",
+    "importance": "vital",
+    "evidence": [
+     "dokumentere doser for sine dosisovervågede arbejdstagere for de seneste 5 kalenderår"
+    ]
+   },
+   {
+    "text": "In Denmark the long-term record is the Danish Health Authority's Register for Persondosimetri, which keeps the data until the worker is (or would have been) 75, but not less than 30 years after the work ended",
+    "importance": "vital",
+    "evidence": [
+     "indtil den pågældende er fyldt eller ville være fyldt 75 år, men ikke mindre end 30 år"
+    ]
+   },
+   {
+    "text": "Danish dosimetry services must report monitoring results to the register within 5 weeks after the end of the measurement period",
+    "importance": "okay",
+    "evidence": [
+     "senest 5 uger fra måleperiodens udløb indberette resultatet"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-both-aircrew-cosmic-dk-vs-iaea",
+  "question": "How do the IAEA Basic Safety Standards and the Danish radiation protection order differ in how they bring aircrew exposure to cosmic radiation under control: is there a fixed dose trigger, and what follows for the employer once the rules apply?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "both",
+  "expected_behavior": "answer",
+  "expected_answer": "GSR Part 3 (paras 5.30-5.32) sets no number: the regulatory body decides whether assessment of aircrew exposure is warranted and, if so, establishes a framework with a reference level and an assessment and recording method; where doses are likely to exceed that reference level, employers assess and record doses and make the records available, and they must inform female aircrew about the risk to the embryo or fetus. The Danish order (§ 96) uses a fixed trigger of more than 1 mSv per year: then the relevant provisions apply, including information and instruction and individual dose monitoring under a programme approved by the Danish Health Authority, protection is optimised through work schedules, and the employer reports the data to the dosimetry register by 1 March of the following year.",
+  "nuggets": [
+   {
+    "text": "Under GSR Part 3 the regulatory body (or other authority) decides whether assessment of aircrew exposure is warranted",
+    "importance": "vital",
+    "evidence": [
+     "shall determine whether assessment of the exposure of aircrew due to cosmic radiation is warranted"
+    ]
+   },
+   {
+    "text": "Under GSR Part 3 the framework includes a nationally set reference level of dose and a method for assessing and recording doses (no fixed value is given)",
+    "importance": "vital",
+    "evidence": [
+     "shall establish a framework which shall include a reference level of dose"
+    ]
+   },
+   {
+    "text": "Under GSR Part 3, where doses are likely to exceed the reference level, employers assess and keep records of doses and make them available to aircrew",
+    "importance": "okay",
+    "evidence": [
+     "Where the doses of aircrew are likely to exceed the reference level"
+    ]
+   },
+   {
+    "text": "Under GSR Part 3 employers must inform female aircrew of the risk to the embryo or fetus and the need for early notification of pregnancy",
+    "importance": "okay",
+    "evidence": [
+     "Shall inform female aircrew of the risk to the embryo or fetus due to exposure to cosmic radiation"
+    ]
+   },
+   {
+    "text": "The Danish order applies a fixed trigger: aircrew who can receive more than 1 mSv per year from cosmic radiation fall under the relevant provisions",
+    "importance": "vital",
+    "evidence": [
+     "Hvis luft- og rumfartøjsbesætninger kan modtage en effektiv dosis større end 1 mSv pr. år"
+    ]
+   },
+   {
+    "text": "In Denmark these crew must have individual dose monitoring under a programme approved by the Danish Health Authority",
+    "importance": "okay",
+    "evidence": [
+     "Dosisovervågningen, jf. stk. 1, skal udføres i henhold til et dosisovervågningsprogram, der er godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "In Denmark the employer must report the monitoring data to the dosimetry register before 1 March of the following year",
+    "importance": "okay",
+    "evidence": [
+     "Arbejdsgiveren skal inden den 1. marts i det følgende år indberette"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-generator-roentgenterapi-hudkraeft",
+  "question": "En hudlæge vil behandle en patient for basalcellekarcinom (en form for hudkræft) med et røntgenapparat, der arbejder ved 50 kV. Hvordan skal behandlingen klassificeres efter bekendtgørelsen om strålingsgeneratorer, hvilke krav gælder for personalet før hver fraktion, og må andre personer end patienten opholde sig i behandlingsrummet under bestrålingen?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Behandling af kræft med en strålingsgenerator på højst 100 kV er røntgenterapi, ikke hudterapi (hudterapi er behandling af hudlidelser bortset fra kræft). Før hver behandlingsfraktion skal to arbejdstagere, der opfylder bilag 5, punkt 1.10 (autoriserede sundhedspersoner med anerkendt kompetence i stråleterapi), godkende den endelige patientpositionering, hjælpemidler og behandlingsparametre; den ene behøver ikke have afsluttet uddannelsen, hvis de manglende kompetencer er uden betydning for opgaven. Ingen andre end patienten må være i anlægget under behandlingen; undtagelsen i § 31, stk. 2, gælder kun hudterapi.",
+  "nuggets": [
+   {
+    "text": "Behandlingen er røntgenterapi (kræftbehandling ved højst 100 kV), ikke hudterapi, som omfatter hudlidelser bortset fra kræft",
+    "importance": "vital",
+    "evidence": [
+     "Røntgenterapi: Behandling af kræft ved anvendelse af strålingsgenerator, der opererer med en spændingsforskel, der er mindre end eller lig med 100 kV",
+     "Hudterapi: Behandling af hudlidelser bortset fra kræft ved anvendelse af strålingsgenerator"
+    ]
+   },
+   {
+    "text": "Før hver behandlingsfraktion skal to arbejdstagere godkende den endelige patientpositionering, hjælpemidler og strålingsgeneratorens behandlingsparametre",
+    "importance": "vital",
+    "evidence": [
+     "1.8.1. To arbejdstagere, der opfylder kravene i bilag 5, punkt 1.10., skal inden hver behandingsfraktion godkende"
+    ]
+   },
+   {
+    "text": "De to arbejdstagere skal være autoriserede sundhedspersoner med anerkendt kompetence i stråleterapi",
+    "importance": "okay",
+    "evidence": [
+     "1.10. Røntgenterapi Personer, der udfører behandlinger, skal være autoriserede sundhedspersoner med anerkendt kompetence i stråleterapi"
+    ]
+   },
+   {
+    "text": "Den ene af de to arbejdstagere behøver ikke at have afsluttet uddannelsen, hvis de manglende kompetencer er uden betydning for opgaven",
+    "importance": "okay",
+    "evidence": [
+     "Den ene af de to arbejdstagere behøver ikke at have afsluttet uddannelsen, forudsat, at de manglende kompetencer er uden betydning"
+    ]
+   },
+   {
+    "text": "Ingen andre personer end patienten må være i anlægget under behandlingen (undtagelsen gælder kun hudterapi)",
+    "importance": "vital",
+    "evidence": [
+     "Ingen andre personer end patienten må befinde sig i anlægget under en behandling. Stk. 2. Stk. 1 gælder ikke for hudterapi"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-xray-teaching-device",
+  "question": "Under the Danish order on radiation generators, a school wants to use an X-ray device built for teaching, both in a 7th-grade class and in upper-secondary physics. Does this require a permit or notification, how must the device be used at each level, and which technical criteria must the device meet to be type-approved?",
+  "topics": [
+   "general"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Acceptance testing, use, servicing and radiological checks of such teaching sources are exempt from permit and notification (§ 10). Up to and including 8th grade they may only be used as demonstrations performed by a teacher who meets annex 5 (physics or chemistry teacher or equivalent with knowledge of ionising radiation); at higher levels use must be supervised by such a teacher (§ 45). To be type-approved the device must be designed for teaching, self-shielded, operate at no more than 30 kV, have a device preventing continuous exposure, give at most 1 µSv/h at 10 cm from its surface and come with instructions for use (§ 46).",
+  "nuggets": [
+   {
+    "text": "Use of school X-ray sources for teaching is exempt from both permit and notification",
+    "importance": "vital",
+    "evidence": [
+     "eftersyn og radiologisk kontrol af skolekilder til undervisningsformål er undtaget fra kravene om tilladelse eller underretning i medfør af §§ 7 og 9"
+    ]
+   },
+   {
+    "text": "Up to and including 8th grade (so in the 7th grade) the device may only be used as a demonstration performed by a qualified teacher",
+    "importance": "vital",
+    "evidence": [
+     "Anvendelse af skolekilder til og med grundskolens 8. klasse skal foregå som demonstrationsforsøg udført af en lærer"
+    ]
+   },
+   {
+    "text": "Above 8th grade (e.g. upper secondary) use must take place under the supervision of a qualified teacher",
+    "importance": "okay",
+    "evidence": [
+     "Anvendelse af skolekilder skal foregå under opsyn af en lærer, der opfylder kravene til viden, færdigheder og kompetencer, der fremgår af bilag 5"
+    ]
+   },
+   {
+    "text": "To be type-approved the device must be self-shielded and operate at no more than 30 kV",
+    "importance": "vital",
+    "evidence": [
+     "Skolekilden skal være selvafskærmende. 3) Skolekilden skal operere med en spændingsforskel, der er mindre end eller lig med 30 kV"
+    ]
+   },
+   {
+    "text": "The device must have a technical feature preventing continuous exposure, and the dose rate 10 cm from its surface may not exceed 1 µSv/h",
+    "importance": "okay",
+    "evidence": [
+     "Skolekilden skal være udstyret med en teknisk anordning, der forhindrer, at skolekilden kan eksponere kontinuerligt"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-generator-radiografi-180kv-filtrering",
+  "question": "Et røntgenapparat til industriel radiografi har en maksimal rørspænding på 180 kV. Hvor stor må dosishastigheden fra apparatet højst være med lukket strålevindue, og hvor meget egenfiltrering skal det have efter bekendtgørelsen om strålingsgeneratorer? Er der en undtagelse fra filtreringskravet, og hvad kræves, hvis apparatets egenfiltrering er meget lav?",
+  "topics": [
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Med lukket strålevindue og maksimal belastning må dosishastigheden 1 m fra fokus højst være 2,5 mSv/h ved indstillede spændinger over 150 kV (op til 200 kV) og 1 mSv/h ved indstillinger på 150 kV eller derunder. Egenfiltreringen skal svare til 3,0 mm aluminium (100–200 kV), medmindre prøvningsteknikken kræver lavere filtrering; så skal apparatet altid ledsages af tilsatsfiltre. Er egenfiltreringen under 1 mm aluminium, skal mærkningen suppleres med en advarsel om stråleforbrænding på få sekunder.",
+  "nuggets": [
+   {
+    "text": "Ved indstillede spændinger over 150 kV (op til 200 kV) må dosishastigheden 1 m fra fokus med lukket strålevindue højst være 2,5 mSv/h",
+    "importance": "vital",
+    "evidence": [
+     "2,5 mSv/h for indstillede spændinger, der er større end 150 kV og mindre end eller lig med 200 kV"
+    ]
+   },
+   {
+    "text": "Ved indstillede spændinger på 150 kV eller derunder er grænsen 1 mSv/h",
+    "importance": "okay",
+    "evidence": [
+     "1 mSv/h for indstillede spændinger, der er mindre end eller lig med 150 kV"
+    ]
+   },
+   {
+    "text": "Egenfiltreringen skal svare til 3,0 mm aluminium",
+    "importance": "vital",
+    "evidence": [
+     "3,0 mm aluminium for maksimal rørspænding, der er større end 100 kV og mindre end eller lig med 200 kV"
+    ]
+   },
+   {
+    "text": "Lavere filtrering er tilladt, hvis den radiografiske prøvningsteknik kræver det, men så skal apparatet altid ledsages af tilsatsfiltre",
+    "importance": "vital",
+    "evidence": [
+     "medmindre den radiografiske prøvningsteknik kræver en lavere filtrering, i så fald skal strålingsgeneratorer altid være ledsaget af tilsatsfiltre"
+    ]
+   },
+   {
+    "text": "Ved egenfiltrering under 1 mm aluminium skal apparatet mærkes med en advarsel om, at strålingen kan give stråleforbrænding på få sekunder",
+    "importance": "okay",
+    "evidence": [
+     "Ioniserende stråling med høj dosishastighed. Kan forårsage stråleforbrænding på få sekunder"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-brachyterapi-hdr-personale",
+  "question": "Et hospital indfører HDR-brachyterapi med en fjernstyret efterladningsenhed i et behandlingsrum. Hvem skal efter bekendtgørelsen om radioaktive stoffer være til stede ved opstart af en behandling og til rådighed under den, hvilke ekstra krav gælder for de arbejdstagere, der giver HDR-behandlingen, og hvilken uddannelse skal den medicinsk-fysiske ekspert have?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "To arbejdstagere, der opfylder bilag 11, punkt 1.2 (sygeplejerske, radiograf eller læge med kursus i strålebeskyttelse og håndtering af kilderne), skal være til stede ved opstart, og under behandlingen skal en arbejdstager med uddannelse som hospitalsfysiker inden for onkologi være til rådighed (uddannelsen behøver ikke være afsluttet, hvis de manglende kompetencer er uden betydning). Den, der behandler med PDR- eller HDR-afterloadere, skal desuden have anerkendt kompetence i stråleterapi og opdatere viden og kompetencer hvert 5. år. Den medicinsk-fysiske ekspert for brachyterapi skal være hospitalsfysiker i onkologi med ekspertgodkendelse fra Dansk Selskab for Medicinsk Fysik.",
+  "nuggets": [
+   {
+    "text": "To arbejdstagere, der opfylder kravene i bilag 11, punkt 1.2, skal være til stede ved opstart af en behandling",
+    "importance": "vital",
+    "evidence": [
+     "To arbejdstagere, der opfylder kravene i bilag 11, punkt 1.2., skal være til stede ved opstart af en behandling"
+    ]
+   },
+   {
+    "text": "Under behandlingen skal en arbejdstager med uddannelse som hospitalsfysiker inden for onkologi være til rådighed",
+    "importance": "vital",
+    "evidence": [
+     "Under en behandling skal en arbejdstager med uddannelse som hospitalsfysiker inden for onkologi være til rådighed"
+    ]
+   },
+   {
+    "text": "Arbejdstagere, der behandler med PDR- eller HDR-afterloadere, skal have anerkendt kompetence i stråleterapi",
+    "importance": "vital",
+    "evidence": [
+     "brachyterapi, skal endvidere have anerkendt kompetence i stråleterapi"
+    ]
+   },
+   {
+    "text": "Disse arbejdstagere skal opdatere viden, færdigheder og kompetencer hvert 5. år",
+    "importance": "okay",
+    "evidence": [
+     "brachyterapi, skal opdatere viden, færdigheder og kompetencer hvert 5. år"
+    ]
+   },
+   {
+    "text": "Den medicinsk-fysiske ekspert skal være hospitalsfysiker i onkologi og have ekspertgodkendelse fra Dansk Selskab for Medicinsk Fysik",
+    "importance": "okay",
+    "evidence": [
+     "4.1. Uddannelse som hospitalsfysiker i onkologi. 4.2. Ekspertgodkendelse fra Dansk Selskab for Medicinsk Fysik"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-nuclear-medicine-patient-release",
+  "question": "Under the Danish order on radioactive substances, a hospital sends patients home after giving them a radiopharmaceutical. What dose constraint governs sending them home, what information must the patients receive (and does it differ between diagnostic and therapeutic administrations), and how may the hospital document the radioactive material these patients discharge?",
+  "topics": [
+   "medical",
+   "waste"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Sending home patients who have received radioactive substances is subject to a dose constraint of 0.1 mSv to members of the public (§ 60). Patients must receive guidance on radiation protection precautions; for treatments the guidance must be supplemented with written information (§ 56). The record of discharges from patients may be based on model calculations with a statistical estimate based on the number of patients (§ 54(3)).",
+  "nuggets": [
+   {
+    "text": "Sending patients home is subject to a dose constraint of 0.1 mSv for members of the public",
+    "importance": "vital",
+    "evidence": [
+     "Hjemsendelse af patienter, der har fået indgivet eller indført radioaktivt stof, er underlagt en dosisbinding på 0,1 mSv"
+    ]
+   },
+   {
+    "text": "Patients must receive guidance on radiation protection precautions and measures",
+    "importance": "okay",
+    "evidence": [
+     "Patienter, der får indgivet eller indført radioaktivt stof, skal have vejledning om strålebeskyttelsesmæssige forholdsregler"
+    ]
+   },
+   {
+    "text": "For treatment (not examinations) the guidance must be supplemented with written information",
+    "importance": "vital",
+    "evidence": [
+     "Ved behandling skal vejledningen suppleres med skriftlig information"
+    ]
+   },
+   {
+    "text": "Documentation of discharges from patients may be based on model calculations with a statistical estimate based on the number of patients",
+    "importance": "vital",
+    "evidence": [
+     "kan dokumentationen baseres på modelberegninger, der inkluderer et statistisk skøn over udledninger baseret på antal patienter"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-gammaradiografi-uden-for-anlæg",
+  "question": "En virksomhed skal røntgenfotografere svejsninger på en stor rørledning på en byggeplads med en lukket Se-75-kilde på 3 TBq, fordi emnet ikke kan bringes ind i et anlæg. Hvor mange arbejdstagere skal efter bekendtgørelsen om radioaktive stoffer være til stede og med hvilke kvalifikationer, hvilke krav gælder for længden af kablet til betjeningen, og hvornår må man undvære en kollimator?",
+  "topics": [
+   "industrial",
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Kilden er højaktiv (over 0,2 TBq for Se-75) og under grænsen på 4.000 GBq. Når emnets størrelse ikke tillader brug i anlæg, skal arbejdet foregå med mindst to arbejdstagere til stede, som begge opfylder kravene i bilag 11 (§ 76). Betjeningskablet skal være mindst 8 meter og desuden så langt, at dosishastigheden på betjeningsstedet ikke overstiger 20 µSv/h. Kollimator skal bruges, medmindre Sundhedsstyrelsen har godkendt andet, og kravet gælder ikke ved centralskud, hvor kilden er placeret inde i emnet.",
+  "nuggets": [
+   {
+    "text": "Mindst to arbejdstagere skal være til stede, og begge skal opfylde kompetencekravene i bilag 11",
+    "importance": "vital",
+    "evidence": [
+     "under tilstedeværelse af mindst to arbejdstagere, der opfylder de krav til viden, færdigheder og kompetencer, som fremgår af bilag 11"
+    ]
+   },
+   {
+    "text": "Betjeningskablet skal være mindst 8 meter langt",
+    "importance": "vital",
+    "evidence": [
+     "Betjeningskablet skal være mindst 8 meter"
+    ]
+   },
+   {
+    "text": "Kablet skal desuden være så langt, at dosishastigheden på betjeningsstedet ikke er over 20 µSv/h",
+    "importance": "okay",
+    "evidence": [
+     "langt nok til, at dosishastigheden på betjeningsstedet ikke er større end 20 µSv/h"
+    ]
+   },
+   {
+    "text": "Kollimator kan undværes ved centralskud, hvor kilden er placeret inde i det undersøgte emne",
+    "importance": "vital",
+    "evidence": [
+     "Kravet om benyttelse af kollimator gælder ikke for centralskud, hvor strålekilden er placeret inde i det undersøgte emne"
+    ]
+   },
+   {
+    "text": "Ellers kan kollimator kun undværes, hvis Sundhedsstyrelsen har godkendt det",
+    "importance": "okay",
+    "evidence": [
+     "Der skal benyttes kollimator, medmindre andet er godkendt af Sundhedsstyrelsen"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-transport-højrisikogods-blanding",
+  "question": "Et ikke-fissilt type B(U)-kolli (en kildeskifter) med to brugte lukkede kilder, Ir-192 på 0,5 TBq og Se-75 på 1 TBq, skal returneres ad vej til leverandøren. Er forsendelsen højrisikogods efter bekendtgørelsen om transport af radioaktivt materiale, selv om hver kilde for sig ligger under sin grænse, og kræver transporten tilladelse fra Sundhedsstyrelsen?",
+  "topics": [
+   "transport"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Bilag 3 fastsætter særlige grænseværdier for højrisikogods for bl.a. Ir-192 (0,8 TBq) og Se-75 (2 TBq) i stedet for 3.000 A2. For en blanding summeres aktivitet divideret med grænseværdi: 0,5/0,8 + 1/2 = 1,125, som ikke er under 1, så kolliet er højrisikogods med krav om en sikringsplan godkendt af Sundhedsstyrelsen, sikringsansvarlig og beredskab. Type B(U)-kolli, ikke-fissilt (UN 2916), står i bilag 1, så transporten kræver tilladelse fra Sundhedsstyrelsen.",
+  "nuggets": [
+   {
+    "text": "Grænseværdien for højrisikogods er 0,8 TBq for Ir-192 og 2 TBq for Se-75 (særlige værdier i bilag 3, ikke 3.000 A2)",
+    "importance": "vital",
+    "evidence": [
+     "Ir-192 0,8 Au-198 2",
+     "Ge-68 7 Se-75 2 Sr-90 10"
+    ]
+   },
+   {
+    "text": "Ved blandinger summeres hver radionuklids aktivitet divideret med dens grænseværdi; kun hvis summen er under 1, er grænsen ikke overskredet",
+    "importance": "vital",
+    "evidence": [
+     "Hvis summen af disse andele er mindre end 1, er grænseværdien for aktivitetsmængden for blandingen ikke overskredet"
+    ]
+   },
+   {
+    "text": "Summen er 0,5/0,8 + 1/2 = 1,125, så kolliet er højrisikogods",
+    "importance": "vital",
+    "evidence": [
+     "Ved blandinger af radionuklider skal det vurderes, om grænseværdien for aktivitetsmængde for højrisikogods er overskredet"
+    ]
+   },
+   {
+    "text": "Transport af type B(U)-kolli (UN 2916) er omfattet af krav om tilladelse fra Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "2916 Radioaktivt materiale, type B(U) kolli, ikke-fissilt eller undtaget-fissilt"
+    ]
+   },
+   {
+    "text": "Som højrisikogods kræver transporten en sikringsplan godkendt af Sundhedsstyrelsen forud for transport",
+    "importance": "okay",
+    "evidence": [
+     "Sikringsplanen, jf. stk. 1, skal være godkendt af Sundhedsstyrelsen, forud for transport"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-modtagekontrol-fejl-indberetning",
+  "question": "En ekstern servicevirksomhed udfører modtagekontrol af en ny CT-skanner på et hospital, der har tilladelse til medicinsk anvendelse, og finder en fejl, der kan føre til utilsigtet bestråling. Hvem skal efter strålebeskyttelsesbekendtgørelsen indberette fejlen til Sundhedsstyrelsen og hvornår, hvad skal være på plads, før skanneren tages i brug, og hvor længe skal dokumentationen bevares? Er der tilfælde, hvor Sundhedsstyrelsen ikke behøver indberetningen?",
+  "topics": [
+   "medical",
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Den virksomhed, der har udført kontrollen (servicevirksomheden), skal snarest muligt indberette fejlen til Sundhedsstyrelsen (§ 56, jf. § 88). Ved medicinsk anvendelse med tilladelse skal den medicinsk-fysiske ekspert acceptere resultatet af modtagekontrollen før ibrugtagning; dokumentationen skal angive, hvem der har udført kontrollen, og hospitalet skal bevare den, så længe den kan have strålebeskyttelsesmæssig betydning. Er forholdet indberettet til Lægemiddelstyrelsen efter reglerne om medicinsk udstyr, skal Sundhedsstyrelsen kun have indberetning, når det har medført utilsigtet bestråling af en arbejdstager eller akut skade hos en patient.",
+  "nuggets": [
+   {
+    "text": "Den virksomhed, der har udført kontrollen (servicevirksomheden), skal indberette fejlen til Sundhedsstyrelsen snarest muligt",
+    "importance": "vital",
+    "evidence": [
+     "skal virksomheden, der har udført eftersynet eller kontrollen, snarest muligt sende indberetning herom til Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Den medicinsk-fysiske ekspert skal acceptere resultatet af modtagekontrollen, før skanneren tages i brug",
+    "importance": "vital",
+    "evidence": [
+     "skal resultatet af modtagekontrol accepteres af den medicinsk-fysiske ekspert før ibrugtagning"
+    ]
+   },
+   {
+    "text": "Dokumentationen skal angive navnet på den person (og virksomhed), der har udført kontrollen",
+    "importance": "okay",
+    "evidence": [
+     "Navnet på den person, og, hvor relevant, den virksomhed, der har udført kontrollen, skal fremgå af dokumentationen"
+    ]
+   },
+   {
+    "text": "Hospitalet skal bevare dokumentationen, så længe den kan være af strålebeskyttelsesmæssig betydning",
+    "importance": "vital",
+    "evidence": [
+     "skal bevare dokumentationen for kontrollerne, så længe den kan være af strålebeskyttelsesmæssig betydning"
+    ]
+   },
+   {
+    "text": "Er forholdet indberettet til Lægemiddelstyrelsen, skal Sundhedsstyrelsen kun have indberetning, hvis det har medført utilsigtet bestråling af en arbejdstager eller akut skade hos en patient",
+    "importance": "okay",
+    "evidence": [
+     "kun have indberetning snarest muligt, når forholdet har medført utilsigtet bestråling af en arbejdstager eller akut skade hos en patient"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-outside-worker-category-a-documentation",
+  "question": "Under Danish rules, a contractor sends one of its own radiation workers to work at a hospital in a task that requires the worker to be classified in category A. What must the hospital have received before the worker may start, from whom, and how many years must the dose information cover? Who classifies the worker, and what must the hospital check about that classification?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Before an outside (external) category A worker may work with radiation sources, the undertaking must have received documentation from the worker's employer of the relevant dose history and that the worker has been informed and instructed as required by § 41 (§ 40). Under annex 5 it includes employer and worker identification, the latest medical examination, the start date of individual monitoring, the category, the sum of operational dose values for the last 5 calendar years including the current year, and the date of the latest update of training and instruction. The employer is responsible for categorising the worker, but the host undertaking must make sure the category is appropriate for the doses the worker is likely to receive there (§ 5).",
+  "nuggets": [
+   {
+    "text": "The hospital must have received documentation from the worker's employer before the category A outside worker may start",
+    "importance": "vital",
+    "evidence": [
+     "må ikke beskæftiges med brug af strålekilder, før virksomheden fra arbejdsgiveren har modtaget dokumentation"
+    ]
+   },
+   {
+    "text": "The dose information must cover the last 5 calendar years including the current year",
+    "importance": "vital",
+    "evidence": [
+     "for de seneste 5 kalenderår inklusive det indeværende år"
+    ]
+   },
+   {
+    "text": "The documentation must also show that the worker has been informed and instructed (date of the latest update of training and instruction)",
+    "importance": "vital",
+    "evidence": [
+     "samt oplysning om, at arbejdstageren er oplyst og instrueret som krævet i § 41",
+     "3.4. Dato for seneste opdatering af viden, færdigheder, kompetencer, oplysning og instruktion"
+    ]
+   },
+   {
+    "text": "The documentation includes the date of the worker's latest medical examination",
+    "importance": "okay",
+    "evidence": [
+     "2.3. Seneste lægeundersøgelse. 3. Oplysninger om arbejdstagers doser m.v."
+    ]
+   },
+   {
+    "text": "The employer categorises the worker, but the host undertaking must check that the category is appropriate for the doses likely to be received there",
+    "importance": "okay",
+    "evidence": [
+     "dog skal virksomheden påse, at kategoriseringen er hensigtsmæssig i forhold til de doser, som arbejdstageren sandsynligvis vil modtage i virksomheden"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-pair-category-b-boundary",
+  "question": "Under Danish rules, which category must a radiation worker be placed in if they are expected to receive exactly 6 mSv effective dose per year and no equivalent dose to the lens of the eye, skin or extremities above the limits for category A or B?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Category B: category A requires more than 6 mSv per year; category B applies to more than 1 mSv, but at most 6 mSv per year (§§ 36-37).",
+  "nuggets": [
+   {
+    "text": "The worker is placed in category B, not A",
+    "importance": "vital",
+    "evidence": [
+     "dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B",
+     "mere end 50 mSv pr. år, dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B"
+    ]
+   },
+   {
+    "text": "Category A requires an expected effective dose of more than 6 mSv per year",
+    "importance": "okay",
+    "evidence": [
+     "ekstremiteter på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-pair-transport-index",
+  "question": "Under the Danish order on transport of radioactive material, a package has a dose rate of 0.05 mSv/h at 1 metre from its surface. What is its transport index (TI), and how is TI defined?",
+  "topics": [
+   "transport"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "TI is the maximum dose rate in mSv/h at 1 metre from the package surface multiplied by 100; here TI = 5.",
+  "nuggets": [
+   {
+    "text": "TI is based on the maximum dose rate in mSv/h at 1 metre from the package surface",
+    "importance": "vital",
+    "evidence": [
+     "Den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade"
+    ]
+   },
+   {
+    "text": "The dose rate is multiplied by 100",
+    "importance": "vital",
+    "evidence": [
+     "fra kolliets overflade ganget med 100"
+    ]
+   },
+   {
+    "text": "The package's TI is therefore 5",
+    "importance": "vital",
+    "evidence": [
+     "Den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade ganget med 100"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-en-pair-research-irradiation-subjects",
+  "question": "What requirements does the Danish order on ionising radiation and radiation protection set for biomedical research projects in which test subjects are irradiated?",
+  "topics": [
+   "research",
+   "medical"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Approval by a research ethics committee; dose and radiation-induced cancer risk calculated in advance, assessed by a medical physics expert and stated in the protocol; healthy subjects may not be irradiated in trials with curative or palliative intent; for subjects with no direct benefit the dose constraints from the national ethics committee's guidelines apply.",
+  "nuggets": [
+   {
+    "text": "The project requires approval by a research ethics committee before it takes place",
+    "importance": "vital",
+    "evidence": [
+     "må først finde sted efter godkendelse i en videnskabsetisk komité"
+    ]
+   },
+   {
+    "text": "Dose and the risk of radiation-induced cancer must be calculated in advance",
+    "importance": "vital",
+    "evidence": [
+     "skal der på forhånd udføres en beregning af dosis og den risiko for stråleinduceret kræft"
+    ]
+   },
+   {
+    "text": "The dose and risk are assessed by a medical physics expert and stated in the trial protocol",
+    "importance": "vital",
+    "evidence": [
+     "Dosis og risiko skal vurderes af en medicinsk-fysisk ekspert og skal fremgå af forsøgsprotokollen"
+    ]
+   },
+   {
+    "text": "Healthy test subjects may not be irradiated in trials with curative or palliative intent",
+    "importance": "okay",
+    "evidence": [
+     "Raske forsøgspersoner må ikke bestråles som led i forsøg, der har kurativ eller palliativ intention"
+    ]
+   },
+   {
+    "text": "Where the subject cannot expect direct benefit, the dose constraints from the national research ethics committee's guidelines apply",
+    "importance": "okay",
+    "evidence": [
+     "gælder de dosisbindinger, der fremgår af retningslinjer fra den Nationale Videnskabsetiske Komité"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-pair-50msv-særlige-tilfælde",
+  "question": "Efter de danske regler om dosisgrænser for erhvervsmæssig bestråling (ikke særlig erhvervsmæssig bestråling): under hvilke omstændigheder kan Sundhedsstyrelsen godkende, at en stråleudsat arbejdstager modtager op til 50 mSv effektiv dosis i ét år?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "I særlige tilfælde, for en stråleudsat arbejdstager over 18 år, forudsat at den gennemsnitlige årlige dosis over enhver sammenhængende periode på 5 år ikke overstiger 20 mSv pr. år.",
+  "nuggets": [
+   {
+    "text": "Kun i særlige tilfælde og med Sundhedsstyrelsens godkendelse",
+    "importance": "okay",
+    "evidence": [
+     "I særlige tilfælde kan Sundhedsstyrelsen godkende, at en stråleudsat arbejdstager over 18 år modtager en effektiv dosis"
+    ]
+   },
+   {
+    "text": "Arbejdstageren skal være over 18 år",
+    "importance": "vital",
+    "evidence": [
+     "stråleudsat arbejdstager over 18 år modtager en effektiv dosis på op til 50 mSv pr. år"
+    ]
+   },
+   {
+    "text": "Den gennemsnitlige årlige dosis over enhver sammenhængende periode på 5 år må ikke være større end 20 mSv pr. år",
+    "importance": "vital",
+    "evidence": [
+     "sammenhængende periode på 5 år ikke er større end 20 mSv pr. år"
+    ]
+   },
+   {
+    "text": "Særskilt kan Sundhedsstyrelsen efter § 17 godkende doser over grænserne for kategori A-arbejdstagere ved specifikt tidsbegrænset arbejde, med forudgående oplysning og samtykke",
+    "importance": "okay",
+    "evidence": [
+     "for specifikt tidsbegrænset arbejde godkende, at en stråleudsat arbejdstager i kategori A"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-pair-flybesætning-kosmisk-stråling",
+  "question": "Hvad gælder efter de danske regler for luft- og rumfartøjsbesætninger, der kan modtage mere end 1 mSv pr. år fra kosmisk stråling under flyvning?",
+  "topics": [
+   "occupational"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "De relevante bestemmelser gælder, herunder oplysning og instruktion og løbende individuel dosisovervågning efter et dosisovervågningsprogram godkendt af Sundhedsstyrelsen; strålebeskyttelsen optimeres ved arbejdsplaner; arbejdsgiveren indberetter data til Register for Persondosimetri inden 1. marts i det følgende år.",
+  "nuggets": [
+   {
+    "text": "Oplysning og instruktion af arbejdstagerne og løbende individuel dosisovervågning gælder",
+    "importance": "vital",
+    "evidence": [
+     "herunder krav vedr. oplysning og instruktion af arbejdstagere i medfør af § 41, stk. 1, nr. 1 og nr. 5, og løbende individuel dosisovervågning"
+    ]
+   },
+   {
+    "text": "Dosisovervågningen skal følge et dosisovervågningsprogram godkendt af Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "skal udføres i henhold til et dosisovervågningsprogram, der er godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Strålebeskyttelsen optimeres ved arbejdsplaner, der reducerer doser",
+    "importance": "okay",
+    "evidence": [
+     "Strålebeskyttelsen skal optimeres ved gennemførelse af arbejdsplaner med henblik på at reducere doser"
+    ]
+   },
+   {
+    "text": "Arbejdsgiveren indberetter de relevante data til Register for Persondosimetri inden 1. marts i det følgende år",
+    "importance": "okay",
+    "evidence": [
+     "Arbejdsgiveren skal inden den 1. marts i det følgende år indberette"
     ]
    }
   ]
