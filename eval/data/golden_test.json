@@ -21,14 +21,14 @@
     "text": "Afgørende er, at øjelinsedosis forventes at overstige 15 mSv pr. år (kategori A-kriteriet), uanset den effektive dosis",
     "importance": "vital",
     "evidence": [
-     "ækvivalent dosis til øjelinsen på mere end 15 mSv pr. år eller en ækvivalent dosis til hud eller ekstremiteter på mere end 150 mSv pr. år"
+     "ekstremiteter på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
     ]
    },
    {
     "text": "Kategori B har intet kriterium for øjelinsen",
     "importance": "okay",
     "evidence": [
-     "dog højst 6 mSv pr. år, eller en ækvivalent dosis til hud eller ekstremiteter på mere end 50 mSv pr. år"
+     "ekstremiteter på mere end 50 mSv pr. år, dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B"
     ]
    }
   ]
@@ -49,7 +49,7 @@
     "importance": "vital",
     "evidence": [
      "dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B",
-     "mere end 1 mSv pr. år, dog højst 6 mSv pr. år, eller en ækvivalent dosis til hud eller ekstremiteter"
+     "mere end 50 mSv pr. år, dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B"
     ]
    },
    {
@@ -230,7 +230,7 @@
     ]
    },
    {
-    "text": "Type B(U) kolli kræver meddelelse over samme grænse",
+    "text": "Type B(U) kolli kræver meddelelse, når aktiviteten er større end 3000 A1 eller 3000 A2 eller 1000 TBq",
     "importance": "vital",
     "evidence": [
      "2) Transport af type B(U) kolli, der indeholder radioaktivt materiale med en aktivitetsmængde, der er større end 3000 A 1"
@@ -274,7 +274,7 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "En sikringsplan godkendt af Sundhedsstyrelsen forud for transport, en udpeget sikringsansvarlig og et beredskab; afsenderen skal påse, at transportøren har en sikringsplan.",
+  "expected_answer": "En sikringsplan godkendt af Sundhedsstyrelsen forud for transport, en udpeget sikringsansvarlig og et beredskab; afsenderen skal påse, at transportøren har en sikringsplan; beredskabet beskrives i en beredskabsplan, der godkendes af Sundhedsstyrelsen.",
   "nuggets": [
    {
     "text": "Der skal udarbejdes en sikringsplan, som skal være godkendt af Sundhedsstyrelsen forud for transport",
@@ -302,6 +302,13 @@
     "importance": "okay",
     "evidence": [
      "Afsenderen af højrisikogods skal påse, at transportøren har en sikringsplan"
+    ]
+   },
+   {
+    "text": "Beredskabet skal beskrives i en beredskabsplan, der godkendes af Sundhedsstyrelsen forud for besiddelse",
+    "importance": "okay",
+    "evidence": [
+     "beredskabsplan, der skal godkendes af Sundhedsstyrelsen, forud for besiddelse"
     ]
    }
   ]
@@ -612,7 +619,7 @@
    },
    {
     "text": "Personer under 16 år er aldrig omfattet",
-    "importance": "vital",
+    "importance": "okay",
     "evidence": [
      "Person over 16 år, der er i en erhvervskompetencegivende uddannelse"
     ]
@@ -688,47 +695,6 @@
   ]
  },
  {
-  "id": "test-dk-undtagelse-dosiskriterium",
-  "question": "Under the Danish order on radioactive substances, what dose criterion must be documented before radioactive material can be cleared (frigivet), and does it differ between artificial and naturally occurring radionuclides?",
-  "topics": [
-   "waste"
-  ],
-  "language": "en",
-  "source": "dk-law",
-  "expected_behavior": "answer",
-  "expected_answer": "Dose to members of the public of the order of 0.01 mSv per year or less for artificial radionuclides, and of the order of 1 mSv per year or less for naturally occurring radionuclides; the use must be justified and radiologically sound without protective measures.",
-  "nuggets": [
-   {
-    "text": "About 0.01 mSv per year or less for artificial radionuclides",
-    "importance": "vital",
-    "evidence": [
-     "fra det frigivne radioaktive materiale, er i størrelsesordenen 0,01 mSv pr. år eller mindre"
-    ]
-   },
-   {
-    "text": "About 1 mSv per year or less for naturally occurring radionuclides",
-    "importance": "vital",
-    "evidence": [
-     "i størrelsesordenen 1 mSv pr. år eller mindre for naturligt forekommende radionuklider"
-    ]
-   },
-   {
-    "text": "Naturally occurring material processed for its radioactive, fissile or fertile properties falls under the artificial-radionuclide criterion",
-    "importance": "okay",
-    "evidence": [
-     "gælder dosiskriteriet for brug af kunstige radionuklider"
-    ]
-   },
-   {
-    "text": "The use of the released material must also be justified and radiologically sound without protective measures",
-    "importance": "okay",
-    "evidence": [
-     "2.2. Brugen af det frigivne materiale er berettiget"
-    ]
-   }
-  ]
- },
- {
   "id": "test-dk-overfladeforurening-co60",
   "question": "Hvilke værdier for overfladeforurening (Bq/cm2) gælder ifølge bekendtgørelse om radioaktive stoffer for Co-60, dels ved frigivelse af bygninger, anlæg og genstande, dels for overflader og genstande i kontrollerede områder?",
   "topics": [
@@ -792,28 +758,31 @@
     "text": "Ved indeksværdi for aktivitetsmængde op til og med 1 er besiddelse undtaget fra krav om tilladelse og underretning",
     "importance": "vital",
     "evidence": [
-     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse Tabel 1.2"
+     "Myndighedskontrolniveau for besiddelse, håndtering, anvendelse eller opbevaring af lukkede radioaktive kilder",
+     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse"
     ]
    },
    {
     "text": "Ved indeksværdi over 1 og op til og med 100 kræves underretning",
     "importance": "vital",
     "evidence": [
-     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse Tabel 1.2"
+     "Myndighedskontrolniveau for besiddelse, håndtering, anvendelse eller opbevaring af lukkede radioaktive kilder",
+     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse"
     ]
    },
    {
     "text": "Ved indeksværdi over 100 kræves tilladelse",
     "importance": "vital",
     "evidence": [
-     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse Tabel 1.2"
+     "Myndighedskontrolniveau for besiddelse, håndtering, anvendelse eller opbevaring af lukkede radioaktive kilder",
+     "Undtaget fra krav om tilladelse og underretning Underretning Tilladelse"
     ]
    },
    {
     "text": "Indeksværdien beregnes efter bilag 3 og 4",
     "importance": "okay",
     "evidence": [
-     "Metode til beregning af indeksværdier fremgår af bilag 3 og 4"
+     "i henhold til nedenstående tabeller. Metode til beregning af indeksværdier fremgår af bilag 3 og 4"
     ]
    }
   ]
@@ -842,21 +811,23 @@
     "text": "The value may be exceeded only if the benefits to others clearly outweigh the worker's risk and the worker volunteers and understands and accepts the risk",
     "importance": "okay",
     "evidence": [
-     "Life saving actions benefits to others clearly outweigh the emergency worker"
+     "Life saving actions benefits to others clearly outweigh the emergency worker",
+     "the emergency worker volunteers to take the action and understands and accepts these health risks"
     ]
    },
    {
     "text": "Actions to avert a large collective dose: below 100 mSv",
     "importance": "vital",
     "evidence": [
-     "Actions to avert a large collective dose Hp(10) < 100 mSv"
+     "Actions to avert a large collective dose Hp(10) < 100 mSv",
+     "Actions to avert a large collective dose HP(10) <100 mSv"
     ]
    }
   ]
  },
  {
   "id": "test-iaea-gsg2-fetus-criterion",
-  "question": "According to IAEA GSG-2, which generic criteria for projected dose in the first 7 days call for urgent protective actions such as iodine thyroid blocking, sheltering and evacuation? Give the quantity, the value and the period.",
+  "question": "According to IAEA GSG-2 (Table 3, stochastic effects), which generic criteria for projected dose call for urgent protective actions such as iodine thyroid blocking, sheltering and evacuation? Give the quantity, the value and the period.",
   "topics": [
    "emergency"
   ],
@@ -890,7 +861,8 @@
     "text": "For early protective actions the criteria are 100 mSv per annum (effective dose) and 100 mSv for the full period of in utero development (fetus)",
     "importance": "okay",
     "evidence": [
-     "E 100 mSv per annum Temporary relocation"
+     "E 100 mSv per annum Temporary relocation",
+     "HFetus 100 mSv for the full period"
     ]
    }
   ]
@@ -1074,14 +1046,14 @@
     "text": "Only the supplier or specially trained operators should perform the maintenance",
     "importance": "okay",
     "evidence": [
-     "only the supplier or specially trained operators should perform this maintenance"
+     "only the supplier or specially trained operators should perform this maintenance. The maintenance should be performed at least annually"
     ]
    }
   ]
  },
  {
   "id": "test-iaea-research-students-pregnancy",
-  "question": "According to IAEA SSG-87, what level of protection should graduate and postgraduate students who use radiation sources for long periods receive, and what should registrants and licensees ensure about their total annual exposure?",
+  "question": "According to IAEA SSG-87, what level of protection should graduate and postgraduate students who use radiation sources for long periods receive, what should registrants and licensees ensure about their total annual exposure, and what arrangements should they make for pregnant or breastfeeding students?",
   "topics": [
    "research",
    "occupational"
@@ -1099,14 +1071,14 @@
     ]
    },
    {
-    "text": "A system must ensure the total annual exposure, including exposure at other research organizations, stays within occupational dose limits",
+    "text": "A system should ensure the total annual exposure, including exposure at other research organizations, stays within occupational dose limits",
     "importance": "vital",
     "evidence": [
      "including any exposure received by them when they are using radiation sources at other research organizations"
     ]
    },
    {
-    "text": "Arrangements for pregnant or breastfeeding research workers or graduate students must meet GSR Part 3 para. 3.114 (the judge accepts the number or a description of what it requires)",
+    "text": "Arrangements for pregnant or breastfeeding research workers or graduate students should meet GSR Part 3 para. 3.114 (the judge accepts the number or a description of what it requires)",
     "importance": "okay",
     "evidence": [
      "arrangements for pregnant or breastfeeding research workers or graduate students to meet the requirements of para. 3.114"
@@ -1145,7 +1117,8 @@
     "text": "Ved tilladelse skal tilladelsen desuden være indhentet, og ved underretning skal underretningen være bekræftet (§ 26)",
     "importance": "okay",
     "evidence": [
-     "tilladelse fra Sundhedsstyrelsen være indhentet, og registrering"
+     "tilladelse fra Sundhedsstyrelsen være indhentet, og registrering",
+     "skal underretningen være bekræftet af Sundhedsstyrelsen, og Sundhedsstyrelsens kvittering"
     ]
    }
   ]
@@ -1519,7 +1492,7 @@
   "expected_answer": "Medicinsk hvis patientens tilstand tilsiger det; veterinært hvis dyrets størrelse eller andre forhold ikke muliggør anlæg, med optimerende foranstaltninger; ikke-medicinsk hvis generatoren har tilstrækkelig indbygget afskærmning (selvafskærmende, håndholdte) eller emnernes størrelse ikke muliggør anlæg.",
   "nuggets": [
    {
-    "text": "Medicinsk: hvis patientens tilstand tilsiger det",
+    "text": "Medicinske undersøgelser: hvis patientens tilstand tilsiger det",
     "importance": "vital",
     "evidence": [
      "Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til medicinske undersøgelser, hvis patientens tilstand tilsiger det"
@@ -1541,9 +1514,9 @@
    },
    {
     "text": "Ikke-medicinsk: hvis de undersøgte emners størrelse eller andre forhold ikke muliggør anlæg, med optimerende foranstaltninger",
-    "importance": "okay",
+    "importance": "vital",
     "evidence": [
-     "hvis de undersøgte emners størrelse eller andre forhold ikke muliggør anvendelse i anlæg"
+     "Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til anden end medicinsk eller veterinærmedicinsk anvendelse, hvis de undersøgte emners"
     ]
    }
   ]
@@ -1577,7 +1550,7 @@
     "text": "Begge betingelser skal være opfyldt",
     "importance": "vital",
     "evidence": [
-     "må kun bortskaffes via virksomhedens normale renovationsordning"
+     "er mindre end værdien i bilag 3, og hvis den samlede aktivitetsmængde"
     ]
    }
   ]
@@ -1592,7 +1565,7 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Forudgående godkendelse: overdragelse i Danmark af højaktiv lukket kilde, eksport uden for EU af kilde med tilladelseskrav, import uden for EU over bilag 3-værdierne. Indberetning: øvrige overdragelser over bilag 3-værdierne i Danmark, senest 21 dage efter udgangen af kvartalet; gælder ikke affald og godkendelseskrævende højaktive kilder.",
+  "expected_answer": "Forudgående godkendelse: overdragelse i Danmark af højaktiv lukket kilde, eksport uden for EU af kilde med tilladelseskrav, import uden for EU over bilag 3-værdierne. Indberetning: øvrige overdragelser over bilag 3-værdierne i Danmark, inden 21 dage efter udgangen af kvartalet; gælder ikke affald og godkendelseskrævende højaktive kilder.",
   "nuggets": [
    {
     "text": "Overdragelse i Danmark af en højaktiv lukket radioaktiv kilde kræver forudgående godkendelse",
@@ -1605,7 +1578,7 @@
     "text": "Eksport til et land uden for EU af en kilde med tilladelseskrav kræver forudgående godkendelse",
     "importance": "vital",
     "evidence": [
-     "eksport til et land uden for den Europæiske Union af en lukket eller åben radioaktiv kilde"
+     "eksport til et land uden for den Europæiske Union af en lukket eller åben radioaktiv kilde, hvis besiddelse m.v. er omfattet af krav om tilladelse"
     ]
    },
    {
@@ -1616,7 +1589,14 @@
     ]
    },
    {
-    "text": "Øvrige overdragelser i Danmark over bilag 3-værdierne skal indberettes senest 21 dage efter udgangen af kvartalet",
+    "text": "Overdragelser i Danmark over bilag 3-værdierne (åbne kilder: både aktivitet og koncentration) skal indberettes af den overdragende virksomhed",
+    "importance": "vital",
+    "evidence": [
+     "skal den overdragende virksomhed indberette dette til Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Indberetningsfristen er inden 21 dage efter udgangen af kvartalet",
     "importance": "vital",
     "evidence": [
      "Indberetningen, jf. stk. 1, skal ske inden 21 dage efter udgangen af kvartalet"
@@ -1633,14 +1613,14 @@
  },
  {
   "id": "test-dk-ir192-sikringsgruppe-og-intervaller",
-  "question": "En virksomhed har en lukket Ir-192-kilde på 5 TBq til industriel radiografi. Hvilken sikringsgruppe hører kilden til, hvor lang tid må der højst gå mellem eftersyn og radiologisk kontrol, og hvor ofte skal det bekræftes, at kilden er i virksomhedens besiddelse?",
+  "question": "En virksomhed har en lukket Ir-192-kilde på 1 TBq til industriel radiografi. Hvilken sikringsgruppe hører kilden til, hvor lang tid må der højst gå mellem eftersyn og radiologisk kontrol, og hvor ofte skal det bekræftes, at kilden er i virksomhedens besiddelse?",
   "topics": [
    "industrial"
   ],
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Sikringsgruppe B (0,8 TBq til under 80 TBq for Ir-192); eftersyn og radiologisk kontrol højst hver 13. måned; besiddelse bekræftet og dokumenteret mindst én gang ugentligt.",
+  "expected_answer": "Sikringsgruppe B (0,8 TBq til under 80 TBq for Ir-192; 1 TBq ligger inden for grænsen på 1.500 GBq for industriel radiografi); eftersyn og radiologisk kontrol højst hver 13. måned; besiddelse bekræftet og dokumenteret mindst én gang ugentligt.",
   "nuggets": [
    {
     "text": "Kilden hører til sikringsgruppe B (nedre værdi 0,8 TBq; gruppe A begynder ved 80 TBq)",
@@ -1668,6 +1648,13 @@
     "importance": "okay",
     "evidence": [
      "C, jf. bilag 6, samt tilhørende anlæg og relevant udstyr må intervallet for eftersyn og radiologisk kontrol ikke være længere end 25 måneder"
+    ]
+   },
+   {
+    "text": "For industriel radiografi må Ir-192-kilden højst være 1.500 GBq, medmindre Sundhedsstyrelsen godkender andet",
+    "importance": "okay",
+    "evidence": [
+     "Co-60, Se-75 eller Ir-192 med en aktivitetsmængde, der ikke må være større end henholdsvis 400 GBq, 4.000 GBq og 1.500 GBq"
     ]
    }
   ]
@@ -1723,13 +1710,13 @@
   "language": "en",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "The relevant provisions of the order apply, including information and instruction and individual dose monitoring under a monitoring programme approved by the Danish Health Authority; protection is optimised through work schedules; the employer reports the data to the Register for Persondosimetri by 1 March the following year.",
+  "expected_answer": "The relevant provisions of the order apply, including information and instruction and individual dose monitoring under a monitoring programme approved by the Danish Health Authority; protection is optimised through work schedules; the employer reports the data to the Register for Persondosimetri before 1 March the following year.",
   "nuggets": [
    {
-    "text": "The order's relevant provisions apply when aircrew may receive more than 1 mSv per year from cosmic radiation",
+    "text": "Information and instruction of the workers and continuous individual dose monitoring apply",
     "importance": "vital",
     "evidence": [
-     "kan modtage en effektiv dosis større end 1 mSv pr. år fra udsættelse for kosmisk stråling under flyvning, gælder relevante bestemmelser"
+     "herunder krav vedr. oplysning og instruktion af arbejdstagere i medfør af § 41, stk. 1, nr. 1 og nr. 5, og løbende individuel dosisovervågning"
     ]
    },
    {
@@ -1757,7 +1744,7 @@
  },
  {
   "id": "test-dk-byggematerialer-gammastråling",
-  "question": "Hvad er referenceniveauet for indendørs gammastråling fra byggematerialer, og hvad skal den, der markedsfører sådanne byggematerialer, gøre inden markedsføringen?",
+  "question": "Hvad er referenceniveauet for indendørs gammastråling fra byggematerialer, og hvad skal den, der markedsfører byggematerialer, som kan give doser over referenceniveauet, gøre inden markedsføringen?",
   "topics": [
    "general"
   ],
@@ -1785,6 +1772,13 @@
     "importance": "okay",
     "evidence": [
      "Bestemmelse af aktivitetskoncentration og indeksværdi skal dokumenteres"
+    ]
+   },
+   {
+    "text": "Pligten gælder byggematerialer, der kan give anledning til doser over referenceniveauet",
+    "importance": "okay",
+    "evidence": [
+     "og som kan give anledning til doser, der er større end referenceniveauet, jf. § 97"
     ]
    }
   ]
@@ -1856,7 +1850,14 @@
     ]
    },
    {
-    "text": "Statuskontrol udføres ved medicinsk og veterinærmedicinsk anvendelse, konstanskontrol kun ved medicinsk anvendelse",
+    "text": "Konstanskontrol udføres ved medicinsk anvendelse",
+    "importance": "okay",
+    "evidence": [
+     "Konstanskontrol: Test eller gennemgang, der udføres ved medicinsk anvendelse"
+    ]
+   },
+   {
+    "text": "Statuskontrol udføres ved medicinsk og veterinærmedicinsk anvendelse",
     "importance": "okay",
     "evidence": [
      "Test eller gennemgang, der udføres ved medicinsk og veterinærmedicinsk anvendelse for at bekræfte"
@@ -1884,7 +1885,7 @@
    },
    {
     "text": "Det gælder også, når niveauet ligger under det nedre referenceniveau (uden for intervallet i begge retninger)",
-    "importance": "vital",
+    "importance": "okay",
     "evidence": [
      "ligger uden for intervallet mellem det nedre og det primære referenceniveau"
     ]
@@ -1900,7 +1901,7 @@
     "text": "Ved tilladelseskrav til strålingsgeneratorer inddrages også en medicinsk-fysisk ekspert",
     "importance": "vital",
     "evidence": [
-     "en medicinsk-fysisk ekspert. Stk. 4"
+     "hvor anvendelsen er underlagt krav om tilladelse, jf. §§ 7 og 8 i bekendtgørelsen om strålingsgeneratorer, en medicinsk-fysisk ekspert"
     ]
    },
    {
@@ -1915,6 +1916,13 @@
     "importance": "okay",
     "evidence": [
      "Indsatspunkter i forbindelse med optimeringsarbejdet og de opnåede resultater skal dokumenteres"
+    ]
+   },
+   {
+    "text": "Målet er tilstrækkelig billedkvalitet med så lav dosis som rimeligt opnåeligt",
+    "importance": "okay",
+    "evidence": [
+     "billedkvaliteten ved den enkelte medicinske bestråling er tilstrækkelig"
     ]
    }
   ]
@@ -1948,7 +1956,7 @@
  },
  {
   "id": "test-dk-omsorgsperson-dosisbindinger",
-  "question": "Hvilke dosisbindinger skal bruges til planlægning af strålebeskyttelse for omsorgspersoner ved indgift af radioaktive stoffer i en patient?",
+  "question": "Hvilke dosisbindinger skal efter bekendtgørelse om radioaktive stoffer bruges til planlægning af strålebeskyttelse for omsorgspersoner ved indgift af radioaktive stoffer i en patient?",
   "topics": [
    "medical"
   ],
@@ -1989,7 +1997,7 @@
     "text": "Ved undersøgelse eller behandling af børn kan højere dosisbindinger fastsættes af den medicinsk-fysiske ekspert",
     "importance": "okay",
     "evidence": [
-     "Disse dosisbindinger skal fastsættes af den medicinsk-fysiske ekspert"
+     "Ved undersøgelse eller behandling af børn kan højere dosisbindinger for omsorgspersoner være berettiget"
     ]
    }
   ]
@@ -2017,21 +2025,23 @@
     "text": "Arbejdsgiveren og virksomheden skal samarbejde om ansvaret for dosisovervågning",
     "importance": "vital",
     "evidence": [
-     "skal dennes arbejdsgiver og virksomheden samarbejde om efterlevelse af ansvaret for opfyldelse af"
+     "skal dennes arbejdsgiver og virksomheden samarbejde om efterlevelse af ansvaret for opfyldelse af",
+     "og 4) kravene om dosisovervågning, jf. §§ 75 og 76"
     ]
    },
    {
     "text": "Arbejdsgiveren har også ansvaret for dokumentation af doser og videregivelse af resultater til arbejdstageren",
     "importance": "okay",
     "evidence": [
-     "kravet om dokumentation af doser, jf. § 82"
+     "kravet om dokumentation af doser, jf. § 82",
+     "kravet om videregivelse af resultatet af dosisovervågningen til arbejdstageren, jf. § 80"
     ]
    }
   ]
  },
  {
   "id": "test-dk-ammende-arbejdstager",
-  "question": "Hvad gælder for beskæftigelse af en ammende arbejdstager, og hvad skal stråleudsatte arbejdstagere instrueres om i den forbindelse?",
+  "question": "Hvad gælder efter bekendtgørelse om ioniserende stråling og strålebeskyttelse for beskæftigelse af en ammende arbejdstager, og hvad skal stråleudsatte arbejdstagere instrueres om i den forbindelse?",
   "topics": [
    "occupational"
   ],
@@ -2044,7 +2054,7 @@
     "text": "En ammende arbejdstager må ikke beskæftiges under forhold, der kan medføre betydende forurening, som kan ramme barnet",
     "importance": "vital",
     "evidence": [
-     "Hvis en arbejdstager ammer, må arbejdstageren ikke beskæftiges"
+     "der kan medføre forurening med radioaktivt materiale i et omfang, der har strålebeskyttelsesmæssig betydning for barnet"
     ]
    },
    {
@@ -2052,6 +2062,13 @@
     "importance": "vital",
     "evidence": [
      "være instrueret om nødvendigheden af tidlig indberetning om graviditet og amning"
+    ]
+   },
+   {
+    "text": "Formålet med instruktionen er, at dosis til den ufødte eller det diende barn bliver så lav som rimeligt opnåeligt",
+    "importance": "okay",
+    "evidence": [
+     "så dosis til den ufødte eller det diende barn bliver så lav"
     ]
    }
   ]
@@ -2085,7 +2102,7 @@
  },
  {
   "id": "test-dk-en-50msv-særlige-tilfælde",
-  "question": "Under Danish rules, in what circumstances may the Danish Health Authority approve that a radiation worker receives up to 50 mSv effective dose in one year?",
+  "question": "Under Danish rules on dose limits for occupational exposure (not special occupational exposure), in what circumstances may the Danish Health Authority approve that a radiation worker receives up to 50 mSv effective dose in one year?",
   "topics": [
    "occupational"
   ],
@@ -2096,7 +2113,7 @@
   "nuggets": [
    {
     "text": "Only in special cases and with the Danish Health Authority's approval",
-    "importance": "vital",
+    "importance": "okay",
     "evidence": [
      "I særlige tilfælde kan Sundhedsstyrelsen godkende, at en stråleudsat arbejdstager over 18 år modtager en effektiv dosis"
     ]
@@ -2113,6 +2130,13 @@
     "importance": "vital",
     "evidence": [
      "sammenhængende periode på 5 år ikke er større end 20 mSv pr. år"
+    ]
+   },
+   {
+    "text": "Separately, § 17 lets the Danish Health Authority approve doses above the limits for category A workers in specific time-limited work, with prior information and consent",
+    "importance": "okay",
+    "evidence": [
+     "for specifikt tidsbegrænset arbejde godkende, at en stråleudsat arbejdstager i kategori A"
     ]
    }
   ]
@@ -2149,6 +2173,13 @@
     "evidence": [
      "Individual monitoring should be used for the assessment of occupational doses in this range, unless impracticable"
     ]
+   },
+   {
+    "text": "Appropriate records shall be kept when workplace or individual monitoring is conducted",
+    "importance": "okay",
+    "evidence": [
+     "appropriate records shall be kept"
+    ]
    }
   ]
  },
@@ -2172,10 +2203,23 @@
     ]
    },
    {
-    "text": "Dansk lov kræver individuel dosisovervågning for kategori B med persondosimeter (måleperiode højst 3 måneder)",
+    "text": "Dansk lov kræver individuel dosisovervågning af stråleudsatte arbejdstagere i kategori A og B",
     "importance": "vital",
     "evidence": [
-     "Stråleudsatte arbejdstagere i kategori A og kategori B skal være omfattet af individuel dosisovervågning",
+     "Stråleudsatte arbejdstagere i kategori A og kategori B skal være omfattet af individuel dosisovervågning"
+    ]
+   },
+   {
+    "text": "Arbejdstagere med forventet effektiv dosis over 1 og højst 6 mSv pr. år er kategori B",
+    "importance": "okay",
+    "evidence": [
+     "mere end 1 mSv pr. år, dog højst 6 mSv pr. år"
+    ]
+   },
+   {
+    "text": "Ekstern bestråling over 1 og højst 6 mSv pr. år måles med persondosimeter med en måleperiode på højst 3 måneder",
+    "importance": "okay",
+    "evidence": [
      "lig 6 mSv pr. år, fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 3 måneder"
     ]
    }
@@ -2242,14 +2286,71 @@
   "expected_answer": "Bekendtgørelsen fastslår, at overtrædelse af bl.a. §§ 67-83 straffes med bøde, men angiver ikke et beløb; et godt svar siger det."
  },
  {
-  "id": "test-refuse-anvendelsestid-lukket-kilde",
-  "question": "Hvor mange år må en lukket radioaktiv kilde højst være i brug, før den skal udskiftes, ifølge de danske bekendtgørelser?",
+  "id": "test-dk-lukket-kilde-anbefalet-anvendelsesperiode",
+  "question": "Fastsætter de danske bekendtgørelser en maksimal brugstid i år for en lukket radioaktiv kilde, og hvad siger de om kildens anvendelsesperiode?",
   "topics": [
    "industrial"
   ],
   "language": "da",
   "source": "dk-law",
-  "expected_behavior": "refuse",
-  "expected_answer": "De danske bekendtgørelser fastsætter intervaller for eftersyn og radiologisk kontrol, men ingen maksimal brugstid for en kilde; et godt svar siger det."
+  "expected_behavior": "answer",
+  "expected_answer": "Der er ingen fast maksimal brugstid i år. Kildens certifikat skal dog angive en anbefalet anvendelsesperiode (§ 71 stk. 2).",
+  "nuggets": [
+   {
+    "text": "Bekendtgørelsen fastsætter ikke et fast antal år som maksimal brugstid",
+    "importance": "vital",
+    "evidence": [
+     "7) anbefalet anvendelsesperiode"
+    ]
+   },
+   {
+    "text": "Kildens certifikat skal angive en anbefalet anvendelsesperiode",
+    "importance": "vital",
+    "evidence": [
+     "7) anbefalet anvendelsesperiode"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-frigivelse-dosiskriterium",
+  "question": "Under the Danish order on radioactive substances, what dose criterion must be documented before radioactive material can be cleared (frigivet), and does it differ between artificial and naturally occurring radionuclides?",
+  "topics": [
+   "waste"
+  ],
+  "language": "en",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Dose to members of the public of the order of 0.01 mSv per year or less for artificial radionuclides, and of the order of 1 mSv per year or less for naturally occurring radionuclides; the use must be justified and radiologically sound without protective measures.",
+  "nuggets": [
+   {
+    "text": "About 0.01 mSv per year or less for artificial radionuclides",
+    "importance": "vital",
+    "evidence": [
+     "fra det frigivne radioaktive materiale, er i størrelsesordenen 0,01 mSv pr. år eller mindre"
+    ]
+   },
+   {
+    "text": "About 1 mSv per year or less for naturally occurring radionuclides",
+    "importance": "vital",
+    "evidence": [
+     "fra det frigivne radioaktive materiale, er i størrelsesordenen 0,01 mSv pr. år eller mindre for kunstige radionuklider eller i størrelsesordenen 1 mSv"
+    ]
+   },
+   {
+    "text": "Naturally occurring material processed for its radioactive, fissile or fertile properties falls under the artificial-radionuclide criterion",
+    "importance": "okay",
+    "evidence": [
+     "fertile egenskaber, gælder dosiskriteriet for brug af kunstige radionuklider. 2.2. Brugen af det frigivne materiale"
+    ]
+   },
+   {
+    "text": "The use of the released material must also be justified and radiologically sound without protective measures",
+    "importance": "okay",
+    "evidence": [
+     "2.2. Brugen af det frigivne materiale er berettiget"
+    ]
+   }
+  ]
  }
 ]
