@@ -577,6 +577,39 @@ The new questions are shared with #146: those used to design or choose a
 retrieval change become development questions, so the questions are split
 into a part for #146 and a part kept untouched as the test set.
 
+## Danish law: language or structure? (2026-10-12, #168)
+
+Every retrieval miss in the cloud runs is in a Danish-law question, none in an
+IAEA one (baseline k = 3: 6 of 6; `dk-structure-chunks`: 4 of 4; `k5` and
+`prompt-145`: 1 of 1). Language and structure are confounded: the Danish
+orders are XML with §/Stk./items, annexes and long definition lists, the IAEA
+standards are English PDFs. Which factor it is decides the fix (a better
+multilingual embedder or structure-aware chunking).
+
+What is known, none of it separating the two: the English-only
+`nomic-embed-text` had recall@5 0.18 on Danish law and 0.82 on IAEA, the
+multilingual `bge-m3` 0.89 and 0.91, so the large gap was the embedder's
+language coverage; Danish law asked in English had 1 miss in 8 questions,
+asked in Danish 5 in 16 (too few to conclude); chunking along §/Stk./items
+cut the misses from 6 to 4, and the one left at `k = 5` is a definition inside
+a multi-term chunk. Working hypothesis, not proven: the large gap was
+language coverage, the remainder is structure.
+
+**Step L1: change one factor at a time**, retrieval-only, evidence ranks per
+question: (1) the PDF copy of the Danish orders against the XML copy (same
+text and language, different chunk structure); (2) the Danish chunks
+translated to English with the chunk boundaries kept (same structure,
+different language; a sample of the translations checked by hand); (3) pairs
+of a Danish and an English question on the same passage, written from the
+document before any change (shared with #146 and #167); each with the Scaleway
+and the local embedder, so that an effect that depends on the embedder is not
+read as a property of the documents.
+Adoption rule, set before measuring: a factor counts as a cause if changing
+only it moves the ranks for more questions one way than the other (sign test);
+otherwise the result is "not separable at this set size". No chunking or
+embedder change is adopted from this step alone; candidates go through the
+rule of #146.
+
 ---
 
 ## Phase 1 — Continuous Scoring
