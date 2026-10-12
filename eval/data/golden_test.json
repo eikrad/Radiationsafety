@@ -1094,6 +1094,253 @@
   ]
  },
  {
+  "id": "test-dk-brug-efter-registrering",
+  "question": "Hvornår må en virksomhed tage en registreret strålekilde i brug, afhængigt af om brugen kræver tilladelse eller underretning?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Tilladelse: først når Sundhedsstyrelsen har bekræftet registreringen. Underretning: når underretningen er bekræftet og Sundhedsstyrelsens kvittering for registreringen er modtaget.",
+  "nuggets": [
+   {
+    "text": "Ved tilladelse skal tilladelsen være indhentet og registreringen bekræftet af Sundhedsstyrelsen, før strålekilden må bruges",
+    "importance": "vital",
+    "evidence": [
+     "være indhentet, og registrering af eventuelle strålekilder og anlæg, jf. § 28, være bekræftet af Sundhedsstyrelsen, inden brug"
+    ]
+   },
+   {
+    "text": "Ved underretning skal underretningen være bekræftet og kvittering for registreringen modtaget, før brug",
+    "importance": "vital",
+    "evidence": [
+     "underretningen være bekræftet af Sundhedsstyrelsen, og Sundhedsstyrelsens kvittering for registrering af eventuelle strålekilder og anlæg"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-registrering-ændringer",
+  "question": "Hvad gælder for fortsat brug af en registreret strålekilde, når oplysningerne i registret ændres, hvis brugen kræver tilladelse, henholdsvis underretning?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Tilladelse: fortsat brug forudsætter, at Sundhedsstyrelsen har bekræftet de ændrede oplysninger. Underretning: fortsat brug forudsætter, at Sundhedsstyrelsen har kvitteret for modtagelsen af de ændrede oplysninger.",
+  "nuggets": [
+   {
+    "text": "Ved tilladelse kræves Sundhedsstyrelsens bekræftelse af de ændrede oplysninger",
+    "importance": "vital",
+    "evidence": [
+     "at Sundhedsstyrelsen har bekræftet registreringen af de ændrede oplysninger"
+    ]
+   },
+   {
+    "text": "Ved underretning kræves Sundhedsstyrelsens kvittering for modtagelse af de ændrede oplysninger",
+    "importance": "vital",
+    "evidence": [
+     "at Sundhedsstyrelsen har kvitteret for modtagelse af registreringen af de ændrede oplysninger"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-sikkerhedsvurdering-form",
+  "question": "Hvilke krav stiller strålebeskyttelsesbekendtgørelsen til en sikkerhedsvurderings opdatering og dokumentation, og hvad kan Sundhedsstyrelsen forlange?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Løbende opdateret og periodisk vurderet; dokumenteret i en versionsstyret rapport; forelagt Sundhedsstyrelsen før placering og konstruktion af anlæg, hvor relevant; SST kan forlange evaluering af en uafhængig sagkyndig tredjepart.",
+  "nuggets": [
+   {
+    "text": "Sikkerhedsvurderingen skal løbende opdateres, så den afspejler den aktuelle brug, og periodisk vurderes",
+    "importance": "vital",
+    "evidence": [
+     "Sikkerhedsvurderingen skal løbende opdateres, så den til enhver tid afspejler virksomhedens aktuelle brug af strålekilder"
+    ]
+   },
+   {
+    "text": "Den skal dokumenteres i en versionsstyret sikkerhedsvurderingsrapport",
+    "importance": "vital",
+    "evidence": [
+     "dokumenteres i en versionsstyret sikkerhedsvurderingsrapport"
+    ]
+   },
+   {
+    "text": "Sundhedsstyrelsen kan forlange en evaluering ved en uafhængig sagkyndig tredjepart",
+    "importance": "vital",
+    "evidence": [
+     "kan forlange sikkerhedsvurderingen evalueret af en uafhængig sagkyndig tredjepart"
+    ]
+   },
+   {
+    "text": "Rapporten skal, hvor relevant, forelægges før placering og konstruktion af anlæg fastlægges",
+    "importance": "okay",
+    "evidence": [
+     "forud for fastlæggelse af placering og konstruktion af anlæg"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-sikkerhedsvurdering-radioaktive-stoffer",
+  "question": "For hvilke typer brug af radioaktive stoffer kræves der en sikkerhedsvurdering, og hvilken forudsætning gælder for kravet?",
+  "topics": [
+   "general",
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Kravet gælder brug, der er omfattet af krav om tilladelse og fremgår af bilag 7, bl.a. åbne radioaktive kilder, mobile lukkede kilder til fugtigheds- og densitetsmåling, højaktive lukkede kilder, medicinsk og veterinærmedicinsk indgift, dekommissionering og deponering.",
+  "nuggets": [
+   {
+    "text": "Kravet gælder brug, der er omfattet af krav om tilladelse og fremgår af bilag 7",
+    "importance": "vital",
+    "evidence": [
+     "der er omfattet af krav om tilladelse, jf. §§ 7 og 8, og som fremgår af bilag 7"
+    ]
+   },
+   {
+    "text": "Åbne radioaktive kilder er omfattet",
+    "importance": "vital",
+    "evidence": [
+     "Anvendelse, håndtering, kontrol, opbevaring eller udledning af åbne radioaktive kilder"
+    ]
+   },
+   {
+    "text": "Højaktive lukkede radioaktive kilder er omfattet",
+    "importance": "vital",
+    "evidence": [
+     "Anvendelse, håndtering, kontrol eller opbevaring af højaktive lukkede radioaktive kilder"
+    ]
+   },
+   {
+    "text": "Mobile lukkede kilder til fugtigheds- og densitetsmåling er omfattet",
+    "importance": "okay",
+    "evidence": [
+     "mobile lukkede radioaktive kilder til fugtigheds- og densitetsmåling"
+    ]
+   },
+   {
+    "text": "Dekommissionering og deponering er omfattet",
+    "importance": "okay",
+    "evidence": [
+     "8) Dekommissionering. 9) Deponering"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-koordinator-uddannelse-medicinsk-veterinær",
+  "question": "Hvilken uddannelse skal en strålebeskyttelseskoordinator have ved medicinsk, henholdsvis veterinærmedicinsk anvendelse af radioaktive stoffer?",
+  "topics": [
+   "medical"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Medicinsk: uddannelse som bioanalytiker, sygeplejerske, radiograf eller læge. Veterinærmedicinsk: uddannelse som dyrlæge samt isotopkursus godkendt af Sundhedsstyrelsen.",
+  "nuggets": [
+   {
+    "text": "Medicinsk: bioanalytiker, sygeplejerske, radiograf eller læge",
+    "importance": "vital",
+    "evidence": [
+     "Uddannelse som - bioanalytiker, - sygeplejerske, - radiograf eller - læge"
+    ]
+   },
+   {
+    "text": "Veterinærmedicinsk: uddannelse som dyrlæge",
+    "importance": "vital",
+    "evidence": [
+     "Uddannelse som dyrlæge"
+    ]
+   },
+   {
+    "text": "Veterinærmedicinsk kræver også et isotopkursus godkendt af Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "Isotopkursus godkendt af Sundhedsstyrelsen. 2.3. Tidssvarende erfaring med veterinærmedicinsk anvendelse"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-koordinator-åbne-kilder-tilladelse-vs-underretning",
+  "question": "Hvordan adskiller kravene til en strålebeskyttelseskoordinators kompetencer sig for åbne radioaktive kilder, afhængigt af om brugen kræver tilladelse eller underretning?",
+  "topics": [
+   "research",
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Tilladelse: isotopkursus godkendt af Sundhedsstyrelsen og tidssvarende erfaring. Underretning: viden om ioniserende stråling og strålebeskyttelse og tidssvarende erfaring.",
+  "nuggets": [
+   {
+    "text": "Ved tilladelse kræves et isotopkursus godkendt af Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "3.8.1. Isotopkursus godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Ved underretning er viden om ioniserende stråling og strålebeskyttelse tilstrækkelig i stedet for kursus",
+    "importance": "vital",
+    "evidence": [
+     "3.9.1. Viden om ioniserende stråling og strålebeskyttelse"
+    ]
+   },
+   {
+    "text": "Begge kræver tidssvarende erfaring med håndtering af åbne kilder",
+    "importance": "okay",
+    "evidence": [
+     "3.9.2. Tidssvarende erfaring med håndtering af åbne radioaktive kilder"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "test-dk-koordinator-borehulslogning-repetition",
+  "question": "Hvilke kursus- og uddannelseskrav gælder for en strålebeskyttelseskoordinator ved borehulslogning med lukkede radioaktive kilder, og hvor ofte skal repetitionskurset tages?",
+  "topics": [
+   "industrial"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "answer",
+  "expected_answer": "Kursus i grundlæggende strålebeskyttelse godkendt af SST, repetitionskursus mindst hvert 5. år, uddannelse i de konkrete kilder og udstyr ved producenten eller anden kompetent person samt tidssvarende erfaring.",
+  "nuggets": [
+   {
+    "text": "Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "3.5.1. Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Repetitionskursus mindst hvert 5. år",
+    "importance": "vital",
+    "evidence": [
+     "3.5.2. Repetitionskursus mindst hvert 5. år"
+    ]
+   },
+   {
+    "text": "Uddannelse i de konkrete strålekilder og udstyr, forestået af producenten eller anden kompetent person",
+    "importance": "okay",
+    "evidence": [
+     "Uddannelsen skal forestås af producenten eller anden kompetent person med kendskab til disse typer strålekilder og udstyr. 3.5.4"
+    ]
+   }
+  ]
+ },
+ {
   "id": "test-refuse-sagsbehandlingstid",
   "question": "Hvad er Sundhedsstyrelsens sagsbehandlingstid for en ansøgning om tilladelse til brug af strålekilder?",
   "topics": [
@@ -1136,5 +1383,27 @@
   "source": "iaea",
   "expected_behavior": "refuse",
   "expected_answer": "Radiofrequency fields are non-ionising; the corpus gives no such limit."
+ },
+ {
+  "id": "test-refuse-sst-id",
+  "question": "Hvad er et SST-id, og hvor kan en virksomhed finde det?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "refuse",
+  "expected_answer": "Begrebet SST-id forklares ikke i bekendtgørelserne eller IAEA-standarderne i korpus; et godt svar siger det."
+ },
+ {
+  "id": "test-refuse-skift-p-nummer",
+  "question": "Hvordan skal en virksomhed meddele Sundhedsstyrelsen, at dens P-nummer er skiftet?",
+  "topics": [
+   "general"
+  ],
+  "language": "da",
+  "source": "dk-law",
+  "expected_behavior": "refuse",
+  "expected_answer": "Korpus nævner P-nummer kun som oplysning i dokumentation om dosisovervågning, ikke proceduren for et skift; et godt svar siger det."
  }
 ]
