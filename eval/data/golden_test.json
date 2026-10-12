@@ -48,15 +48,14 @@
     "text": "Arbejdstageren skal placeres i kategori B, ikke A",
     "importance": "vital",
     "evidence": [
-     "dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B",
-     "mere end 50 mSv pr. år, dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B"
+     "effektiv dosis på mere end 1 mSv pr. år, dog højst 6 mSv pr. år"
     ]
    },
    {
     "text": "Kategori A kræver, at den forventede effektive dosis er større end 6 mSv pr. år",
     "importance": "okay",
     "evidence": [
-     "ekstremiteter på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+     "En arbejdstager, der som følge af planlagte bestrålingssituationer kan forventes at modtage en effektiv dosis på mere end 6 mSv pr. år"
     ]
    }
   ]
@@ -499,7 +498,7 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Godkendelse i en videnskabsetisk komité; forud beregnet dosis og kræftrisiko vurderet af en medicinsk-fysisk ekspert og med i protokollen; raske forsøgspersoner må ikke bestråles i forsøg med kurativ eller palliativ intention.",
+  "expected_answer": "Godkendelse i en videnskabsetisk komité; forud beregnet dosis og kræftrisiko vurderet af en medicinsk-fysisk ekspert og med i protokollen; raske forsøgspersoner må ikke bestråles i forsøg med kurativ eller palliativ intention; for forsøgspersoner uden direkte nytte gælder dosisbindingerne i Den Nationale Videnskabsetiske Komités retningslinjer.",
   "nuggets": [
    {
     "text": "Projektet kræver godkendelse i en videnskabsetisk komité, før det finder sted",
@@ -890,7 +889,14 @@
     "text": "The SCO-I value is averaged over 300 cm2 (or the whole surface if smaller)",
     "importance": "vital",
     "evidence": [
-     "averaged over 300 cm2 (or the area of the surface if less than 300 cm2)"
+     "SCO-I: A solid object on which: (i) The non-fixed contamination on the accessible surface averaged over 300 cm2"
+    ]
+   },
+   {
+    "text": "SCO-I non-fixed limit for all other alpha emitters is 0.4 Bq/cm2",
+    "importance": "okay",
+    "evidence": [
+     "or 0.4 Bq/cm2 for all other alpha emitters; (ii) The fixed contamination"
     ]
    }
   ]
@@ -2046,10 +2052,10 @@
     ]
    },
    {
-    "text": "Separately, § 17 lets the Danish Health Authority approve doses above the limits for category A workers in specific time-limited work, with prior information and consent",
+    "text": "Similarly, for the lens of the eye the Danish Health Authority may approve up to 50 mSv equivalent dose in a year, with the same 5-year average of 20 mSv",
     "importance": "okay",
     "evidence": [
-     "for specifikt tidsbegrænset arbejde godkende, at en stråleudsat arbejdstager i kategori A"
+     "modtager en ækvivalent dosis til øjelinsen på op til 50 mSv pr. år, forudsat at den årlige gennemsnitlige dosis"
     ]
    }
   ]
@@ -2309,21 +2315,22 @@
     "text": "For sikringsgruppe B gælder skærpede krav: mindst to tekniske barrierer og ugentlig bekræftelse",
     "importance": "okay",
     "evidence": [
-     "Der skal være mindst to tekniske barrierer, der med stor sandsynlighed forhindrer tyveri"
+     "Der skal være mindst to tekniske barrierer, der med stor sandsynlighed forhindrer tyveri",
+     "Det skal mindst én gang ugentligt bekræftes og dokumenteres, at strålekilden er i virksomhedens besiddelse"
     ]
    }
   ]
  },
  {
   "id": "test-dk-dokumentation-status-og-konstanskontrol",
-  "question": "En klinik får udført både statuskontrol og konstanskontrol af sine røntgenapparater. Hvor lang tid tilbage skal dokumentationen for hver af de to slags kontrol bevares, hvad skal den indeholde, og hvornår skal fejl indberettes til Sundhedsstyrelsen?",
+  "question": "En klinik får udført både statuskontrol og konstanskontrol af sine røntgenapparater. Hvor meget dokumentation for hver af de to slags kontrol skal klinikken bevare, hvad skal den indeholde, og hvem skal indberette fejl ved statuskontrollen til Sundhedsstyrelsen og hvornår?",
   "topics": [
    "medical"
   ],
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Dokumentation for de seneste 5 statuskontroller og de seneste 5 års konstanskontroller. Den skal indeholde måleresultater, kriterier og vurderingen, og navn på virksomhed og person. Fejl ved statuskontrol, der kan medføre utilsigtet bestråling, indberettes snarest muligt til Sundhedsstyrelsen.",
+  "expected_answer": "Dokumentation for de seneste 5 statuskontroller og de seneste 5 års konstanskontroller. Den skal indeholde måleresultater, kriterier og vurderingen, og navn på virksomhed og person. Fejl ved statuskontrol, der kan medføre utilsigtet bestråling, indberettes snarest muligt til Sundhedsstyrelsen af den virksomhed, der har udført statuskontrollen.",
   "nuggets": [
    {
     "text": "For statuskontrol bevares dokumentationen for de seneste 5 kontroller",
@@ -2343,13 +2350,15 @@
     "text": "Dokumentationen skal indeholde måleresultater og kriterier for vurderingen samt resultatet af vurderingen",
     "importance": "vital",
     "evidence": [
-     "skal indeholde 1) måleresultater, 2) kriterier, baseret på specifikationer eller driftsbetingelser"
+     "skal indeholde 1) måleresultater, 2) kriterier, baseret på specifikationer eller driftsbetingelser",
+     "3) resultatet af vurdering af måleresultater i forhold til de i nr. 2 nævnte kriterier"
     ]
    },
    {
-    "text": "Fejl eller mangler ved statuskontrol, der kan medføre utilsigtet bestråling, indberettes snarest muligt til Sundhedsstyrelsen",
+    "text": "Indberetningen foretages snarest muligt af den virksomhed, der har udført statuskontrollen (ikke klinikken), hvis fejl eller mangler kan medføre utilsigtet bestråling",
     "importance": "vital",
     "evidence": [
+     "snarest muligt sende indberetning herom til Sundhedsstyrelsen",
      "Hvis der ved statuskontrol konstateres fejl eller mangler ved strålekilder eller udstyr, der kan medføre utilsigtet bestråling"
     ]
    },
@@ -2364,21 +2373,27 @@
  },
  {
   "id": "test-dk-koordinator-borehul-densitet-håndholdt",
-  "question": "Hvilke uddannelses- og kursuskrav stilles der efter bekendtgørelsen om radioaktive stoffer til en strålebeskyttelseskoordinator ved henholdsvis borehulslogning, fugtigheds- og densitetsmåling og håndholdte apparater med lukkede radioaktive kilder, og hvem forestår uddannelsen i de to sidste tilfælde?",
+  "question": "Hvilke uddannelses- og kursuskrav stilles der efter bekendtgørelsen om radioaktive stoffer til en strålebeskyttelseskoordinator ved henholdsvis borehulslogning, fugtigheds- og densitetsmåling og håndholdte apparater med lukkede radioaktive kilder, og hvem forestår henholdsvis godkender uddannelsen i hvert tilfælde?",
   "topics": [
    "industrial"
   ],
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Borehulslogning: grundlæggende kursus godkendt af SST, repetitionskursus mindst hvert 5. år, uddannelse i de konkrete kilder og tidssvarende erfaring. Fugtigheds- og densitetsmåling: et kursus i anvendelse af de lukkede kilder og apparater godkendt af SST. Håndholdte apparater: uddannelse forestået af producenten eller anden kompetent person.",
+  "expected_answer": "Borehulslogning: kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen, repetitionskursus (også godkendt) mindst hvert 5. år, uddannelse i de konkrete kilder og udstyr forestået af producenten eller anden kompetent person, og tidssvarende erfaring. Fugtigheds- og densitetsmåling: et kursus i anvendelse af de lukkede kilder og apparater godkendt af Sundhedsstyrelsen; ingen underviser er nævnt. Håndholdte apparater: uddannelse i de pågældende kilder og apparater forestået af producenten eller anden kompetent person.",
   "nuggets": [
    {
-    "text": "Borehulslogning: kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen og repetitionskursus mindst hvert 5. år",
+    "text": "Borehulslogning: kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen",
     "importance": "vital",
     "evidence": [
-     "3.5.1. Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen",
-     "3.5.2. Repetitionskursus mindst hvert 5. år"
+     "3.5.1. Kursus i grundlæggende strålebeskyttelse godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Borehulslogning: repetitionskursus mindst hvert 5. år, godkendt af Sundhedsstyrelsen",
+    "importance": "vital",
+    "evidence": [
+     "3.5.2. Repetitionskursus mindst hvert 5. år. Kurset skal være godkendt af Sundhedsstyrelsen"
     ]
    },
    {
@@ -2400,6 +2415,13 @@
     "importance": "okay",
     "evidence": [
      "3.5.4. Tidssvarende erfaring med anvendelse af lukkede radioaktive kilder til borehulslogning"
+    ]
+   },
+   {
+    "text": "Borehulslogning: uddannelse i de konkrete kilder og udstyr forestået af producenten eller anden kompetent person",
+    "importance": "okay",
+    "evidence": [
+     "3.5.3. Uddannelse i anvendelse af de typer strålekilder og udstyr"
     ]
    }
   ]
@@ -2591,7 +2613,7 @@
   "language": "en",
   "source": "iaea",
   "expected_behavior": "answer",
-  "expected_answer": "The organization retains responsibility for safety when contracting out processes or receiving items, products or services. It must itself keep the competence to specify the scope and standard of what it needs and to assess whether what is supplied meets the safety requirements (an 'informed customer' capability), and its management system must cover qualification, selection, evaluation, procurement and oversight of the supply chain.",
+  "expected_answer": "The organization retains responsibility for safety when contracting out processes or receiving items, products or services. It must itself keep the competence to specify the scope and standard of what it needs and to assess whether what is supplied meets the safety requirements ; it must also have a clear understanding and knowledge of what is supplied (sometimes termed an 'informed customer' capability), and its management system must cover qualification, selection, evaluation, procurement and oversight of the supply chain.",
   "nuggets": [
    {
     "text": "The organization retains responsibility for safety when it contracts out processes or receives items, products or services",
@@ -2615,7 +2637,7 @@
     ]
    },
    {
-    "text": "This capability is called an 'informed customer' capability",
+    "text": "The organization must have a clear understanding and knowledge of the product or service supplied (sometimes termed an 'informed customer' capability)",
     "importance": "okay",
     "evidence": [
      "is sometimes termed an ‘informed customer’ capability"
@@ -2664,7 +2686,7 @@
    },
    {
     "text": "The assessing organizations or entities may be in-house or external",
-    "importance": "okay",
+    "importance": "vital",
     "evidence": [
      "The organizations, entities (in-house or external) and individuals assigned such responsibilities"
     ]
@@ -2675,12 +2697,19 @@
     "evidence": [
      "Independent assessments and self-assessments of the management system shall be regularly conducted"
     ]
+   },
+   {
+    "text": "Responsibility must be assigned for conducting independent assessments of the management system",
+    "importance": "okay",
+    "evidence": [
+     "Responsibility shall be assigned for conducting independent assessments of the management system"
+    ]
    }
   ]
  },
  {
   "id": "test-iaea-gsr1-advice-conflict-of-interest",
-  "question": "According to IAEA GSR Part 1, what should a regulatory body do if no organization in its own country can give it expert advice free of conflicting interests, and what if the advice can only be obtained from organizations whose interests may conflict with its own?",
+  "question": "According to IAEA GSR Part 1, what must a regulatory body do if no organization in its own country can give it expert advice free of conflicting interests, and what if the advice can only be obtained from organizations whose interests may conflict with its own?",
   "topics": [
    "general"
   ],
@@ -2718,11 +2747,10 @@
     ]
    },
    {
-    "text": "The regulatory body must keep adequate core competence to assess the advice and make informed decisions",
+    "text": "The regulatory body must keep adequate core competence to make informed decisions",
     "importance": "okay",
     "evidence": [
-     "The regulatory body shall have adequate core competence to make informed decisions",
-     "maintain the competence necessary to be an ‘intelligent customer’"
+     "The regulatory body shall have adequate core competence to make informed decisions"
     ]
    }
   ]
@@ -2931,10 +2959,16 @@
     ]
    },
    {
-    "text": "They should not be removed from their primary containers, the container should not be modified, and they should stay in their shielding",
+    "text": "They should not be removed from their primary containers, and the containers should not be physically modified",
     "importance": "okay",
     "evidence": [
-     "spent or disused sealed sources should not be removed from their primary containers, nor should the container be physically modified",
+     "spent or disused sealed sources should not be removed from their primary containers, nor should the container be physically modified"
+    ]
+   },
+   {
+    "text": "They should be kept in their shielding",
+    "importance": "okay",
+    "evidence": [
      "Spent and disused sealed sources should be kept in their shielding"
     ]
    },
@@ -2998,7 +3032,7 @@
  },
  {
   "id": "test-iaea-tecdoc1638-short-term-discharge-limits",
-  "question": "According to IAEA-TECDOC-1638, over what period is compliance with authorized discharge limits normally shown, why do some regulators add shorter-term limits, and what example values does it give for a quarterly limit and for an instantaneous release-rate limit relative to the annual figures?",
+  "question": "According to IAEA-TECDOC-1638, over what period is compliance with authorized discharge limits normally shown, why do some regulators add shorter-term limits, and what general example values does its discussion of the time interval for demonstrating compliance (Section 5.1.4) give for a calendar-quarter limit and for an instantaneous release-rate limit relative to the annual figures?",
   "topics": [
    "waste"
   ],
@@ -3108,14 +3142,14 @@
     "text": "Danish order: of the order of 0.01 mSv per year or less for artificial radionuclides",
     "importance": "vital",
     "evidence": [
-     "er i størrelsesordenen 0,01 mSv pr. år eller mindre for kunstige radionuklider"
+     "fra det frigivne radioaktive materiale, er i størrelsesordenen 0,01 mSv pr. år"
     ]
    },
    {
     "text": "Danish order: of the order of 1 mSv per year or less for naturally occurring radionuclides",
     "importance": "vital",
     "evidence": [
-     "i størrelsesordenen 1 mSv pr. år eller mindre for naturligt forekommende radionuklider"
+     "frigivne radioaktive materiale, er i størrelsesordenen 0,01 mSv pr. år eller mindre for kunstige radionuklider eller i størrelsesordenen 1 mSv"
     ]
    },
    {
@@ -3136,14 +3170,28 @@
     "text": "GSR Part 3: for low-probability scenarios the dose must not exceed 1 mSv per year",
     "importance": "okay",
     "evidence": [
-     "the effective dose expected to be incurred by any individual for such low probability scenarios does not exceed 1 mSv in a year"
+     "To take into account low probability scenarios, a different criterion can be used"
+    ]
+   },
+   {
+    "text": "Clearance under the dose criteria of annex 2 requires prior approval by the Danish Health Authority",
+    "importance": "okay",
+    "evidence": [
+     "Frigivelse af radioaktivt materiale efter kriterierne i bilag 2 kræver Sundhedsstyrelsens forudgående godkendelse"
+    ]
+   },
+   {
+    "text": "Naturally occurring material processed for its radioactive, fissile or fertile properties falls under the artificial-radionuclide criterion",
+    "importance": "okay",
+    "evidence": [
+     "fertile egenskaber, gælder dosiskriteriet for brug af kunstige radionuklider. 2.2. Brugen af det frigivne materiale"
     ]
    }
   ]
  },
  {
   "id": "test-iaea-radiography-device-shipment-notification",
-  "question": "A radiography company sends one of its gamma exposure devices, loaded with an Ir-192 source of about 3.7 TBq, by road to a work site in another country, using the device itself as the transport package. Under the IAEA safety standards, what kind of transport package do such devices usually qualify as, and must the consignor notify the competent authorities before this particular shipment? Explain the activity threshold that decides it.",
+  "question": "A radiography company sends one of its gamma exposure devices, loaded with an Ir-192 source of about 3.7 TBq, by road to a work site in another country, using the device itself as the transport package. The package design certificates have already been submitted to all countries concerned for earlier shipments. Under the IAEA safety standards, what kind of transport package do such devices usually qualify as, and must the consignor notify the competent authorities before this particular shipment? Explain the activity threshold that decides it.",
   "topics": [
    "transport",
    "industrial"
@@ -3151,7 +3199,7 @@
   "language": "en",
   "source": "iaea",
   "expected_behavior": "answer",
-  "expected_answer": "SSG-11 notes that most gamma exposure devices meet the requirements for a Type B(U) package, and radiography sources should be certified as special form material. SSR-6 para. 558 requires consignor notification for a Type B(U) package only if its contents exceed 3000 A1 (or 3000 A2) or 1000 TBq, whichever is lower; with A1 = 1 TBq for Ir-192 the threshold is 1000 TBq, so a 3.7 TBq shipment needs no per-shipment notification. Separately, para. 557 requires copies of the package design certificate to be submitted to the authorities of the origin and transit/destination countries before the first shipment of an approved design; where notification is required it must reach each authority before the shipment, preferably at least 7 days in advance.",
+  "expected_answer": "SSG-11 notes that most gamma exposure devices meet the requirements for a Type B(U) package, and radiography sources should be certified as special form material. SSR-6 para. 558 requires consignor notification for a Type B(U) package only if its contents exceed 3000 A1 (or 3000 A2) or 1000 TBq, whichever is lower; with A1 = 1 TBq for Ir-192 the threshold is 1000 TBq, so a 3.7 TBq shipment needs no per-shipment notification. (Copies of the design certificate are submitted separately before the first shipment of a design, which the question assumes has happened.) Where notification is required it must reach each authority before the shipment, preferably at least 7 days in advance.",
   "nuggets": [
    {
     "text": "Gamma exposure devices usually meet the requirements for a Type B(U) transport package (SSG-11)",
@@ -3168,7 +3216,7 @@
     ]
    },
    {
-    "text": "With an A1 value of 1 TBq for Ir-192 the threshold is 1000 TBq, so this 3.7 TBq shipment does not require consignor notification",
+    "text": "The threshold is 1000 TBq (the lower of 3000 A1 = 3000 TBq for Ir-192 with A1 = 1 TBq, and 1000 TBq), so this 3.7 TBq shipment does not require consignor notification",
     "importance": "vital",
     "evidence": [
      "Ir-192 1 × 100 (c) 6 × 10−1"
@@ -3186,13 +3234,6 @@
     "importance": "okay",
     "evidence": [
      "This notification shall be in the possession of each competent authority prior to the commencement of the shipment, preferably at least 7 days"
-    ]
-   },
-   {
-    "text": "Before the first shipment of a package design that needs competent authority approval, copies of the approval certificate must be submitted to the authorities of the origin and each transit/destination country",
-    "importance": "okay",
-    "evidence": [
-     "copies of each applicable competent authority certificate applying to that package design have been submitted"
     ]
    }
   ]
@@ -3245,7 +3286,7 @@
     ]
    },
    {
-    "text": "Systematic dose monitoring of the people around the patient is not considered necessary",
+    "text": "Published data suggest that systematic dose monitoring is not necessary",
     "importance": "okay",
     "evidence": [
      "Published data suggest that systematic dose monitoring is not necessary"
@@ -3300,6 +3341,13 @@
     "importance": "okay",
     "evidence": [
      "Severe deterministic effects to a fetus could possibly occur following an equivalent dose to the fetus of greater than 100 mSv"
+    ]
+   },
+   {
+    "text": "The exclusion does not apply if the tasks can be carried out within the normal occupational exposure requirements for pregnant workers (GSR Part 3 paras 3.114 and 4.15)",
+    "importance": "okay",
+    "evidence": [
+     "unless such tasks can be carried out within the requirements for occupational exposure set out in paras 3.114 and 4.15"
     ]
    }
   ]
@@ -3424,7 +3472,7 @@
   "language": "en",
   "source": "both",
   "expected_behavior": "answer",
-  "expected_answer": "GSR Part 3 (paras 5.30-5.32) sets no number: the regulatory body decides whether assessment of aircrew exposure is warranted and, if so, establishes a framework with a reference level and an assessment and recording method; where doses are likely to exceed that reference level, employers assess and record doses and make the records available, and they must inform female aircrew about the risk to the embryo or fetus. The Danish order (§ 96) uses a fixed trigger of more than 1 mSv per year: then the relevant provisions apply, including information and instruction and individual dose monitoring under a programme approved by the Danish Health Authority, protection is optimised through work schedules, and the employer reports the data to the dosimetry register by 1 March of the following year.",
+  "expected_answer": "GSR Part 3 (paras 5.30-5.32) sets no number: the regulatory body decides whether assessment of aircrew exposure is warranted and, if so, establishes a framework with a reference level and an assessment and recording method; where doses are likely to exceed that reference level, employers assess and record doses and make the records available, and they must inform female aircrew about the risk to the embryo or fetus. The Danish order (§ 96) uses a fixed trigger of more than 1 mSv per year: then the relevant provisions apply, including information and instruction and individual dose monitoring under a programme approved by the Danish Health Authority, protection is optimised through work schedules, and the employer reports the data to the dosimetry register by 1 March of the following year. IAEA guidance in GSG-7 suggests a reference level of about 5 mSv might be considered reasonable.",
   "nuggets": [
    {
     "text": "Under GSR Part 3 the regulatory body (or other authority) decides whether assessment of aircrew exposure is warranted",
@@ -3434,7 +3482,7 @@
     ]
    },
    {
-    "text": "Under GSR Part 3 the framework includes a nationally set reference level of dose and a method for assessing and recording doses (no fixed value is given)",
+    "text": "Under GSR Part 3 the framework includes a nationally set reference level of dose and a method for assessing and recording doses",
     "importance": "vital",
     "evidence": [
      "shall establish a framework which shall include a reference level of dose"
@@ -3473,6 +3521,20 @@
     "importance": "okay",
     "evidence": [
      "Arbejdsgiveren skal inden den 1. marts i det følgende år indberette"
+    ]
+   },
+   {
+    "text": "IAEA guidance (GSG-7) suggests that a reference level of about 5 mSv might be considered reasonable",
+    "importance": "okay",
+    "evidence": [
+     "A reference level of about 5 mSv might be considered reasonable"
+    ]
+   },
+   {
+    "text": "In Denmark protection is optimised through work schedules that reduce doses",
+    "importance": "okay",
+    "evidence": [
+     "Strålebeskyttelsen skal optimeres ved gennemførelse af arbejdsplaner"
     ]
    }
   ]
@@ -3566,10 +3628,24 @@
     ]
    },
    {
-    "text": "The device must have a technical feature preventing continuous exposure, and the dose rate 10 cm from its surface may not exceed 1 µSv/h",
+    "text": "The device must have a technical feature preventing continuous exposure",
     "importance": "okay",
     "evidence": [
      "Skolekilden skal være udstyret med en teknisk anordning, der forhindrer, at skolekilden kan eksponere kontinuerligt"
+    ]
+   },
+   {
+    "text": "The dose rate 10 cm from the device surface may not exceed 1 µSv/h",
+    "importance": "okay",
+    "evidence": [
+     "Dosishastigheden 10 cm fra overfladen af skolekilden må ikke være større end 1"
+    ]
+   },
+   {
+    "text": "School sources must be type-approved by the Danish Health Authority",
+    "importance": "okay",
+    "evidence": [
+     "Skolekilder skal være typegodkendt af Sundhedsstyrelsen"
     ]
    }
   ]
@@ -3722,7 +3798,7 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "answer",
-  "expected_answer": "Kilden er højaktiv (over 0,2 TBq for Se-75) og under grænsen på 4.000 GBq. Når emnets størrelse ikke tillader brug i anlæg, skal arbejdet foregå med mindst to arbejdstagere til stede, som begge opfylder kravene i bilag 11 (§ 76). Betjeningskablet skal være mindst 8 meter og desuden så langt, at dosishastigheden på betjeningsstedet ikke overstiger 20 µSv/h. Kollimator skal bruges, medmindre Sundhedsstyrelsen har godkendt andet, og kravet gælder ikke ved centralskud, hvor kilden er placeret inde i emnet.",
+  "expected_answer": "Kilden er højaktiv (over 0,2 TBq for Se-75) og under grænsen på 4.000 GBq. Når emnets størrelse ikke tillader brug i anlæg, skal arbejdet foregå med mindst to arbejdstagere til stede, som begge opfylder kravene i bilag 11 (§ 76). Betjeningskablet skal være mindst 8 meter og desuden så langt, at dosishastigheden på betjeningsstedet ikke overstiger 20 µSv/h. Kollimator skal bruges, medmindre Sundhedsstyrelsen har godkendt andet, og kravet gælder ikke ved centralskud, hvor kilden er placeret inde i emnet. Bilag 11 kræver for industriel radiografi et godkendt kursus i strålebeskyttelse og repetitionskursus mindst hvert 5. år; en assistent kan i stedet opfylde assistentkurset i bilag 11.",
   "nuggets": [
    {
     "text": "Mindst to arbejdstagere skal være til stede, og begge skal opfylde kompetencekravene i bilag 11",
@@ -3757,6 +3833,13 @@
     "importance": "okay",
     "evidence": [
      "Der skal benyttes kollimator, medmindre andet er godkendt af Sundhedsstyrelsen"
+    ]
+   },
+   {
+    "text": "Workers doing industrial radiography need a course in radiation protection for industrial radiography approved by the Danish Health Authority, with a refresher course at least every 5 years",
+    "importance": "okay",
+    "evidence": [
+     "3.2.1. Kursus i strålebeskyttelse forbundet med industriel radiografi"
     ]
    }
   ]
@@ -3923,15 +4006,14 @@
     "text": "The worker is placed in category B, not A",
     "importance": "vital",
     "evidence": [
-     "dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B",
-     "mere end 50 mSv pr. år, dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B"
+     "effektiv dosis på mere end 1 mSv pr. år, dog højst 6 mSv pr. år"
     ]
    },
    {
     "text": "Category A requires an expected effective dose of more than 6 mSv per year",
     "importance": "okay",
     "evidence": [
-     "ekstremiteter på mere end 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori A"
+     "En arbejdstager, der som følge af planlagte bestrålingssituationer kan forventes at modtage en effektiv dosis på mere end 6 mSv pr. år"
     ]
    }
   ]
@@ -4052,10 +4134,10 @@
     ]
    },
    {
-    "text": "Særskilt kan Sundhedsstyrelsen efter § 17 godkende doser over grænserne for kategori A-arbejdstagere ved specifikt tidsbegrænset arbejde, med forudgående oplysning og samtykke",
+    "text": "Tilsvarende kan Sundhedsstyrelsen godkende op til 50 mSv ækvivalent dosis til øjelinsen pr. år, med samme gennemsnit på 20 mSv pr. år over 5 år",
     "importance": "okay",
     "evidence": [
-     "for specifikt tidsbegrænset arbejde godkende, at en stråleudsat arbejdstager i kategori A"
+     "modtager en ækvivalent dosis til øjelinsen på op til 50 mSv pr. år, forudsat at den årlige gennemsnitlige dosis"
     ]
    }
   ]
