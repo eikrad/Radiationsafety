@@ -534,6 +534,27 @@ and faster for a model that spills into RAM.
 
 ---
 
+## Product — export the chat as a report (2026-10-13)
+
+Not an evaluation step, but a gap seen while working on the eval: an answer
+can only be read in the page. Whoever needs it for a safety assessment or an
+inspection file copies the text by hand and loses the sources, the warning,
+the web-search marker and the information on how the answer was produced.
+Planned in #170: a button that exports the whole chat or a single answer,
+built in the browser from the messages already on the page (so it also works
+in privacy mode and needs no new request), as Markdown first and then a
+print-ready page or PDF. Each report carries the questions and answers, the
+sources, the warning, the web-search marker, the model and whether privacy
+mode was on, and a fixed note that the text is AI-generated and has to be
+checked against the original standards.
+Open before building: whether `/query` can return the document version per
+source (an answer is only reproducible together with it), and whether the
+chunks carry page or section numbers for the source lines. It builds on the
+conversation kept in the browser (#135) and waits for streaming (#149) only
+in that finished answers are exported.
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous
