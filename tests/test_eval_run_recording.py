@@ -359,6 +359,7 @@ def test_a_run_on_one_split_answers_only_the_questions_of_that_split(
 
     [run] = load_runs(workspace.history)
     assert set(_results(run)) == {"dk-dose-limits", "out-of-scope-mri"}
+    assert run["dataset"]["split"] == "tune"
 
 
 def test_no_history_leaves_the_history_untouched(monkeypatch, workspace):

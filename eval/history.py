@@ -44,6 +44,8 @@ def dataset_fingerprint(items: list[dict]) -> dict:
     with their evidence quotes, so it changes when grading targets change (e.g. a
     pooled quote is added) even though the questions stay the same.
     Tags (topics, language, source) are left out: retagging keeps runs comparable.
+    split: tune or confirm when every item carries that split (eval.split), so
+    the history shows which runs looked at confirm; not part of either hash.
     """
     questions = [[i.get("id", ""), i["question"]] for i in items]
     content = [
@@ -57,10 +59,12 @@ def dataset_fingerprint(items: list[dict]) -> dict:
         ]
         for i in items
     ]
+    splits = {i.get("split") for i in items}
     return {
         "questions_hash": _sha256_short(questions),
         "content_hash": _sha256_short(content),
         "n_items": len(items),
+        **({"split": splits.pop()} if len(splits) == 1 and None not in splits else {}),
     }
 
 

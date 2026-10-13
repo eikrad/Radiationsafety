@@ -410,7 +410,8 @@ function initFilters() {
   setSelect.replaceChildren(
     ...DATA.sets.map((s) =>
       el("option", { value: s.questions_hash },
-        `${s.n_items} questions · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"} · ${s.questions_hash}`))
+        `${s.split ? `${s.split} · ` : ""}${s.n_items} questions · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"}` +
+        `${s.split === "confirm" ? ` (${s.new_runs} with new answers; at most 3 confirmations)` : ""} · ${s.questions_hash}`))
   );
   setSelect.addEventListener("change", () => {
     state.setId = setSelect.value;

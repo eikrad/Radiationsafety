@@ -127,6 +127,12 @@ def _question_set(
     return {
         "questions_hash": questions_hash,
         "n_items": latest["dataset"].get("n_items"),
+        # held-out sets: which split, and how often new answers were looked at
+        # (eval/README.md allows at most three confirmations per confirm set)
+        "split": latest["dataset"].get("split"),
+        "new_runs": sum(
+            1 for r in runs if not (r.get("rescored_from") or r.get("regraded_from"))
+        ),
         "questions": [
             {
                 "id": r["id"],
