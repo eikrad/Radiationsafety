@@ -447,6 +447,10 @@ function headline(set) {
       el("div", { class: "tile" },
         el("div", { class: "label" }, "Pass rate"),
         el("div", { class: "value" }, pct(run.summary.pass_rate)),
+        run.summary.pass_rate_interval
+          ? el("div", { class: "deltas" },
+              `95 % interval ${pct(run.summary.pass_rate_interval[0])}–${pct(run.summary.pass_rate_interval[1])}`)
+          : null,
         el("div", { class: "deltas" },
           prev ? ["vs previous ", passDelta(prev)] : "first run in this set",
           base ? ["  ·  vs baseline ", passDelta(base)] : null)),

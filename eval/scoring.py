@@ -27,6 +27,7 @@ text, so chunkings with different chunk lengths compare fairly; Dense X, Chen
 et al. 2024) and reciprocal_rank (its mean is MRR).
 """
 
+import math
 import re
 import unicodedata
 from collections.abc import Iterable
@@ -51,6 +52,25 @@ NOT_SUPPORT = "not_support"
 # Hyphen and dash variants (U+2010-U+2015, minus sign U+2212) all match "-".
 # Code points, not literal characters, so the table survives formatters.
 _DASHES = dict.fromkeys([*range(0x2010, 0x2016), 0x2212], "-")
+
+
+# two-sided 95 %
+_Z_95 = 1.959964
+
+
+def wilson_interval(passed: int, n: int) -> tuple[float, float] | None:
+    """95 % Wilson score interval for a pass rate of ``passed`` out of ``n``.
+
+    Unlike the plain normal approximation it stays inside 0-1 and does not
+    shrink to nothing at 0 or n passes: 39 of 39 still reaches down to 0.91.
+    None when nothing was judged.
+    """
+    if n == 0:
+        return None
+    rate, z2 = passed / n, _Z_95**2
+    centre = (rate + z2 / (2 * n)) / (1 + z2 / n)
+    half = _Z_95 * math.sqrt(rate * (1 - rate) / n + z2 / (4 * n * n)) / (1 + z2 / n)
+    return max(0.0, centre - half), min(1.0, centre + half)
 
 
 def normalize(text: str) -> str:

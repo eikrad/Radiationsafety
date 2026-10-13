@@ -316,6 +316,18 @@ def test_the_report_carries_the_same_run_header(monkeypatch, workspace):
     assert "retrieval_miss" in markdown
 
 
+def test_the_pass_rate_comes_with_its_95_percent_interval(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    # 2 of 3 judged questions pass
+    assert run["summary"]["pass_rate_interval"] == pytest.approx(
+        [0.2077, 0.9385], abs=1e-4
+    )
+    markdown = (workspace.reports / run["report_file"]).with_suffix(".md").read_text()
+    assert "95 % interval 21–94 %" in markdown
+
+
 def test_the_report_shows_what_the_judge_flagged(monkeypatch, workspace):
     flagged = dict(VERDICTS)
     flagged["Hvor findes dosisgrænserne?"] = {

@@ -38,6 +38,7 @@ from eval.scoring import (
     evidence_ranks,
     ranking_metrics,
     score_item,
+    wilson_interval,
     without_evidence,
 )
 from eval.split import SPLITS, select_split
@@ -392,6 +393,15 @@ def summarize(results: list[dict]) -> dict:
         "judged": len(judged),
         "pass_rate": (
             sum(1 for r in judged if r["pass"]) / len(judged) if judged else None
+        ),
+        "pass_rate_interval": (
+            list(interval)
+            if (
+                interval := wilson_interval(
+                    sum(1 for r in judged if r["pass"]), len(judged)
+                )
+            )
+            else None
         ),
         "pass_rule": "v2-strict",
         "error_counts": dict(
@@ -779,6 +789,7 @@ def _write_report(
         "",
         (
             f"- **Pass rate:** {pass_rate:.0%} of {summary['judged']} judged questions"
+            f"{_interval_text(summary)}"
             if pass_rate is not None
             else "- **Pass rate:** no question could be judged"
         ),
@@ -813,6 +824,14 @@ def _write_report(
         f.write("\n".join(lines))
 
     return json_path, md_path
+
+
+def _interval_text(summary: dict) -> str:
+    interval = summary.get("pass_rate_interval")
+    if not interval:
+        return ""
+    low, high = interval
+    return f" (95 % interval {low * 100:.0f}–{high * 100:.0f} %)"
 
 
 def _markdown_header_lines(header: dict) -> list[str]:
@@ -1100,7 +1119,10 @@ def main() -> int:
     print(f"Report written: {json_path}")
     print(f"Report written: {md_path}")
     if summary["pass_rate"] is not None:
-        print(f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged")
+        print(
+            f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged"
+            f"{_interval_text(summary)}"
+        )
     if summary.get("evidence_recall_initial_mean") is not None:
         print(
             f"Evidence recall (first retrieval): {summary['evidence_recall_initial_mean']:.2f}"
