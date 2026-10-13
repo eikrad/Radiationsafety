@@ -37,7 +37,8 @@ eval/                    — evaluation: run_eval.py (runner, --rescore), golden
                            (nuggets + verbatim evidence), judge.py + judge_check.py (LLM judge and its
                            calibration fixtures), scoring.py (deterministic metrics, error types),
                            history.py → history/runs.jsonl, dashboard.py (local HTML dashboard),
-                           pool.py (unlabelled retrieved chunks for human review)
+                           pool.py (unlabelled retrieved chunks for human review),
+                           split.py (tune/confirm split of the held-out set by shared index chunks)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
