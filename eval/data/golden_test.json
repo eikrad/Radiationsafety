@@ -1350,7 +1350,7 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "refuse",
-  "expected_answer": "Korpus angiver ingen frist. § 28 stk. 5 kræver kun generelt, at ændringer i registeroplysninger indberettes efter procedurer på Sundhedsstyrelsens hjemmeside; P-nummer nævnes ikke dér.",
+  "expected_answer": "Korpus angiver ingen frist. § 28, stk. 5 i bekendtgørelse om ioniserende stråling og strålebeskyttelse kræver kun generelt, at ændringer i oplysninger i Sundhedsstyrelsens register for strålekilder og anlæg indberettes til Sundhedsstyrelsen; P-nummer nævnes ikke dér. Fristen på 21 dage efter kvartalets udløb (§ 26, stk. 3 i bekendtgørelse om radioaktive stoffer) gælder indberetning af overdragelser af radioaktive kilder, ikke ændrede virksomhedsoplysninger.",
   "tier": "core",
   "difficulty": "medium"
  },
@@ -2240,7 +2240,7 @@
   "language": "da",
   "source": "both",
   "expected_behavior": "answer",
-  "expected_answer": "SSR-6 kræver et dosisvurderingsprogram med arbejdspladsovervågning eller individuel overvågning. Dansk lov kræver individuel dosisovervågning med persondosimeter (måleperiode højst 3 måneder) for kategori B-arbejdstagere ved ekstern bestråling.",
+  "expected_answer": "SSR-6 kræver et dosisvurderingsprogram med arbejdspladsovervågning eller individuel overvågning; IAEA's vejledning (SSG-86) anbefaler dog individuel overvågning i dette interval, medmindre det er upraktisk. Dansk lov kræver individuel dosisovervågning med persondosimeter (måleperiode højst 3 måneder) for kategori B-arbejdstagere ved ekstern bestråling (§ 75, stk. 4); er persondosimeter ikke hensigtsmæssigt eller muligt, sker den individuelle dosisovervågning efter et dosisovervågningsprogram godkendt af Sundhedsstyrelsen (§ 75, stk. 8).",
   "nuggets": [
    {
     "text": "SSR-6 tillader arbejdspladsovervågning eller individuel overvågning ved 1-6 mSv pr. år",
@@ -2268,6 +2268,20 @@
     "importance": "okay",
     "evidence": [
      "lig 6 mSv pr. år, fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 3 måneder"
+    ]
+   },
+   {
+    "text": "IAEA's vejledning anbefaler alligevel individuel overvågning ved 1-6 mSv pr. år, medmindre det er upraktisk",
+    "importance": "okay",
+    "evidence": [
+     "Individual monitoring should be used for the assessment of occupational doses in this range, unless impracticable"
+    ]
+   },
+   {
+    "text": "Er persondosimeter ikke hensigtsmæssigt eller muligt, sker den individuelle dosisovervågning efter et dosisovervågningsprogram godkendt af Sundhedsstyrelsen",
+    "importance": "okay",
+    "evidence": [
+     "Hvis dosisovervågning under benyttelse af persondosimeter ikke er hensigtsmæssig eller mulig, skal individuel dosisovervågning udføres"
     ]
    }
   ],
@@ -3065,7 +3079,7 @@
   "language": "en",
   "source": "iaea",
   "expected_behavior": "answer",
-  "expected_answer": "The initial decommissioning plan is submitted together with the application for authorization to operate the facility. It is updated by the licensee and reviewed by the regulatory body periodically, typically every five years or as prescribed by the regulator (and after relevant accidents as soon as possible). The final decommissioning plan is due within a period agreed with the regulator, typically within two to five years of permanent shutdown; during the transition the authorization for operation remains in place unless the regulator has approved modifications based on reduced hazards.",
+  "expected_answer": "The initial decommissioning plan is prepared already at the design stage and submitted together with the application for authorization to operate the facility. It is updated by the licensee and reviewed by the regulatory body periodically, typically every five years or as prescribed by the regulator (and after relevant accidents as soon as possible). The final decommissioning plan is due within a period agreed with the regulator, typically within two to five years of permanent shutdown; during the transition the authorization for operation remains in place unless the regulator has approved modifications based on reduced hazards.",
   "nuggets": [
    {
     "text": "The initial decommissioning plan is submitted together with the application for authorization to operate the facility",
@@ -3093,6 +3107,14 @@
     "importance": "okay",
     "evidence": [
      "the authorization for operation of the facility shall remain in place unless the regulatory body has approved modifications to the authorization"
+    ]
+   },
+   {
+    "text": "The initial decommissioning plan is already prepared at the design stage, where planning for decommissioning begins",
+    "importance": "okay",
+    "evidence": [
+     "Planning for decommissioning begins at the design stage",
+     "At the design stage, the operating organization is required to prepare an initial decommissioning plan"
     ]
    }
   ],
