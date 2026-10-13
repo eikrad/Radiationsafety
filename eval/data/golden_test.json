@@ -174,7 +174,7 @@
     "text": "IAEA's niveau bør generelt ikke overstige 300 Bq/m3 som årligt gennemsnit",
     "importance": "vital",
     "evidence": [
-     "will not exceed an annual average activity concentration due to 222Rn of 300 Bq/m3"
+     "will not exceed an annual average activity concentration due to 222 Rn of 300 Bq/m 3"
     ]
    }
   ],
@@ -196,7 +196,7 @@
     "text": "Reference levels should in general not exceed 300 Bq/m3 annual average",
     "importance": "vital",
     "evidence": [
-     "will not exceed an annual average activity concentration due to 222Rn of 300 Bq/m3"
+     "will not exceed an annual average activity concentration due to 222 Rn of 300 Bq/m 3"
     ]
    }
   ],
@@ -239,14 +239,14 @@
     "text": "Type C kolli kræver meddelelse, når aktiviteten er større end 3000 A1 eller 3000 A2 eller 1000 TBq",
     "importance": "vital",
     "evidence": [
-     "1) Transport af type C kolli, der indeholder radioaktivt materiale med en aktivitetsmængde, der er større end 3000 A 1"
+     "1) Transport af type C kolli, der indeholder radioaktivt materiale med en aktivitetsmængde, der er større end 3000 A_1 eller 3000 A_2 eller 1000 TBq"
     ]
    },
    {
     "text": "Type B(U) kolli kræver meddelelse, når aktiviteten er større end 3000 A1 eller 3000 A2 eller 1000 TBq",
     "importance": "vital",
     "evidence": [
-     "2) Transport af type B(U) kolli, der indeholder radioaktivt materiale med en aktivitetsmængde, der er større end 3000 A 1"
+     "Transport af type B(U) kolli, der indeholder radioaktivt materiale med en aktivitetsmængde, der er større end 3000 A_1 eller 3000 A_2 eller 1000 TBq"
     ]
    }
   ],
@@ -455,7 +455,7 @@
     "text": "Primært referenceniveau for CTDIvol er 50 mGy",
     "importance": "vital",
     "evidence": [
-     "Cerebrum Obs. blødning CTDI vol [mGy] 50 43 37"
+     "Cerebrum Obs. blødning CTDI_vol [mGy] 50 43 37"
     ]
    },
    {
@@ -808,15 +808,16 @@
     "text": "Life-saving actions: guidance value Hp(10) below 500 mSv",
     "importance": "vital",
     "evidence": [
-     "Hp(10)b < 500 mSv This value may be exceeded under circumstances in which the expected",
-     "HP(10)b <500 mSv This value may be exceeded"
+     "Life saving actions, Guidance value a = H p (10) b < 500 mSv",
+     "Life saving actions, Guidance value a = H P (10) b <500 mSv",
+     "Lifesaving actions, Guidance value a = H p (10) b < 500 mSv"
     ]
    },
    {
     "text": "The value may be exceeded only if the benefits to others clearly outweigh the worker's risk and the worker volunteers and understands and accepts the risk",
     "importance": "okay",
     "evidence": [
-     "Life saving actions benefits to others clearly outweigh the emergency worker",
+     "clearly outweigh the emergency worker's own health risks, and the emergency worker volunteers",
      "the emergency worker volunteers to take the action and understands and accepts these health risks"
     ]
    },
@@ -824,8 +825,9 @@
     "text": "Actions to avert a large collective dose: below 100 mSv",
     "importance": "vital",
     "evidence": [
-     "Actions to avert a large collective dose Hp(10) < 100 mSv",
-     "Actions to avert a large collective dose HP(10) <100 mSv"
+     "Actions to avert a large collective dose, Guidance value a = H p (10) < 100 mSv",
+     "Actions to avert a large collective dose, Guidance value a = H P (10) <100 mSv",
+     "Actions to avert a large collective dose, Guidance value a = H p (10) b < 100 mSv"
     ]
    }
   ],
@@ -847,29 +849,29 @@
     "text": "Thyroid equivalent dose: 50 mSv in the first 7 days (iodine thyroid blocking)",
     "importance": "vital",
     "evidence": [
-     "HThyroid 50 mSv in the first 7 days Iodine thyroid blocking"
+     "H thyroid, Generic criteria = 50 mSv in the first 7 days"
     ]
    },
    {
     "text": "Effective dose: 100 mSv in the first 7 days (sheltering, evacuation, decontamination)",
     "importance": "vital",
     "evidence": [
-     "E 100 mSv in the first 7 days"
+     "E, Generic criteria = 100 mSv in the first 7 days"
     ]
    },
    {
     "text": "Fetus equivalent dose: 100 mSv in the first 7 days",
     "importance": "vital",
     "evidence": [
-     "HFetus 100 mSv in the first 7 days"
+     "H fetus, Generic criteria = 100 mSv in the first 7 days"
     ]
    },
    {
     "text": "For early protective actions the criteria are 100 mSv per annum (effective dose) and 100 mSv for the full period of in utero development (fetus)",
     "importance": "okay",
     "evidence": [
-     "E 100 mSv per annum Temporary relocation",
-     "HFetus 100 mSv for the full period"
+     "E, Generic criteria = 100 mSv per annum",
+     "E, Generic criteria = 100 mSv in the first year"
     ]
    }
   ],
@@ -891,14 +893,16 @@
     "text": "TI more than 0 but not more than 1",
     "importance": "vital",
     "evidence": [
-     "More than 0 but not more than 1a More than 0.005 mSv/h but II-YELLOW not more than 0.5 mSv/h"
+     "More than 0 but not more than 1 a, Category. = II-YELLOW",
+     "II-YELLOW, Transport index = More than 0 but not more than 1"
     ]
    },
    {
     "text": "Surface dose rate more than 0.005 mSv/h but not more than 0.5 mSv/h",
     "importance": "vital",
     "evidence": [
-     "More than 0.005 mSv/h but II-YELLOW not more than 0.5 mSv/h"
+     "Maximum dose rate at any point on external surface = More than 0.005 mSv/h but not more than 0.5 mSv/h",
+     "II-YELLOW, Maximum surface dose rate (mSv/h) = More than 0.005 but not more than 0.5"
     ]
    }
   ],
@@ -920,35 +924,35 @@
     "text": "Contamination definition: more than 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters",
     "importance": "vital",
     "evidence": [
-     "in excess of 0.4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters"
+     "in excess of 0.4 Bq/cm 2 for beta and gamma emitters and low toxicity alpha emitters"
     ]
    },
    {
     "text": "Contamination definition: 0.04 Bq/cm2 for all other alpha emitters",
     "importance": "vital",
     "evidence": [
-     "or 0.04 Bq/cm2 for all other alpha emitters"
+     "low toxicity alpha emitters , or 0.04 Bq/cm 2 for all other alpha emitters"
     ]
    },
    {
     "text": "SCO-I non-fixed contamination limit is 4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters (ten times the definition value)",
     "importance": "vital",
     "evidence": [
-     "does not exceed 4 Bq/cm2 for beta and gamma emitters and low toxicity alpha emitters, or 0.4 Bq/cm2 for all other alpha emitters"
+     "does not exceed 4 Bq/cm 2 for beta and gamma emitters and low toxicity alpha emitters , or 0.4 Bq/cm 2 for all other alpha emitters"
     ]
    },
    {
     "text": "The SCO-I value is averaged over 300 cm2 (or the whole surface if smaller)",
     "importance": "vital",
     "evidence": [
-     "SCO-I: A solid object on which: (i) The non-fixed contamination on the accessible surface averaged over 300 cm2"
+     "on the accessible surface averaged over 300 cm 2 (or the area of the surface if less than 300 cm 2 ) does not exceed 4 Bq/cm 2"
     ]
    },
    {
     "text": "SCO-I non-fixed limit for all other alpha emitters is 0.4 Bq/cm2",
     "importance": "okay",
     "evidence": [
-     "or 0.4 Bq/cm2 for all other alpha emitters; (ii) The fixed contamination"
+     "or 0.4 Bq/cm 2 for all other alpha emitters; - (ii) The fixed contamination"
     ]
    }
   ],
@@ -1978,7 +1982,7 @@
     "text": "Der er ikke angivet et opnåeligt referenceniveau for generel thorax-diagnostik hos voksne",
     "importance": "vital",
     "evidence": [
-     "Undersøgelse Primært referenceniveau P KA [Gy·cm²]"
+     "Diagnostiske referenceniveauer for generel diagnostik Undersøgelse Primært referenceniveau P_KA [Gy·cm²]"
     ]
    }
   ],
@@ -2631,21 +2635,21 @@
     "text": "131I iodide for thyroid cancer: avoid pregnancy for 6-12 months",
     "importance": "vital",
     "evidence": [
-     "131 I iodide Thyroid cancer 6000 6–12"
+     "131 I iodide, All activities up to a (MBq) = 6000. 131 I iodide, Avoid pregnancy (months) = 6-12"
     ]
    },
    {
     "text": "89Sr chloride for bone metastases: avoid pregnancy for 24 months",
     "importance": "vital",
     "evidence": [
-     "89 Sr chloride Bone metastases 150 24"
+     "89 Sr chloride, All activities up to a (MBq) = 150. 89 Sr chloride, Avoid pregnancy (months) = 24"
     ]
    },
    {
     "text": "90Y colloid for arthritic joints: no period of avoidance (0 months)",
     "importance": "vital",
     "evidence": [
-     "90 Y colloid Arthritic joints 400 0"
+     "90 Ycolloid, All activities up to a (MBq) = 400. 90 Ycolloid, Avoid pregnancy (months) = 0"
     ]
    }
   ],
@@ -2788,7 +2792,7 @@
     "text": "The organization must have a clear understanding and knowledge of the product or service supplied (sometimes termed an 'informed customer' capability)",
     "importance": "okay",
     "evidence": [
-     "is sometimes termed an ‘informed customer’ capability"
+     "is sometimes termed an 'informed customer' capability"
     ]
    },
    {
@@ -3024,7 +3028,7 @@
     "text": "The three approaches are 'delay and decay', 'concentrate and contain' and 'dilute and disperse'",
     "importance": "vital",
     "evidence": [
-     "are commonly termed ‘delay and decay’, ‘concentrate and contain’ and ‘dilute and disperse’"
+     "are commonly termed 'delay and decay', 'concentrate and contain' and 'dilute and disperse'"
     ]
    },
    {
@@ -3038,14 +3042,14 @@
     "text": "'Dilute and disperse' is legitimate only within authorized limitations set by the regulatory body",
     "importance": "vital",
     "evidence": [
-     "‘dilute and disperse’ is a legitimate practice in the management of radioactive waste, but only when carried out within authorized limitations"
+     "'dilute and disperse' is a legitimate practice in the management of radioactive waste, but only when carried out within authorized limitations"
     ]
    },
    {
     "text": "'Delay and decay' means holding the waste in storage until its activity has decreased by radioactive decay",
     "importance": "okay",
     "evidence": [
-     "‘Delay and decay’ involves holding the waste in storage until the desired reduction in activity has occurred through radioactive decay"
+     "'Delay and decay' involves holding the waste in storage until the desired reduction in activity has occurred through radioactive decay"
     ]
    }
   ],
@@ -3160,7 +3164,7 @@
     "text": "For gradual processes the constraint is 0.3 mSv per year (or a risk of the order of 10^-5 per year)",
     "importance": "vital",
     "evidence": [
-     "shall not exceed a dose constraint of 0.3 mSv in a year or a risk constraint of the order of 10-5 per year"
+     "shall not exceed a dose constraint of 0.3 mSv in a year or a risk constraint of the order of 10 -5 per year"
     ]
    },
    {
@@ -3384,28 +3388,28 @@
     "text": "Under SSR-6, a Type B(U) shipment needs consignor notification only if its activity exceeds 3000 A1 (or 3000 A2) or 1000 TBq, whichever is lower",
     "importance": "vital",
     "evidence": [
-     "Type B(U) packages containing radioactive material with an activity greater than 3000A1 or 3000A2, as appropriate, or 1000 TBq, whichever is"
+     "B(U) packages containing radioactive material with an activity greater than 3000 A1 or 3000 A2 , as appropriate, or 1000 TBq, whichever is the lower"
     ]
    },
    {
     "text": "The threshold is 1000 TBq (the lower of 3000 A1 = 3000 TBq for Ir-192 with A1 = 1 TBq, and 1000 TBq), so this 3.7 TBq shipment does not require consignor notification",
     "importance": "vital",
     "evidence": [
-     "Ir-192 1 × 100 (c) 6 × 10−1"
+     "Ir-192, A 1.(TBq) = 1 × 10 0 (c)"
     ]
    },
    {
     "text": "Radiography sources should be certified as special form radioactive material (so the A1 value applies)",
     "importance": "okay",
     "evidence": [
-     "Certified as meeting the requirements for ‘special form’ radioactive material as established in the IAEA Transport Regulations"
+     "Certified as meeting the requirements for 'special form' radioactive material"
     ]
    },
    {
     "text": "Where notification is required, it must reach the authorities of the origin country and of each transit/destination country before the shipment starts, preferably at least 7 days in advance",
     "importance": "okay",
     "evidence": [
-     "This notification shall be in the possession of each competent authority prior to the commencement of the shipment, preferably at least 7 days"
+     "This notification shall be in the possession of each competent authority prior to the commencement of the shipment , preferably at least 7 days"
     ]
    }
   ],
@@ -3434,7 +3438,7 @@
     "text": "A medical physicist or the facility's radiation protection officer must first establish that the activity in the patient keeps doses to members of the public and family members within the requirements",
     "importance": "vital",
     "evidence": [
-     "established by either a medical physicist or the facility’s radiation protection officer that:",
+     "established by either a medical physicist or the facility's radiation protection officer that:",
      "The medical physicist or RPO at the nuclear medicine facility should establish prior to the release of a patient"
     ]
    },
@@ -3617,7 +3621,7 @@
     "text": "Under GSR Part 3, if they cease the activities, the records are to be retained by the regulatory body, a State registry or a relevant employer",
     "importance": "okay",
     "evidence": [
-     "arrangements for the retention of workers’ records of occupational exposure by the regulatory body or a State registry"
+     "arrangements for the retention of workers' records of occupational exposure by the regulatory body or a State registry"
     ]
    },
    {
