@@ -113,6 +113,30 @@ No LLM decides relevance here: LLM relevance labels agree with people on system 
 
 They weight what separates models and settings: conditions where "eller"/"samt" decide the outcome (category A vs B, both conditions of a disposal rule), boundary values, computed cases (security group from an activity, a TI from a dose rate, a mixture sum), numbers and units in annex tables, definition lists, multi-hop references between a paragraph and an annex, questions that need two documents (a requirement and its guide), Danish rule vs IAEA value, English questions about Danish law and Danish/English pairs on the same passage (#168), borderline in-scope topics that sound out of scope (aircrew, building materials), and six questions to refuse (in-domain ones such as the SST-id and a deadline for a P-number change, which the sources do not give). Every item was checked against the source text by independent model reviewers, and the findings were worked in; a human check of wording and nuggets is still worth doing. Evidence quotes were matched against the extracted text of the source files, not yet against the real index: run `uv run python -m eval.golden --golden eval/data/golden_test.json --check-index` first, because quotes from tables (annex rows, the emergency-worker guidance values in GSR Part 3) depend on how the table was chunked.
 
+#### Core and extended tiers
+
+Every item in `golden_test.json` carries a `tier` (`core` or `extended`) and the reviewers' `difficulty` rating (`easy`, `medium`, `hard`). Neither tag is part of the dataset fingerprint.
+
+| Tier | Items | Use |
+|------|-------|-----|
+| `core` | 50 | Routine comparisons of models, prompts, retrieval settings. All items the reviewers rated hard, all six items to refuse, and then medium items up to 50, taking the rarest topics first and, within a topic, the item with the most vital nuggets. No answerable item the reviewers rated easy. The two thinnest topics stay thin in the whole set: emergency has 3 core items (5 in total) and research 4 (6 in total). |
+| `extended` | 56 | The rest: easy items, the Danish/English counterparts of core items, and medium items left over once the core reached 50. |
+
+```bash
+uv run python -m eval.run_eval --golden eval/data/golden_test.json --tier core --label core-baseline
+uv run python -m eval.run_eval --golden eval/data/golden_test.json --tier extended   # confirmation
+uv run python -m eval.run_eval --golden eval/data/golden_test.json                   # all 106
+```
+
+A run on a tier covers fewer items, so it has its own `questions_hash` and the dashboard never compares it with a run on another tier.
+
+Rules, set before any run:
+
+- The tiers were chosen from the reviewers' difficulty ratings and topic counts, not from any system's results. Do not move items between tiers after a run: removing the questions every configuration passes would tune the set on its own results.
+- Tuning on `core` is allowed; the items then count as development questions. `extended` is the untouched confirmation set: report core and extended side by side, and do not tune on `extended`. A confirmation after tuning on `extended` needs new questions.
+- The seven Danish/English pairs (#168) sit in different tiers: in four of them the original is core and its counterpart extended, in three both halves are extended. Compare a pair only on the full run.
+- The reviewers' difficulty ratings are model judgements made before the questions met a system. Re-rate from real results only to plan new questions, never to re-tier these.
+
 `run_eval` validates the file and lists every problem at once (unknown topic, vital nugget without evidence, refuse item with nuggets, the v1 `key_facts` format, …).
 
 Check the evidence quotes against the chunks actually in the search index, after editing the golden set and after any re-chunking:

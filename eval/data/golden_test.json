@@ -31,7 +31,9 @@
      "ekstremiteter på mere end 50 mSv pr. år, dog højst 150 mSv pr. år, skal kategoriseres som en stråleudsat arbejdstager i kategori B"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-kategori-b-grænse",
@@ -58,7 +60,9 @@
      "En arbejdstager, der som følge af planlagte bestrålingssituationer kan forventes at modtage en effektiv dosis på mere end 6 mSv pr. år"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-dosimeter-måleperiode",
@@ -85,7 +89,9 @@
      "større end 6 mSv pr. år fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 1 måned"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-register-persondosimetri-opbevaring",
@@ -112,7 +118,9 @@
      "men ikke mindre end 30 år efter afslutningen af det arbejde"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-en-radon-reference",
@@ -140,7 +148,9 @@
      "udgangspunkt i et referenceniveau svarende til en årlig gennemsnitlig aktivitetskoncentration på 100 Bq/m"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-both-radon-dk-vs-iaea",
@@ -167,7 +177,9 @@
      "will not exceed an annual average activity concentration due to 222Rn of 300 Bq/m3"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-radon-reference",
@@ -187,7 +199,9 @@
      "will not exceed an annual average activity concentration due to 222Rn of 300 Bq/m3"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-transport-forhåndsmeddelelse",
@@ -235,7 +249,9 @@
      "2) Transport af type B(U) kolli, der indeholder radioaktivt materiale med en aktivitetsmængde, der er større end 3000 A 1"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-transport-opbevaring-intervaller",
@@ -262,7 +278,9 @@
      "Fortegnelsen efter stk. 1 skal omfatte de seneste 5 års opbevaring af kolli"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-transport-højrisikogods",
@@ -310,7 +328,9 @@
      "beredskabsplan, der skal godkendes af Sundhedsstyrelsen, forud for besiddelse"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-transportindeks-definition",
@@ -344,7 +364,9 @@
      "Den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade ganget med 100"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-referenceniveau-definitioner",
@@ -378,7 +400,9 @@
      "fastsat ud fra første kvartil i den nationale fordeling"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-patientdosimetri-intervaller",
@@ -412,7 +436,9 @@
      "Odontologi 5 år"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-drl-ct-cerebrum",
@@ -439,7 +465,9 @@
      "DLP [mGy⋅cm] 850 715 640"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-drl-mammografi-50mm",
@@ -459,7 +487,9 @@
      "50 60 1,09 1,03 0,99"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-kvalitetsaudit-interval",
@@ -486,7 +516,9 @@
      "skal audit udføres med højst 3 års mellemrum"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-forskning-bestråling-forsøgspersoner",
@@ -535,7 +567,9 @@
      "gælder de dosisbindinger, der fremgår af retningslinjer fra den Nationale Videnskabsetiske Komité"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-koordinator-undtaget-godkendelse",
@@ -569,7 +603,9 @@
      "Godkendelse af en strålebeskyttelsesekspert skal fornyes hvert 5. år"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-definition-stråleudsat-arbejdstager",
@@ -617,7 +653,9 @@
      "planlagt udsættes for ioniserende stråling fra en eksisterende bestrålingssituation"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-definition-omsorgsperson",
@@ -651,7 +689,9 @@
      "pleje, støtte og hjælpe personer, der gennemgår eller har gennemgået medicinsk bestråling"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-en-breastfeeding-worker",
@@ -671,7 +711,9 @@
      "forhold, der kan medføre forurening med radioaktivt materiale i et omfang, der har strålebeskyttelsesmæssig betydning for barnet"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-overfladeforurening-co60",
@@ -699,7 +741,9 @@
      "Co-58 1 100 Co-60 0,1 10 Ni-59"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-myndighedskontrol-lukkede-kilder",
@@ -744,7 +788,9 @@
      "i henhold til nedenstående tabeller. Metode til beregning af indeksværdier fremgår af bilag 3 og 4"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-emergency-worker-guidance",
@@ -782,7 +828,9 @@
      "Actions to avert a large collective dose HP(10) <100 mSv"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-gsg2-fetus-criterion",
@@ -824,7 +872,9 @@
      "HFetus 100 mSv for the full period"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-transport-category-yellow",
@@ -851,7 +901,9 @@
      "More than 0.005 mSv/h but II-YELLOW not more than 0.5 mSv/h"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-contamination-definition",
@@ -899,7 +951,9 @@
      "or 0.4 Bq/cm2 for all other alpha emitters; (ii) The fixed contamination"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-radioiodine-pregnancy",
@@ -926,7 +980,9 @@
      "deferred until after the pregnancy and after any period of breast-feeding"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-dose-constraint-bands",
@@ -961,7 +1017,9 @@
      "Reference levels of 20–100 mSv would be used where individuals are exposed to radiation from sources that are not under control"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-xray-maintenance-frequency",
@@ -1002,7 +1060,9 @@
      "only the supplier or specially trained operators should perform this maintenance. The maintenance should be performed at least annually"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-research-students-pregnancy",
@@ -1037,7 +1097,9 @@
      "arrangements for pregnant or breastfeeding research workers or graduate students to meet the requirements of para. 3.114"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-brug-efter-registrering",
@@ -1074,7 +1136,9 @@
      "skal underretningen være bekræftet af Sundhedsstyrelsen, og Sundhedsstyrelsens kvittering"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-registrering-ændringer",
@@ -1101,7 +1165,9 @@
      "at Sundhedsstyrelsen har kvitteret for modtagelse af registreringen af de ændrede oplysninger"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-sikkerhedsvurdering-form",
@@ -1142,7 +1208,9 @@
      "forud for fastlæggelse af placering og konstruktion af anlæg"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-koordinator-uddannelse-medicinsk-veterinær",
@@ -1176,7 +1244,9 @@
      "Isotopkursus godkendt af Sundhedsstyrelsen. 2.3. Tidssvarende erfaring med veterinærmedicinsk anvendelse"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-koordinator-åbne-kilder-tilladelse-vs-underretning",
@@ -1211,7 +1281,9 @@
      "3.9.2. Tidssvarende erfaring med håndtering af åbne radioaktive kilder"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-refuse-sagsbehandlingstid",
@@ -1222,7 +1294,9 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "refuse",
-  "expected_answer": "Kilderne angiver ikke en sagsbehandlingstid; et godt svar siger det."
+  "expected_answer": "Kilderne angiver ikke en sagsbehandlingstid; et godt svar siger det.",
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-refuse-koordinator-kursustimer",
@@ -1233,7 +1307,9 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "refuse",
-  "expected_answer": "Bekendtgørelserne kræver et godkendt kursus, men angiver ikke et timetal; et godt svar siger det."
+  "expected_answer": "Bekendtgørelserne kræver et godkendt kursus, men angiver ikke et timetal; et godt svar siger det.",
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-refuse-rf-basestation",
@@ -1244,7 +1320,9 @@
   "language": "en",
   "source": "iaea",
   "expected_behavior": "refuse",
-  "expected_answer": "Radiofrequency fields are non-ionising; the corpus gives no such limit."
+  "expected_answer": "Radiofrequency fields are non-ionising; the corpus gives no such limit.",
+  "tier": "core",
+  "difficulty": "easy"
  },
  {
   "id": "test-refuse-sst-id",
@@ -1255,7 +1333,9 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "refuse",
-  "expected_answer": "Begrebet SST-id forklares ikke i korpus. Bekendtgørelsen nævner kun et ID fra Sundhedsstyrelsens Register for Persondosimetri (afdelingens eller den dosimetriske tjenestes) som oplysning i dosisindberetninger, men ikke hvad et SST-id er eller hvor det findes; et godt svar siger det og påstår ikke, at de er det samme."
+  "expected_answer": "Begrebet SST-id forklares ikke i korpus. Bekendtgørelsen nævner kun et ID fra Sundhedsstyrelsens Register for Persondosimetri (afdelingens eller den dosimetriske tjenestes) som oplysning i dosisindberetninger, men ikke hvad et SST-id er eller hvor det findes; et godt svar siger det og påstår ikke, at de er det samme.",
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-refuse-skift-p-nummer",
@@ -1266,7 +1346,9 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "refuse",
-  "expected_answer": "Korpus angiver ingen frist. § 28 stk. 5 kræver kun generelt, at ændringer i registeroplysninger indberettes efter procedurer på Sundhedsstyrelsens hjemmeside; P-nummer nævnes ikke dér."
+  "expected_answer": "Korpus angiver ingen frist. § 28 stk. 5 kræver kun generelt, at ændringer i registeroplysninger indberettes efter procedurer på Sundhedsstyrelsens hjemmeside; P-nummer nævnes ikke dér.",
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-generator-statuskontrol-tandklinik",
@@ -1293,7 +1375,9 @@
      "jf. § 8, stk. 1, nr. 2, må intervallet mellem statuskontrol ikke være længere end 25 måneder"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-en-generator-eftersyn-tilladelse",
@@ -1328,7 +1412,9 @@
      "må intervallet mellem eftersyn ikke være længere end 25 måneder"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-generator-underretning-ikke-medicinsk",
@@ -1362,7 +1448,9 @@
      "Anvendelse af håndholdte strålingsgeneratorer til røntgenfluorescensspektroskopi"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-generator-veterinær-underretning",
@@ -1396,7 +1484,9 @@
      "håndholdte strålingsgeneratorer og strålingsgeneratorer til gennemlysning"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-generator-brug-uden-for-anlæg",
@@ -1438,7 +1528,9 @@
      "Stk. 1 gælder ikke for anvendelse af strålingsgeneratorer til anden end medicinsk eller veterinærmedicinsk anvendelse, hvis de undersøgte emners"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-affald-renovation-begge-betingelser",
@@ -1472,7 +1564,9 @@
      "er mindre end værdien i bilag 3, og hvis den samlede aktivitetsmængde"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-overdragelse-godkendelse-vs-indberetning",
@@ -1528,7 +1622,9 @@
      "overdragelse af radioaktivt affald og 2) overdragelse af højaktive lukkede radioaktive kilder"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-ir192-sikringsgruppe-og-intervaller",
@@ -1576,7 +1672,9 @@
      "Co-60, Se-75 eller Ir-192 med en aktivitetsmængde, der ikke må være større end henholdsvis 400 GBq, 4.000 GBq og 1.500 GBq"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-radon-arbejdsplads-tilladelse-vs-underretning",
@@ -1618,7 +1716,9 @@
      "inden stråleudsættelsen må finde sted"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-en-aircrew-cosmic-radiation",
@@ -1659,7 +1759,9 @@
      "Arbejdsgiveren skal inden den 1. marts i det følgende år indberette"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-byggematerialer-gammastråling",
@@ -1700,7 +1802,9 @@
      "og som kan give anledning til doser, der er større end referenceniveauet, jf. § 97"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-indberetning-dosisværdier",
@@ -1741,7 +1845,9 @@
      "skal arbejdsgiveren straks indberette dette til Sundhedsstyrelsen"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-konstanskontrol-vs-statuskontrol",
@@ -1782,7 +1888,9 @@
      "Test eller gennemgang, der udføres ved medicinsk og veterinærmedicinsk anvendelse for at bekræfte"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-patientdosimetri-uden-for-intervallet",
@@ -1844,7 +1952,9 @@
      "billedkvaliteten ved den enkelte medicinske bestråling er tilstrækkelig"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-drl-thorax-opnåeligt-mangler",
@@ -1871,7 +1981,9 @@
      "Undersøgelse Primært referenceniveau P KA [Gy·cm²]"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-omsorgsperson-dosisbindinger",
@@ -1919,7 +2031,9 @@
      "Ved undersøgelse eller behandling af børn kan højere dosisbindinger for omsorgspersoner være berettiget"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-ekstern-arbejdstager-ansvar",
@@ -1956,7 +2070,9 @@
      "kravet om videregivelse af resultatet af dosisovervågningen til arbejdstageren, jf. § 80"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-ammende-arbejdstager",
@@ -1990,7 +2106,9 @@
      "så dosis til den ufødte eller det diende barn bliver så lav"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-en-pair-dosimeter-måleperiode",
@@ -2017,7 +2135,9 @@
      "lig 6 mSv pr. år, fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 3 måneder"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-en-50msv-særlige-tilfælde",
@@ -2058,7 +2178,9 @@
      "modtager en ækvivalent dosis til øjelinsen på op til 50 mSv pr. år, forudsat at den årlige gennemsnitlige dosis"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-transport-monitoring-1-6msv",
@@ -2100,7 +2222,9 @@
      "appropriate records shall be kept"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-both-transport-monitoring-dk-vs-iaea",
@@ -2142,7 +2266,9 @@
      "lig 6 mSv pr. år, fra ekstern bestråling, skal effektiv dosis bestemmes under benyttelse af persondosimeter med en måleperiode på højst 3 måneder"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-iaea-gsr7-emergency-classes",
@@ -2191,7 +2317,9 @@
      "does not warrant taking protective actions off the site"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-refuse-bødestørrelse",
@@ -2202,7 +2330,9 @@
   "language": "da",
   "source": "dk-law",
   "expected_behavior": "refuse",
-  "expected_answer": "Bekendtgørelsen fastslår, at overtrædelse af bl.a. §§ 67-83 straffes med bøde, men angiver ikke et beløb; et godt svar siger det."
+  "expected_answer": "Bekendtgørelsen fastslår, at overtrædelse af bl.a. §§ 67-83 straffes med bøde, men angiver ikke et beløb; et godt svar siger det.",
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-lukket-kilde-anbefalet-anvendelsesperiode",
@@ -2229,7 +2359,9 @@
      "7) anbefalet anvendelsesperiode"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-frigivelse-dosiskriterium",
@@ -2270,7 +2402,9 @@
      "2.2. Brugen af det frigivne materiale er berettiget"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-cs137-sikringsgruppe-c-krav",
@@ -2319,7 +2453,9 @@
      "Det skal mindst én gang ugentligt bekræftes og dokumenteres, at strålekilden er i virksomhedens besiddelse"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-dokumentation-status-og-konstanskontrol",
@@ -2369,7 +2505,9 @@
      "Navnet på den virksomhed og den person, der har udført kontrollen, skal fremgå af dokumentationen"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-koordinator-borehul-densitet-håndholdt",
@@ -2424,7 +2562,9 @@
      "3.5.3. Uddannelse i anvendelse af de typer strålekilder og udstyr"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-decommissioning-strategy-duties",
@@ -2472,7 +2612,9 @@
      "the facility shall be brought to a safe configuration before an approved final decommissioning plan is implemented"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-ssg46-pregnancy-avoidance-periods",
@@ -2506,7 +2648,9 @@
      "90 Y colloid Arthritic joints 400 0"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-gsr4-independent-verification",
@@ -2554,7 +2698,9 @@
      "it is not to be used or claimed by the operating organization as part of its independent verification"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-gsr4-assessment-update-triggers",
@@ -2602,7 +2748,9 @@
      "Safety significant modifications to the computer codes, or changes in the input data used in the safety analysis"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-gsr2-supply-chain-responsibility",
@@ -2650,7 +2798,9 @@
      "arrangements for qualification, selection, evaluation, procurement, and oversight of the supply chain"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-gsr2-independent-assessors",
@@ -2705,7 +2855,9 @@
      "Responsibility shall be assigned for conducting independent assessments of the management system"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-gsr1-advice-conflict-of-interest",
@@ -2753,7 +2905,9 @@
      "The regulatory body shall have adequate core competence to make informed decisions"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-ssg44-pre-existing-facilities",
@@ -2801,7 +2955,9 @@
      "In the transitional period, the regulatory body may start making inspections"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-gsr3-notification-vs-registration",
@@ -2849,7 +3005,9 @@
      "(iii) the training requirements for safety are minimal; and (iv) there is a history of few problems relating to safety in operations"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-gsr5-waste-management-approaches",
@@ -2890,7 +3048,9 @@
      "‘Delay and decay’ involves holding the waste in storage until the desired reduction in activity has occurred through radioactive decay"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-iaea-gsr6-decommissioning-plan-timing",
@@ -2931,7 +3091,9 @@
      "the authorization for operation of the facility shall remain in place unless the regulatory body has approved modifications to the authorization"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-ssg40-disused-sealed-sources",
@@ -2979,7 +3141,9 @@
      "unless the half-life of radionuclides contained in them is short enough to enable removal from regulatory control within a reasonably short period"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-tecdoc1380-intrusion-criteria",
@@ -3028,7 +3192,9 @@
      "reasonable efforts should be made to reduce the probability of human intrusion or to limit its consequences"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-tecdoc1638-short-term-discharge-limits",
@@ -3076,7 +3242,9 @@
      "Short-term limits are generally higher than the pro rated value for the applicable duration, to allow for operational flexibility"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-24g-threat-rating-combination",
@@ -3124,7 +3292,9 @@
      "the lowest rating represents the most demanding obstacle that the adversary would have to overcome"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-both-clearance-dose-criteria-dk-vs-iaea",
@@ -3187,7 +3357,9 @@
      "fertile egenskaber, gælder dosiskriteriet for brug af kunstige radionuklider. 2.2. Brugen af det frigivne materiale"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-iaea-radiography-device-shipment-notification",
@@ -3236,7 +3408,9 @@
      "This notification shall be in the possession of each competent authority prior to the commencement of the shipment, preferably at least 7 days"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-iaea-release-after-radionuclide-therapy",
@@ -3292,7 +3466,9 @@
      "Published data suggest that systematic dose monitoring is not necessary"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-pregnant-emergency-worker",
@@ -3350,7 +3526,9 @@
      "unless such tasks can be carried out within the requirements for occupational exposure set out in paras 3.114 and 4.15"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-iaea-research-source-inventory",
@@ -3406,7 +3584,9 @@
      "the radiation protection officer at least once per month to confirm that all radiation"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-both-dose-records-retention-dk-vs-iaea",
@@ -3461,7 +3641,9 @@
      "senest 5 uger fra måleperiodens udløb indberette resultatet"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-both-aircrew-cosmic-dk-vs-iaea",
@@ -3537,7 +3719,9 @@
      "Strålebeskyttelsen skal optimeres ved gennemførelse af arbejdsplaner"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-generator-roentgenterapi-hudkraeft",
@@ -3586,7 +3770,9 @@
      "Ingen andre personer end patienten må befinde sig i anlægget under en behandling. Stk. 2. Stk. 1 gælder ikke for hudterapi"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-en-xray-teaching-device",
@@ -3648,7 +3834,9 @@
      "Skolekilder skal være typegodkendt af Sundhedsstyrelsen"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-generator-radiografi-180kv-filtrering",
@@ -3696,7 +3884,9 @@
      "Ioniserende stråling med høj dosishastighed. Kan forårsage stråleforbrænding på få sekunder"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-brachyterapi-hdr-personale",
@@ -3744,7 +3934,9 @@
      "4.1. Uddannelse som hospitalsfysiker i onkologi. 4.2. Ekspertgodkendelse fra Dansk Selskab for Medicinsk Fysik"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-en-nuclear-medicine-patient-release",
@@ -3786,7 +3978,9 @@
      "kan dokumentationen baseres på modelberegninger, der inkluderer et statistisk skøn over udledninger baseret på antal patienter"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-gammaradiografi-uden-for-anlæg",
@@ -3842,7 +4036,9 @@
      "3.2.1. Kursus i strålebeskyttelse forbundet med industriel radiografi"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-transport-højrisikogods-blanding",
@@ -3891,7 +4087,9 @@
      "Sikringsplanen, jf. stk. 1, skal være godkendt af Sundhedsstyrelsen, forud for transport"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-modtagekontrol-fejl-indberetning",
@@ -3940,7 +4138,9 @@
      "kun have indberetning snarest muligt, når forholdet har medført utilsigtet bestråling af en arbejdstager eller akut skade hos en patient"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "hard"
  },
  {
   "id": "test-dk-en-outside-worker-category-a-documentation",
@@ -3989,7 +4189,9 @@
      "dog skal virksomheden påse, at kategoriseringen er hensigtsmæssig i forhold til de doser, som arbejdstageren sandsynligvis vil modtage i virksomheden"
     ]
    }
-  ]
+  ],
+  "tier": "core",
+  "difficulty": "medium"
  },
  {
   "id": "test-dk-en-pair-category-b-boundary",
@@ -4016,7 +4218,9 @@
      "En arbejdstager, der som følge af planlagte bestrålingssituationer kan forventes at modtage en effektiv dosis på mere end 6 mSv pr. år"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-en-pair-transport-index",
@@ -4050,7 +4254,9 @@
      "Den maksimale dosishastighed i mSv/h i 1 meters afstand fra kolliets overflade ganget med 100"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-en-pair-research-irradiation-subjects",
@@ -4099,7 +4305,9 @@
      "gælder de dosisbindinger, der fremgår af retningslinjer fra den Nationale Videnskabsetiske Komité"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-pair-50msv-særlige-tilfælde",
@@ -4140,7 +4348,9 @@
      "modtager en ækvivalent dosis til øjelinsen på op til 50 mSv pr. år, forudsat at den årlige gennemsnitlige dosis"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  },
  {
   "id": "test-dk-pair-flybesætning-kosmisk-stråling",
@@ -4181,6 +4391,8 @@
      "Arbejdsgiveren skal inden den 1. marts i det følgende år indberette"
     ]
    }
-  ]
+  ],
+  "tier": "extended",
+  "difficulty": "easy"
  }
 ]

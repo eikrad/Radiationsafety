@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from eval.dashboard import write_dashboard
-from eval.golden import GoldenError, golden_warnings, load_golden
+from eval.golden import GoldenError, golden_warnings, load_golden, select_tier
 from eval.graph_run import load_outputs, save_outputs
 from eval.history import (
     DEFAULT_HISTORY_PATH,
@@ -873,6 +873,12 @@ def main() -> int:
         help="Path to golden JSON",
     )
     parser.add_argument(
+        "--tier",
+        default=None,
+        help="Run only the golden items tagged with this tier (e.g. core or "
+        "extended in eval/data/golden_test.json); default: all items",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         default=None,
@@ -984,6 +990,11 @@ def main() -> int:
         return 1
     for warning in golden_warnings(golden):
         print(f"Warning: {warning}", file=sys.stderr)
+    if args.tier is not None:
+        golden = select_tier(golden, args.tier)
+        if not golden:
+            print(f"No golden items tagged tier {args.tier!r}", file=sys.stderr)
+            return 1
     if args.limit is not None:
         golden = golden[: args.limit]
 
