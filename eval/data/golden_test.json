@@ -154,7 +154,7 @@
  },
  {
   "id": "test-both-radon-dk-vs-iaea",
-  "question": "Hvordan adskiller referenceniveauet for radon i bygninger sig mellem dansk lovgivning og IAEA's sikkerhedsstandarder?",
+  "question": "Hvordan adskiller referenceniveauet for radon i boliger sig mellem dansk lovgivning og IAEA's sikkerhedsstandarder?",
   "topics": [
    "general"
   ],
@@ -834,7 +834,7 @@
  },
  {
   "id": "test-iaea-gsg2-fetus-criterion",
-  "question": "According to the IAEA safety standards for emergency response, which generic criteria for projected dose call for urgent protective actions such as iodine thyroid blocking, sheltering and evacuation? Give the quantity, the value and the period.",
+  "question": "According to the IAEA safety standards for emergency response, which generic criteria for projected dose, set to reduce the risk of stochastic effects such as cancer, call for urgent protective actions such as iodine thyroid blocking, sheltering and evacuation? Give the quantity, the value and the period.",
   "topics": [
    "emergency"
   ],
