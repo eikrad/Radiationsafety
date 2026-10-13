@@ -154,7 +154,7 @@
  },
  {
   "id": "test-both-radon-dk-vs-iaea",
-  "question": "Hvordan adskiller referenceniveauet for radon i bygninger sig mellem dansk lovgivning og IAEA's GSR Part 3?",
+  "question": "Hvordan adskiller referenceniveauet for radon i bygninger sig mellem dansk lovgivning og IAEA's sikkerhedsstandarder?",
   "topics": [
    "general"
   ],
@@ -183,7 +183,7 @@
  },
  {
   "id": "test-iaea-radon-reference",
-  "question": "According to IAEA GSR Part 3, what annual average radon activity concentration should national reference levels in general not exceed for dwellings?",
+  "question": "According to the IAEA safety standards, what annual average radon activity concentration should national reference levels in general not exceed for dwellings?",
   "topics": [
    "general"
   ],
@@ -205,7 +205,7 @@
  },
  {
   "id": "test-dk-transport-forhåndsmeddelelse",
-  "question": "Hvilke tilfælde nævner bekendtgørelsen om transport af radioaktivt materiale i § 23, hvor der skal gives meddelelse til Sundhedsstyrelsen forud for transport?",
+  "question": "I hvilke tilfælde skal Sundhedsstyrelsen efter danske regler have meddelelse forud for en transport af radioaktivt materiale?",
   "topics": [
    "transport"
   ],
@@ -284,7 +284,7 @@
  },
  {
   "id": "test-dk-transport-højrisikogods",
-  "question": "Hvilke særlige krav stiller bekendtgørelsen om transport af radioaktivt materiale til sikring og beredskab ved transport af højrisikogods?",
+  "question": "Hvilke særlige krav til sikring og beredskab gælder efter danske regler ved transport af højrisikogods?",
   "topics": [
    "transport"
   ],
@@ -334,7 +334,7 @@
  },
  {
   "id": "test-dk-transportindeks-definition",
-  "question": "Et kolli har en dosishastighed på 0,05 mSv/h i 1 meters afstand fra overfladen. Hvad er kolliets transportindeks (TI) efter bekendtgørelsen om transport af radioaktivt materiale, og hvordan defineres TI?",
+  "question": "Et kolli har en dosishastighed på 0,05 mSv/h i 1 meters afstand fra overfladen. Hvad er kolliets transportindeks (TI), og hvordan defineres TI?",
   "topics": [
    "transport"
   ],
@@ -522,7 +522,7 @@
  },
  {
   "id": "test-dk-forskning-bestråling-forsøgspersoner",
-  "question": "Hvilke krav stiller strålebeskyttelsesbekendtgørelsen til biomedicinske forskningsprojekter, hvor forsøgspersoner bestråles?",
+  "question": "Hvilke krav stilles der efter danske regler til biomedicinske forskningsprojekter, hvor forsøgspersoner bestråles?",
   "topics": [
    "research",
    "medical"
@@ -609,7 +609,7 @@
  },
  {
   "id": "test-dk-definition-stråleudsat-arbejdstager",
-  "question": "Hvilke personer under 18 år kan være stråleudsatte arbejdstagere efter strålebeskyttelsesbekendtgørelsen, og hvem er ellers omfattet af definitionen?",
+  "question": "Hvilke personer under 18 år kan efter danske regler være stråleudsatte arbejdstagere, og hvem er ellers omfattet af begrebet?",
   "topics": [
    "occupational"
   ],
@@ -659,7 +659,7 @@
  },
  {
   "id": "test-dk-definition-omsorgsperson",
-  "question": "Hvad forstås ved en omsorgsperson i strålebeskyttelsesbekendtgørelsen?",
+  "question": "Hvad forstås ved en omsorgsperson i dansk strålebeskyttelseslovgivning?",
   "topics": [
    "medical"
   ],
@@ -717,7 +717,7 @@
  },
  {
   "id": "test-dk-overfladeforurening-co60",
-  "question": "Hvilke værdier for overfladeforurening (Bq/cm2) gælder ifølge bekendtgørelse om radioaktive stoffer for Co-60, dels ved frigivelse af bygninger, anlæg og genstande, dels for overflader og genstande i kontrollerede områder?",
+  "question": "Hvilke værdier for overfladeforurening (Bq/cm2) gælder efter danske regler for Co-60, dels ved frigivelse af bygninger, anlæg og genstande, dels for overflader og genstande i kontrollerede områder?",
   "topics": [
    "waste",
    "industrial"
@@ -794,7 +794,7 @@
  },
  {
   "id": "test-iaea-emergency-worker-guidance",
-  "question": "According to the IAEA safety standards (GSR Part 3), what guidance values restrict the dose to emergency workers for life-saving actions and for actions to avert a large collective dose?",
+  "question": "According to the IAEA safety standards, what guidance values restrict the dose to emergency workers for life-saving actions and for actions to avert a large collective dose?",
   "topics": [
    "emergency",
    "occupational"
@@ -834,7 +834,7 @@
  },
  {
   "id": "test-iaea-gsg2-fetus-criterion",
-  "question": "According to IAEA GSG-2 (Table 3, stochastic effects), which generic criteria for projected dose call for urgent protective actions such as iodine thyroid blocking, sheltering and evacuation? Give the quantity, the value and the period.",
+  "question": "According to the IAEA safety standards for emergency response, which generic criteria for projected dose call for urgent protective actions such as iodine thyroid blocking, sheltering and evacuation? Give the quantity, the value and the period.",
   "topics": [
    "emergency"
   ],
@@ -878,7 +878,7 @@
  },
  {
   "id": "test-iaea-transport-category-yellow",
-  "question": "According to the IAEA transport regulations (SSR-6), what transport index and surface dose rate conditions place a package in category II-YELLOW?",
+  "question": "According to the IAEA transport regulations, what transport index and surface dose rate conditions place a package in category II-YELLOW?",
   "topics": [
    "transport"
   ],
@@ -907,7 +907,7 @@
  },
  {
   "id": "test-iaea-contamination-definition",
-  "question": "In the IAEA transport regulations (SSR-6), above what surface activity is a surface defined as contaminated, and what limit applies to non-fixed contamination on the accessible surface of an SCO-I object, and over what area is it averaged?",
+  "question": "According to the IAEA transport regulations, above what surface activity is a surface defined as contaminated, and what limit applies to non-fixed contamination on the accessible surface of an SCO-I object, and over what area is it averaged?",
   "topics": [
    "transport"
   ],
@@ -957,7 +957,7 @@
  },
  {
   "id": "test-iaea-radioiodine-pregnancy",
-  "question": "What does IAEA SSG-46 say about radioiodine therapy for a pregnant patient?",
+  "question": "What do the IAEA safety standards say about radioiodine therapy for a pregnant patient?",
   "topics": [
    "medical"
   ],
@@ -986,7 +986,7 @@
  },
  {
   "id": "test-iaea-dose-constraint-bands",
-  "question": "According to IAEA GSR Part 3, which dose ranges are used for dose constraints and reference levels in public exposure in planned situations, for occupational exposure in planned situations, and for the residual dose after an emergency?",
+  "question": "According to the IAEA safety standards, which dose ranges are used for dose constraints and reference levels in public exposure in planned situations, for occupational exposure in planned situations, and for the residual dose after an emergency?",
   "topics": [
    "general",
    "emergency"
@@ -1023,7 +1023,7 @@
  },
  {
   "id": "test-iaea-xray-maintenance-frequency",
-  "question": "According to IAEA SSG-11, how often should industrial X ray equipment be maintained, and under which conditions more often?",
+  "question": "According to the IAEA safety standards, how often should industrial X ray equipment be maintained, and under which conditions more often?",
   "topics": [
    "industrial"
   ],
@@ -1066,7 +1066,7 @@
  },
  {
   "id": "test-iaea-research-students-pregnancy",
-  "question": "According to IAEA SSG-87, what level of protection should graduate and postgraduate students who use radiation sources for long periods receive, what should registrants and licensees ensure about their total annual exposure, and what arrangements should they make for pregnant or breastfeeding students?",
+  "question": "According to the IAEA safety standards, what level of protection should graduate and postgraduate students who use radiation sources for long periods receive, what should registrants and licensees ensure about their total annual exposure, and what arrangements should they make for pregnant or breastfeeding students?",
   "topics": [
    "research",
    "occupational"
@@ -1171,7 +1171,7 @@
  },
  {
   "id": "test-dk-sikkerhedsvurdering-form",
-  "question": "Hvilke krav stiller strålebeskyttelsesbekendtgørelsen til en sikkerhedsvurderings opdatering og dokumentation, og hvad kan Sundhedsstyrelsen forlange?",
+  "question": "Hvilke krav stilles der efter danske regler til en sikkerhedsvurderings opdatering og dokumentation, og hvad kan Sundhedsstyrelsen forlange?",
   "topics": [
    "general"
   ],
@@ -1490,7 +1490,7 @@
  },
  {
   "id": "test-dk-generator-brug-uden-for-anlæg",
-  "question": "Hvornår må strålingsgeneratorer efter bekendtgørelsen om strålingsgeneratorer bruges uden for et anlæg?",
+  "question": "Hvornår må røntgenapparater og andre strålingsgeneratorer efter danske regler bruges uden for et anlæg?",
   "topics": [
    "medical",
    "industrial"
@@ -1678,7 +1678,7 @@
  },
  {
   "id": "test-dk-radon-arbejdsplads-tilladelse-vs-underretning",
-  "question": "Hvad kræves der efter strålebeskyttelsesbekendtgørelsen af en arbejdsplads, hvor radonniveauet trods optimering er over referenceniveauet, afhængigt af om dosis kan overstige 6 mSv pr. år?",
+  "question": "Hvad kræves der efter danske regler af en arbejdsplads, hvor radonniveauet trods optimering er over referenceniveauet, afhængigt af om dosis kan overstige 6 mSv pr. år?",
   "topics": [
    "occupational"
   ],
@@ -1851,7 +1851,7 @@
  },
  {
   "id": "test-dk-konstanskontrol-vs-statuskontrol",
-  "question": "Hvordan adskiller konstanskontrol sig fra statuskontrol i strålebeskyttelsesbekendtgørelsens definitioner?",
+  "question": "Hvordan adskiller konstanskontrol sig fra statuskontrol i de danske strålebeskyttelsesregler?",
   "topics": [
    "medical"
   ],
@@ -1987,7 +1987,7 @@
  },
  {
   "id": "test-dk-omsorgsperson-dosisbindinger",
-  "question": "Hvilke dosisbindinger skal efter bekendtgørelse om radioaktive stoffer bruges til planlægning af strålebeskyttelse for omsorgspersoner ved indgift af radioaktive stoffer i en patient?",
+  "question": "Hvilke dosisbindinger skal efter danske regler bruges til planlægning af strålebeskyttelse for omsorgspersoner ved indgift af radioaktive stoffer i en patient?",
   "topics": [
    "medical"
   ],
@@ -2076,7 +2076,7 @@
  },
  {
   "id": "test-dk-ammende-arbejdstager",
-  "question": "Hvad gælder efter bekendtgørelse om ioniserende stråling og strålebeskyttelse for beskæftigelse af en ammende arbejdstager, og hvad skal stråleudsatte arbejdstagere instrueres om i den forbindelse?",
+  "question": "Hvad gælder efter danske regler for beskæftigelse af en ammende arbejdstager, og hvad skal stråleudsatte arbejdstagere instrueres om i den forbindelse?",
   "topics": [
    "occupational"
   ],
@@ -2184,7 +2184,7 @@
  },
  {
   "id": "test-iaea-transport-monitoring-1-6msv",
-  "question": "According to the IAEA transport regulations (SSR-6), what monitoring is required for occupational exposure from transport activities if the effective dose is likely to be between 1 and 6 mSv in a year, and what if it is likely to exceed 6 mSv?",
+  "question": "According to the IAEA transport regulations, what monitoring is required for occupational exposure from transport activities if the effective dose is likely to be between 1 and 6 mSv in a year, and what if it is likely to exceed 6 mSv?",
   "topics": [
    "transport",
    "occupational"
@@ -2228,7 +2228,7 @@
  },
  {
   "id": "test-both-transport-monitoring-dk-vs-iaea",
-  "question": "Hvordan adskiller kravet til individuel dosisovervågning af arbejdstagere ved transport sig mellem SSR-6 og den danske strålebeskyttelsesbekendtgørelse, når den forventede effektive dosis er mellem 1 og 6 mSv pr. år?",
+  "question": "Hvordan adskiller kravet til individuel dosisovervågning af arbejdstagere ved transport sig mellem IAEA's transportregler og dansk lovgivning, når den forventede effektive dosis er mellem 1 og 6 mSv pr. år?",
   "topics": [
    "transport",
    "occupational"
@@ -2272,7 +2272,7 @@
  },
  {
   "id": "test-iaea-gsr7-emergency-classes",
-  "question": "Which emergency classes does IAEA GSR-7 require operating organizations to be able to declare, and which classes apply to facilities in category I or II only?",
+  "question": "Which emergency classes do the IAEA safety standards require operating organizations to be able to declare, and which classes apply to facilities in category I or II only?",
   "topics": [
    "emergency"
   ],
@@ -2336,7 +2336,7 @@
  },
  {
   "id": "test-dk-lukket-kilde-anbefalet-anvendelsesperiode",
-  "question": "Fastsætter de danske bekendtgørelser en maksimal brugstid i år for en lukket radioaktiv kilde, og hvad siger de om kildens anvendelsesperiode?",
+  "question": "Fastsætter de danske regler en maksimal brugstid i år for en lukket radioaktiv kilde, og hvad siger de om kildens anvendelsesperiode?",
   "topics": [
    "industrial"
   ],
@@ -2365,7 +2365,7 @@
  },
  {
   "id": "test-dk-frigivelse-dosiskriterium",
-  "question": "Under the Danish order on radioactive substances, what dose criterion must be documented before radioactive material can be cleared (frigivet), and does it differ between artificial and naturally occurring radionuclides?",
+  "question": "Under Danish rules, what dose criterion must be documented before radioactive material can be cleared (frigivet), and does it differ between artificial and naturally occurring radionuclides?",
   "topics": [
    "waste"
   ],
@@ -2511,7 +2511,7 @@
  },
  {
   "id": "test-dk-koordinator-borehul-densitet-håndholdt",
-  "question": "Hvilke uddannelses- og kursuskrav stilles der efter bekendtgørelsen om radioaktive stoffer til en strålebeskyttelseskoordinator ved henholdsvis borehulslogning, fugtigheds- og densitetsmåling og håndholdte apparater med lukkede radioaktive kilder, og hvem forestår henholdsvis godkender uddannelsen i hvert tilfælde?",
+  "question": "Hvilke uddannelses- og kursuskrav stilles der efter danske regler til en strålebeskyttelseskoordinator ved henholdsvis borehulslogning, fugtigheds- og densitetsmåling og håndholdte apparater med lukkede radioaktive kilder, og hvem forestår henholdsvis godkender uddannelsen i hvert tilfælde?",
   "topics": [
    "industrial"
   ],
@@ -2568,7 +2568,7 @@
  },
  {
   "id": "test-iaea-decommissioning-strategy-duties",
-  "question": "Under IAEA GSR-6, which decommissioning strategy is preferred, what must the licensee demonstrate for the strategy it selects, and what happens to the strategy if the shutdown of a facility is sudden?",
+  "question": "According to the IAEA safety standards, which decommissioning strategy is preferred, what must the licensee demonstrate for the strategy it selects, and what happens to the strategy if the shutdown of a facility is sudden?",
   "topics": [
    "waste"
   ],
@@ -2618,7 +2618,7 @@
  },
  {
   "id": "test-iaea-ssg46-pregnancy-avoidance-periods",
-  "question": "According to IAEA SSG-46 (Appendix II), for how long should pregnancy be avoided after radiopharmaceutical therapy with 131I iodide for thyroid cancer, with 89Sr chloride for bone metastases, and with 90Y colloid for arthritic joints?",
+  "question": "According to the IAEA safety standards, for how long should pregnancy be avoided after radiopharmaceutical therapy with 131I iodide for thyroid cancer, with 89Sr chloride for bone metastases, and with 90Y colloid for arthritic joints?",
   "topics": [
    "medical"
   ],
@@ -2654,7 +2654,7 @@
  },
  {
   "id": "test-iaea-gsr4-independent-verification",
-  "question": "According to IAEA GSR Part 4, who has to check an operator's safety assessment independently before it is used or sent to the regulator, how should that check be carried out, and can the regulatory body's own review of the assessment count towards it?",
+  "question": "According to the IAEA safety standards, who has to check an operator's safety assessment independently before it is used or sent to the regulator, how should that check be carried out, and can the regulatory body's own review of the assessment count towards it?",
   "topics": [
    "general"
   ],
@@ -2704,7 +2704,7 @@
  },
  {
   "id": "test-iaea-gsr4-assessment-update-triggers",
-  "question": "Under IAEA GSR Part 4, on what occasion at the least must a safety assessment be brought up to date, and which kinds of developments can make a review necessary sooner than the predefined interval?",
+  "question": "According to the IAEA safety standards, on what occasion at the least must a safety assessment be brought up to date, and which kinds of developments can make a review necessary sooner than the predefined interval?",
   "topics": [
    "general"
   ],
@@ -2754,7 +2754,7 @@
  },
  {
   "id": "test-iaea-gsr2-supply-chain-responsibility",
-  "question": "According to IAEA GSR Part 2, when an organization outsources work or buys in items and services that may influence safety, where does responsibility for safety lie, and what capability must the organization keep for itself regarding what is supplied?",
+  "question": "According to the IAEA safety standards, when an organization outsources work or buys in items and services that may influence safety, where does responsibility for safety lie, and what capability must the organization keep for itself regarding what is supplied?",
   "topics": [
    "general"
   ],
@@ -2804,7 +2804,7 @@
  },
  {
   "id": "test-iaea-gsr2-independent-assessors",
-  "question": "Under IAEA GSR Part 2, what conditions apply to the people or units assigned to carry out independent assessments of an organization's management system, and may they come from outside the organization?",
+  "question": "According to the IAEA safety standards, what conditions apply to the people or units assigned to carry out independent assessments of an organization's management system, and may they come from outside the organization?",
   "topics": [
    "general"
   ],
@@ -2861,7 +2861,7 @@
  },
  {
   "id": "test-iaea-gsr1-advice-conflict-of-interest",
-  "question": "According to IAEA GSR Part 1, what must a regulatory body do if no organization in its own country can give it expert advice free of conflicting interests, and what if the advice can only be obtained from organizations whose interests may conflict with its own?",
+  "question": "According to the IAEA safety standards, what must a regulatory body do if no organization in its own country can give it expert advice free of conflicting interests, and what if the advice can only be obtained from organizations whose interests may conflict with its own?",
   "topics": [
    "general"
   ],
@@ -2911,7 +2911,7 @@
  },
  {
   "id": "test-iaea-ssg44-pre-existing-facilities",
-  "question": "According to IAEA SSG-44, how should a newly established regulatory body deal with facilities and activities that were already operating when the radiation safety legislation came into force?",
+  "question": "According to the IAEA safety standards, how should a newly established regulatory body deal with facilities and activities that were already operating when the radiation safety legislation came into force?",
   "topics": [
    "general"
   ],
@@ -2961,7 +2961,7 @@
  },
  {
   "id": "test-iaea-gsr3-notification-vs-registration",
-  "question": "According to IAEA GSR Part 3, under which conditions is it enough to inform the regulatory body of an intended practice without applying for an authorization, and what features make a practice suitable for registration rather than a licence?",
+  "question": "According to the IAEA safety standards, under which conditions is it enough to inform the regulatory body of an intended practice without applying for an authorization, and what features make a practice suitable for registration rather than a licence?",
   "topics": [
    "general"
   ],
@@ -3011,7 +3011,7 @@
  },
  {
   "id": "test-iaea-gsr5-waste-management-approaches",
-  "question": "According to IAEA GSR Part 5, what are the principal approaches to the predisposal management of radioactive waste, which of them is the preferred option, and under what condition is releasing waste to the environment so that it spreads out acceptable?",
+  "question": "According to the IAEA safety standards, what are the principal approaches to the predisposal management of radioactive waste, which of them is the preferred option, and under what condition is releasing waste to the environment so that it spreads out acceptable?",
   "topics": [
    "waste"
   ],
@@ -3054,7 +3054,7 @@
  },
  {
   "id": "test-iaea-gsr6-decommissioning-plan-timing",
-  "question": "Under IAEA GSR Part 6, at what point must the licensee first submit a decommissioning plan, how often is the plan typically updated and reviewed during operation, within what period after permanent shutdown is the final decommissioning plan typically due, and which authorization covers the facility in the meantime?",
+  "question": "According to the IAEA safety standards, at what point must a licensee first submit a decommissioning plan, how often is the plan typically updated and reviewed during operation, within what period after permanent shutdown is the final decommissioning plan typically due, and which authorization covers the facility in the meantime?",
   "topics": [
    "waste"
   ],
@@ -3097,7 +3097,7 @@
  },
  {
   "id": "test-iaea-ssg40-disused-sealed-sources",
-  "question": "According to IAEA SSG-40, how should spent or disused sealed sources arising at a nuclear power plant or research reactor be handled as waste: may they be mixed with other waste or put through volume-reduction or thermal treatment, what about their original containers and shielding, and when can conditioning be omitted?",
+  "question": "According to the IAEA safety standards, how should spent or disused sealed sources arising at a nuclear power plant or research reactor be handled as waste: may they be mixed with other waste or put through volume-reduction or thermal treatment, what about their original containers and shielding, and when can conditioning be omitted?",
   "topics": [
    "waste"
   ],
@@ -3147,7 +3147,7 @@
  },
  {
   "id": "test-iaea-tecdoc1380-intrusion-criteria",
-  "question": "In IAEA-TECDOC-1380 on activity limits for near surface disposal, which dose or risk constraint applies to members of the public after closure for the expected gradual evolution of the facility, does that constraint apply when judging future people accidentally digging into the waste, and which reference doses are cited for that case instead?",
+  "question": "According to IAEA publications on near surface disposal of radioactive waste, which dose or risk constraint applies to members of the public after closure for the expected gradual evolution of the facility, does that constraint apply when judging future people accidentally digging into the waste, and which reference doses are cited for that case instead?",
   "topics": [
    "waste"
   ],
@@ -3198,7 +3198,7 @@
  },
  {
   "id": "test-iaea-tecdoc1638-short-term-discharge-limits",
-  "question": "According to IAEA-TECDOC-1638, over what period is compliance with authorized discharge limits normally shown, why do some regulators add shorter-term limits, and what general example values does its discussion of the time interval for demonstrating compliance (Section 5.1.4) give for a calendar-quarter limit and for an instantaneous release-rate limit relative to the annual figures?",
+  "question": "According to IAEA guidance on authorized discharges, over what period is compliance with discharge limits normally shown, why do some regulators add shorter-term limits, and what general example values (not those of one particular country) are given for a calendar-quarter limit and for an instantaneous release-rate limit relative to the annual figures?",
   "topics": [
    "waste"
   ],
@@ -3248,7 +3248,7 @@
  },
  {
   "id": "test-iaea-24g-threat-rating-combination",
-  "question": "Following IAEA Nuclear Security Series No. 24-G, an adversary is rated on a 1-5 scale as 4 for capability, 2 for intention and 3 for financial resources. What overall threat rating do the highest-rating, average-rating and lowest-rating methods give, and what assumption about the adversary lies behind the highest and the lowest method?",
+  "question": "According to IAEA nuclear security guidance, an adversary is rated on a 1-5 scale as 4 for capability, 2 for intention and 3 for financial resources. What overall threat rating do the highest-rating, average-rating and lowest-rating methods give, and what assumption about the adversary lies behind the highest and the lowest method?",
   "topics": [
    "general"
   ],
@@ -3298,7 +3298,7 @@
  },
  {
   "id": "test-both-clearance-dose-criteria-dk-vs-iaea",
-  "question": "For clearing radioactive material from regulatory control, what dose criteria does the Danish order on radioactive substances set for artificial and for naturally occurring radionuclides, may material be diluted in order to be cleared, and what dose criterion does IAEA GSR Part 3 use for clearance without further consideration, including for low-probability scenarios?",
+  "question": "For clearing radioactive material from regulatory control, what dose criteria does Danish law on radioactive substances set for artificial and for naturally occurring radionuclides, may material be diluted in order to be cleared, and what dose criterion do the IAEA safety standards use for clearance without further consideration, including for low-probability scenarios?",
   "topics": [
    "waste",
    "general"
@@ -3725,7 +3725,7 @@
  },
  {
   "id": "test-dk-generator-roentgenterapi-hudkraeft",
-  "question": "En hudlæge vil behandle en patient for basalcellekarcinom (en form for hudkræft) med et røntgenapparat, der arbejder ved 50 kV. Hvordan skal behandlingen klassificeres efter bekendtgørelsen om strålingsgeneratorer, hvilke krav gælder for personalet før hver fraktion, og må andre personer end patienten opholde sig i behandlingsrummet under bestrålingen?",
+  "question": "En hudlæge vil behandle en patient for basalcellekarcinom (en form for hudkræft) med et røntgenapparat, der arbejder ved 50 kV. Hvordan skal behandlingen klassificeres efter danske regler, hvilke krav gælder for personalet før hver fraktion, og må andre personer end patienten opholde sig i behandlingsrummet under bestrålingen?",
   "topics": [
    "medical"
   ],
@@ -3776,7 +3776,7 @@
  },
  {
   "id": "test-dk-en-xray-teaching-device",
-  "question": "Under the Danish order on radiation generators, a school wants to use an X-ray device built for teaching, both in a 7th-grade class and in upper-secondary physics. Does this require a permit or notification, how must the device be used at each level, and which technical criteria must the device meet to be type-approved?",
+  "question": "Under Danish rules, a school wants to use an X-ray device built for teaching, both in a 7th-grade class and in upper-secondary physics. Does this require a permit or notification, how must the device be used at each level, and which technical criteria must the device meet to be type-approved?",
   "topics": [
    "general"
   ],
@@ -3840,7 +3840,7 @@
  },
  {
   "id": "test-dk-generator-radiografi-180kv-filtrering",
-  "question": "Et røntgenapparat til industriel radiografi har en maksimal rørspænding på 180 kV. Hvor stor må dosishastigheden fra apparatet højst være med lukket strålevindue, og hvor meget egenfiltrering skal det have efter bekendtgørelsen om strålingsgeneratorer? Er der en undtagelse fra filtreringskravet, og hvad kræves, hvis apparatets egenfiltrering er meget lav?",
+  "question": "Et røntgenapparat til industriel radiografi har en maksimal rørspænding på 180 kV. Hvor stor må dosishastigheden fra apparatet højst være med lukket strålevindue, og hvor meget egenfiltrering skal det have efter danske regler? Er der en undtagelse fra filtreringskravet, og hvad kræves, hvis apparatets egenfiltrering er meget lav?",
   "topics": [
    "industrial"
   ],
@@ -3890,7 +3890,7 @@
  },
  {
   "id": "test-dk-brachyterapi-hdr-personale",
-  "question": "Et hospital indfører HDR-brachyterapi med en fjernstyret efterladningsenhed i et behandlingsrum. Hvem skal efter bekendtgørelsen om radioaktive stoffer være til stede ved opstart af en behandling og til rådighed under den, hvilke ekstra krav gælder for de arbejdstagere, der giver HDR-behandlingen, og hvilken uddannelse skal den medicinsk-fysiske ekspert have?",
+  "question": "Et hospital indfører HDR-brachyterapi med en fjernstyret efterladningsenhed i et behandlingsrum. Hvem skal efter danske regler være til stede ved opstart af en behandling og til rådighed under den, hvilke ekstra krav gælder for de arbejdstagere, der giver HDR-behandlingen, og hvilken uddannelse skal den medicinsk-fysiske ekspert have?",
   "topics": [
    "medical"
   ],
@@ -3940,7 +3940,7 @@
  },
  {
   "id": "test-dk-en-nuclear-medicine-patient-release",
-  "question": "Under the Danish order on radioactive substances, a hospital sends patients home after giving them a radiopharmaceutical. What dose constraint governs sending them home, what information must the patients receive (and does it differ between diagnostic and therapeutic administrations), and how may the hospital document the radioactive material these patients discharge?",
+  "question": "Under Danish rules, a hospital sends patients home after giving them a radiopharmaceutical. What dose constraint governs sending them home, what information must the patients receive (and does it differ between diagnostic and therapeutic administrations), and how may the hospital document the radioactive material these patients discharge?",
   "topics": [
    "medical",
    "waste"
@@ -3984,7 +3984,7 @@
  },
  {
   "id": "test-dk-gammaradiografi-uden-for-anlæg",
-  "question": "En virksomhed skal røntgenfotografere svejsninger på en stor rørledning på en byggeplads med en lukket Se-75-kilde på 3 TBq, fordi emnet ikke kan bringes ind i et anlæg. Hvor mange arbejdstagere skal efter bekendtgørelsen om radioaktive stoffer være til stede og med hvilke kvalifikationer, hvilke krav gælder for længden af kablet til betjeningen, og hvornår må man undvære en kollimator?",
+  "question": "En virksomhed skal røntgenfotografere svejsninger på en stor rørledning på en byggeplads med en lukket Se-75-kilde på 3 TBq, fordi emnet ikke kan bringes ind i et anlæg. Hvor mange arbejdstagere skal efter danske regler være til stede og med hvilke kvalifikationer, hvilke krav gælder for længden af kablet til betjeningen, og hvornår må man undvære en kollimator?",
   "topics": [
    "industrial",
    "occupational"
@@ -4042,7 +4042,7 @@
  },
  {
   "id": "test-dk-transport-højrisikogods-blanding",
-  "question": "Et ikke-fissilt type B(U)-kolli (en kildeskifter) med to brugte lukkede kilder, Ir-192 på 0,5 TBq og Se-75 på 1 TBq, skal returneres ad vej til leverandøren. Er forsendelsen højrisikogods efter bekendtgørelsen om transport af radioaktivt materiale, selv om hver kilde for sig ligger under sin grænse, og kræver transporten tilladelse fra Sundhedsstyrelsen?",
+  "question": "Et ikke-fissilt type B(U)-kolli (en kildeskifter) med to brugte lukkede kilder, Ir-192 på 0,5 TBq og Se-75 på 1 TBq, skal returneres ad vej til leverandøren. Er forsendelsen højrisikogods efter danske regler, selv om hver kilde for sig ligger under sin grænse, og kræver transporten tilladelse fra Sundhedsstyrelsen?",
   "topics": [
    "transport"
   ],
@@ -4093,7 +4093,7 @@
  },
  {
   "id": "test-dk-modtagekontrol-fejl-indberetning",
-  "question": "En ekstern servicevirksomhed udfører modtagekontrol af en ny CT-skanner på et hospital, der har tilladelse til medicinsk anvendelse, og finder en fejl, der kan føre til utilsigtet bestråling. Hvem skal efter strålebeskyttelsesbekendtgørelsen indberette fejlen til Sundhedsstyrelsen og hvornår, hvad skal være på plads, før skanneren tages i brug, og hvor længe skal dokumentationen bevares? Er der tilfælde, hvor Sundhedsstyrelsen ikke behøver indberetningen?",
+  "question": "En ekstern servicevirksomhed udfører modtagekontrol af en ny CT-skanner på et hospital, der har tilladelse til medicinsk anvendelse, og finder en fejl, der kan føre til utilsigtet bestråling. Hvem skal efter danske regler indberette fejlen til Sundhedsstyrelsen og hvornår, hvad skal være på plads, før skanneren tages i brug, og hvor længe skal dokumentationen bevares? Er der tilfælde, hvor Sundhedsstyrelsen ikke behøver indberetningen?",
   "topics": [
    "medical",
    "general"
@@ -4224,7 +4224,7 @@
  },
  {
   "id": "test-dk-en-pair-transport-index",
-  "question": "Under the Danish order on transport of radioactive material, a package has a dose rate of 0.05 mSv/h at 1 metre from its surface. What is its transport index (TI), and how is TI defined?",
+  "question": "Under Danish rules, a package has a dose rate of 0.05 mSv/h at 1 metre from its surface. What is its transport index (TI), and how is TI defined?",
   "topics": [
    "transport"
   ],
@@ -4260,7 +4260,7 @@
  },
  {
   "id": "test-dk-en-pair-research-irradiation-subjects",
-  "question": "What requirements does the Danish order on ionising radiation and radiation protection set for biomedical research projects in which test subjects are irradiated?",
+  "question": "What requirements do Danish rules set for biomedical research projects in which test subjects are irradiated?",
   "topics": [
    "research",
    "medical"

@@ -1,5 +1,6 @@
 """The held-out test set: format, tiers and separation from the development set."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -59,3 +60,22 @@ def test_select_tier_ignores_untagged_items():
     items = [{"id": "a", "tier": "core"}, {"id": "b"}, {"id": "c", "tier": "extended"}]
     assert [i["id"] for i in select_tier(items, "core")] == ["a"]
     assert select_tier(items, "missing") == []
+
+
+# A user does not know where an answer is written, so a question must not point to
+# a paragraph, annex, table, section or a named standard or order. The legal
+# system (Danish rules, IAEA safety standards) may be named: the golden-set rule
+# for questions where the two give different answers.
+_LOCATOR = re.compile(
+    r"(§|\bstk\.|\bbilag\b|\bannex\b|\bsection\s*\d|\btable\s*\d|\btabel\b"
+    r"|\bappendix\b|\bparas?\.?\s*\d|\bGSR\b|\bGSG\b|\bSSG\b|\bSSR\b|TECDOC"
+    r"|\b24-?G\b|bekendtgørelse|\border on\b|\bDanish order\b|\bthe order\b|\bBEK\b)",
+    re.IGNORECASE,
+)
+
+
+def test_questions_do_not_say_where_to_look(test_set):
+    pointing = [
+        item["id"] for item in test_set if _LOCATOR.search(item["question"])
+    ]
+    assert not pointing
