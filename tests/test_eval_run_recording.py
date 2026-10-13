@@ -346,6 +346,21 @@ def test_a_limited_run_is_recorded_with_its_own_question_count(monkeypatch, work
     assert run["dataset"]["n_items"] == 1
 
 
+def test_a_run_on_one_split_answers_only_the_questions_of_that_split(
+    monkeypatch, workspace
+):
+    tagged = [
+        {**item, "split": split}
+        for item, split in zip(GOLDEN, ["tune", "confirm", "tune"], strict=True)
+    ]
+    workspace.golden.write_text(json.dumps(tagged), encoding="utf-8")
+
+    assert _run(monkeypatch, workspace, "--split", "tune") == 0
+
+    [run] = load_runs(workspace.history)
+    assert set(_results(run)) == {"dk-dose-limits", "out-of-scope-mri"}
+
+
 def test_no_history_leaves_the_history_untouched(monkeypatch, workspace):
     _run(monkeypatch, workspace, "--no-history")
 

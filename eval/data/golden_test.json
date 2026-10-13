@@ -32,8 +32,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-kategori-b-grænse",
@@ -61,8 +61,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-dosimeter-måleperiode",
@@ -90,8 +90,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-register-persondosimetri-opbevaring",
@@ -119,8 +119,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-en-radon-reference",
@@ -149,8 +149,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-both-radon-dk-vs-iaea",
@@ -178,8 +178,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-radon-reference",
@@ -200,8 +200,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-transport-forhåndsmeddelelse",
@@ -250,8 +250,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-transport-opbevaring-intervaller",
@@ -279,8 +279,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-transport-højrisikogods",
@@ -329,8 +329,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-transportindeks-definition",
@@ -365,8 +365,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-referenceniveau-definitioner",
@@ -401,8 +401,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-patientdosimetri-intervaller",
@@ -437,8 +437,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-drl-ct-cerebrum",
@@ -466,8 +466,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-drl-mammografi-50mm",
@@ -488,8 +488,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-kvalitetsaudit-interval",
@@ -517,8 +517,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-forskning-bestråling-forsøgspersoner",
@@ -568,8 +568,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-koordinator-undtaget-godkendelse",
@@ -604,8 +604,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-definition-stråleudsat-arbejdstager",
@@ -654,8 +654,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-definition-omsorgsperson",
@@ -690,8 +690,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-breastfeeding-worker",
@@ -712,8 +712,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-overfladeforurening-co60",
@@ -742,8 +742,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-myndighedskontrol-lukkede-kilder",
@@ -789,8 +789,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-emergency-worker-guidance",
@@ -831,8 +831,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-gsg2-fetus-criterion",
@@ -875,8 +875,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-transport-category-yellow",
@@ -906,8 +906,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-contamination-definition",
@@ -956,8 +956,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-radioiodine-pregnancy",
@@ -985,8 +985,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-dose-constraint-bands",
@@ -1022,8 +1022,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-xray-maintenance-frequency",
@@ -1065,8 +1065,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-research-students-pregnancy",
@@ -1102,8 +1102,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-brug-efter-registrering",
@@ -1141,8 +1141,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-registrering-ændringer",
@@ -1170,8 +1170,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-sikkerhedsvurdering-form",
@@ -1213,8 +1213,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-koordinator-uddannelse-medicinsk-veterinær",
@@ -1249,8 +1249,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-koordinator-åbne-kilder-tilladelse-vs-underretning",
@@ -1286,8 +1286,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-refuse-sagsbehandlingstid",
@@ -1299,8 +1299,8 @@
   "source": "dk-law",
   "expected_behavior": "refuse",
   "expected_answer": "Kilderne angiver ikke en sagsbehandlingstid; et godt svar siger det.",
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-refuse-koordinator-kursustimer",
@@ -1312,8 +1312,8 @@
   "source": "dk-law",
   "expected_behavior": "refuse",
   "expected_answer": "Bekendtgørelserne kræver et godkendt kursus, men angiver ikke et timetal; et godt svar siger det.",
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-refuse-rf-basestation",
@@ -1325,8 +1325,8 @@
   "source": "iaea",
   "expected_behavior": "refuse",
   "expected_answer": "Radiofrequency fields are non-ionising; the corpus gives no such limit.",
-  "tier": "core",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-refuse-sst-id",
@@ -1338,8 +1338,8 @@
   "source": "dk-law",
   "expected_behavior": "refuse",
   "expected_answer": "Begrebet SST-id forklares ikke i korpus. Bekendtgørelsen nævner kun et ID fra Sundhedsstyrelsens Register for Persondosimetri (afdelingens eller den dosimetriske tjenestes) som oplysning i dosisindberetninger, men ikke hvad et SST-id er eller hvor det findes; et godt svar siger det og påstår ikke, at de er det samme.",
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-refuse-skift-p-nummer",
@@ -1351,8 +1351,8 @@
   "source": "dk-law",
   "expected_behavior": "refuse",
   "expected_answer": "Korpus angiver ingen frist. § 28, stk. 5 i bekendtgørelse om ioniserende stråling og strålebeskyttelse kræver kun generelt, at ændringer i oplysninger i Sundhedsstyrelsens register for strålekilder og anlæg indberettes til Sundhedsstyrelsen; P-nummer nævnes ikke dér. Fristen på 21 dage efter kvartalets udløb (§ 26, stk. 3 i bekendtgørelse om radioaktive stoffer) gælder indberetning af overdragelser af radioaktive kilder, ikke ændrede virksomhedsoplysninger.",
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-generator-statuskontrol-tandklinik",
@@ -1380,8 +1380,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-generator-eftersyn-tilladelse",
@@ -1417,8 +1417,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-generator-underretning-ikke-medicinsk",
@@ -1453,8 +1453,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-generator-veterinær-underretning",
@@ -1489,8 +1489,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-generator-brug-uden-for-anlæg",
@@ -1533,8 +1533,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-affald-renovation-begge-betingelser",
@@ -1569,8 +1569,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-overdragelse-godkendelse-vs-indberetning",
@@ -1627,8 +1627,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "confirm"
  },
  {
   "id": "test-dk-ir192-sikringsgruppe-og-intervaller",
@@ -1677,8 +1677,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "tune"
  },
  {
   "id": "test-dk-radon-arbejdsplads-tilladelse-vs-underretning",
@@ -1721,8 +1721,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-en-aircrew-cosmic-radiation",
@@ -1764,8 +1764,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-byggematerialer-gammastråling",
@@ -1807,8 +1807,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-indberetning-dosisværdier",
@@ -1850,8 +1850,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-konstanskontrol-vs-statuskontrol",
@@ -1893,8 +1893,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-patientdosimetri-uden-for-intervallet",
@@ -1957,8 +1957,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-drl-thorax-opnåeligt-mangler",
@@ -1986,8 +1986,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "confirm"
  },
  {
   "id": "test-dk-omsorgsperson-dosisbindinger",
@@ -2036,8 +2036,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-ekstern-arbejdstager-ansvar",
@@ -2075,8 +2075,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-ammende-arbejdstager",
@@ -2111,8 +2111,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-pair-dosimeter-måleperiode",
@@ -2140,8 +2140,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-50msv-særlige-tilfælde",
@@ -2183,8 +2183,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-transport-monitoring-1-6msv",
@@ -2227,8 +2227,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-both-transport-monitoring-dk-vs-iaea",
@@ -2285,8 +2285,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "tune"
  },
  {
   "id": "test-iaea-gsr7-emergency-classes",
@@ -2336,8 +2336,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-refuse-bødestørrelse",
@@ -2349,8 +2349,8 @@
   "source": "dk-law",
   "expected_behavior": "refuse",
   "expected_answer": "Bekendtgørelsen fastslår, at overtrædelse af bl.a. §§ 67-83 straffes med bøde, men angiver ikke et beløb; et godt svar siger det.",
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-lukket-kilde-anbefalet-anvendelsesperiode",
@@ -2378,8 +2378,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "tune"
  },
  {
   "id": "test-dk-frigivelse-dosiskriterium",
@@ -2421,8 +2421,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-cs137-sikringsgruppe-c-krav",
@@ -2472,8 +2472,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-dokumentation-status-og-konstanskontrol",
@@ -2524,8 +2524,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-koordinator-borehul-densitet-håndholdt",
@@ -2581,8 +2581,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-decommissioning-strategy-duties",
@@ -2631,8 +2631,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-iaea-ssg46-pregnancy-avoidance-periods",
@@ -2667,8 +2667,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-iaea-gsr4-independent-verification",
@@ -2717,8 +2717,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-gsr4-assessment-update-triggers",
@@ -2767,8 +2767,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-gsr2-supply-chain-responsibility",
@@ -2817,8 +2817,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-gsr2-independent-assessors",
@@ -2874,8 +2874,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-iaea-gsr1-advice-conflict-of-interest",
@@ -2924,8 +2924,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-ssg44-pre-existing-facilities",
@@ -2974,8 +2974,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-gsr3-notification-vs-registration",
@@ -3024,8 +3024,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-gsr5-waste-management-approaches",
@@ -3067,8 +3067,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-iaea-gsr6-decommissioning-plan-timing",
@@ -3118,8 +3118,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-ssg40-disused-sealed-sources",
@@ -3168,8 +3168,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-tecdoc1380-intrusion-criteria",
@@ -3219,8 +3219,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-tecdoc1638-short-term-discharge-limits",
@@ -3269,8 +3269,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-iaea-24g-threat-rating-combination",
@@ -3319,8 +3319,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-both-clearance-dose-criteria-dk-vs-iaea",
@@ -3384,8 +3384,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-radiography-device-shipment-notification",
@@ -3435,8 +3435,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "tune"
  },
  {
   "id": "test-iaea-release-after-radionuclide-therapy",
@@ -3493,8 +3493,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-pregnant-emergency-worker",
@@ -3553,8 +3553,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-iaea-research-source-inventory",
@@ -3611,8 +3611,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-both-dose-records-retention-dk-vs-iaea",
@@ -3668,8 +3668,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-both-aircrew-cosmic-dk-vs-iaea",
@@ -3746,8 +3746,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "confirm"
  },
  {
   "id": "test-dk-generator-roentgenterapi-hudkraeft",
@@ -3797,8 +3797,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-xray-teaching-device",
@@ -3861,8 +3861,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "confirm"
  },
  {
   "id": "test-dk-generator-radiografi-180kv-filtrering",
@@ -3911,8 +3911,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-brachyterapi-hdr-personale",
@@ -3961,8 +3961,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "confirm"
  },
  {
   "id": "test-dk-en-nuclear-medicine-patient-release",
@@ -4005,8 +4005,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-gammaradiografi-uden-for-anlæg",
@@ -4063,8 +4063,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "tune"
  },
  {
   "id": "test-dk-transport-højrisikogods-blanding",
@@ -4114,8 +4114,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "confirm"
  },
  {
   "id": "test-dk-modtagekontrol-fejl-indberetning",
@@ -4165,8 +4165,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "hard"
+  "difficulty": "hard",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-outside-worker-category-a-documentation",
@@ -4216,8 +4216,8 @@
     ]
    }
   ],
-  "tier": "core",
-  "difficulty": "medium"
+  "difficulty": "medium",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-pair-category-b-boundary",
@@ -4245,8 +4245,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-pair-transport-index",
@@ -4281,8 +4281,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-en-pair-research-irradiation-subjects",
@@ -4332,8 +4332,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  },
  {
   "id": "test-dk-pair-50msv-særlige-tilfælde",
@@ -4375,8 +4375,8 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "tune"
  },
  {
   "id": "test-dk-pair-flybesætning-kosmisk-stråling",
@@ -4418,7 +4418,7 @@
     ]
    }
   ],
-  "tier": "extended",
-  "difficulty": "easy"
+  "difficulty": "easy",
+  "split": "confirm"
  }
 ]

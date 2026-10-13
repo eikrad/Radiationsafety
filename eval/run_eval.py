@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from eval.dashboard import write_dashboard
-from eval.golden import GoldenError, golden_warnings, load_golden, select_tier
+from eval.golden import GoldenError, golden_warnings, load_golden
 from eval.graph_run import load_outputs, save_outputs
 from eval.history import (
     DEFAULT_HISTORY_PATH,
@@ -40,6 +40,7 @@ from eval.scoring import (
     score_item,
     without_evidence,
 )
+from eval.split import SPLITS, select_split
 from graph.llm_factory import DEFAULT_PROVIDER
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -873,10 +874,11 @@ def main() -> int:
         help="Path to golden JSON",
     )
     parser.add_argument(
-        "--tier",
+        "--split",
+        choices=SPLITS,
         default=None,
-        help="Run only the golden items tagged with this tier (e.g. core or "
-        "extended in eval/data/golden_test.json); default: all items",
+        help="Run only the held-out items of this split (tune: for tuning; "
+        "confirm: untouched confirmation, eval/README.md); default: all items",
     )
     parser.add_argument(
         "--limit",
@@ -990,10 +992,10 @@ def main() -> int:
         return 1
     for warning in golden_warnings(golden):
         print(f"Warning: {warning}", file=sys.stderr)
-    if args.tier is not None:
-        golden = select_tier(golden, args.tier)
+    if args.split is not None:
+        golden = select_split(golden, args.split)
         if not golden:
-            print(f"No golden items tagged tier {args.tier!r}", file=sys.stderr)
+            print(f"No golden items in split {args.split!r}", file=sys.stderr)
             return 1
     if args.limit is not None:
         golden = golden[: args.limit]

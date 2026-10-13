@@ -85,16 +85,6 @@ def golden_warnings(items: list[dict]) -> list[str]:
     return warnings
 
 
-def select_tier(items: list[dict], tier: str) -> list[dict]:
-    """Items whose ``tier`` tag equals ``tier`` (e.g. ``core`` or ``extended``).
-
-    A golden file may tag items with a ``tier``; the tag is not part of the
-    dataset fingerprint, but a run on a tier covers fewer items and so has its
-    own ``questions_hash``: runs on different tiers are never compared.
-    """
-    return [item for item in items if item.get("tier") == tier]
-
-
 def _with_defaults(item) -> dict:
     if not isinstance(item, dict):
         return {"_invalid": item}
