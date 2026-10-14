@@ -4,6 +4,34 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-10-14
+
+> **Open PRs (verified via `list_pull_requests`):** Dependabot #171-#175 (vitest, `@vitest/coverage-v8`, vite, `@vitejs/plugin-react`, `@playwright/test` bumps in `/frontend`), #166 (release 0.6.0), #155 (docs). The frontend npm bumps are already proposed there and were **not duplicated**.
+
+### Checks performed
+- `git fetch origin`; branch `claude/modest-faraday-41bv43` reset to `origin/staging` (`2608ea8`).
+- Baseline **before changes**: `uv sync --all-extras`; `uv run pytest tests/ -n auto` -> **499 passed**. Frontend `npm ci`: `npm audit` -> **0 vulnerabilities**. **Nothing broken on `staging`.**
+- Security: `pip-audit` (Python 3.12) on `uv export` output; `npm -C frontend audit`.
+- Outdated: `uv pip list --outdated`, `npm -C frontend outdated`.
+- Playwright E2E not run in the sandbox (proxy blocks the browser CDN); CI runs it.
+
+### Security findings (`pip-audit`, unchanged from the last cycle, none fixed)
+| Package | Version | IDs | Fix | Resolution |
+|---|---|---|---|---|
+| `docling` | 2.120.3 | PYSEC-2026-4189..4195, CVE-2026-105748 | 2.131-2.132 | **Not applied (major).** `uv lock --upgrade-package docling ...` pulls `docling-ibm-models` 3.14.0 -> **4.0.3 (major)**. With it the 499 tests pass and `docling` imports, but the tests do not exercise real PDF conversion, so the major cannot be verified here. Not reachable: only trusted local PDF/XML are ingested. **Owner decision needed**: try it with a real ingestion run. |
+| `oauthlib` | 3.3.1 | PYSEC-2026-4114 | 4.0.0 (major) | Not applied; transitive via `kubernetes` <- `chromadb`, no OAuth server code. |
+| `chromadb` | 1.5.9 | PYSEC-2026-311, -3813, -3814, -3815 | none upstream | Not fixable; embedded `PersistentClient` only, no HTTP server. |
+
+`npm audit`: 0 vulnerabilities.
+
+### Dependency updates
+`uv.lock` only, `pyproject.toml` unchanged. 40 packages moved within their current major version: `aiohttp`, `black`, `faker`, `fastapi`, `google-auth`, `google-genai`, `langchain`, `langchain-core`, `langchain-google-genai`, `langchain-openai`, `langgraph`, `langgraph-checkpoint`, `langgraph-sdk`, `langsmith`, `numpy`, `onnxruntime`, `pydantic`, `pydantic-core`, `pydantic-settings`, `pypdf`, `ruff`, `sqlalchemy`, `starlette`, `tokenizers`, `typer`, `pre-commit` and smaller transitive ones. Verified: `pytest` **499 passed**, `ruff`, `black --check`, `isort --check`, `pre-commit run --all-files` clean.
+
+### Major versions - flagged, NOT applied
+`docling-ibm-models` 3 -> 4, `langchain-docling` 2 -> 3, `openai` 2 -> 3, `huggingface-hub` 1 -> 2, `isort` 8 -> 9, `kubernetes` 36 -> 37, `oauthlib` 3 -> 4, `websockets` 15 -> 17, `multidict` 6 -> 7, `opencv-python` 4 -> 5, `semchunk` 3 -> 4, `filelock`, `packaging`, `soupsieve`, `uuid-utils`, `xxhash`. Frontend: `typescript` 6 -> 7 (typescript-eslint support not yet available), `jsdom` already ahead of the "latest" tag.
+
+---
+
 ## 2026-10-07
 
 > **Open PRs (verified via `mcp__github__list_pull_requests`, state=open):** #155 (docs: privacy-mode plan), #127 (vitest 5 combined), #124 / #123 (Dependabot `@vitest/coverage-v8` / `vitest` 5.x). The vitest 5 bump is already proposed there and was **not duplicated**.
