@@ -503,6 +503,48 @@ def test_a_rescore_records_only_the_judge_tokens(monkeypatch, workspace):
     }
 
 
+def _archived(workspace, run_id):
+    return workspace.history.parent / "outputs" / f"{run_id}.json.gz"
+
+
+def test_a_recorded_run_archives_its_answers_next_to_the_history(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    archived = load_outputs(_archived(workspace, run["run_id"]))
+    assert set(archived) == {i["id"] for i in GOLDEN}
+    assert archived["dk-dose-limits"]["generation"].startswith("Answer to")
+
+
+def test_a_run_can_be_rescored_from_the_archive_on_another_machine(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    # another checkout has the history and its archive, not the local reports
+    (workspace.reports / f"outputs_{original['run_id']}.json").unlink()
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+
+    _, rescored = load_runs(workspace.history)
+    assert rescored["rescored_from"] == original["run_id"]
+
+
+def test_debugging_runs_and_rescores_add_nothing_to_the_archive(monkeypatch, workspace):
+    _run(monkeypatch, workspace, "--no-history")
+    assert not (workspace.history.parent / "outputs").exists()
+
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    assert [p.name for p in (workspace.history.parent / "outputs").iterdir()] == [
+        f"{original['run_id']}.json.gz"
+    ]
+
+
 def test_rescoring_an_unknown_run_says_so(monkeypatch, workspace, capsys):
     assert _run(monkeypatch, workspace, "--rescore", "20990101_000000") == 1
     assert "no saved outputs for run 20990101_000000" in capsys.readouterr().err
@@ -569,6 +611,14 @@ def test_a_retrieval_only_run_scores_the_first_retrieval_without_answering_or_ju
     assert run["summary"]["evidence_recall_initial_mean"] == 0.5
     assert run["summary"]["pass_rate"] is None
     assert [q for q, _ in retrieval_only.asked] == [g["question"] for g in GOLDEN[:2]]
+
+
+def test_a_retrieval_only_run_is_not_archived_because_it_is_cheap_to_repeat(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    assert not (workspace.history.parent / "outputs").exists()
 
 
 def test_a_retrieval_only_run_records_the_embedding_settings(

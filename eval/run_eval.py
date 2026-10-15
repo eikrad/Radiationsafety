@@ -11,6 +11,7 @@ can be re-scored without re-running the graph.
 """
 
 import argparse
+import gzip
 import json
 import os
 import sys
@@ -641,6 +642,38 @@ def _score_retrieval(
     return summary, results
 
 
+def _archive_path(run_id: str, history_file: Path) -> Path:
+    """Gzipped answers of a recorded run, committed next to the history."""
+    return history_file.parent / "outputs" / f"{run_id}.json.gz"
+
+
+def _archive_outputs(run_id: str, output_dir: Path, history_file: Path) -> Path:
+    """Keep a recorded run's answers with the history, so it can be judged again
+    on another machine or by a later judge after the model behind it is gone."""
+    archive = _archive_path(run_id, history_file)
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    raw = (output_dir / f"outputs_{run_id}.json").read_bytes()
+    # mtime=0: the same answers always give the same bytes in git
+    archive.write_bytes(gzip.compress(raw, compresslevel=9, mtime=0))
+    return archive
+
+
+def _saved_outputs(run_id: str, output_dir: Path, history_file: Path) -> Path | None:
+    """The run's saved answers: the local file, else the archived copy."""
+    for path in (
+        output_dir / f"outputs_{run_id}.json",
+        _archive_path(run_id, history_file),
+    ):
+        if path.exists():
+            return path
+    print(
+        f"There are no saved outputs for run {run_id} in {output_dir} "
+        f"or {_archive_path(run_id, history_file).parent}",
+        file=sys.stderr,
+    )
+    return None
+
+
 def _rescore(
     run_id: str, golden: list[dict], output_dir: Path, history_file: Path
 ) -> tuple[dict, list[dict], dict] | None:
@@ -650,12 +683,8 @@ def _rescore(
     and git state, are the original run's; only the judgement is new.
     Returns None (after printing why) if the run cannot be found.
     """
-    outputs_path = output_dir / f"outputs_{run_id}.json"
-    if not outputs_path.exists():
-        print(
-            f"There are no saved outputs for run {run_id} in {output_dir}",
-            file=sys.stderr,
-        )
+    outputs_path = _saved_outputs(run_id, output_dir, history_file)
+    if outputs_path is None:
         return None
     outputs = load_outputs(outputs_path)
     original = next((r for r in load_runs(history_file) if r["run_id"] == run_id), None)
@@ -712,7 +741,7 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
 
 
 def _regrade(
-    run_id: str, golden: list[dict], output_dir: Path
+    run_id: str, golden: list[dict], output_dir: Path, history_file: Path
 ) -> tuple[dict, list[dict], dict] | None:
     """Run today's sufficiency grader on a saved run's first retrievals.
 
@@ -722,12 +751,8 @@ def _regrade(
     evidence chunks removed must be judged insufficient: labelled negatives
     without new retrieval (#129). About two grader calls per question.
     """
-    outputs_path = output_dir / f"outputs_{run_id}.json"
-    if not outputs_path.exists():
-        print(
-            f"There are no saved outputs for run {run_id} in {output_dir}",
-            file=sys.stderr,
-        )
+    outputs_path = _saved_outputs(run_id, output_dir, history_file)
+    if outputs_path is None:
         return None
     outputs = load_outputs(outputs_path)
     saved = [item for item in golden if item["id"] in outputs]
@@ -1084,7 +1109,7 @@ def main() -> int:
         summary, results, header = rescored
         label = args.label or f"rescore of {args.rescore}"
     elif args.regrade:
-        regraded = _regrade(args.regrade, golden, args.output_dir)
+        regraded = _regrade(args.regrade, golden, args.output_dir, args.history_file)
         if regraded is None:
             return 1
         summary, results, header = regraded
@@ -1144,6 +1169,11 @@ def main() -> int:
             args.history_file,
         )
         print(f"Run recorded: {args.history_file}")
+        # only new answers are worth keeping: a retrieval-only run is cheap to
+        # repeat, a rescore or regrade reuses the answers already archived
+        if not (args.rescore or args.regrade or args.retrieval_only):
+            archive = _archive_outputs(run_id, args.output_dir, args.history_file)
+            print(f"Answers archived: {archive}")
         dashboard = write_dashboard(
             args.output_dir / "dashboard.html",
             args.history_file,

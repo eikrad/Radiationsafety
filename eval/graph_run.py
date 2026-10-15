@@ -12,6 +12,7 @@ Full outputs are saved per run (eval/reports/outputs_<run_id>.json, gitignored)
 so a run can be re-scored later without re-running the graph.
 """
 
+import gzip
 import json
 from pathlib import Path
 
@@ -94,8 +95,12 @@ def save_outputs(outputs: dict[str, dict], path: Path) -> None:
 
 
 def load_outputs(path: Path) -> dict[str, dict]:
-    """Inverse of save_outputs."""
-    data = json.loads(path.read_text(encoding="utf-8"))
+    """Inverse of save_outputs; also reads an archived, gzipped copy (.json.gz)."""
+    if path.suffix == ".gz":
+        with gzip.open(path, "rt", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        data = json.loads(path.read_text(encoding="utf-8"))
     return {
         item_id: {
             **run,

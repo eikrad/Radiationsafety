@@ -273,10 +273,11 @@ Runs each judge over `eval/judge_fixtures.json`: 16 cases with the verdict a goo
 - **JSON**: `eval/reports/report_<run_id>.json` – run header, summary and per-question results.
 - **Markdown**: `eval/reports/report_<run_id>.md` – the same for reading, with the error type and node path per question.
 - **Graph outputs**: `eval/reports/outputs_<run_id>.json` – full answers, first retrieval, generator context, sufficiency verdict, node path; used for re-scoring.
-- **History**: one line per run appended to `eval/history/runs.jsonl` (committed).
-- **Dashboard**: `eval/reports/dashboard.html`, refreshed after every recorded run.
+- **History**: one line per run appended to `eval/history/runs.jsonl` (committed), with the tokens each model used (`usage`) and the pass rate's 95 % interval.
+- **Archived answers**: `eval/history/outputs/<run_id>.json.gz` (committed), a gzipped copy of the graph outputs of every recorded full run, about 200 KB per 50 questions. Retrieval-only runs are not archived: they are cheap to repeat. Commit the archive with the history line.
+- **Dashboard**: `eval/reports/dashboard.html`, refreshed after every recorded run. It shows each run's cost at the prices valid on its day (`eval/data/prices.json`, per million tokens; add an entry when a price changes, do not edit the old one).
 
-Reports, outputs and the dashboard are gitignored; the history is committed so runs stay comparable across machines and over time.
+Reports, local outputs and the dashboard are gitignored; the history and the archived answers are committed, so runs stay comparable across machines and over time, and a run can be judged again after the model that answered it is gone.
 
 ## Re-scoring
 
@@ -284,7 +285,7 @@ Reports, outputs and the dashboard are gitignored; the history is committed so r
 uv run python -m eval.run_eval --rescore 20260926_101500
 ```
 
-Retrieval-only runs are re-scored from their saved ranked lists, without retrieving or judging (see [Pooling](#pooling-passages-the-golden-set-does-not-list-yet)). For full runs: judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning.
+Retrieval-only runs are re-scored from their saved ranked lists, without retrieving or judging (see [Pooling](#pooling-passages-the-golden-set-does-not-list-yet)). For full runs: judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning. Without the local `outputs_<run_id>.json` (another machine), the archived copy in `eval/history/outputs/` is used.
 
 ## Run history
 
