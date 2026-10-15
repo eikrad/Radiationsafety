@@ -19,6 +19,8 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
+from langchain_core.callbacks import get_usage_metadata_callback
+
 from eval.dashboard import write_dashboard
 from eval.golden import GoldenError, golden_warnings, load_golden
 from eval.graph_run import load_outputs, save_outputs
@@ -471,6 +473,35 @@ def _run_eval(
     _warn_if_self_judged(judge_info)
 
     outputs: dict[str, dict] = {}
+    with get_usage_metadata_callback() as answering:
+        _answer_all(
+            golden,
+            graph,
+            graph_llm,
+            outputs,
+            delay_after_graph_sec,
+            delay_between_items_sec,
+        )
+    errors = [o["error"] for o in outputs.values() if o.get("error")]
+    if errors and len(errors) == len(outputs):
+        # nothing was answered: a broken setup, not a measurement
+        raise RuntimeError(f"Every question failed; the first: {errors[0]}")
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
+
+    with get_usage_metadata_callback() as judging:
+        results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
+    header["usage"] = _usage(answers=answering, judge=judging)
+    return summarize(results), results, header
+
+
+def _answer_all(
+    golden: list[dict],
+    graph,
+    graph_llm,
+    outputs: dict[str, dict],
+    delay_after_graph_sec: float,
+    delay_between_items_sec: float,
+) -> None:
     for n, item in enumerate(golden, start=1):
         started = time.monotonic()
         outputs[item["id"]] = _answer(item, graph, graph_llm)
@@ -484,14 +515,15 @@ def _run_eval(
             time.sleep(delay_after_graph_sec)
         if delay_between_items_sec > 0 and item is not golden[-1]:
             time.sleep(delay_between_items_sec)
-    errors = [o["error"] for o in outputs.values() if o.get("error")]
-    if errors and len(errors) == len(outputs):
-        # nothing was answered: a broken setup, not a measurement
-        raise RuntimeError(f"Every question failed; the first: {errors[0]}")
-    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
-    results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
-    return summarize(results), results, header
+
+def _usage(**stages) -> dict:
+    """Tokens per model for each stage that called a model (usage callbacks)."""
+    return {
+        name: dict(cb.usage_metadata)
+        for name, cb in stages.items()
+        if cb.usage_metadata
+    }
 
 
 def _run_retrieval_only(
@@ -658,12 +690,14 @@ def _rescore(
         get_llm(), llm_provider, config.get("llm_model") or "n/a"
     )
     _warn_if_self_judged(judge_info)
-    results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
+    with get_usage_metadata_callback() as judging:
+        results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
     header = {
         "git": original.get("git"),
         "dataset": dataset_fingerprint(saved),
         "config": {**config, **judge_info, "metrics_version": METRICS_VERSION},
         "rescored_from": run_id,
+        "usage": _usage(judge=judging),
     }
     return summarize(results), results, header
 

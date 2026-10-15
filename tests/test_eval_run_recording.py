@@ -1,10 +1,13 @@
 """run_eval scores each question (scoring v2) and records the run (graph + judge mocked)."""
 
+import itertools
 import json
 from types import SimpleNamespace
 
 import pytest
 from langchain_core.documents import Document
+from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import AIMessage
 
 import eval.run_eval as run_eval
 from eval.graph_run import load_outputs
@@ -374,6 +377,48 @@ def test_a_run_on_one_split_answers_only_the_questions_of_that_split(
     assert run["dataset"]["split"] == "tune"
 
 
+def _chat(model: str, tokens_in: int, tokens_out: int) -> GenericFakeChatModel:
+    reply = AIMessage(
+        content="ok",
+        usage_metadata={
+            "input_tokens": tokens_in,
+            "output_tokens": tokens_out,
+            "total_tokens": tokens_in + tokens_out,
+        },
+        response_metadata={"model_name": model},
+    )
+    return GenericFakeChatModel(messages=itertools.repeat(reply))
+
+
+def test_a_run_records_the_tokens_each_model_used(monkeypatch, workspace):
+    answering, judging = _chat("answer-model", 1000, 50), _chat("judge-model", 400, 20)
+    fake_graph, fake_judge = run_eval._invoke_graph, run_eval.judge_item
+
+    def graph_calling_its_model(question, graph, llm):
+        answering.invoke(question)
+        return fake_graph(question, graph, llm)
+
+    def judge_calling_its_model(item, answer, context, llm, votes=1):
+        judging.invoke(answer)
+        return fake_judge(item, answer, context, llm, votes)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", graph_calling_its_model)
+    monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
+
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    answers, judge = run["usage"]["answers"], run["usage"]["judge"]
+    assert set(answers) == {"answer-model"} and set(judge) == {"judge-model"}
+    assert (
+        answers["answer-model"]["input_tokens"],
+        judge["judge-model"]["output_tokens"],
+    ) == (
+        3 * 1000,
+        3 * 20,
+    )
+
+
 def test_no_history_leaves_the_history_untouched(monkeypatch, workspace):
     _run(monkeypatch, workspace, "--no-history")
 
@@ -431,6 +476,31 @@ def test_a_saved_run_can_be_rescored_without_running_the_graph(monkeypatch, work
     # the judgement is new
     assert rescored["config"]["judge_model"] == "gpt-4o"
     assert _results(rescored)["dk-dose-limits"]["error_type"] == "unsupported_claim"
+
+
+def test_a_rescore_records_only_the_judge_tokens(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    judging, fake_judge = _chat("judge-model", 400, 20), run_eval.judge_item
+
+    def judge_calling_its_model(item, answer, context, llm, votes=1):
+        judging.invoke(answer)
+        return fake_judge(item, answer, context, llm, votes)
+
+    monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
+
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    _, rescored = load_runs(workspace.history)
+    assert rescored["usage"] == {
+        "judge": {
+            "judge-model": {
+                "input_tokens": 1200,
+                "output_tokens": 60,
+                "total_tokens": 1260,
+            }
+        }
+    }
 
 
 def test_rescoring_an_unknown_run_says_so(monkeypatch, workspace, capsys):

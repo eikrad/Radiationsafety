@@ -82,8 +82,13 @@ def build_run_record(
     report_file: str | None = None,
     rescored_from: str | None = None,
     regraded_from: str | None = None,
+    usage: dict | None = None,
 ) -> dict:
-    """Assemble one history record. Generated answers are left out to keep it small."""
+    """Assemble one history record. Generated answers are left out to keep it small.
+
+    usage: tokens per model, {"answers": {model: {...}}, "judge": {...}}; prices
+    change, tokens do not, so costs are computed from them later.
+    """
     return {
         "schema": SCHEMA_VERSION,
         "run_id": run_id,
@@ -97,6 +102,7 @@ def build_run_record(
         "report_file": report_file,
         "rescored_from": rescored_from,
         **({"regraded_from": regraded_from} if regraded_from else {}),
+        **({"usage": usage} if usage else {}),
         "summary": summary,
         "results": [
             {
