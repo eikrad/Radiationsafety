@@ -530,7 +530,7 @@ def _docling_cpu_converter() -> DocumentConverter:
     )
 
 
-def _read_with_docling(file_path: str | Path) -> list[Document]:
+def _read_with_docling(file_path: str | Path, name: str) -> list[Document]:
     """docling's chunks of a PDF, read on the CPU when the default device fails.
 
     The GPU may be held by a local answer model: on 2026-10-11 docling's models
@@ -543,7 +543,7 @@ def _read_with_docling(file_path: str | Path) -> list[Document]:
     except Exception as e:
         docs = _docling_chunks(file_path, converter=_docling_cpu_converter())
         _report_pdf_problem(
-            Path(file_path).name,
+            name,
             f"docling failed on its default device ({_error_text(e)}); "
             "read on the CPU instead",
         )
@@ -561,9 +561,10 @@ def _load_pdf_with_docling(
     either, raises DoclingFailedError, or with INGEST_ALLOW_PYPDF_FALLBACK falls
     back to pypdf plain-text extraction.
     """
-    name = Path(file_path).name
+    # the label names an attachment or a downloaded PDF; its file is temporary
+    name = source_label or Path(file_path).name
     try:
-        docs = _read_with_docling(file_path)
+        docs = _read_with_docling(file_path, name)
     except Exception as e:
         if not env_bool("INGEST_ALLOW_PYPDF_FALLBACK"):
             # pypdf reads plain text only, and nothing from a scanned PDF: with the
@@ -579,7 +580,7 @@ def _load_pdf_with_docling(
         _report_pdf_problem(name, "read as plain text with pypdf")
     for d in docs:
         d.metadata["source"] = source_label or str(file_path)
-    _warn_if_almost_no_text(file_path, docs)
+    _warn_if_almost_no_text(name, file_path, docs)
     return docs
 
 
@@ -605,14 +606,16 @@ def _pdf_page_count(file_path: str | Path) -> int:
         return 1
 
 
-def _warn_if_almost_no_text(file_path: str | Path, docs: list[Document]) -> None:
+def _warn_if_almost_no_text(
+    name: str, file_path: str | Path, docs: list[Document]
+) -> None:
     """A scanned PDF yields text only through OCR, which can fail without an
     error (the 2.4 MB guidance PDF once gave one chunk of 65 characters)."""
     chars = sum(len(d.page_content) for d in docs)
     pages = _pdf_page_count(file_path)
     if chars < _MIN_PDF_CHARS_PER_PAGE * pages:
         _report_pdf_problem(
-            Path(file_path).name,
+            name,
             f"almost no text ({chars} characters on {pages} "
             f"page{'s' if pages != 1 else ''}); a scanned PDF needs OCR, "
             "which may not have run",
@@ -642,15 +645,19 @@ def _extract_and_load_attachments(
                     f.write(content)
             except Exception:
                 continue
+            label = f"{parent_path.name} (Anhang: {att_name})"
             try:
-                label = f"{parent_path.name} (Anhang: {att_name})"
                 docs = _load_pdf_with_docling(tmp_path, source_label=label)
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
                     d.metadata["parent_document"] = str(parent_path.name)
                 all_docs.extend(docs)
-            except Exception:
-                pass
+            except DoclingFailedError:
+                raise
+            except Exception as e:
+                _report_pdf_problem(
+                    label, f"skipped, nothing indexed ({_error_text(e)})"
+                )
             finally:
                 try:
                     os.unlink(tmp_path)

@@ -745,8 +745,9 @@ def _write_pdf(path, pages):
     return path
 
 
-def _docling_reading(monkeypatch, results):
-    """docling that gives, per file name, one chunk of text or raises the error."""
+def _docling_reading(monkeypatch, results, default=None):
+    """docling that gives, per file name, one chunk of text or raises the error;
+    default for any other file (an attachment's temporary copy)."""
 
     class Tokenizer:
         @classmethod
@@ -755,7 +756,7 @@ def _docling_reading(monkeypatch, results):
 
     class Loader:
         def __init__(self, file_path, **kwargs):
-            self.result = results[os.path.basename(file_path)]
+            self.result = results.get(os.path.basename(file_path), default)
 
         def load(self):
             if isinstance(self.result, Exception):
@@ -857,3 +858,58 @@ def test_a_pdf_neither_docling_nor_pypdf_can_read_is_listed_at_the_end(
     summary = capsys.readouterr().out.rsplit("not read as usual", 1)[-1]
     [line] = [line for line in summary.splitlines() if "beskadiget.pdf" in line]
     assert "skipped" in line
+
+
+def test_an_attachment_docling_cannot_read_stops_the_ingestion_and_is_named(
+    monkeypatch, tmp_path
+):
+    """Attachments (Anhänge) often hold a law's tables; a docling failure on one
+    dropped it from the index without a word."""
+    from pypdf import PdfWriter
+
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    law = _write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    table = _write_pdf(tmp_path / "bilag.pdf", ["Bilag 2. Dosisgraenser " * 10])
+    writer = PdfWriter(clone_from=str(law))
+    writer.add_attachment("bilag 2.pdf", table.read_bytes())
+    writer.write(str(law))
+    _docling_reading(
+        monkeypatch,
+        {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
+        default=RuntimeError("CUDA out of memory"),
+    )
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+    with pytest.raises(ingestion.DoclingFailedError) as stopped:
+        ingestion.load_dk_law_docs()
+
+    assert "bekendtgoerelse.pdf (Anhang: bilag 2.pdf)" in str(stopped.value)
+
+
+def test_an_attachment_nothing_can_read_is_reported_as_skipped(
+    monkeypatch, tmp_path, capsys
+):
+    from pypdf import PdfWriter
+
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    law = _write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    writer = PdfWriter(clone_from=str(law))
+    writer.add_attachment("bilag 2.pdf", b"%PDF-1.4 cut off")
+    writer.write(str(law))
+    _docling_reading(
+        monkeypatch,
+        {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
+        default=RuntimeError("not a PDF"),
+    )
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+    with ingestion.collecting_pdf_problems() as problems:
+        ingestion.load_dk_law_docs()
+
+    assert ("bekendtgoerelse.pdf (Anhang: bilag 2.pdf)", "skipped") in [
+        (name, what.split(",")[0]) for name, what in problems
+    ]
