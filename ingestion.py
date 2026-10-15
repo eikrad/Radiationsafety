@@ -15,6 +15,9 @@ import sys
 import tempfile
 import time
 import unicodedata
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -444,12 +447,60 @@ def load_iaea_docs() -> list[Document]:
             except DoclingFailedError:
                 raise
             except Exception as e:
-                tqdm.write(f"  Warning: skipped {pdf_path.name}: {e}")
+                _report_pdf_problem(
+                    pdf_path.name, f"skipped, nothing indexed ({_error_text(e)})"
+                )
     return all_docs
 
 
 class DoclingFailedError(RuntimeError):
     """docling could not read a PDF, and the pypdf fallback was not allowed."""
+
+
+# The PDFs not read as usual, as (file, what happened), for the summary at the
+# end of a run; None outside collecting_pdf_problems().
+_pdf_problems: ContextVar[list[tuple[str, str]] | None] = ContextVar(
+    "pdf_problems", default=None
+)
+
+
+@contextmanager
+def collecting_pdf_problems() -> Iterator[list[tuple[str, str]]]:
+    """Collect every PDF read inside the block that was not read as usual: on
+    the CPU, as plain text, with almost no text, or not at all.
+
+    A context variable, not a module list: a PDF uploaded through the API while
+    an ingestion runs must neither add to the other's list nor empty it.
+    """
+    problems: list[tuple[str, str]] = []
+    token = _pdf_problems.set(problems)
+    try:
+        yield problems
+    finally:
+        _pdf_problems.reset(token)
+
+
+def _report_pdf_problem(name: str, what: str) -> None:
+    """Warn now, between the progress bars, and keep it for the summary."""
+    tqdm.write(f"  Warning: {name}: {what}")
+    problems = _pdf_problems.get()
+    if problems is not None:
+        problems.append((name, what))
+
+
+def _pdf_problem_summary(problems: list[tuple[str, str]]) -> str:
+    """One line per PDF with everything that happened to it."""
+    by_pdf: dict[str, list[str]] = {}
+    for name, what in problems:
+        by_pdf.setdefault(name, []).append(what)
+    count = "1 PDF was" if len(by_pdf) == 1 else f"{len(by_pdf)} PDFs were"
+    lines = [f"⚠️  Ingestion complete, but {count} not read as usual:"]
+    lines += [f"  - {name}: {'; '.join(whats)}" for name, whats in by_pdf.items()]
+    return "\n".join(lines)
+
+
+def _error_text(e: BaseException) -> str:
+    return f"{type(e).__name__}: {e}"
 
 
 def _docling_chunks(
@@ -491,9 +542,10 @@ def _read_with_docling(file_path: str | Path) -> list[Document]:
         return _docling_chunks(file_path)
     except Exception as e:
         docs = _docling_chunks(file_path, converter=_docling_cpu_converter())
-        tqdm.write(
-            f"  Warning: docling failed for {Path(file_path).name} ({e}); "
-            "read it on the CPU instead"
+        _report_pdf_problem(
+            Path(file_path).name,
+            f"docling failed on its default device ({_error_text(e)}); "
+            "read on the CPU instead",
         )
         return docs
 
@@ -509,54 +561,61 @@ def _load_pdf_with_docling(
     either, raises DoclingFailedError, or with INGEST_ALLOW_PYPDF_FALLBACK falls
     back to pypdf plain-text extraction.
     """
-    label = source_label or str(file_path)
+    name = Path(file_path).name
     try:
         docs = _read_with_docling(file_path)
-        for d in docs:
-            d.metadata["source"] = label
-        _warn_if_almost_no_text(file_path, docs)
-        return docs
     except Exception as e:
         if not env_bool("INGEST_ALLOW_PYPDF_FALLBACK"):
             # pypdf reads plain text only, and nothing from a scanned PDF: with the
             # GPU full, two PDFs became 4 chunks instead of 636 without a failure
             raise DoclingFailedError(
-                f"docling could not read {Path(file_path).name}, also not on the "
-                f"CPU: {e}. Its pypdf fallback indexes plain text only (nothing "
-                "from a scanned PDF). Pass --allow-pypdf-fallback to index it as "
-                "plain text anyway."
+                f"docling could not read {name}, also not on the CPU: "
+                f"{_error_text(e)}. Its pypdf fallback indexes plain text only "
+                "(nothing from a scanned PDF). Pass --allow-pypdf-fallback to "
+                "index it as plain text anyway."
             ) from e
-        tqdm.write(
-            f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"
-        )
-    # Fallback: pypdf plain-text extraction
-    reader = PdfReader(str(file_path))
-    docs = []
-    for i, page in enumerate(reader.pages):
-        text = page.extract_text() or ""
-        if text.strip():
-            docs.append(
-                Document(
-                    page_content=text,
-                    metadata={"source": label, "page": i},
-                )
-            )
+        _report_pdf_problem(name, f"docling could not read it ({_error_text(e)})")
+        docs = _pypdf_pages(file_path)
+        _report_pdf_problem(name, "read as plain text with pypdf")
+    for d in docs:
+        d.metadata["source"] = source_label or str(file_path)
     _warn_if_almost_no_text(file_path, docs)
     return docs
 
 
-# a page of text holds some 2000 characters; a whole PDF with fewer was not read
-_MIN_PDF_TEXT_CHARS = 200
+def _pypdf_pages(file_path: str | Path) -> list[Document]:
+    """The plain text of each page that has any (no layout, no OCR)."""
+    pages = PdfReader(str(file_path)).pages
+    return [
+        Document(page_content=text, metadata={"page": i})
+        for i, page in enumerate(pages)
+        if (text := page.extract_text() or "").strip()
+    ]
+
+
+# a page of text holds some 2000 characters; per page, not per PDF, so a scan
+# behind a typed cover page counts as unread too
+_MIN_PDF_CHARS_PER_PAGE = 100
+
+
+def _pdf_page_count(file_path: str | Path) -> int:
+    try:
+        return len(PdfReader(str(file_path)).pages) or 1
+    except Exception:
+        return 1
 
 
 def _warn_if_almost_no_text(file_path: str | Path, docs: list[Document]) -> None:
     """A scanned PDF yields text only through OCR, which can fail without an
     error (the 2.4 MB guidance PDF once gave one chunk of 65 characters)."""
     chars = sum(len(d.page_content) for d in docs)
-    if chars < _MIN_PDF_TEXT_CHARS:
-        tqdm.write(
-            f"  Warning: {Path(file_path).name} gave almost no text ({chars} "
-            "characters); a scanned PDF needs OCR, which may not have run"
+    pages = _pdf_page_count(file_path)
+    if chars < _MIN_PDF_CHARS_PER_PAGE * pages:
+        _report_pdf_problem(
+            Path(file_path).name,
+            f"almost no text ({chars} characters on {pages} "
+            f"page{'s' if pages != 1 else ''}); a scanned PDF needs OCR, "
+            "which may not have run",
         )
 
 
@@ -676,7 +735,9 @@ def load_dk_law_docs(skip_law_keys: set[str] | frozenset[str] = frozenset()):
         except DoclingFailedError:
             raise
         except Exception as e:
-            tqdm.write(f"    Warning: skipped {pdf_path.name}: {e}")
+            _report_pdf_problem(
+                pdf_path.name, f"skipped, nothing indexed ({_error_text(e)})"
+            )
     return all_docs
 
 
@@ -828,13 +889,16 @@ def ingest(dk_only: bool = False):
     print(f"📊 Using embedding provider: {ep}")
     print(f"📦 Collections: {dk_name if dk_only else f'{iaea_name}, {dk_name}'}\n")
 
-    with tqdm(
-        total=6,
-        desc="Overall ingestion progress",
-        unit="phase",
-        disable=False,
-        position=0,
-    ) as overall_progress:
+    with (
+        collecting_pdf_problems() as problems,
+        tqdm(
+            total=6,
+            desc="Overall ingestion progress",
+            unit="phase",
+            disable=False,
+            position=0,
+        ) as overall_progress,
+    ):
         # Read every document before emptying a collection: a stop while reading
         # (e.g. docling failing on a PDF) leaves the existing index as it was.
 
@@ -883,7 +947,11 @@ def ingest(dk_only: bool = False):
             tqdm.write(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}")
         overall_progress.update(1)
 
-    print("\n🎉 Ingestion complete!")
+    if problems:
+        # the warnings above scroll past between progress bars
+        print("\n" + _pdf_problem_summary(problems))
+    else:
+        print("\n🎉 Ingestion complete!")
 
 
 def reembed_target() -> str:
