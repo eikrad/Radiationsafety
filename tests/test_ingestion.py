@@ -12,6 +12,7 @@ from ingestion import (
     load_iaea_docs,
 )
 from ingestion_dk import structure_chunks, xml_to_text
+from tests.pdf_fakes import docling_reading, write_pdf
 
 
 def test_load_iaea_docs_returns_empty_when_no_dirs(tmp_path, monkeypatch):
@@ -712,62 +713,6 @@ def test_a_pdf_docling_cannot_read_on_a_full_gpu_is_read_on_the_cpu(
     assert "CUDA out of memory" in out
 
 
-def _write_pdf(path, pages):
-    """A real PDF with one line of text per page; "" is a page without a text
-    layer, as in a scan."""
-    objects = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        None,
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ]
-    kids = []
-    for text in pages:
-        content = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET" if text else ""
-        objects.append(f"<< /Length {len(content)} >>\nstream\n{content}\nendstream")
-        objects.append(
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {len(objects)} 0 R >>"
-        )
-        kids.append(f"{len(objects)} 0 R")
-    objects[1] = f"<< /Type /Pages /Kids [{' '.join(kids)}] /Count {len(kids)} >>"
-    out, offsets = b"%PDF-1.4\n", []
-    for number, obj in enumerate(objects, start=1):
-        offsets.append(len(out))
-        out += f"{number} 0 obj\n{obj}\nendobj\n".encode("latin-1")
-    xref = len(out)
-    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode()
-    out += "".join(f"{o:010d} 00000 n \n" for o in offsets).encode()
-    out += (
-        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
-        f"startxref\n{xref}\n%%EOF\n"
-    ).encode()
-    path.write_bytes(out)
-    return path
-
-
-def _docling_reading(monkeypatch, results, default=None):
-    """docling that gives, per file name, one chunk of text or raises the error;
-    default for any other file (an attachment's temporary copy)."""
-
-    class Tokenizer:
-        @classmethod
-        def from_pretrained(cls, **kwargs):
-            return cls()
-
-    class Loader:
-        def __init__(self, file_path, **kwargs):
-            self.result = results.get(os.path.basename(file_path), default)
-
-        def load(self):
-            if isinstance(self.result, Exception):
-                raise self.result
-            return [ingestion.Document(page_content=self.result)]
-
-    monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
-    monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
-    monkeypatch.setattr(ingestion, "DoclingLoader", Loader)
-
-
 def _ingest_without_chroma(monkeypatch, tmp_path):
     """ingest() over the PDFs in tmp_path/Bekendtgørelse; returns what was embedded."""
     added = {}
@@ -794,10 +739,10 @@ def test_a_run_with_the_plain_text_fallback_ends_by_listing_the_pdfs_not_read_fu
     monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
     folder = tmp_path / "Bekendtgørelse"
     folder.mkdir()
-    _write_pdf(folder / "vejledning.pdf", ["1. Indledning. Brug af aabne kilder."])
-    _write_pdf(folder / "scannet.pdf", ["", ""])
-    _write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
-    _docling_reading(
+    write_pdf(folder / "vejledning.pdf", ["1. Indledning. Brug af aabne kilder."])
+    write_pdf(folder / "scannet.pdf", ["", ""])
+    write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    docling_reading(
         monkeypatch,
         {
             "vejledning.pdf": RuntimeError("CUDA out of memory"),
@@ -830,8 +775,8 @@ def test_a_scan_behind_a_typed_cover_page_is_reported_as_almost_no_text(
     folder = tmp_path / "Bekendtgørelse"
     folder.mkdir()
     cover = "Vejledning om brug af aabne radioaktive kilder. " * 10
-    _write_pdf(folder / "vejledning.pdf", [cover] + [""] * 40)
-    _docling_reading(monkeypatch, {"vejledning.pdf": cover})
+    write_pdf(folder / "vejledning.pdf", [cover] + [""] * 40)
+    docling_reading(monkeypatch, {"vejledning.pdf": cover})
     monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
     monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
 
@@ -850,7 +795,7 @@ def test_a_pdf_neither_docling_nor_pypdf_can_read_is_listed_at_the_end(
     folder = tmp_path / "Bekendtgørelse"
     folder.mkdir()
     (folder / "beskadiget.pdf").write_bytes(b"%PDF-1.4 truncated download")
-    _docling_reading(monkeypatch, {"beskadiget.pdf": RuntimeError("not a PDF")})
+    docling_reading(monkeypatch, {"beskadiget.pdf": RuntimeError("not a PDF")})
     _ingest_without_chroma(monkeypatch, tmp_path)
 
     ingestion.ingest(dk_only=True)
@@ -870,12 +815,12 @@ def test_an_attachment_docling_cannot_read_stops_the_ingestion_and_is_named(
     monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
     folder = tmp_path / "Bekendtgørelse"
     folder.mkdir()
-    law = _write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
-    table = _write_pdf(tmp_path / "bilag.pdf", ["Bilag 2. Dosisgraenser " * 10])
+    law = write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    table = write_pdf(tmp_path / "bilag.pdf", ["Bilag 2. Dosisgraenser " * 10])
     writer = PdfWriter(clone_from=str(law))
     writer.add_attachment("bilag 2.pdf", table.read_bytes())
     writer.write(str(law))
-    _docling_reading(
+    docling_reading(
         monkeypatch,
         {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
         default=RuntimeError("CUDA out of memory"),
@@ -896,11 +841,11 @@ def test_an_attachment_nothing_can_read_is_reported_as_skipped(
     monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
     folder = tmp_path / "Bekendtgørelse"
     folder.mkdir()
-    law = _write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    law = write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
     writer = PdfWriter(clone_from=str(law))
     writer.add_attachment("bilag 2.pdf", b"%PDF-1.4 cut off")
     writer.write(str(law))
-    _docling_reading(
+    docling_reading(
         monkeypatch,
         {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
         default=RuntimeError("not a PDF"),

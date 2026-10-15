@@ -572,8 +572,9 @@ def _load_pdf_with_docling(
             raise DoclingFailedError(
                 f"docling could not read {name}, also not on the CPU: "
                 f"{_error_text(e)}. Its pypdf fallback indexes plain text only "
-                "(nothing from a scanned PDF). Pass --allow-pypdf-fallback to "
-                "index it as plain text anyway."
+                "(nothing from a scanned PDF). To index it as plain text anyway, "
+                "pass --allow-pypdf-fallback or set INGEST_ALLOW_PYPDF_FALLBACK=true "
+                "(for uploads through the app)."
             ) from e
         _report_pdf_problem(name, f"docling could not read it ({_error_text(e)})")
         docs = _pypdf_pages(file_path)
