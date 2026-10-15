@@ -6,6 +6,43 @@ All notable changes to this project are documented in this file.
      messages (see docs/releasing.md). Notes that commits cannot carry,
      such as upgrade steps, are added by hand below the generated entry. -->
 
+## [0.6.0](https://github.com/eikrad/Radiationsafety/compare/v0.5.0...v0.6.0) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **privacy:** privacy mode (LLM_PROVIDER=ollama) now answers with qwen3.5:4b. Run `ollama pull qwen3.5:4b`, or set OLLAMA_MODEL=llama3.1:8b to keep the previous model.
+* **privacy:** privacy mode (LLM_PROVIDER=ollama) now embeds with bge-m3 and reads the collections radiation-iaea-ollama-bge-m3 and radiation-dk-law-ollama-bge-m3. Run `ollama pull bge-m3` and `uv run python ingestion.py` once, or set OLLAMA_EMBED_MODEL=nomic-embed-text to keep using the existing -ollama collections.
+
+### Features
+
+* **eval:** judge the answers of an earlier prompt test again ([2b6e9f9](https://github.com/eikrad/Radiationsafety/commit/2b6e9f9cb0adbe5a545d76a1c6df9dac161509e9)), closes [#145](https://github.com/eikrad/Radiationsafety/issues/145)
+* **eval:** paired prompt test on the saved contexts of a full run ([4c74421](https://github.com/eikrad/Radiationsafety/commit/4c74421676451d29f567eb6c12312dbf10e8db98)), closes [#145](https://github.com/eikrad/Radiationsafety/issues/145)
+* generation prompt that keeps legal wording exact and refuses out of scope ([#145](https://github.com/eikrad/Radiationsafety/issues/145)) ([09d196b](https://github.com/eikrad/Radiationsafety/commit/09d196b0fd56b2f9e05960af8cae72290dc9af1f))
+* **generation:** keep the meaning of rules exact, name the jurisdiction, refuse out of scope ([a0e159f](https://github.com/eikrad/Radiationsafety/commit/a0e159f77e94de1399e15d4ac55d9a406c54c3b3)), closes [#145](https://github.com/eikrad/Radiationsafety/issues/145)
+* **privacy:** bge-m3 is the local embedding model ([5b1f885](https://github.com/eikrad/Radiationsafety/commit/5b1f8852b80e926341cf51bca058a4f076fee56f))
+* **privacy:** build local embedding models side by side ([d21e736](https://github.com/eikrad/Radiationsafety/commit/d21e736b49684d4798a12a95ef3265f6a6caeed8))
+* **privacy:** embed questions on the CPU so the answer model keeps the GPU ([0469446](https://github.com/eikrad/Radiationsafety/commit/04694468dac35c4950671f5044efa570bde1c066))
+* **privacy:** local models answer without thinking first ([9f74b70](https://github.com/eikrad/Radiationsafety/commit/9f74b70d4c5258b04a14a3185e90f09454f83e28))
+* **privacy:** qwen3.5:4b is the local answer model ([25a1d67](https://github.com/eikrad/Radiationsafety/commit/25a1d67d67d4efd3b7b72403195fb88233e40ea0))
+
+
+### Bug Fixes
+
+* **eval:** a prompt test records the code as it was when it started ([99836ba](https://github.com/eikrad/Radiationsafety/commit/99836bad72c4ed1161bf1b22225c2d7fdb173fde))
+* **eval:** a refusal that names the question out of scope is not an unsupported claim ([54aae70](https://github.com/eikrad/Radiationsafety/commit/54aae709e96f2b0ed5180a5e7912030582caf73e)), closes [#145](https://github.com/eikrad/Radiationsafety/issues/145)
+* **eval:** k and position tests record the code as it was when they started ([2086d35](https://github.com/eikrad/Radiationsafety/commit/2086d352190037ee02e043ebd0ec572523a03cf4))
+* **eval:** k and position tests record the code as it was when they started ([2d7e69f](https://github.com/eikrad/Radiationsafety/commit/2d7e69f67c899cf7989e5a6a01f4b67c98333481))
+* **eval:** one crashing question no longer ends or erases a run ([4caa7d5](https://github.com/eikrad/Radiationsafety/commit/4caa7d56d53f8629dc36acbc24b868975a98b4d0))
+* **eval:** one crashing question no longer ends or erases a run ([df4c45e](https://github.com/eikrad/Radiationsafety/commit/df4c45ea1ac8b536773da3c0c06b959bc6c7a1a8))
+* **eval:** privacy-mode eval runs keep the graph off the web, as the API does ([9a4484a](https://github.com/eikrad/Radiationsafety/commit/9a4484a202e8b1db382935754772109065b2d16e))
+* **graph:** retrieve_missing carries on when the sufficiency grader gives no verdict ([9cecc04](https://github.com/eikrad/Radiationsafety/commit/9cecc049a774d20deb854b8e1416e83cacdbe1aa))
+* **ingestion:** stop when docling cannot read a PDF, before any collection is emptied ([2608ea8](https://github.com/eikrad/Radiationsafety/commit/2608ea89720034858e4546515495701a8e720e61))
+* **ingestion:** stop when docling cannot read a PDF, before any collection is emptied ([ab62959](https://github.com/eikrad/Radiationsafety/commit/ab629591cf87df06c6d03db920058c13e61a1af8))
+* **privacy:** ask a local model once more for a grader verdict it did not give ([7defaa6](https://github.com/eikrad/Radiationsafety/commit/7defaa65144ae67b04c44926d2c9dc7a02b96500))
+* **privacy:** give the local model a context window that holds the retrieved chunks ([7bb7e8d](https://github.com/eikrad/Radiationsafety/commit/7bb7e8d930c266377338134a4004f37643a39374))
+* **privacy:** the local model reads the whole prompt, and privacy-mode evals stay off the web ([01585e0](https://github.com/eikrad/Radiationsafety/commit/01585e059e0ff1b06cd0587ba3680a88821dc35f))
+
 ## [0.5.0](https://github.com/eikrad/Radiationsafety/compare/v0.4.0...v0.5.0) (2026-10-03)
 
 
