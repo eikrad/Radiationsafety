@@ -19,7 +19,11 @@ from pathlib import Path
 from typing import Any
 
 from docling.chunking import BaseChunk, HybridChunker
+from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
+from docling.datamodel.base_models import InputFormat
 from docling.datamodel.document import DoclingDocument
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.transforms.chunker.tokenizer.huggingface import (
     HuggingFaceTokenizer,
 )
@@ -448,28 +452,66 @@ class DoclingFailedError(RuntimeError):
     """docling could not read a PDF, and the pypdf fallback was not allowed."""
 
 
+def _docling_chunks(
+    file_path: str | Path, converter: DocumentConverter | None = None
+) -> list[Document]:
+    """docling's chunks of a PDF; converter None runs docling on its default device."""
+    tokenizer = HuggingFaceTokenizer.from_pretrained(
+        model_name=NOMIC_EMBED_TOKENIZER_MODEL,
+        max_token_count=NOMIC_EMBED_MAX_TOKENS,
+    )
+    loader = DoclingLoader(
+        file_path=str(file_path),
+        converter=converter,
+        chunker=HybridChunker(tokenizer=tokenizer),
+        meta_extractor=_SimpleMetaExtractor(),
+    )
+    return loader.load()
+
+
+def _docling_cpu_converter() -> DocumentConverter:
+    """A docling converter that runs its layout and OCR models on the CPU."""
+    options = PdfPipelineOptions(
+        accelerator_options=AcceleratorOptions(device=AcceleratorDevice.CPU)
+    )
+    return DocumentConverter(
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
+    )
+
+
+def _read_with_docling(file_path: str | Path) -> list[Document]:
+    """docling's chunks of a PDF, read on the CPU when the default device fails.
+
+    The GPU may be held by a local answer model: on 2026-10-11 docling's models
+    could not run next to llama3.1:8b on a 6 GB card. Retrying on the CPU needs
+    no guess at how much GPU memory docling would need; it only costs time when
+    the first attempt has failed.
+    """
+    try:
+        return _docling_chunks(file_path)
+    except Exception as e:
+        docs = _docling_chunks(file_path, converter=_docling_cpu_converter())
+        tqdm.write(
+            f"  Warning: docling failed for {Path(file_path).name} ({e}); "
+            "read it on the CPU instead"
+        )
+        return docs
+
+
 def _load_pdf_with_docling(
     file_path: str | Path,
     source_label: str | None = None,
 ) -> list[Document]:
     """Load and chunk a PDF using DoclingLoader.
 
-    Returns semantic chunks with source metadata set. Falls back to
-    pypdf plain-text extraction if docling fails.
+    Returns semantic chunks with source metadata set, read on the CPU if
+    docling's default device fails. If docling cannot read the PDF on the CPU
+    either, raises DoclingFailedError, or with INGEST_ALLOW_PYPDF_FALLBACK falls
+    back to pypdf plain-text extraction.
     """
     label = source_label or str(file_path)
     try:
-        tokenizer = HuggingFaceTokenizer.from_pretrained(
-            model_name=NOMIC_EMBED_TOKENIZER_MODEL,
-            max_token_count=NOMIC_EMBED_MAX_TOKENS,
-        )
-        chunker = HybridChunker(tokenizer=tokenizer)
-        loader = DoclingLoader(
-            file_path=str(file_path),
-            chunker=chunker,
-            meta_extractor=_SimpleMetaExtractor(),
-        )
-        docs = loader.load()
+        docs = _read_with_docling(file_path)
         for d in docs:
             d.metadata["source"] = label
         _warn_if_almost_no_text(file_path, docs)
@@ -479,10 +521,10 @@ def _load_pdf_with_docling(
             # pypdf reads plain text only, and nothing from a scanned PDF: with the
             # GPU full, two PDFs became 4 chunks instead of 636 without a failure
             raise DoclingFailedError(
-                f"docling could not read {Path(file_path).name}: {e}. Its pypdf "
-                "fallback indexes plain text only (nothing from a scanned PDF). "
-                "Free the GPU (e.g. unload the Ollama model) and run again, or pass "
-                "--allow-pypdf-fallback to index it as plain text anyway."
+                f"docling could not read {Path(file_path).name}, also not on the "
+                f"CPU: {e}. Its pypdf fallback indexes plain text only (nothing "
+                "from a scanned PDF). Pass --allow-pypdf-fallback to index it as "
+                "plain text anyway."
             ) from e
         tqdm.write(
             f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"

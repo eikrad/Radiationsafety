@@ -665,3 +665,48 @@ def test_a_docling_failure_leaves_the_existing_collections_untouched(monkeypatch
         ingestion.ingest()
 
     assert cleared == []
+
+
+def _docling_on_a_full_gpu(monkeypatch):
+    """docling as on 2026-10-11: its models could not run on the GPU, which a
+    local answer model filled; forced onto the CPU they read the PDF."""
+    from docling.datamodel.accelerator_options import AcceleratorDevice
+    from docling.datamodel.base_models import InputFormat
+
+    class Tokenizer:
+        @classmethod
+        def from_pretrained(cls, **kwargs):
+            return cls()
+
+    class Loader:
+        def __init__(self, file_path, converter=None, **kwargs):
+            self.file_path, self.converter = file_path, converter
+
+        def load(self):
+            device = AcceleratorDevice.AUTO  # docling's default
+            if self.converter:
+                pdf = self.converter.format_to_options[InputFormat.PDF]
+                device = pdf.pipeline_options.accelerator_options.device
+            if device != AcceleratorDevice.CPU:
+                raise RuntimeError("CUDA out of memory. Tried to allocate 20.00 MiB")
+            return [ingestion.Document(page_content="§ 1. " + "Vejledning. " * 300)]
+
+    monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
+    monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
+    monkeypatch.setattr(ingestion, "DoclingLoader", Loader)
+
+
+def test_a_pdf_docling_cannot_read_on_a_full_gpu_is_read_on_the_cpu(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_guidance_pdf(monkeypatch, tmp_path)
+    _docling_on_a_full_gpu(monkeypatch)
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    docs = ingestion.load_dk_law_docs()
+
+    assert [d.page_content[:5] for d in docs] == ["§ 1. "]
+    out = capsys.readouterr().out
+    assert "vejledning.pdf" in out and "CPU" in out
+    assert "CUDA out of memory" in out
