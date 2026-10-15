@@ -38,7 +38,8 @@ eval/                    — evaluation: run_eval.py (runner, --rescore), golden
                            calibration fixtures), scoring.py (deterministic metrics, error types),
                            history.py → history/runs.jsonl, dashboard.py (local HTML dashboard),
                            pool.py (unlabelled retrieved chunks for human review),
-                           split.py (tune/confirm split of the held-out set by shared index chunks)
+                           split.py (tune/confirm split of the held-out set by shared index chunks),
+                           costs.py + data/prices.json (run cost from recorded tokens, dated prices)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration

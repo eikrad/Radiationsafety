@@ -471,7 +471,20 @@ function headline(set) {
         el("div", { class: "deltas" }, commit,
           run.config && run.config.llm_model ? ` · ${run.config.llm_model}` : "",
           run.duration_sec != null ? ` · ${Math.round(run.duration_sec / 60)} min` : ""),
+        el("div", { class: "deltas" }, costText(run.cost)),
         run.notes ? el("div", { class: "deltas" }, run.notes) : null)));
+}
+
+// Cost at the prices of the run's day (eval/costs.py), per stage; models without
+// a price are named, so a sum is never silently too low.
+function costText(cost) {
+  if (!cost) return "cost: tokens not recorded";
+  const money = (amounts) => Object.entries(amounts)
+    .map(([currency, v]) => `${currency === "EUR" ? "€" : currency === "USD" ? "$" : `${currency} `}${v.toFixed(2)}`)
+    .join(" + ") || "—";
+  const stages = Object.entries(cost.by_stage).map(([stage, amounts]) => `${stage} ${money(amounts)}`);
+  const missing = cost.unpriced.length ? ` · no price for ${cost.unpriced.join(", ")}` : "";
+  return `cost ${money(cost.total)} (${stages.join(", ")})${missing}`;
 }
 
 // A pass-rate change across a scoring change is not a change of the system.

@@ -114,6 +114,24 @@ def test_a_development_set_has_no_split():
     assert _set(dashboard_data([_run("20261014_090000", ALL_PASS)]))["split"] is None
 
 
+def test_each_run_shows_what_it_cost_at_the_prices_of_its_day():
+    run = _run("20261014_090000", ALL_PASS)
+    run["usage"] = {"judge": {"judge": {"input_tokens": 1_000_000, "output_tokens": 0}}}
+    prices = [
+        {
+            "model": "judge",
+            "currency": "EUR",
+            "since": "2026-10-01",
+            "input": 0.6,
+            "output": 3.3,
+        }
+    ]
+
+    data = dashboard_data([run], prices=prices)
+
+    assert data["runs"]["20261014_090000"]["cost"]["total"] == {"EUR": 0.6}
+
+
 def test_a_question_that_stopped_passing_is_a_regression_since_the_previous_run():
     runs = [
         _run("20260916_094008", ALL_PASS),
