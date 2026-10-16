@@ -12,7 +12,7 @@ from ingestion import (
     load_iaea_docs,
 )
 from ingestion_dk import structure_chunks, xml_to_text
-from tests.pdf_fakes import docling_reading, write_pdf
+from tests.pdf_fakes import docling_reading, ingest_without_chroma, write_pdf
 
 
 def test_load_iaea_docs_returns_empty_when_no_dirs(tmp_path, monkeypatch):
@@ -713,24 +713,6 @@ def test_a_pdf_docling_cannot_read_on_a_full_gpu_is_read_on_the_cpu(
     assert "CUDA out of memory" in out
 
 
-def _ingest_without_chroma(monkeypatch, tmp_path):
-    """ingest() over the PDFs in tmp_path/Bekendtgørelse; returns what was embedded."""
-    added = {}
-    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
-    monkeypatch.setattr(ingestion, "get_embedding_provider", lambda *a: "scaleway")
-    monkeypatch.setattr(ingestion, "_clear_chroma_collections", lambda *a, **k: None)
-    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep: object())
-    monkeypatch.setattr(
-        ingestion, "_load_docs_from_registry", lambda include_iaea=True: ([], [])
-    )
-    monkeypatch.setattr(
-        ingestion,
-        "_add_documents_rate_limited",
-        lambda docs, name, *a, **k: added.setdefault(name, docs),
-    )
-    return added
-
-
 def test_a_run_with_the_plain_text_fallback_ends_by_listing_the_pdfs_not_read_fully(
     monkeypatch, tmp_path, capsys
 ):
@@ -750,7 +732,7 @@ def test_a_run_with_the_plain_text_fallback_ends_by_listing_the_pdfs_not_read_fu
             "bekendtgoerelse.pdf": "Kapitel 1 " * 30,
         },
     )
-    added = _ingest_without_chroma(monkeypatch, tmp_path)
+    added = ingest_without_chroma(monkeypatch, tmp_path)
 
     ingestion.ingest(dk_only=True)
 
@@ -796,7 +778,7 @@ def test_a_pdf_neither_docling_nor_pypdf_can_read_is_listed_at_the_end(
     folder.mkdir()
     (folder / "beskadiget.pdf").write_bytes(b"%PDF-1.4 truncated download")
     docling_reading(monkeypatch, {"beskadiget.pdf": RuntimeError("not a PDF")})
-    _ingest_without_chroma(monkeypatch, tmp_path)
+    ingest_without_chroma(monkeypatch, tmp_path)
 
     ingestion.ingest(dk_only=True)
 
