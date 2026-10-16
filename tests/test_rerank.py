@@ -125,3 +125,13 @@ def test_privacy_mode_never_sends_chunks_to_a_cloud_reranker(monkeypatch):
     rerank._loaded.clear()
 
     assert rerank.get_reranker("ollama") is None
+
+
+def test_the_active_reranker_is_the_configured_one_except_a_cloud_one_in_privacy_mode(
+    monkeypatch,
+):
+    monkeypatch.setenv("RERANKER", "scaleway:qwen3-embedding-8b")
+    assert rerank.active_reranker("scaleway") == "scaleway:qwen3-embedding-8b"
+    assert rerank.active_reranker("ollama") is None
+    monkeypatch.setenv("RERANKER", "bge-reranker-v2-m3")
+    assert rerank.active_reranker("ollama") == "bge-reranker-v2-m3"

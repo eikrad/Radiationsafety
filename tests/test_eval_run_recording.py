@@ -640,6 +640,28 @@ def test_a_retrieval_only_run_records_the_embedding_settings(
     assert {ep for _, ep in retrieval_only.asked} == {"scaleway"}
 
 
+def test_a_retrieval_only_run_records_which_reranker_ordered_the_candidates(
+    monkeypatch, workspace, retrieval_only
+):
+    monkeypatch.setenv("RERANKER", "bge-reranker-v2-m3")
+    monkeypatch.setenv("RERANK_CANDIDATES", "30")
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["reranker"] == "bge-reranker-v2-m3"
+    assert run["config"]["rerank_candidates"] == 30
+    markdown = (workspace.reports / run["report_file"]).with_suffix(".md").read_text()
+    assert "re-ranked by bge-reranker-v2-m3 from 30 candidates" in markdown
+
+
+def test_a_full_run_without_a_reranker_records_none(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["reranker"] is None
+    assert run["config"]["rerank_candidates"] is None
+
+
 def test_a_full_run_records_whether_questions_carried_an_instruction(
     monkeypatch, workspace
 ):

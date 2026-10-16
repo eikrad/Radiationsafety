@@ -143,9 +143,10 @@ def _device(embedding_provider: str | None) -> str:
     return "cuda"
 
 
-def get_reranker(embedding_provider: str | None = None) -> Reranker | None:
-    """The configured re-ranker, or None when re-ranking is off (and for a cloud
-    re-ranker in privacy mode, which keeps every request on the machine)."""
+def active_reranker(embedding_provider: str | None = None) -> str | None:
+    """The re-ranker a request with these embeddings uses: the configured one,
+    except a cloud re-ranker in privacy mode (every request stays on the
+    machine there); None when re-ranking is off."""
     name = reranker_name()
     if name is None:
         return None
@@ -153,6 +154,14 @@ def get_reranker(embedding_provider: str | None = None) -> Reranker | None:
         known = ", ".join(sorted(_BACKENDS))
         raise ValueError(f"RERANKER={name!r} is not a known re-ranker ({known}, off)")
     if name in _CLOUD and embedding_provider == "ollama":
+        return None
+    return name
+
+
+def get_reranker(embedding_provider: str | None = None) -> Reranker | None:
+    """The active re-ranker (see active_reranker), loaded once per device."""
+    name = active_reranker(embedding_provider)
+    if name is None:
         return None
     key = (name, _device(embedding_provider))
     if key not in _loaded:

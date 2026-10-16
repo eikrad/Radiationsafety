@@ -243,6 +243,17 @@ def _embedding_config() -> dict:
     }
 
 
+def _rerank_config(embedding_provider: str) -> dict:
+    """Which re-ranker ordered the retrieval candidates, and from how many (#146)."""
+    from graph.rerank import active_reranker, rerank_candidates
+
+    reranker = active_reranker(embedding_provider)
+    return {
+        "reranker": reranker,
+        "rerank_candidates": rerank_candidates() if reranker else None,
+    }
+
+
 def _index_config(embedding_provider: str) -> dict:
     """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
     import ingestion
@@ -454,6 +465,7 @@ def _run_eval(
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
+            **_rerank_config(embedding["embedding_provider"]),
             # privacy mode keeps the graph off the web whatever the switch says
             "web_search": env_bool("WEB_SEARCH_ENABLED") and not _privacy_mode(),
             "metrics_version": METRICS_VERSION,
@@ -551,6 +563,7 @@ def _run_retrieval_only(
             **embedding,
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
+            **_rerank_config(embedding["embedding_provider"]),
             "retrieval_depth": depth,
             "char_budget": char_budget,
             "metrics_version": METRICS_VERSION,
@@ -925,6 +938,12 @@ def _markdown_header_lines(header: dict) -> list[str]:
         f"**Commit:** {commit} on {git.get('branch') or 'unknown'}",
         models,
         f"**Retrieval:** k={config.get('retriever_k')} per collection,"
+        + (
+            f" re-ranked by {config['reranker']} from "
+            f"{config.get('rerank_candidates')} candidates,"
+            if config.get("reranker")
+            else ""
+        )
         + (
             f" ranked {config['retrieval_depth']} deep, text budget "
             f"{config.get('char_budget')} characters per collection"
