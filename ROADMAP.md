@@ -735,6 +735,24 @@ collection), **rule not met for either re-ranker**:
   (210 of 2100 MHz) throughout, so 11.7 s per question overstates what a
   GPU at full clock would take; it is still the cost measured here.
 
+Exploratory full run (2026-10-16, `tune-rerank-bge-exploratory`, run
+`20261016_213240`), made after step 1 failed and so deciding nothing:
+39/53 = 74 % (60–84 %) against 37/53 for `tune-baseline-rescore`, 5 better
+and 3 worse (sign test p = 0.73); against the repeat baseline 5 and 4.
+Three gains are the retrieval fixes seen in step 1
+(`ekstern-arbejdstager-ansvar`, `gsr2-supply-chain-responsibility`,
+`gammaradiografi-uden-for-anlæg`), two are questions that also flip without
+a change (`kategori-øjelinse`, `transport-monitoring-dk-vs-iaea`). Two
+losses are the evidence the re-ranker pushed out (`ammende-arbejdstager`,
+`gsr3-notification-vs-registration`), one is a generation miss on a chunk
+that stayed in the context (`generator-statuskontrol-tandklinik`).
+`modtagekontrol-fejl-indberetning` now has all its evidence, but the
+answer fails on an unsupported claim. Retrieval misses 12 → 10, evidence
+in the context 0.88 → 0.91; the three refusals held. 53 minutes and €1.02,
+against about 42 minutes without re-ranking. Reading: the cross-encoder
+trades about three retrieval fixes for two new misses, which is in line
+with step 1 and well inside the noise of the pass rate.
+
 Decision: both stay opt-in (`RERANKER`), off by default. Not tried, and
 the candidates for a next round: a cross-encoder on more candidates only
 where the embedder is weak (privacy mode, with a GPU), and the
