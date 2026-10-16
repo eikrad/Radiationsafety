@@ -40,6 +40,34 @@ async function openApp(page: Page, query?: (route: Parameters<Parameters<Page['r
   await expect(page.locator('[data-config="loaded"]')).toBeAttached()
 }
 
+const SOURCES = {
+  sources: [
+    {
+      id: 'gsr-3',
+      name: 'GSR Part 3',
+      url: 'https://www.iaea.org/publications/8930',
+      folder: 'IAEA',
+      current_version: '2014',
+      remote_version: '2014',
+      update_available: false,
+      local_date: null,
+      remote_date: null,
+      download_url: '',
+      has_local_file: true,
+      error: null,
+    },
+  ],
+}
+
+/** The Documents panel, opened after an ingestion that ended as ingestStatus says. */
+async function openDocuments(page: Page, ingestStatus: object) {
+  await page.route('**/api/documents/check-updates', (r) => r.fulfill({ json: SOURCES }))
+  await page.route('**/api/ingest/status', (r) => r.fulfill({ json: ingestStatus }))
+  await openApp(page)
+  await page.getByRole('button', { name: 'Documents and updates' }).click()
+  await expect(page.getByText('GSR Part 3')).toBeVisible()
+}
+
 async function ask(page: Page) {
   await page.getByPlaceholder(/Ask a question/i).fill('What is ALARA?')
   await page.getByRole('button', { name: 'Ask' }).click()
@@ -94,6 +122,30 @@ for (const scheme of ['light', 'dark'] as const) {
       )
       await ask(page)
       await expect(page.getByText(/did not answer/)).toBeVisible()
+      await expectNoViolations(page)
+    })
+
+    test('a failed ingestion is readable', async ({ page }) => {
+      await openDocuments(page, {
+        status: 'idle',
+        last_error:
+          'DoclingFailedError: docling could not read vejledning.pdf, also not on the CPU: RuntimeError: CUDA out of memory.',
+        pdf_problems: [],
+      })
+      await expect(page.getByRole('alert')).toBeVisible()
+      await expectNoViolations(page)
+    })
+
+    test('the PDFs an ingestion did not read as usual are readable', async ({ page }) => {
+      await openDocuments(page, {
+        status: 'idle',
+        last_error: null,
+        pdf_problems: [
+          { file: 'vejledning.pdf', problem: 'read on the CPU' },
+          { file: 'scannet.pdf', problem: 'almost no text (40 characters on 41 pages)' },
+        ],
+      })
+      await expect(page.getByRole('list', { name: 'PDFs not read as usual' })).toBeVisible()
       await expectNoViolations(page)
     })
 
