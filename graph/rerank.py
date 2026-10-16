@@ -71,10 +71,66 @@ def _cross_encoder(model: str) -> Callable[[str], Reranker]:
     return lambda device: _CrossEncoderReranker(_load_cross_encoder(model, device))
 
 
+def _http_post(url: str, headers: dict, payload: dict) -> dict:
+    import httpx
+
+    from graph.llm_factory import request_timeout
+
+    response = httpx.post(url, headers=headers, json=payload, timeout=request_timeout())
+    response.raise_for_status()
+    return response.json()
+
+
+class _ScalewayReranker:
+    """Scaleway's /v1/rerank. With an embedding model its score is the cosine of
+    question and chunk embeddings (checked against /v1/embeddings), and no
+    instruction is added server-side, so the question carries the model's own."""
+
+    def __init__(self, model: str):
+        self._model = model
+
+    def scores(self, query: str, texts: list[str]) -> list[float]:
+        from graph.llm_factory import (
+            _QUERY_TASK,
+            _SCALEWAY_BASE_URL,
+            APIKeyError,
+            query_instruction_template,
+        )
+
+        key = os.getenv("SCW_SECRET_KEY")
+        if not key:
+            raise APIKeyError("Scaleway")
+        base_url = (os.getenv("SCW_BASE_URL") or "").strip() or _SCALEWAY_BASE_URL
+        template = query_instruction_template(self._model)
+        reply = _http_post(
+            f"{base_url.rstrip('/')}/rerank",
+            {"Authorization": f"Bearer {key}"},
+            {
+                "model": self._model,
+                "query": (
+                    template.format(task=_QUERY_TASK, query=query)
+                    if template
+                    else query
+                ),
+                "documents": texts,
+                "top_n": len(texts),
+            },
+        )
+        scores = [0.0] * len(texts)
+        for result in reply["results"]:
+            scores[result["index"]] = float(result["relevance_score"])
+        return scores
+
+
 # RERANKER value -> factory taking the device.
 _BACKENDS: dict[str, Callable[[str], Reranker]] = {
     "bge-reranker-v2-m3": _cross_encoder("BAAI/bge-reranker-v2-m3"),
+    "scaleway:qwen3-embedding-8b": lambda device: _ScalewayReranker(
+        "qwen3-embedding-8b"
+    ),
 }
+# Re-rankers that send question and chunks off the machine: never in privacy mode.
+_CLOUD = {"scaleway:qwen3-embedding-8b"}
 # (RERANKER, device) -> loaded re-ranker; a model is loaded once per process.
 _loaded: dict[tuple[str, str], Reranker] = {}
 
@@ -88,13 +144,16 @@ def _device(embedding_provider: str | None) -> str:
 
 
 def get_reranker(embedding_provider: str | None = None) -> Reranker | None:
-    """The configured re-ranker, or None when re-ranking is off."""
+    """The configured re-ranker, or None when re-ranking is off (and for a cloud
+    re-ranker in privacy mode, which keeps every request on the machine)."""
     name = reranker_name()
     if name is None:
         return None
     if name not in _BACKENDS:
         known = ", ".join(sorted(_BACKENDS))
         raise ValueError(f"RERANKER={name!r} is not a known re-ranker ({known}, off)")
+    if name in _CLOUD and embedding_provider == "ollama":
+        return None
     key = (name, _device(embedding_provider))
     if key not in _loaded:
         _loaded[key] = _BACKENDS[name](key[1])

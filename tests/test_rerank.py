@@ -82,3 +82,46 @@ def test_privacy_mode_reranks_on_the_cpu(cross_encoder):
     rerank.get_reranker("ollama").scores("q", ["a"])
 
     assert loads == [("BAAI/bge-reranker-v2-m3", "cpu")]
+
+
+def test_scaleways_rerank_endpoint_scores_chunks_in_their_order(monkeypatch):
+    """The API returns results sorted by relevance; scores map back by index."""
+    requests = []
+
+    def _post(url, headers, payload):
+        requests.append((url, headers, payload))
+        return {
+            "results": [
+                {"index": 1, "relevance_score": 0.7},
+                {"index": 0, "relevance_score": 0.2},
+            ]
+        }
+
+    monkeypatch.setenv("RERANKER", "scaleway:qwen3-embedding-8b")
+    monkeypatch.setattr(rerank, "_http_post", _post)
+    rerank._loaded.clear()
+
+    scores = rerank.get_reranker("scaleway").scores("q", ["a", "b"])
+
+    assert scores == [0.2, 0.7]
+    url, headers, payload = requests[0]
+    assert url == "https://api.scaleway.ai/v1/rerank"
+    assert headers["Authorization"] == "Bearer test-key"
+    assert payload["model"] == "qwen3-embedding-8b"
+    assert payload["documents"] == ["a", "b"] and payload["top_n"] == 2
+    # the rerank score is the embeddings' cosine, so the question needs the
+    # model's retrieval instruction, as the embedder gives it
+    assert payload["query"].startswith("Instruct: ") and payload["query"].endswith(
+        "Query:q"
+    )
+    rerank._loaded.clear()
+
+
+def test_privacy_mode_never_sends_chunks_to_a_cloud_reranker(monkeypatch):
+    monkeypatch.setenv("RERANKER", "scaleway:qwen3-embedding-8b")
+    monkeypatch.setattr(
+        rerank, "_http_post", lambda *a: pytest.fail("chunks left the machine")
+    )
+    rerank._loaded.clear()
+
+    assert rerank.get_reranker("ollama") is None
