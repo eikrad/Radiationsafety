@@ -98,7 +98,7 @@ jobs:
     # Same image as `npm run test:visual:docker`, so baselines match pixel for pixel.
     # Keep the tag in step with @playwright/test in frontend/package.json.
     container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      image: mcr.microsoft.com/playwright:v1.64.0-noble
       options: --ipc=host
     defaults:
       run:
