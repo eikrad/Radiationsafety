@@ -91,7 +91,7 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
     }
   }, [])
 
-  function showIngestOutcome(status: IngestStatus) {
+  const showIngestOutcome = useCallback((status: IngestStatus) => {
     const problems = problemsByPdf(status.pdf_problems ?? [])
     setIngestProblems(problems)
     if (status.last_error) {
@@ -103,7 +103,54 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
     } else {
       setIngestMessage('Ingestion finished.')
     }
-  }
+  }, [])
+
+  /** Poll GET /ingest/status until the ingestion is idle again, then show how it went. */
+  const followIngestion = useCallback(() => {
+    if (ingestPollRef.current) window.clearInterval(ingestPollRef.current)
+    ingestPollRef.current = window.setInterval(async () => {
+      try {
+        const statusRes = await fetch(`${API_BASE}/ingest/status`)
+        const statusData = (await statusRes.json()) as IngestStatus
+        if (statusData.status === 'idle') {
+          if (ingestPollRef.current) window.clearInterval(ingestPollRef.current)
+          ingestPollRef.current = null
+          setIngesting(false)
+          showIngestOutcome(statusData)
+          void fetchCheckUpdates()
+        }
+      } catch {
+        if (ingestPollRef.current) window.clearInterval(ingestPollRef.current)
+        ingestPollRef.current = null
+        setIngesting(false)
+      }
+    }, 3000)
+  }, [fetchCheckUpdates, showIngestOutcome])
+
+  useEffect(() => {
+    // An ingestion runs for minutes and outlives the panel: follow one still
+    // running, or show how the last one went when that needs attention.
+    let open = true
+    void (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/ingest/status`)
+        const status = (await res.json()) as IngestStatus
+        if (!open) return
+        if (status.status === 'running') {
+          setIngesting(true)
+          setIngestMessage('An ingestion is running. This may take several minutes.')
+          followIngestion()
+        } else if (status.last_error || status.pdf_problems?.length) {
+          showIngestOutcome(status)
+        }
+      } catch {
+        // without the status the panel works as before
+      }
+    })()
+    return () => {
+      open = false
+    }
+  }, [followIngestion, showIngestOutcome])
 
   async function runIngest() {
     setIngesting(true)
@@ -115,23 +162,7 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
       const data = (await res.json()) as { status?: string; detail?: string; message?: string }
       if (!res.ok) throw new Error(data.detail ?? data.message ?? 'Failed to start ingestion')
       setIngestMessage('Ingestion started. This may take several minutes.')
-      ingestPollRef.current = window.setInterval(async () => {
-        try {
-          const statusRes = await fetch(`${API_BASE}/ingest/status`)
-          const statusData = (await statusRes.json()) as IngestStatus
-          if (statusData.status === 'idle') {
-            if (ingestPollRef.current) window.clearInterval(ingestPollRef.current)
-            ingestPollRef.current = null
-            setIngesting(false)
-            showIngestOutcome(statusData)
-            void fetchCheckUpdates()
-          }
-        } catch {
-          if (ingestPollRef.current) window.clearInterval(ingestPollRef.current)
-          ingestPollRef.current = null
-          setIngesting(false)
-        }
-      }, 3000)
+      followIngestion()
     } catch (e) {
       setIngestMessage(e instanceof Error ? e.message : 'Failed to start ingestion')
       setIngesting(false)

@@ -89,3 +89,48 @@ describe('the outcome of an ingestion', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
+
+describe('opening the panel', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('follows an ingestion that is still running', async () => {
+    stubApi([
+      { status: 'running', last_error: null, pdf_problems: [] },
+      { status: 'idle', last_error: 'RuntimeError: embedding quota exceeded', pdf_problems: [] },
+    ])
+
+    render(<DocumentsPanel onClose={() => {}} />)
+
+    expect(await screen.findByRole('button', { name: 'Ingestion running…' })).toBeDisabled()
+    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    await act(() => vi.advanceTimersByTimeAsync(3000))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ingestion failed: RuntimeError: embedding quota exceeded')
+  })
+
+  it('shows why the last ingestion failed', async () => {
+    stubApi([{ status: 'idle', last_error: 'DoclingFailedError: docling could not read vejledning.pdf', pdf_problems: [] }])
+
+    render(<DocumentsPanel onClose={() => {}} />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ingestion failed: DoclingFailedError: docling could not read vejledning.pdf',
+    )
+  })
+
+  it('says nothing about a last ingestion that went as usual', async () => {
+    stubApi([{ status: 'idle', last_error: null, pdf_problems: [] }])
+
+    render(<DocumentsPanel onClose={() => {}} />)
+    await act(() => vi.advanceTimersByTimeAsync(3000))
+
+    expect(screen.getByRole('button', { name: 'Start ingestion' })).toBeEnabled()
+    expect(screen.queryByText(/Ingestion finished/)).not.toBeInTheDocument()
+  })
+})
