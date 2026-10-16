@@ -31,9 +31,9 @@ docker compose --profile ollama up    # adds an Ollama container; the models are
   side by side in one installation.
 - **The backend connects to Ollama per request**, not at startup (`graph/llm_factory.py`), so the
   backend does not need a `depends_on` on Ollama.
-- **Local embeddings have their own collections** (`radiation-iaea-ollama`,
-  `radiation-dk-law-ollama`, `ingestion.py`) and are built by a separate ingestion run with
-  `LLM_PROVIDER=ollama`.
+- **Local embeddings have their own collections** (`radiation-iaea-ollama-bge-m3`,
+  `radiation-dk-law-ollama-bge-m3` for the default `bge-m3`, `ingestion.py`) and are built by a
+  separate ingestion run with `LLM_PROVIDER=ollama`.
 - **The error message when Ollama is unreachable** says "Start it with: ollama serve"
   (`_ollama_error_detail` in `api/main.py`), which does not help under Docker.
 
@@ -47,7 +47,7 @@ docker compose --profile ollama up    # adds an Ollama container; the models are
   hardening as the other services (`no-new-privileges`, `cap_drop` where Ollama still runs).
 - **`ollama-pull`**: one-shot service with the same image and `OLLAMA_HOST=ollama:11434`, same
   pattern as `chroma-permissions`. Waits for the `ollama` healthcheck, pulls
-  `${OLLAMA_MODEL:-llama3.1:8b}` and `${OLLAMA_EMBED_MODEL:-nomic-embed-text}` (about 5 GB),
+  `${OLLAMA_MODEL:-qwen3.5:4b}` and `${OLLAMA_EMBED_MODEL:-bge-m3}` (about 5 GB),
   then exits. Later starts finish in seconds because the models are already in the volume.
 - **`backend`**: `OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}`, so without an entry
   in `.env` it points at the container and with one at an external Ollama. Add
@@ -100,7 +100,7 @@ image of 1–2 GB per run, so it is left out unless the profile breaks in practi
 - `docker compose up` without the profile behaves exactly as before.
 - With the profile and **small models** (e.g. `OLLAMA_MODEL=qwen2.5:0.5b`,
   `OLLAMA_EMBED_MODEL=all-minilm`): pull, healthcheck, backend → Ollama, ingestion into the
-  `-ollama` collections, one `/api/query` with `model=ollama`.
+  `-ollama-<model>` collections, one `/api/query` with `model=ollama`.
 - The same with the default models once, to measure the CPU ingestion time for the README.
 - The GPU override on real NVIDIA hardware: the maintainer's card, and if possible a 6 GB card
   (RTX A1000, @luttegu in #106) to check the low-VRAM hints.
@@ -108,7 +108,8 @@ image of 1–2 GB per run, so it is left out unless the profile breaks in practi
 
 ## Decisions
 
-- **Default model** stays `llama3.1:8b`, as in the README; smaller models are one `.env` line away.
+- **Default models** are those of the local install, `qwen3.5:4b` and `bge-m3` (`graph/llm_factory.py`);
+  other models are one `.env` line away.
 - **No automatic model download** without the profile: the 5 GB only come when someone asks for
   privacy mode in Docker.
 
