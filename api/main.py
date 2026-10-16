@@ -1,5 +1,6 @@
 """FastAPI backend: /query, /health, /metrics, document updates, ingest, and optional frontend serving."""
 
+import logging
 import os
 import secrets
 import time
@@ -34,9 +35,13 @@ from api.rate_limit import enforce_rate_limit, env_float, env_int
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 app_state: dict = {
     "graph": None,
     "ingest_status": "idle",
+    # why the last ingestion failed; None while it runs or when it succeeded
+    "ingest_last_error": None,
     "started_at": time.time(),
     "rate_limit_store": {},
     "request_metrics": {
@@ -251,13 +256,19 @@ def require_admin(request: Request) -> None:
 
 
 def _run_ingest() -> None:
-    """Run ingestion and clear retriever cache. Updates app_state ingest_status."""
+    """Run ingestion and clear retriever cache. Updates app_state ingest_status
+    and keeps why a run failed for GET /ingest/status: a background task's
+    exception reaches only the server log."""
     app_state["ingest_status"] = "running"
+    app_state["ingest_last_error"] = None
     try:
         import ingestion
 
         ingestion.ingest()
         ingestion.clear_retrievers_cache()
+    except Exception as e:
+        logger.exception("Ingestion failed")
+        app_state["ingest_last_error"] = f"{type(e).__name__}: {e}"
     finally:
         app_state["ingest_status"] = "idle"
 
@@ -633,8 +644,12 @@ def ingest_trigger(
 
 @api_router.get("/ingest/status")
 def ingest_status():
-    """Return current ingestion status: idle or running."""
-    return {"status": app_state["ingest_status"]}
+    """Return current ingestion status (idle or running) and why the last run
+    failed (last_error, None if it did not)."""
+    return {
+        "status": app_state["ingest_status"],
+        "last_error": app_state["ingest_last_error"],
+    }
 
 
 def _to_tuples(history: list[list[str]] | None) -> list[tuple[str, str]]:

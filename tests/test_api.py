@@ -775,3 +775,34 @@ def test_an_ingestion_started_through_the_api_indexes_the_documents(
     assert res.status_code == 202
     [chunks] = added.values()
     assert chunks
+
+
+def test_the_ingestion_status_says_why_the_last_run_failed(
+    client: TestClient, monkeypatch, tmp_path
+):
+    """The DoclingFailedError reached only the server log; the status went back
+    to idle and the Documents panel said "Ingestion finished."."""
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_danish_pdf(monkeypatch, tmp_path, RuntimeError("CUDA out of memory"))
+
+    client.post("/api/ingest")
+    status = client.get("/api/ingest/status").json()
+
+    assert status["status"] == "idle"
+    assert "vejledning.pdf" in status["last_error"]
+    assert "CUDA out of memory" in status["last_error"]
+
+
+def test_a_run_that_succeeds_clears_the_previous_failure(
+    client: TestClient, monkeypatch, tmp_path
+):
+    from tests.pdf_fakes import docling_reading
+
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_danish_pdf(monkeypatch, tmp_path, RuntimeError("CUDA out of memory"))
+    client.post("/api/ingest")
+    docling_reading(monkeypatch, {"vejledning.pdf": "Kapitel 1 " * 30})
+
+    client.post("/api/ingest")
+
+    assert client.get("/api/ingest/status").json()["last_error"] is None
