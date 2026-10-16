@@ -884,13 +884,6 @@ def ingest(dk_only: bool = False):
     copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
     Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
     """
-
-    def _signal_handler(signum, frame):
-        print("\n\n⚠️  Ingestion interrupted by user. Exiting...\n")
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, _signal_handler)
-
     print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
@@ -1212,6 +1205,14 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.allow_pypdf_fallback:
         os.environ["INGEST_ALLOW_PYPDF_FALLBACK"] = "true"
+
+    def _signal_handler(signum, frame):
+        print("\n\n⚠️  Ingestion interrupted by user. Exiting...\n")
+        sys.exit(0)
+
+    # Here, not in ingest(): the API runs ingest() in a worker thread, where
+    # installing a signal handler raises ValueError.
+    signal.signal(signal.SIGINT, _signal_handler)
     if args.reembed_from:
         reembed_from(args.reembed_from, target=reembed_target())
     else:

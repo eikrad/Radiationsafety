@@ -748,3 +748,30 @@ def test_an_upload_docling_cannot_read_names_the_setting_that_allows_plain_text(
     detail = res.json()["detail"]
     assert "CUDA out of memory" in detail
     assert "INGEST_ALLOW_PYPDF_FALLBACK=true" in detail
+
+
+def _one_danish_pdf(monkeypatch, tmp_path, docling_gives):
+    """ingest() without Chroma over a single Danish PDF that docling reads as
+    docling_gives (text, or an error to raise); returns what was embedded."""
+    from tests.pdf_fakes import docling_reading, ingest_without_chroma, write_pdf
+
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    write_pdf(folder / "vejledning.pdf", ["Kapitel 1 " * 30])
+    docling_reading(monkeypatch, {"vejledning.pdf": docling_gives})
+    return ingest_without_chroma(monkeypatch, tmp_path)
+
+
+def test_an_ingestion_started_through_the_api_indexes_the_documents(
+    client: TestClient, monkeypatch, tmp_path
+):
+    """ingest() installed its Ctrl+C handler in the worker thread the API runs
+    it in: "signal only works in main thread", so every ingestion started from
+    the Documents panel stopped before reading a single PDF."""
+    added = _one_danish_pdf(monkeypatch, tmp_path, "Kapitel 1 " * 30)
+
+    res = client.post("/api/ingest")
+
+    assert res.status_code == 202
+    [chunks] = added.values()
+    assert chunks
