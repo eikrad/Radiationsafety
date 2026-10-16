@@ -12,6 +12,7 @@ from ingestion import (
     load_iaea_docs,
 )
 from ingestion_dk import structure_chunks, xml_to_text
+from tests.pdf_fakes import docling_reading, ingest_without_chroma, write_pdf
 
 
 def test_load_iaea_docs_returns_empty_when_no_dirs(tmp_path, monkeypatch):
@@ -665,3 +666,435 @@ def test_a_docling_failure_leaves_the_existing_collections_untouched(monkeypatch
         ingestion.ingest()
 
     assert cleared == []
+
+
+def _docling_on_a_full_gpu(monkeypatch):
+    """docling as on 2026-10-11: its models could not run on the GPU, which a
+    local answer model filled; forced onto the CPU they read the PDF."""
+    from docling.datamodel.accelerator_options import AcceleratorDevice
+    from docling.datamodel.base_models import InputFormat
+
+    class Tokenizer:
+        @classmethod
+        def from_pretrained(cls, **kwargs):
+            return cls()
+
+    class Loader:
+        def __init__(self, file_path, converter=None, **kwargs):
+            self.file_path, self.converter = file_path, converter
+
+        def load(self):
+            device = AcceleratorDevice.AUTO  # docling's default
+            if self.converter:
+                pdf = self.converter.format_to_options[InputFormat.PDF]
+                device = pdf.pipeline_options.accelerator_options.device
+            if device != AcceleratorDevice.CPU:
+                raise RuntimeError("CUDA out of memory. Tried to allocate 20.00 MiB")
+            return [ingestion.Document(page_content="§ 1. " + "Vejledning. " * 300)]
+
+    monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
+    monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
+    monkeypatch.setattr(ingestion, "DoclingLoader", Loader)
+
+
+def test_a_pdf_docling_cannot_read_on_a_full_gpu_is_read_on_the_cpu(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_guidance_pdf(monkeypatch, tmp_path)
+    _docling_on_a_full_gpu(monkeypatch)
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    docs = ingestion.load_dk_law_docs()
+
+    assert [d.page_content[:5] for d in docs] == ["§ 1. "]
+    out = capsys.readouterr().out
+    assert "vejledning.pdf" in out and "CPU" in out
+    assert "CUDA out of memory" in out
+
+
+def test_a_run_with_the_plain_text_fallback_ends_by_listing_the_pdfs_not_read_fully(
+    monkeypatch, tmp_path, capsys
+):
+    """The fallback warnings scrolled past between progress bars, and the run
+    still ended with "Ingestion complete!"."""
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    write_pdf(folder / "vejledning.pdf", ["1. Indledning. Brug af aabne kilder."])
+    write_pdf(folder / "scannet.pdf", ["", ""])
+    write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    docling_reading(
+        monkeypatch,
+        {
+            "vejledning.pdf": RuntimeError("CUDA out of memory"),
+            "scannet.pdf": "Sundhedsstyrelsen, 2025",
+            "bekendtgoerelse.pdf": "Kapitel 1 " * 30,
+        },
+    )
+    added = ingest_without_chroma(monkeypatch, tmp_path)
+
+    ingestion.ingest(dk_only=True)
+
+    [chunks] = added.values()
+    assert len(chunks) == 3
+    summary = capsys.readouterr().out.rsplit("Ingested", 1)[1]
+    assert "Ingestion complete!" not in summary
+    assert "2 documents" in summary
+    lines = [line for line in summary.splitlines() if ".pdf" in line]
+    [fallback] = [line for line in lines if "vejledning.pdf" in line]
+    assert "RuntimeError: CUDA out of memory" in fallback and "plain text" in fallback
+    [scanned] = [line for line in lines if "scannet.pdf" in line]
+    assert "almost no text" in scanned
+    assert not [line for line in lines if "bekendtgoerelse.pdf" in line]
+
+
+def test_a_scan_behind_a_typed_cover_page_is_reported_as_almost_no_text(
+    monkeypatch, tmp_path, capsys
+):
+    """A whole-PDF minimum misses a scan whose cover page has a text layer: its
+    text is a page's worth, the 40 pages behind it give nothing."""
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    cover = "Vejledning om brug af aabne radioaktive kilder. " * 10
+    write_pdf(folder / "vejledning.pdf", [cover] + [""] * 40)
+    docling_reading(monkeypatch, {"vejledning.pdf": cover})
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    ingestion.load_dk_law_docs()
+
+    [warning] = [
+        line for line in capsys.readouterr().out.splitlines() if "vejledning" in line
+    ]
+    assert "almost no text" in warning and "41 pages" in warning
+
+
+def test_a_pdf_neither_docling_nor_pypdf_can_read_is_listed_at_the_end(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    (folder / "beskadiget.pdf").write_bytes(b"%PDF-1.4 truncated download")
+    docling_reading(monkeypatch, {"beskadiget.pdf": RuntimeError("not a PDF")})
+    ingest_without_chroma(monkeypatch, tmp_path)
+
+    ingestion.ingest(dk_only=True)
+
+    summary = capsys.readouterr().out.rsplit("not read as usual", 1)[-1]
+    [line] = [line for line in summary.splitlines() if "beskadiget.pdf" in line]
+    assert "skipped" in line
+
+
+def test_an_attachment_docling_cannot_read_stops_the_ingestion_and_is_named(
+    monkeypatch, tmp_path
+):
+    """Attachments (Anhänge) often hold a law's tables; a docling failure on one
+    dropped it from the index without a word."""
+    from pypdf import PdfWriter
+
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    law = write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    table = write_pdf(tmp_path / "bilag.pdf", ["Bilag 2. Dosisgraenser " * 10])
+    writer = PdfWriter(clone_from=str(law))
+    writer.add_attachment("bilag 2.pdf", table.read_bytes())
+    writer.write(str(law))
+    docling_reading(
+        monkeypatch,
+        {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
+        default=RuntimeError("CUDA out of memory"),
+    )
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+    with pytest.raises(ingestion.DoclingFailedError) as stopped:
+        ingestion.load_dk_law_docs()
+
+    assert "bekendtgoerelse.pdf (Anhang: bilag 2.pdf)" in str(stopped.value)
+
+
+def test_an_attachment_nothing_can_read_is_reported_as_skipped(
+    monkeypatch, tmp_path, capsys
+):
+    from pypdf import PdfWriter
+
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    law = write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    writer = PdfWriter(clone_from=str(law))
+    writer.add_attachment("bilag 2.pdf", b"%PDF-1.4 cut off")
+    writer.write(str(law))
+    docling_reading(
+        monkeypatch,
+        {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
+        default=RuntimeError("not a PDF"),
+    )
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+    with ingestion.collecting_pdf_problems() as problems:
+        ingestion.load_dk_law_docs()
+
+    assert ("bekendtgoerelse.pdf (Anhang: bilag 2.pdf)", "skipped") in [
+        (name, what.split(",")[0]) for name, what in problems
+    ]
+
+
+# --- registry sources that could not be fetched -----------------------------------
+
+GSG_7 = {
+    "id": "iaea-gsg-7",
+    "name": "Occupational Radiation Protection",
+    "url": "https://www.iaea.org/publications/11113/occupational-radiation-protection",
+    "folder": "IAEA",
+}
+STOFFER = {
+    "id": "dk-stoffer",
+    "name": "Bekendtgørelse om radioaktive stoffer",
+    "url": "https://www.retsinformation.dk/eli/lta/2025/1385",
+    "folder": "Bekendtgørelse",
+}
+VEJLEDNING = {
+    "id": "dk-brug-af-aabne-kilder",
+    "name": "Brug af åbne radioaktive kilder",
+    "url": "https://www.sst.dk/media/gtqpr5bg/vejledning.pdf",
+    "folder": "Bekendtgørelse",
+}
+
+
+def _registry(monkeypatch, sources, *, pdf=None, xml=None):
+    """document_sources.yaml with these sources; pdf and xml stand in for
+    fetch_pdf_for_source and fetch_danish_xml_for_source."""
+    import ingestion_fetch
+
+    monkeypatch.setattr(ingestion_fetch, "load_sources_registry", lambda: sources)
+    if pdf:
+        monkeypatch.setattr(ingestion_fetch, "fetch_pdf_for_source", pdf)
+    if xml:
+        monkeypatch.setattr(ingestion_fetch, "fetch_danish_xml_for_source", xml)
+
+
+def _refused(reason):
+    """A fetch that fails as ingestion_fetch says it failed."""
+
+    def fetch(*args, **kwargs):
+        import ingestion_fetch
+
+        raise ingestion_fetch.FetchError(reason)
+
+    return fetch
+
+
+def test_a_registry_source_that_could_not_be_fetched_is_named_with_the_reason(
+    monkeypatch, capsys
+):
+    """fetch_pdf_for_source gave None and the loop went on: the source was
+    missing from the index without a word."""
+    _registry(
+        monkeypatch,
+        [GSG_7],
+        pdf=_refused(f"HTTPError: HTTP Error 403: Forbidden ({GSG_7['url']})"),
+    )
+
+    with ingestion.collecting_pdf_problems() as problems:
+        iaea_docs, _ = ingestion._load_docs_from_registry()
+
+    assert iaea_docs == []
+    [(name, what)] = problems
+    assert name == "Occupational Radiation Protection (iaea-gsg-7)"
+    assert "not fetched" in what and "HTTP Error 403: Forbidden" in what
+    assert "iaea-gsg-7" in capsys.readouterr().out
+
+
+def test_a_danish_law_that_could_not_be_fetched_is_named_with_the_reason(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    _registry(
+        monkeypatch,
+        [STOFFER],
+        xml=_refused(f"URLError: <urlopen error timed out> ({STOFFER['url']}/xml)"),
+    )
+
+    with ingestion.collecting_pdf_problems() as problems:
+        _, dk_docs = ingestion._load_docs_from_registry()
+
+    assert dk_docs == []
+    [(name, what)] = problems
+    assert name == "Bekendtgørelse om radioaktive stoffer (dk-stoffer)"
+    assert "not fetched" in what and "timed out" in what
+
+
+def test_a_guidance_pdf_on_sst_dk_is_not_reported_as_not_fetched(monkeypatch):
+    """Only retsinformation.dk has XML; a guidance PDF in the Danish folder is
+    read from the folder, so nothing failed."""
+    _registry(monkeypatch, [VEJLEDNING])
+
+    with ingestion.collecting_pdf_problems() as problems:
+        ingestion._load_docs_from_registry()
+
+    assert problems == []
+
+
+def test_a_run_ends_by_listing_the_registry_sources_not_fetched(
+    monkeypatch, tmp_path, capsys
+):
+    """A --dk-only run whose law could not be fetched ended with "Ingestion
+    complete!"; an IAEA source is not fetched there at all, so not listed."""
+    _registry(
+        monkeypatch,
+        [GSG_7, STOFFER],
+        pdf=_refused("HTTPError: HTTP Error 403: Forbidden"),
+        xml=_refused("URLError: <urlopen error timed out>"),
+    )
+    ingest_without_chroma(monkeypatch, tmp_path, read_registry=True)
+
+    ingestion.ingest(dk_only=True)
+
+    out = capsys.readouterr().out
+    assert "Ingestion complete!" not in out
+    assert "1 document was not read as usual" in out
+    summary = out.rsplit("not read as usual", 1)[-1]
+    [line] = [line for line in summary.splitlines() if "dk-stoffer" in line]
+    assert "timed out" in line
+    assert "iaea-gsg-7" not in out
+
+
+def test_a_law_retsinformation_cannot_deliver_is_indexed_from_its_saved_xml(
+    monkeypatch, tmp_path, capsys
+):
+    """With retsinformation.dk unreachable, a --dk-only run indexed the law's
+    PDF copy, possibly an older version: the law was missing from the XML laws,
+    so its PDF was not skipped. The XML fetched last time is in the folder."""
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    (folder / "dk-stoffer_current.xml").write_text(RETSINFO_XML, encoding="utf-8")
+    (folder / "dk-stoffer_version.txt").write_text(
+        "BEK nr 1385 af 18/11/2025", encoding="utf-8"
+    )
+    write_pdf(folder / "B20250138505.pdf", ["BEK nr 1385 af 18/11/2025"])
+    monkeypatch.setattr(
+        ingestion,
+        "_pdf_first_lines",
+        lambda p, n=3: [
+            "BEK nr 1385 af 18/11/2025",
+            "Bekendtgørelse om radioaktive stoffer",
+        ],
+    )
+    docling_reading(monkeypatch, {"B20250138505.pdf": "Kapitel 1 " * 30})
+    _registry(
+        monkeypatch,
+        [STOFFER],
+        xml=_refused(f"URLError: <urlopen error timed out> ({STOFFER['url']}/xml)"),
+    )
+    added = ingest_without_chroma(monkeypatch, tmp_path, read_registry=True)
+
+    ingestion.ingest(dk_only=True)
+
+    [chunks] = added.values()
+    assert {d.metadata["source"] for d in chunks} == {"BEK nr 1385 af 18/11/2025"}
+    assert {d.metadata["law_title"] for d in chunks} == {
+        "Bekendtgørelse om radioaktive stoffer"
+    }
+    summary = capsys.readouterr().out.rsplit("not read as usual", 1)[-1]
+    [line] = [line for line in summary.splitlines() if "dk-stoffer" in line]
+    assert "timed out" in line and "saved" in line
+    assert sorted(p.name for p in folder.iterdir()) == [
+        "B20250138505.pdf",
+        "dk-stoffer_current.xml",
+        "dk-stoffer_version.txt",
+    ]
+
+
+# --- IAEA publications in the registry that have a local PDF ----------------------
+
+GSG_7_LOCAL = {
+    **GSG_7,
+    "filename_hint": "GSG-7 - Occupational Radiation Protection.pdf",
+}
+
+
+def _refused_and_recorded(calls):
+    """A fetch refused as every IAEA page is since 2026-10 (a Cloudflare
+    challenge), which records the source it was asked for."""
+    refuse = _refused("HTTPError: HTTP Error 403: Forbidden")
+
+    def fetch(source_id, *args, **kwargs):
+        calls.append(source_id)
+        return refuse(source_id, *args, **kwargs)
+
+    return fetch
+
+
+def test_an_iaea_source_with_a_local_pdf_is_not_fetched(monkeypatch, tmp_path):
+    """Every full run listed ~20 IAEA sources as not fetched, although
+    load_iaea_docs indexes their PDFs from documents/IAEA."""
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    (tmp_path / "IAEA").mkdir()
+    write_pdf(tmp_path / "IAEA" / GSG_7_LOCAL["filename_hint"], ["GSG-7"])
+    calls = []
+    _registry(monkeypatch, [GSG_7_LOCAL], pdf=_refused_and_recorded(calls))
+
+    with ingestion.collecting_pdf_problems() as problems:
+        iaea_docs, _ = ingestion._load_docs_from_registry()
+
+    assert calls == []
+    assert iaea_docs == [] and problems == []
+
+
+def test_an_iaea_source_without_its_local_pdf_is_still_fetched(monkeypatch, tmp_path):
+    """Its PDF is not in the folder, or it names none. The one PDF in
+    IAEA_other is not taken for it, as document_updates.get_local_pdf_path
+    would: a publication added by hand would never be indexed."""
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    (tmp_path / "IAEA").mkdir()
+    (tmp_path / "IAEA_other").mkdir()
+    write_pdf(tmp_path / "IAEA_other" / "IAEA-TECDOC-1638.pdf", ["TECDOC-1638"])
+    research_reactors = {
+        "id": "iaea-research-reactors",
+        "name": "Safety Assessment for Research Reactors",
+        "url": "https://www.iaea.org/publications/8639/safety-assessment-for-research-reactors-and-preparation-of-the-safety-analysis-report",
+        "folder": "IAEA_other",
+        "filename_hint": None,
+    }
+    calls = []
+    _registry(
+        monkeypatch,
+        [GSG_7_LOCAL, research_reactors],
+        pdf=_refused_and_recorded(calls),
+    )
+
+    with ingestion.collecting_pdf_problems() as problems:
+        ingestion._load_docs_from_registry()
+
+    assert calls == ["iaea-gsg-7", "iaea-research-reactors"]
+    assert [name for name, _ in problems] == [
+        "Occupational Radiation Protection (iaea-gsg-7)",
+        "Safety Assessment for Research Reactors (iaea-research-reactors)",
+    ]
+
+
+def test_a_full_run_indexes_an_iaea_publication_with_a_local_pdf_once(
+    monkeypatch, tmp_path, capsys
+):
+    """While its page could be fetched, the publication was indexed twice: from
+    the local PDF and from the download, under two source names."""
+    (tmp_path / "IAEA").mkdir()
+    local = write_pdf(tmp_path / "IAEA" / GSG_7_LOCAL["filename_hint"], ["GSG-7"])
+    download = write_pdf(tmp_path / "download.pdf", ["GSG-7"])
+    text = "Occupational exposure " * 30
+    docling_reading(monkeypatch, {local.name: text, download.name: text})
+    _registry(
+        monkeypatch,
+        [GSG_7_LOCAL],
+        pdf=lambda source_id, name, *a, **k: (download, name),
+    )
+    added = ingest_without_chroma(monkeypatch, tmp_path, read_registry=True)
+
+    ingestion.ingest()
+
+    iaea_name, _ = ingestion.get_collection_names("scaleway")
+    assert [d.metadata["source"] for d in added[iaea_name]] == [str(local)]
+    assert "Ingestion complete!" in capsys.readouterr().out
