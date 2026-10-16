@@ -607,8 +607,9 @@ Retrieval-only on `tune` (`tune-retrieval-bge-gemma2` /
 0.75 / 0.64. Scaleway's embedder stays ahead of the local one, by less on
 Danish law than in the privacy-mode comparison above.
 
-**Failed `tune` questions, classified** (16 in `tune-baseline-rescore`, plus
-`kategori-øjelinse` from the repeat):
+**Failed `tune` questions, classified** (the 16 failures of
+`tune-baseline-rescore`, plus `research-source-inventory`, which failed in
+both baselines before the label fix):
 
 | Class | n | Questions |
 |---|---|---|
