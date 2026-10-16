@@ -147,7 +147,7 @@ Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDE
    uv run python ingestion.py --dk-only
    ```
 
-   PDFs are read with docling (layout and OCR). If docling cannot read one, for example because a local model fills the GPU, ingestion stops and names the file before any collection is emptied. Free the GPU and run it again, or pass `--allow-pypdf-fallback` to index that PDF as plain text (a scanned PDF then gives no text). A PDF that yields almost no text is reported as well.
+   PDFs are read with docling (layout and OCR). If docling fails on its default device, for example because a local model fills the GPU, it reads the PDF again on the CPU, which is slower (`DOCLING_DEVICE=cpu uv run python ingestion.py` uses the CPU from the start). If docling cannot read a PDF on the CPU either, ingestion stops and names the file and the error before any collection is emptied. Pass `--allow-pypdf-fallback` to index that PDF as plain text instead (a scanned PDF then gives no text). The run ends with a list of every PDF that was not read as usual: read on the CPU, read as plain text, skipped, or with almost no text (fewer than 100 characters per page, likely a scan without OCR). A PDF uploaded in the Documents panel reports the same in its message.
 
 4. Start the backend:
    ```bash

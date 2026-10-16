@@ -589,11 +589,15 @@ async def documents_add_pdf(
             filename_hint=safe_name,
             version=version,
         )
-        chunks = ingestion.add_single_pdf_to_collection(
-            dest, folder=folder, source_label=display_name
-        )
+        with ingestion.collecting_pdf_problems() as problems:
+            chunks = ingestion.add_single_pdf_to_collection(
+                dest, folder=folder, source_label=display_name
+            )
         ingestion.clear_retrievers_cache()
         msg = f"Added PDF to collection ({chunks} chunks)."
+        # the UI shows the message as it is; otherwise only the server log would
+        # say that the PDF was read on the CPU or gave almost no text
+        msg += "".join(f" Warning: {what}." for _name, what in problems)
         if url:
             msg += f" URL: {url}"
         else:

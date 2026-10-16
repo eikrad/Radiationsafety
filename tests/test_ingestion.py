@@ -12,6 +12,7 @@ from ingestion import (
     load_iaea_docs,
 )
 from ingestion_dk import structure_chunks, xml_to_text
+from tests.pdf_fakes import docling_reading, write_pdf
 
 
 def test_load_iaea_docs_returns_empty_when_no_dirs(tmp_path, monkeypatch):
@@ -665,3 +666,195 @@ def test_a_docling_failure_leaves_the_existing_collections_untouched(monkeypatch
         ingestion.ingest()
 
     assert cleared == []
+
+
+def _docling_on_a_full_gpu(monkeypatch):
+    """docling as on 2026-10-11: its models could not run on the GPU, which a
+    local answer model filled; forced onto the CPU they read the PDF."""
+    from docling.datamodel.accelerator_options import AcceleratorDevice
+    from docling.datamodel.base_models import InputFormat
+
+    class Tokenizer:
+        @classmethod
+        def from_pretrained(cls, **kwargs):
+            return cls()
+
+    class Loader:
+        def __init__(self, file_path, converter=None, **kwargs):
+            self.file_path, self.converter = file_path, converter
+
+        def load(self):
+            device = AcceleratorDevice.AUTO  # docling's default
+            if self.converter:
+                pdf = self.converter.format_to_options[InputFormat.PDF]
+                device = pdf.pipeline_options.accelerator_options.device
+            if device != AcceleratorDevice.CPU:
+                raise RuntimeError("CUDA out of memory. Tried to allocate 20.00 MiB")
+            return [ingestion.Document(page_content="§ 1. " + "Vejledning. " * 300)]
+
+    monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
+    monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
+    monkeypatch.setattr(ingestion, "DoclingLoader", Loader)
+
+
+def test_a_pdf_docling_cannot_read_on_a_full_gpu_is_read_on_the_cpu(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_guidance_pdf(monkeypatch, tmp_path)
+    _docling_on_a_full_gpu(monkeypatch)
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    docs = ingestion.load_dk_law_docs()
+
+    assert [d.page_content[:5] for d in docs] == ["§ 1. "]
+    out = capsys.readouterr().out
+    assert "vejledning.pdf" in out and "CPU" in out
+    assert "CUDA out of memory" in out
+
+
+def _ingest_without_chroma(monkeypatch, tmp_path):
+    """ingest() over the PDFs in tmp_path/Bekendtgørelse; returns what was embedded."""
+    added = {}
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    monkeypatch.setattr(ingestion, "get_embedding_provider", lambda *a: "scaleway")
+    monkeypatch.setattr(ingestion, "_clear_chroma_collections", lambda *a, **k: None)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep: object())
+    monkeypatch.setattr(
+        ingestion, "_load_docs_from_registry", lambda include_iaea=True: ([], [])
+    )
+    monkeypatch.setattr(
+        ingestion,
+        "_add_documents_rate_limited",
+        lambda docs, name, *a, **k: added.setdefault(name, docs),
+    )
+    return added
+
+
+def test_a_run_with_the_plain_text_fallback_ends_by_listing_the_pdfs_not_read_fully(
+    monkeypatch, tmp_path, capsys
+):
+    """The fallback warnings scrolled past between progress bars, and the run
+    still ended with "Ingestion complete!"."""
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    write_pdf(folder / "vejledning.pdf", ["1. Indledning. Brug af aabne kilder."])
+    write_pdf(folder / "scannet.pdf", ["", ""])
+    write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    docling_reading(
+        monkeypatch,
+        {
+            "vejledning.pdf": RuntimeError("CUDA out of memory"),
+            "scannet.pdf": "Sundhedsstyrelsen, 2025",
+            "bekendtgoerelse.pdf": "Kapitel 1 " * 30,
+        },
+    )
+    added = _ingest_without_chroma(monkeypatch, tmp_path)
+
+    ingestion.ingest(dk_only=True)
+
+    [chunks] = added.values()
+    assert len(chunks) == 3
+    summary = capsys.readouterr().out.rsplit("Ingested", 1)[1]
+    assert "Ingestion complete!" not in summary
+    assert "2 PDFs" in summary
+    lines = [line for line in summary.splitlines() if ".pdf" in line]
+    [fallback] = [line for line in lines if "vejledning.pdf" in line]
+    assert "RuntimeError: CUDA out of memory" in fallback and "plain text" in fallback
+    [scanned] = [line for line in lines if "scannet.pdf" in line]
+    assert "almost no text" in scanned
+    assert not [line for line in lines if "bekendtgoerelse.pdf" in line]
+
+
+def test_a_scan_behind_a_typed_cover_page_is_reported_as_almost_no_text(
+    monkeypatch, tmp_path, capsys
+):
+    """A whole-PDF minimum misses a scan whose cover page has a text layer: its
+    text is a page's worth, the 40 pages behind it give nothing."""
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    cover = "Vejledning om brug af aabne radioaktive kilder. " * 10
+    write_pdf(folder / "vejledning.pdf", [cover] + [""] * 40)
+    docling_reading(monkeypatch, {"vejledning.pdf": cover})
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    monkeypatch.setattr(ingestion, "_extract_and_load_attachments", lambda *a, **k: [])
+
+    ingestion.load_dk_law_docs()
+
+    [warning] = [
+        line for line in capsys.readouterr().out.splitlines() if "vejledning" in line
+    ]
+    assert "almost no text" in warning and "41 pages" in warning
+
+
+def test_a_pdf_neither_docling_nor_pypdf_can_read_is_listed_at_the_end(
+    monkeypatch, tmp_path, capsys
+):
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    (folder / "beskadiget.pdf").write_bytes(b"%PDF-1.4 truncated download")
+    docling_reading(monkeypatch, {"beskadiget.pdf": RuntimeError("not a PDF")})
+    _ingest_without_chroma(monkeypatch, tmp_path)
+
+    ingestion.ingest(dk_only=True)
+
+    summary = capsys.readouterr().out.rsplit("not read as usual", 1)[-1]
+    [line] = [line for line in summary.splitlines() if "beskadiget.pdf" in line]
+    assert "skipped" in line
+
+
+def test_an_attachment_docling_cannot_read_stops_the_ingestion_and_is_named(
+    monkeypatch, tmp_path
+):
+    """Attachments (Anhänge) often hold a law's tables; a docling failure on one
+    dropped it from the index without a word."""
+    from pypdf import PdfWriter
+
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    law = write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    table = write_pdf(tmp_path / "bilag.pdf", ["Bilag 2. Dosisgraenser " * 10])
+    writer = PdfWriter(clone_from=str(law))
+    writer.add_attachment("bilag 2.pdf", table.read_bytes())
+    writer.write(str(law))
+    docling_reading(
+        monkeypatch,
+        {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
+        default=RuntimeError("CUDA out of memory"),
+    )
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+    with pytest.raises(ingestion.DoclingFailedError) as stopped:
+        ingestion.load_dk_law_docs()
+
+    assert "bekendtgoerelse.pdf (Anhang: bilag 2.pdf)" in str(stopped.value)
+
+
+def test_an_attachment_nothing_can_read_is_reported_as_skipped(
+    monkeypatch, tmp_path, capsys
+):
+    from pypdf import PdfWriter
+
+    monkeypatch.setenv("INGEST_ALLOW_PYPDF_FALLBACK", "true")
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    law = write_pdf(folder / "bekendtgoerelse.pdf", ["Kapitel 1 " * 30])
+    writer = PdfWriter(clone_from=str(law))
+    writer.add_attachment("bilag 2.pdf", b"%PDF-1.4 cut off")
+    writer.write(str(law))
+    docling_reading(
+        monkeypatch,
+        {"bekendtgoerelse.pdf": "Kapitel 1 " * 30},
+        default=RuntimeError("not a PDF"),
+    )
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+
+    with ingestion.collecting_pdf_problems() as problems:
+        ingestion.load_dk_law_docs()
+
+    assert ("bekendtgoerelse.pdf (Anhang: bilag 2.pdf)", "skipped") in [
+        (name, what.split(",")[0]) for name, what in problems
+    ]

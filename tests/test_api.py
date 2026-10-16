@@ -681,3 +681,70 @@ def test_api_reports_the_installed_package_version(client: TestClient):
     assert client.get("/openapi.json").json()["info"]["version"] == version(
         "radiationsafety"
     )
+
+
+@pytest.fixture
+def upload_without_side_effects(monkeypatch, tmp_path):
+    """add-pdf with the real ingestion code, but no registry file, URL lookup or
+    Chroma: the uploaded PDF lands in tmp_path."""
+    import api.main
+    import document_updates
+    import ingestion
+
+    class Store:
+        def __init__(self, **kwargs):
+            pass
+
+        def add_documents(self, docs):
+            pass
+
+    monkeypatch.setattr(api.main, "_PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(
+        document_updates, "_lookup_iaea_publication_url_multi", lambda queries: None
+    )
+    monkeypatch.setattr(
+        document_updates, "append_source_to_registry", lambda **kwargs: None
+    )
+    monkeypatch.setattr(ingestion, "get_embedding_provider", lambda *a: "scaleway")
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep: object())
+    monkeypatch.setattr(ingestion, "Chroma", Store)
+
+
+def test_an_uploaded_scan_docling_got_almost_no_text_from_says_so(
+    client: TestClient, monkeypatch, tmp_path, upload_without_side_effects
+):
+    """The upload answered "Added PDF to collection (1 chunks)."; the warning
+    went to the server log only."""
+    from tests.pdf_fakes import docling_reading, write_pdf
+
+    pdf = write_pdf(tmp_path / "scan.pdf", [""] * 12)
+    docling_reading(monkeypatch, {"scan.pdf": "IAEA, Vienna"})
+
+    res = client.post(
+        "/api/documents/add-pdf",
+        files={"file": ("scan.pdf", pdf.read_bytes(), "application/pdf")},
+    )
+
+    assert res.status_code == 200
+    assert "almost no text" in res.json()["message"]
+
+
+def test_an_upload_docling_cannot_read_names_the_setting_that_allows_plain_text(
+    client: TestClient, monkeypatch, tmp_path, upload_without_side_effects
+):
+    """A command-line flag is no way out for whoever uploads through the UI."""
+    from tests.pdf_fakes import docling_reading, write_pdf
+
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    pdf = write_pdf(tmp_path / "rapport.pdf", ["Safety assessment " * 20])
+    docling_reading(monkeypatch, {"rapport.pdf": RuntimeError("CUDA out of memory")})
+
+    res = client.post(
+        "/api/documents/add-pdf",
+        files={"file": ("rapport.pdf", pdf.read_bytes(), "application/pdf")},
+    )
+
+    assert res.status_code == 500
+    detail = res.json()["detail"]
+    assert "CUDA out of memory" in detail
+    assert "INGEST_ALLOW_PYPDF_FALLBACK=true" in detail
