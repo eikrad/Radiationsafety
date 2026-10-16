@@ -57,7 +57,7 @@ def invoke_dual_retrievers(
     """
     iaea_retriever, dk_retriever = get_retrievers(embedding_provider)
     cfg = config or {}
-    reranker = get_reranker()
+    reranker = get_reranker(embedding_provider)
     keep = k if k is not None else RETRIEVER_K
     if reranker is not None:
         search = {"k": max(rerank_candidates(), keep)}

@@ -70,7 +70,7 @@ class _ReverseScorer:
 def _patch_ranked(monkeypatch, scorer, candidates=20):
     iaea, dk = _RankedRetriever("iaea"), _RankedRetriever("dk")
     monkeypatch.setattr(retrieval_common, "get_retrievers", lambda ep: (iaea, dk))
-    monkeypatch.setattr(retrieval_common, "get_reranker", lambda: scorer)
+    monkeypatch.setattr(retrieval_common, "get_reranker", lambda ep=None: scorer)
     monkeypatch.setattr(retrieval_common, "rerank_candidates", lambda: candidates)
     monkeypatch.setattr(retrieval_common, "RETRIEVER_K", 5)
     return iaea, dk
