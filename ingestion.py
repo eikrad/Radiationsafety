@@ -351,6 +351,42 @@ def _save_danish_current_and_trim_backups(
             pass
 
 
+def _saved_danish_law(
+    source_id: str, name: str, registry_name: str, error: Exception
+) -> list[Document]:
+    """The chunks of a Danish law as last fetched, for when retsinformation.dk
+    cannot deliver it now.
+
+    _save_danish_current_and_trim_backups keeps that XML (tracked in git), so
+    the law keeps the text the index had and its PDF copy, perhaps an older
+    version, stays skipped. Without a saved copy the PDF stands in.
+    """
+    folder = DOCS_DIR / "Bekendtgørelse"
+    saved = folder / f"{source_id}_current.xml"
+    if saved.exists():
+        from ingestion_fetch import _label_from_danish_xml
+
+        try:
+            label = (folder / f"{source_id}_version.txt").read_text("utf-8").strip()
+        except OSError:
+            label = ""
+        label = label or _label_from_danish_xml(saved) or name
+        docs = structure_chunks(saved, label)
+        if docs:
+            _report_pdf_problem(
+                registry_name,
+                f"not fetched ({error}); indexed the copy saved by the last fetch "
+                f"({label}) instead",
+            )
+            return docs
+    _report_pdf_problem(
+        registry_name,
+        f"not fetched ({error}); no saved copy to index, so only a PDF of it in "
+        "documents/Bekendtgørelse, if there is one, is indexed",
+    )
+    return []
+
+
 def _load_docs_from_registry(
     include_iaea: bool = True,
 ) -> tuple[list[Document], list[Document]]:
@@ -358,10 +394,14 @@ def _load_docs_from_registry(
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
     XML-sourced Danish docs are chunked along their paragraphs (ingestion_dk).
+    An IAEA source with its PDF in the folder is not fetched (_has_local_pdf).
+    A source that could not be fetched is reported with the reason, under its
+    name and id in document_sources.yaml.
     """
     try:
         from document_updates import update_registry_url, update_version_after_ingest
         from ingestion_fetch import (
+            FetchError,
             fetch_danish_xml_for_source,
             fetch_pdf_for_source,
             load_sources_registry,
@@ -380,12 +420,17 @@ def _load_docs_from_registry(
         folder = (s.get("folder") or "IAEA").strip()
         if not url:
             continue
+        registry_name = f"{name} ({source_id})" if source_id else name
         if folder == "Bekendtgørelse":
-            path, label, resolved_url = fetch_danish_xml_for_source(
-                source_id, name, url, use_newest_dk=True
-            )
-            if path is None:
+            try:
+                path, label, resolved_url = fetch_danish_xml_for_source(
+                    source_id, name, url, use_newest_dk=True
+                )
+            except FetchError as e:
+                dk_docs.extend(_saved_danish_law(source_id, name, registry_name, e))
                 continue
+            if path is None:
+                continue  # not on retsinformation.dk: its PDF is read from the folder
             try:
                 dk_docs.extend(structure_chunks(path, label))
                 if resolved_url and resolved_url != url:
@@ -409,8 +454,14 @@ def _load_docs_from_registry(
         # IAEA or other: PDF — docling returns pre-chunked docs
         if not include_iaea:
             continue
-        path, label = fetch_pdf_for_source(source_id, name, url, folder)
-        if path is None:
+        if _has_local_pdf(folder, s.get("filename_hint")):
+            continue  # load_iaea_docs indexes it
+        try:
+            path, label = fetch_pdf_for_source(source_id, name, url, folder)
+        except FetchError as e:
+            _report_pdf_problem(
+                registry_name, f"not fetched, nothing indexed from its URL ({e})"
+            )
             continue
         try:
             docs = _load_pdf_with_docling(path, source_label=label)
@@ -427,6 +478,22 @@ def _load_docs_from_registry(
             except OSError:
                 pass
     return iaea_docs, dk_docs
+
+
+def _has_local_pdf(folder: str, filename_hint: str | None) -> bool:
+    """Whether load_iaea_docs indexes this registry source from its PDF in
+    documents/IAEA or documents/IAEA_other.
+
+    Fetching it as well indexed the publication twice, and since 2026-10 every
+    IAEA publication page answers with a Cloudflare challenge (403). The fetch
+    never gave a newer edition: a new edition has its own publication page,
+    which only the update check finds (download_update_for_source saves it over
+    this file). Matched by filename_hint alone: document_updates.get_local_pdf_path
+    takes the only PDF in a folder for a source without one.
+    """
+    if folder not in ("IAEA", "IAEA_other") or not filename_hint:
+        return False
+    return any(filename_hint in p.name for p in (DOCS_DIR / folder).rglob("*.pdf"))
 
 
 def load_iaea_docs() -> list[Document]:
@@ -457,8 +524,9 @@ class DoclingFailedError(RuntimeError):
     """docling could not read a PDF, and the pypdf fallback was not allowed."""
 
 
-# The PDFs not read as usual, as (file, what happened), for the summary at the
-# end of a run; None outside collecting_pdf_problems().
+# The PDFs not read as usual and the registry sources not fetched, as (name,
+# what happened), for the summary at the end of a run; None outside
+# collecting_pdf_problems().
 _pdf_problems: ContextVar[list[tuple[str, str]] | None] = ContextVar(
     "pdf_problems", default=None
 )
@@ -467,7 +535,8 @@ _pdf_problems: ContextVar[list[tuple[str, str]] | None] = ContextVar(
 @contextmanager
 def collecting_pdf_problems() -> Iterator[list[tuple[str, str]]]:
     """Collect every PDF read inside the block that was not read as usual: on
-    the CPU, as plain text, with almost no text, or not at all.
+    the CPU, as plain text, with almost no text, or not at all; and every
+    source in document_sources.yaml that could not be fetched.
 
     A context variable, not a module list: a PDF uploaded through the API while
     an ingestion runs must neither add to the other's list nor empty it.
@@ -489,13 +558,13 @@ def _report_pdf_problem(name: str, what: str) -> None:
 
 
 def _pdf_problem_summary(problems: list[tuple[str, str]]) -> str:
-    """One line per PDF with everything that happened to it."""
-    by_pdf: dict[str, list[str]] = {}
+    """One line per PDF or registry source with everything that happened to it."""
+    by_doc: dict[str, list[str]] = {}
     for name, what in problems:
-        by_pdf.setdefault(name, []).append(what)
-    count = "1 PDF was" if len(by_pdf) == 1 else f"{len(by_pdf)} PDFs were"
+        by_doc.setdefault(name, []).append(what)
+    count = "1 document was" if len(by_doc) == 1 else f"{len(by_doc)} documents were"
     lines = [f"⚠️  Ingestion complete, but {count} not read as usual:"]
-    lines += [f"  - {name}: {'; '.join(whats)}" for name, whats in by_pdf.items()]
+    lines += [f"  - {name}: {'; '.join(whats)}" for name, whats in by_doc.items()]
     return "\n".join(lines)
 
 
