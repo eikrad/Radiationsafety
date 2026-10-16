@@ -704,6 +704,43 @@ cross-encoder, since 10 of the 12 retrieval misses have their evidence at
 ranks 6–20; step 2 is uncertain, because several of those questions are
 multi-part and fail on more than one nugget.
 
+Result of step 1 (2026-10-16, retrieval-only on `tune`, 20 candidates per
+collection), **rule not met for either re-ranker**:
+
+| Run | higher / lower (sign test) | recall@1 | @5 | @10 | MRR | s/question |
+|---|---|---|---|---|---|---|
+| baseline `tune-retrieval-bge-gemma2` | | 0.64 | 0.88 | 0.93 | 0.75 | 0.5 |
+| `tune-retrieval-rerank-bge` (bge-reranker-v2-m3) | 13 / 5 (p = 0.10) | 0.68 | 0.91 | 0.96 | 0.79 | 11.7 |
+| `tune-retrieval-rerank-qwen3emb` (Scaleway) | 12 / 13 (p = 1.0) | 0.64 | 0.86 | 0.91 | 0.73 | 3.6 |
+| counter-check: baseline `tune-retrieval-bge-m3` | | 0.51 | 0.84 | 0.85 | 0.64 | 1.5 |
+| counter-check: bge-m3 + bge-reranker-v2-m3 (CPU) | 23 / 2 (p < 0.001) | 0.70 | 0.87 | 0.90 | 0.78 | 72 |
+
+- The cross-encoder moves the evidence up and recall@5 does not drop, but
+  13 to 5 is not significant, so by the rule it does not go on to the full
+  run. Its effect at k = 5: four of the twelve baseline retrieval misses get
+  all their evidence into the top 5 (`ekstern-arbejdstager-ansvar`,
+  `gsr2-supply-chain-responsibility`, `gammaradiografi-uden-for-anlæg`,
+  `modtagekontrol-fejl-indberetning`), and two questions lose a piece of
+  theirs (`ammende-arbejdstager`, `gsr3-notification-vs-registration`). The
+  misses on tables and cross-references (Bilag 6, the SSR-6 activity table,
+  the BEK 1386 definitions) stay: the re-ranker cannot find what is not
+  among the 20 candidates or ranks it low as well.
+- Scaleway's `qwen3-embedding-8b` as a re-ranker is no better than the
+  embedder it re-ranks (12 to 13); a second bi-encoder adds nothing here.
+- On `bge-m3` the cross-encoder helps clearly (23 to 2, MRR 0.64 → 0.78,
+  close to the Scaleway embedder alone), so the effect depends on the
+  embedder: re-ranking makes up for a weaker one. But on the CPU it took
+  72 s per question, which rules it out for privacy mode as it is.
+- Latency: on the test laptop the GPU stayed in its power-saving state
+  (210 of 2100 MHz) throughout, so 11.7 s per question overstates what a
+  GPU at full clock would take; it is still the cost measured here.
+
+Decision: both stay opt-in (`RERANKER`), off by default. Not tried, and
+the candidates for a next round: a cross-encoder on more candidates only
+where the embedder is weak (privacy mode, with a GPU), and the
+structure-side fixes the misses point to (tables reachable from the
+paragraph that cites them, smaller units in definition lists).
+
 ---
 
 ## Phase 1 — Continuous Scoring
