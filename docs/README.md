@@ -10,6 +10,7 @@ Documentation for the Radiation Safety RAG system.
 | [production-readiness.md](production-readiness.md) | Security, admin auth, rate limiting, observability, container hardening, and a runbook |
 | [maintenance.md](maintenance.md) | Dated log of periodic dependency checks, upgrade notes and security findings (newest first) |
 | [releasing.md](releasing.md) | release-please flow, commit types and version bumps, how to merge PRs |
+| [privacy-mode-docker-plan.md](privacy-mode-docker-plan.md) | Plan (not started): optional Ollama container for privacy mode in Docker |
 
 Related files outside `docs/`: [eval/README.md](../eval/README.md) (evaluation harness), [frontend/README.md](../frontend/README.md) (UI structure), [CONTRIBUTING.md](../CONTRIBUTING.md), [ROADMAP.md](../ROADMAP.md), and `AGENTS.md` / `CLAUDE.md` (conventions for AI agents).
 

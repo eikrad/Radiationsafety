@@ -10,6 +10,13 @@ quickest win to most complex.
 - Playwright UI-E2E-Abdeckung (essentielle Interface-Flows, gemocktes API):
   `.cursor/plans/playwright_essential_e2e_975e1548.plan.md`
 
+## Planned — Privacy mode with Docker
+
+`docker compose --profile ollama up` starts an optional Ollama container and pulls the models
+once, so privacy mode works on Windows, macOS and Linux without a per-machine setup script; an
+Ollama already installed on the host keeps working. Prompted by #106. Plan:
+[`docs/privacy-mode-docker-plan.md`](docs/privacy-mode-docker-plan.md).
+
 ---
 
 ## Done — Run History & Dashboard
