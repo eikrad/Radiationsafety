@@ -394,6 +394,7 @@ def _load_docs_from_registry(
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
     XML-sourced Danish docs are chunked along their paragraphs (ingestion_dk).
+    An IAEA source with its PDF in the folder is not fetched (_has_local_pdf).
     A source that could not be fetched is reported with the reason, under its
     name and id in document_sources.yaml.
     """
@@ -453,6 +454,8 @@ def _load_docs_from_registry(
         # IAEA or other: PDF — docling returns pre-chunked docs
         if not include_iaea:
             continue
+        if _has_local_pdf(folder, s.get("filename_hint")):
+            continue  # load_iaea_docs indexes it
         try:
             path, label = fetch_pdf_for_source(source_id, name, url, folder)
         except FetchError as e:
@@ -475,6 +478,22 @@ def _load_docs_from_registry(
             except OSError:
                 pass
     return iaea_docs, dk_docs
+
+
+def _has_local_pdf(folder: str, filename_hint: str | None) -> bool:
+    """Whether load_iaea_docs indexes this registry source from its PDF in
+    documents/IAEA or documents/IAEA_other.
+
+    Fetching it as well indexed the publication twice, and since 2026-10 every
+    IAEA publication page answers with a Cloudflare challenge (403). The fetch
+    never gave a newer edition: a new edition has its own publication page,
+    which only the update check finds (download_update_for_source saves it over
+    this file). Matched by filename_hint alone: document_updates.get_local_pdf_path
+    takes the only PDF in a folder for a source without one.
+    """
+    if folder not in ("IAEA", "IAEA_other") or not filename_hint:
+        return False
+    return any(filename_hint in p.name for p in (DOCS_DIR / folder).rglob("*.pdf"))
 
 
 def load_iaea_docs() -> list[Document]:
