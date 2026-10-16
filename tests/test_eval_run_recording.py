@@ -114,6 +114,8 @@ def workspace(tmp_path, monkeypatch):
             model=model_variant or f"{provider or 'gemini'}-model"
         ),
     )
+    # main() loads .env, which would bring back variables deleted below
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     # pinned: these tests are about recording, not about the default embeddings
     monkeypatch.setenv("EMBEDDING_PROVIDER", "gemini")
@@ -745,3 +747,87 @@ def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
         not in _results(run)["iaea-transport-index"]["metrics"]
     )
     assert run["summary"]["grade_documents_ablation_correct_mean"] == 1.0
+
+
+def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_NUM_CTX", "8192")
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["llm_provider"] == "ollama"
+    assert run["config"]["llm_num_ctx"] == 8192
+
+
+def test_a_privacy_mode_run_is_recorded_without_web_search(monkeypatch, workspace):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    # _run passes --no-web-search, which would hide the point of this test
+    argv = [
+        "run_eval",
+        "--golden",
+        str(workspace.golden),
+        "--output-dir",
+        str(workspace.reports),
+        "--history-file",
+        str(workspace.history),
+        "--delay-after-graph",
+        "0",
+        "--delay-between-items",
+        "0",
+    ]
+    monkeypatch.setattr("sys.argv", argv)
+
+    assert run_eval.main() == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["web_search"] is False
+
+
+def test_a_question_whose_graph_run_crashes_counts_as_failed_and_the_run_goes_on(
+    monkeypatch, workspace
+):
+    """Privacy run 2026-10-11: one grader reply ended the run after 36 answers,
+    and nothing was recorded."""
+    answer = run_eval._invoke_graph
+
+    def crashing(question, graph, llm):
+        if question == "What is the transport index?":
+            raise ValueError("1 validation error for GradeSufficiency")
+        return answer(question, graph, llm)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", crashing)
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    crashed = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
+    assert (crashed["pass"], crashed["error_type"]) == (False, "graph_error")
+    assert "GradeSufficiency" in crashed["error"]
+    assert run["summary"]["error_counts"]["graph_error"] == 1
+    assert run["summary"]["judged"] == len(GOLDEN)
+
+
+def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, workspace):
+    """Ollama restarts itself after the OOM killer stops it."""
+    import httpx
+
+    answer = run_eval._invoke_graph
+    asked = []
+
+    def flaky(question, graph, llm):
+        asked.append(question)
+        if question == "What is the transport index?" and asked.count(question) == 1:
+            raise httpx.RemoteProtocolError("Server disconnected without a response.")
+        return answer(question, graph, llm)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", flaky)
+    monkeypatch.setattr(run_eval, "_GRAPH_RETRY_WAIT_SEC", 0, raising=False)
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    result = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
+    assert result["error_type"] != "graph_error"
+    assert asked.count("What is the transport index?") == 2

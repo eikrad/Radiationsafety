@@ -131,6 +131,9 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
 # stalled provider call could hold a /query open for half an hour.
 _DEFAULT_REQUEST_TIMEOUT_SEC = 60.0
 _DEFAULT_OLLAMA_TIMEOUT_SEC = 300.0  # local models on a CPU answer slowly
+# Ollama's own window (4096) cut longer prompts silently; at k=5 the first
+# retrieval alone reaches ~4200 tokens, and retrieve_missing adds chunks
+_DEFAULT_OLLAMA_NUM_CTX = 16384
 _DEFAULT_MAX_RETRIES = 1
 
 
@@ -140,6 +143,19 @@ def _env_number(name: str, default: float) -> float:
     except ValueError:
         return default
     return value if value >= 0 else default
+
+
+def ollama_model_name() -> str:
+    """The local answer model (OLLAMA_MODEL). qwen3.5:4b runs fully in 6 GB of
+    VRAM, 2.5x faster than llama3.1:8b at even quality (ROADMAP, step P2)."""
+    return (os.getenv("OLLAMA_MODEL") or "").strip() or "qwen3.5:4b"
+
+
+def ollama_num_ctx() -> int:
+    """Context window of the local model in tokens (OLLAMA_NUM_CTX)."""
+    return int(_env_number("OLLAMA_NUM_CTX", _DEFAULT_OLLAMA_NUM_CTX)) or (
+        _DEFAULT_OLLAMA_NUM_CTX
+    )
 
 
 def request_timeout() -> float:
@@ -232,13 +248,28 @@ def get_llm(
         from langchain_ollama import ChatOllama
 
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        env_model = (os.getenv("OLLAMA_MODEL") or "").strip()
-        model = model_variant or env_model or "llama3.1:8b"
+        model = model_variant or ollama_model_name()
         timeout = _env_number("OLLAMA_REQUEST_TIMEOUT_SEC", _DEFAULT_OLLAMA_TIMEOUT_SEC)
-        return ChatOllama(
+
+        class OllamaChat(ChatOllama):
+            # a local model sometimes replies {} to a grader (llama3.1:8b did); ask
+            # once more, as for Scaleway, before the caller treats it as missing
+            def with_structured_output(
+                self, schema=None, *, include_raw=False, **kwargs
+            ):
+                structured = super().with_structured_output(
+                    schema, include_raw=True, **kwargs
+                )
+                return with_text_fallback(structured, schema, include_raw)
+
+        return OllamaChat(
             model=model,
             temperature=0,
             base_url=base_url,
+            num_ctx=ollama_num_ctx(),
+            # thinking models (qwen3.5) would put <think> blocks into answers and
+            # grader JSON; models without thinking ignore the switch
+            reasoning=False,
             client_kwargs={"timeout": timeout},
         )
 
@@ -344,7 +375,9 @@ def get_embedding_model_name(embedding_provider: str | None = None) -> str:
         else get_embedding_provider()
     )
     if ep == "ollama":
-        return (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "nomic-embed-text"
+        # multilingual; the English-only nomic-embed-text missed most Danish
+        # evidence (ROADMAP, privacy mode step P1)
+        return (os.getenv("OLLAMA_EMBED_MODEL") or "").strip() or "bge-m3"
     if ep == "gemini":
         return "models/gemini-embedding-001"
     if ep == "scaleway":
@@ -391,6 +424,25 @@ def _with_query_instruction(embeddings, template: str | None):
     return QueryInstructionEmbeddings()
 
 
+def _queries_on_cpu(on_gpu, on_cpu):
+    """Local embeddings that embed questions on the CPU and documents as Ollama
+    decides. An embedder on the GPU can push the answer model out of a small
+    card (4-7 s to reload per switch, measured with bge-m3 next to
+    llama3.1:8b on 6 GB); a question takes about 0.3 s on the CPU."""
+    from langchain_core.embeddings import Embeddings
+
+    class OllamaQueriesOnCpuEmbeddings(Embeddings):
+        model = on_gpu.model
+
+        def embed_documents(self, texts: list[str]) -> list[list[float]]:
+            return on_gpu.embed_documents(texts)
+
+        def embed_query(self, text: str) -> list[float]:
+            return on_cpu.embed_query(text)
+
+    return OllamaQueriesOnCpuEmbeddings()
+
+
 def get_embeddings(embedding_provider: str | None = None):
     """Return embeddings instance for the given provider.
 
@@ -408,7 +460,10 @@ def get_embeddings(embedding_provider: str | None = None):
         from langchain_ollama import OllamaEmbeddings
 
         base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        return OllamaEmbeddings(model=model, base_url=base_url)
+        return _queries_on_cpu(
+            OllamaEmbeddings(model=model, base_url=base_url),
+            OllamaEmbeddings(model=model, base_url=base_url, num_gpu=0),
+        )
     if ep == "gemini":
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
 

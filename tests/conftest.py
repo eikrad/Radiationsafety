@@ -2,8 +2,14 @@
 
 from unittest.mock import MagicMock
 
+import dotenv
 import pytest
 from fastapi.testclient import TestClient
+
+# A developer's .env must not reach the tests. Modules call load_dotenv() when
+# first imported, which can happen inside a test after the fixture below has
+# cleared the environment (ingestion.py brought OLLAMA_EMBED_MODEL back).
+dotenv.load_dotenv = lambda *args, **kwargs: False
 
 
 @pytest.fixture(autouse=True)

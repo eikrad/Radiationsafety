@@ -397,5 +397,35 @@
       "unsupported": false,
       "refused": false
     }
+  },
+  {
+    "id": "scope-refusal-despite-web-answer",
+    "purpose": "Declining a question on non-ionising radiation as outside the scope of the documents is a refusal with nothing unsupported, even when a web source in the context answers it; the golden set expects this refusal. The web value is constructed for the test.",
+    "origin": "radiation-specific (#145)",
+    "question": "Which maximum UV irradiance applies to tanning beds in Denmark?",
+    "expected_behavior": "refuse",
+    "nuggets": [],
+    "context": "[Source: https://tanning.example/limits (web)]\nTanning devices sold in the EU must not exceed an erythemally weighted irradiance of 0.3 W/m² (EN 60335-2-27).\n\n---\n\n[Source: BEK 1384 (Danish law)]\n§ 90. En virksomhed, der er omfattet af krav om tilladelse til udledning af radioaktivt materiale, skal overvåge udledningen og mindst én gang årligt indberette resultaterne herfra til Sundhedsstyrelsen.",
+    "answer": "UV radiation from tanning beds is non-ionising radiation. It is outside the scope of the IAEA standards and Danish orders on ionising radiation that these documents cover, so I cannot answer this question.",
+    "expect": {
+      "nuggets": [],
+      "unsupported": false,
+      "refused": true
+    }
+  },
+  {
+    "id": "scope-refusal-plus-wrong-reference",
+    "purpose": "A scope refusal does not excuse an added reference that differs from the context (EN 60335-2-29 instead of -27); the addition does not answer the question, so it is still a refusal. The web value is constructed for the test.",
+    "origin": "radiation-specific (#145)",
+    "question": "Which maximum UV irradiance applies to tanning beds in Denmark?",
+    "expected_behavior": "refuse",
+    "nuggets": [],
+    "context": "[Source: https://tanning.example/limits (web)]\nTanning devices sold in the EU must not exceed an erythemally weighted irradiance of 0.3 W/m² (EN 60335-2-27).\n\n---\n\n[Source: BEK 1384 (Danish law)]\n§ 90. En virksomhed, der er omfattet af krav om tilladelse til udledning af radioaktivt materiale, skal overvåge udledningen og mindst én gang årligt indberette resultaterne herfra til Sundhedsstyrelsen.",
+    "answer": "UV radiation from tanning beds is non-ionising radiation and outside the scope of these documents. The web source in the context refers to the standard EN 60335-2-29 for tanning devices.",
+    "expect": {
+      "nuggets": [],
+      "unsupported": true,
+      "refused": true
+    }
   }
 ]

@@ -153,6 +153,7 @@ Metrics that do not apply (e.g. vital recall of a refuse item) are left out rath
 | `generator_miss` | evidence was there, but a vital fact is missing from the answer |
 | `missed_refusal` | a question the sources do not answer was answered anyway |
 | `judge_error` | the judge failed twice; the question is left out of the pass rate |
+| `graph_error` | the graph raised (after one more try if the connection dropped); counts as failed, the error is recorded, and the run goes on; if every question fails, the run stops unrecorded |
 
 Matching evidence quotes ignores case, whitespace, soft hyphens, zero-width characters (present in the Danish XML) and typographic dashes.
 
@@ -198,6 +199,28 @@ uv run python -m eval.k_test --label k3-vs-k5
 ```
 
 `RETRIEVER_K` sets k for the graph and for full runs (default 5, step 5 of the ROADMAP).
+
+## Prompt test
+
+Does the revised generation prompt answer better than the previous one (#145)?
+`eval.prompt_test` replays the context each question's generator saw in a
+saved full run (`eval/reports/outputs_<run_id>.json`, web results included) and
+answers it with the prompt from before #145 (`PREVIOUS`, kept verbatim) and
+with today's `RAG_SYSTEM`. Only the prompt differs. Both answers are scored as
+in a full run, with 3 groundedness votes; the summary checks the adoption rule
+from the ROADMAP. About 8–10 calls per question; runs go to
+`eval/history/prompt_tests.jsonl`, the answers to
+`eval/reports/prompt_test_<run_id>.json`. It refuses to run on uncommitted
+code, since the commit has to say which prompt was tested.
+
+```bash
+uv run python -m eval.prompt_test --outputs eval/reports/outputs_20261003_132636.json --label prompt-145
+```
+
+After a judge change, `--rejudge eval/reports/prompt_test_<run_id>.json` judges
+the saved answers of both prompts again instead of generating new ones (about
+4–6 calls per question); `--outputs` must be the run whose contexts they
+answered.
 
 ## Checking the judge
 

@@ -12,7 +12,7 @@ The system has three main layers:
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
 3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded by the configured embedding provider (Scaleway by default, Gemini optional; local embeddings in Ollama mode).
 
-The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API. Key components live in `frontend/src/components/`: `QueryForm` (question input), `ResponseDisplay` (answer + sources + warnings), `DocumentsPanel` + `DocumentListSidebar` + `DocumentUpdatesModal` (document management UI), `ModelSelector` (LLM provider picker), and `SettingsModal` (API keys, preferences).
+The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API. Key components live in `frontend/src/components/`: `QueryForm` (question input), `QueryProgress` (progress while a query runs), `ResponseDisplay` (answer + sources + warnings), `PrivacyNoticeModal` (in-app privacy notice), `DocumentsPanel` + `DocumentListSidebar` + `DocumentUpdatesModal` (document management UI), `ModelSelector` (LLM provider picker), and `SettingsModal` (API keys, preferences).
 
 ```mermaid
 graph LR
@@ -170,7 +170,7 @@ flowchart TD
 
     LOCAL --> CHUNK
     DKURL -->|fetch newest XML| CHUNK
-    IAEAURL -->|parse page, fetch PDF| CHUNK
+    IAEAURL -->|no local PDF: parse page, fetch PDF| CHUNK
     DIRECT -->|download PDF| CHUNK
 
     subgraph CHUNK [Chunking]
@@ -182,7 +182,7 @@ flowchart TD
     CHUNK --> EMBED[Embeddings\nScaleway or Gemini]
     EMBED --> CHROMA
 
-    subgraph CHROMA [Chroma .chroma/]
+    subgraph CHROMA [Chroma .chroma/ - suffix per embedding model]
         COL1[(radiation-iaea)]
         COL2[(radiation-dk-law)]
     end
@@ -190,12 +190,16 @@ flowchart TD
 
 ### Key ingestion facts
 
+- **Commands:** `uv run python ingestion.py` (full), `--dk-only` (rebuild only the Danish collection), `--reembed-from <provider>` (embed the existing chunks of that provider's collections with the configured `EMBEDDING_PROVIDER`, without re-parsing documents).
+- **Collection names:** Gemini uses the plain names `radiation-iaea` / `radiation-dk-law`; Scaleway uses `-scw-<model>` suffixes (default `bge-multilingual-gemma2`); Ollama uses `-ollama`.
 - **Embeddings follow `EMBEDDING_PROVIDER`** (Scaleway by default, Gemini optional), independently of the answering model; each provider/model has its own collections.
 - Changing `LLM_PROVIDER` (Scaleway / Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
-- Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
+- **PDFs are read with docling**; if it fails on its default device (e.g. a GPU held by a local model), once more on the CPU. If it fails there too, ingestion stops before any collection is emptied, unless `--allow-pypdf-fallback` / `INGEST_ALLOW_PYPDF_FALLBACK=true` lets pypdf index the plain text. Every PDF not read as usual (on the CPU, as plain text, skipped, fewer than 100 characters per page) is listed at the end of the run and in the upload message.
+- Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series. A registry source that cannot be fetched is listed at the end of the run with the reason and does not stop it; a Danish law is then indexed from the XML saved by its last fetch (`<id>_current.xml`).
+- An IAEA registry source whose PDF (`filename_hint`) is in `documents/IAEA/` or `documents/IAEA_other/` is indexed from that file only, never also fetched: the fetch indexed the publication twice and never gave a newer edition, which has its own page and comes through the update check (`download_update_for_source` replaces the local PDF).
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
-- The two Chroma collections (`radiation-iaea`, `radiation-dk-law`) must not be renamed without re-ingesting.
-- **Ollama mode** uses `nomic-embed-text` for embeddings and stores them in separate `radiation-iaea-ollama` and `radiation-dk-law-ollama` collections.
+- The Gemini collection names (`radiation-iaea`, `radiation-dk-law`) and their suffixed variants must not be renamed without re-ingesting.
+- **Ollama mode** uses `bge-m3` for embeddings and stores them in separate `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` collections. Every local embedding model gets its own pair (`-ollama-<model>`); the earlier default `nomic-embed-text` keeps `radiation-iaea-ollama` / `radiation-dk-law-ollama`.
 
 ### Updating documents
 
@@ -240,11 +244,13 @@ flowchart LR
 ```mermaid
 flowchart LR
     ENV[LLM_PROVIDER env var\nor frontend override] --> FAC{llm_factory}
+    FAC -->|scaleway| SCW[Scaleway\nSCW_MODEL · default]
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
-    FAC -->|ollama| OLL[langchain-ollama\nllama3.1:8b · runs locally]
-    GEM --> CHAINS[LLM Chains]
+    FAC -->|ollama| OLL[langchain-ollama\nqwen3.5:4b · runs locally]
+    SCW --> CHAINS[LLM Chains]
+    GEM --> CHAINS
     OAI --> CHAINS
     MIS --> CHAINS
     OLL --> CHAINS
@@ -264,9 +270,10 @@ The frontend can pass API keys directly (stored in `sessionStorage`, never persi
 
 When `LLM_PROVIDER=ollama`, the system uses local models and local embeddings — no data leaves your machine.
 
-- **LLM:** `llama3.1:8b` by default (configurable via `OLLAMA_MODEL`)
-- **Embeddings:** `nomic-embed-text` (configurable via `OLLAMA_EMBED_MODEL`)
-- **Collections:** `radiation-iaea-ollama` and `radiation-dk-law-ollama` (separate from cloud collections; requires a one-time re-ingestion)
+- **LLM:** `qwen3.5:4b` by default, with thinking off (configurable via `OLLAMA_MODEL`); it fits a 6 GB GPU, where `llama3.1:8b` spills into RAM
+- **Embeddings:** `bge-m3`, multilingual (configurable via `OLLAMA_EMBED_MODEL`). Questions are embedded on the CPU so the answer model keeps the GPU; documents use the GPU while indexing.
+- **Collections:** `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` (separate from cloud collections; requires a one-time re-ingestion)
+- **Context window:** `OLLAMA_NUM_CTX` (default 16384); Ollama's own 4096 would cut longer prompts
 - **Auto-disabled:** LangSmith tracing and web search fallback
 
 Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud provider restores the original collections without re-ingestion.
@@ -280,7 +287,7 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `POST` | `/query` | Public | RAG query — main entry point |
 | `GET` | `/health` | Public | Health check |
 | `GET` | `/metrics` | Public | Prometheus-style counters |
-| `GET` | `/config` | Public | Whether the server has an LLM key configured (`server_has_llm_key`), so the client can hide/show the API-key hint |
+| `GET` | `/config` | Public | Client-relevant config: `server_has_llm_key`, per-provider readiness (`providers`: server key present, blocking `issue`), selectable Scaleway models (`scaleway_models`), and the optional privacy-notice controller (`privacy_controller_name`, `privacy_controller_contact`) |
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
 | `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a document source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |

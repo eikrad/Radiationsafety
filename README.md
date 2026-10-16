@@ -13,7 +13,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **Web search fallback** — Brave Search kicks in when local documents don't cover the query
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
-- **Evaluation harness** — RAGAS-style scoring (faithfulness, relevance, precision, recall) against a golden Q&A dataset
+- **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
 
 ## How it works
 
@@ -74,9 +74,12 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 
 | File | What it covers |
 |------|----------------|
+| [docs/README.md](docs/README.md) | Index of all documentation |
 | [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes — with Mermaid diagrams |
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
-| [docs/maintenance.md](docs/maintenance.md) | Dependency upgrade notes and document update procedures |
+| [docs/maintenance.md](docs/maintenance.md) | Dated log of dependency checks and upgrade notes |
+| [docs/releasing.md](docs/releasing.md) | How versions, tags and the CHANGELOG are produced |
+| [eval/README.md](eval/README.md) | Evaluation harness |
 
 ## Ingestion overview
 
@@ -139,10 +142,12 @@ Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDE
    ```
    Each embedding model gets its own collections (`radiation-iaea-scw-<model>`, …), so switching back needs no rebuild.
 
-   Danish orders are read from retsinformation.dk XML (the sources in `document_sources.yaml`, kept current by the update check). A PDF of the same order in `documents/Bekendtgørelse/` is skipped, so each law is indexed once and an old PDF cannot sit next to a newer version; other PDFs there (e.g. SST guidance) are still read. To rebuild only the Danish collection, e.g. after an update:
+   Danish orders are read from retsinformation.dk XML (the sources in `document_sources.yaml`, kept current by the update check). A PDF of the same order in `documents/Bekendtgørelse/` is skipped, so each law is indexed once and an old PDF cannot sit next to a newer version; other PDFs there (e.g. SST guidance) are still read. If retsinformation.dk cannot deliver an order, the XML saved by its last fetch (`<id>_current.xml`) is indexed instead, so the PDF stays skipped. To rebuild only the Danish collection, e.g. after an update:
    ```bash
    uv run python ingestion.py --dk-only
    ```
+
+   PDFs are read with docling (layout and OCR). If docling fails on its default device, for example because a local model fills the GPU, it reads the PDF again on the CPU, which is slower (`DOCLING_DEVICE=cpu uv run python ingestion.py` uses the CPU from the start). If docling cannot read a PDF on the CPU either, ingestion stops and names the file and the error before any collection is emptied. Pass `--allow-pypdf-fallback` to index that PDF as plain text instead (a scanned PDF then gives no text). The run ends with a list of every PDF that was not read as usual: read on the CPU, read as plain text, skipped, or with almost no text (fewer than 100 characters per page, likely a scan without OCR); and every source in `document_sources.yaml` that could not be fetched, with the reason. A PDF uploaded in the Documents panel reports the same in its message.
 
 4. Start the backend:
    ```bash
@@ -168,6 +173,8 @@ uv run python build_document_sources.py
 
 The **Documents** panel in the UI lets you check for newer versions (retsinformation.dk, IAEA) and trigger re-ingestion without leaving the browser. Danish sources are always fetched as the newest version of the series; older versions are backed up to `documents/backup/Bekendtgørelse/`.
 
+An IAEA source whose PDF (its `filename_hint`) is in `documents/IAEA/` or `documents/IAEA_other/` is indexed from that file and not fetched again during ingestion, so each publication is indexed once. A new edition has its own publication page, which only the update check finds; downloading it replaces the local PDF and keeps the old one in `documents/backup/`. Only an IAEA source without a local PDF is fetched from its URL.
+
 ## Privacy Mode (Fully Local)
 
 All LLM generation and embeddings run locally via [Ollama](https://ollama.com). Zero data leaves your machine — LangSmith tracing and web search are automatically disabled.
@@ -189,8 +196,8 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 2. Pull models:
    ```bash
-   ollama pull llama3.1:8b
-   ollama pull nomic-embed-text
+   ollama pull qwen3.5:4b
+   ollama pull bge-m3
    ```
 3. Set `LLM_PROVIDER=ollama` in `.env`
 4. Run ingestion (one-time, builds local embedding collections):
@@ -199,7 +206,7 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 5. Start backend and frontend as usual, select **Ollama (Local)** in the UI dropdown.
 
-Local collections (`radiation-iaea-ollama`, `radiation-dk-law-ollama`) coexist with the cloud collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
+Local collections (`radiation-iaea-ollama-bge-m3`, `radiation-dk-law-ollama-bge-m3`) coexist with the cloud collections. Upgrading from `nomic-embed-text` (English-only, the earlier default): pull `bge-m3` and run the ingestion again, or set `OLLAMA_EMBED_MODEL=nomic-embed-text` to keep the old collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
 
 ## Evaluation
 

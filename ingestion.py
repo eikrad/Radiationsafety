@@ -15,11 +15,18 @@ import sys
 import tempfile
 import time
 import unicodedata
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
 from docling.chunking import BaseChunk, HybridChunker
+from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
+from docling.datamodel.base_models import InputFormat
 from docling.datamodel.document import DoclingDocument
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.transforms.chunker.tokenizer.huggingface import (
     HuggingFaceTokenizer,
 )
@@ -31,6 +38,7 @@ from langchain_docling.loader import BaseMetaExtractor
 from pypdf import PdfReader
 from tqdm import tqdm
 
+from graph.consts import env_bool
 from graph.llm_factory import (
     get_embedding_model_name,
     get_embedding_provider,
@@ -115,7 +123,9 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     """Return (iaea_collection_name, dk_collection_name) for the given embedding provider.
 
     Scaleway collections carry the model id (SCW_EMBED_MODEL), so several
-    Scaleway models can be built side by side and compared.
+    Scaleway models can be built side by side and compared. So do local ones
+    (OLLAMA_EMBED_MODEL), except the default nomic-embed-text, whose
+    collections keep the name privacy-mode users already have.
     """
     if embedding_provider == "scaleway":
         suffix = f"-scw-{get_embedding_model_name('scaleway')}"
@@ -123,7 +133,12 @@ def get_collection_names(embedding_provider: str) -> tuple[str, str]:
     if embedding_provider == "mistral":
         return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
     if embedding_provider == "ollama":
-        return (f"{IAEA_COLLECTION}-ollama", f"{DK_LAW_COLLECTION}-ollama")
+        model = get_embedding_model_name("ollama").removesuffix(":latest")
+        suffix = "-ollama"
+        if model != "nomic-embed-text":
+            # Chroma allows letters, digits, '.', '_' and '-' in names
+            suffix += "-" + re.sub(r"[^A-Za-z0-9._-]", "-", model)
+        return (f"{IAEA_COLLECTION}{suffix}", f"{DK_LAW_COLLECTION}{suffix}")
     return (IAEA_COLLECTION, DK_LAW_COLLECTION)
 
 
@@ -336,6 +351,42 @@ def _save_danish_current_and_trim_backups(
             pass
 
 
+def _saved_danish_law(
+    source_id: str, name: str, registry_name: str, error: Exception
+) -> list[Document]:
+    """The chunks of a Danish law as last fetched, for when retsinformation.dk
+    cannot deliver it now.
+
+    _save_danish_current_and_trim_backups keeps that XML (tracked in git), so
+    the law keeps the text the index had and its PDF copy, perhaps an older
+    version, stays skipped. Without a saved copy the PDF stands in.
+    """
+    folder = DOCS_DIR / "Bekendtgørelse"
+    saved = folder / f"{source_id}_current.xml"
+    if saved.exists():
+        from ingestion_fetch import _label_from_danish_xml
+
+        try:
+            label = (folder / f"{source_id}_version.txt").read_text("utf-8").strip()
+        except OSError:
+            label = ""
+        label = label or _label_from_danish_xml(saved) or name
+        docs = structure_chunks(saved, label)
+        if docs:
+            _report_pdf_problem(
+                registry_name,
+                f"not fetched ({error}); indexed the copy saved by the last fetch "
+                f"({label}) instead",
+            )
+            return docs
+    _report_pdf_problem(
+        registry_name,
+        f"not fetched ({error}); no saved copy to index, so only a PDF of it in "
+        "documents/Bekendtgørelse, if there is one, is indexed",
+    )
+    return []
+
+
 def _load_docs_from_registry(
     include_iaea: bool = True,
 ) -> tuple[list[Document], list[Document]]:
@@ -343,10 +394,14 @@ def _load_docs_from_registry(
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
     XML-sourced Danish docs are chunked along their paragraphs (ingestion_dk).
+    An IAEA source with its PDF in the folder is not fetched (_has_local_pdf).
+    A source that could not be fetched is reported with the reason, under its
+    name and id in document_sources.yaml.
     """
     try:
         from document_updates import update_registry_url, update_version_after_ingest
         from ingestion_fetch import (
+            FetchError,
             fetch_danish_xml_for_source,
             fetch_pdf_for_source,
             load_sources_registry,
@@ -365,12 +420,17 @@ def _load_docs_from_registry(
         folder = (s.get("folder") or "IAEA").strip()
         if not url:
             continue
+        registry_name = f"{name} ({source_id})" if source_id else name
         if folder == "Bekendtgørelse":
-            path, label, resolved_url = fetch_danish_xml_for_source(
-                source_id, name, url, use_newest_dk=True
-            )
-            if path is None:
+            try:
+                path, label, resolved_url = fetch_danish_xml_for_source(
+                    source_id, name, url, use_newest_dk=True
+                )
+            except FetchError as e:
+                dk_docs.extend(_saved_danish_law(source_id, name, registry_name, e))
                 continue
+            if path is None:
+                continue  # not on retsinformation.dk: its PDF is read from the folder
             try:
                 dk_docs.extend(structure_chunks(path, label))
                 if resolved_url and resolved_url != url:
@@ -394,8 +454,14 @@ def _load_docs_from_registry(
         # IAEA or other: PDF — docling returns pre-chunked docs
         if not include_iaea:
             continue
-        path, label = fetch_pdf_for_source(source_id, name, url, folder)
-        if path is None:
+        if _has_local_pdf(folder, s.get("filename_hint")):
+            continue  # load_iaea_docs indexes it
+        try:
+            path, label = fetch_pdf_for_source(source_id, name, url, folder)
+        except FetchError as e:
+            _report_pdf_problem(
+                registry_name, f"not fetched, nothing indexed from its URL ({e})"
+            )
             continue
         try:
             docs = _load_pdf_with_docling(path, source_label=label)
@@ -414,6 +480,22 @@ def _load_docs_from_registry(
     return iaea_docs, dk_docs
 
 
+def _has_local_pdf(folder: str, filename_hint: str | None) -> bool:
+    """Whether load_iaea_docs indexes this registry source from its PDF in
+    documents/IAEA or documents/IAEA_other.
+
+    Fetching it as well indexed the publication twice, and since 2026-10 every
+    IAEA publication page answers with a Cloudflare challenge (403). The fetch
+    never gave a newer edition: a new edition has its own publication page,
+    which only the update check finds (download_update_for_source saves it over
+    this file). Matched by filename_hint alone: document_updates.get_local_pdf_path
+    takes the only PDF in a folder for a source without one.
+    """
+    if folder not in ("IAEA", "IAEA_other") or not filename_hint:
+        return False
+    return any(filename_hint in p.name for p in (DOCS_DIR / folder).rglob("*.pdf"))
+
+
 def load_iaea_docs() -> list[Document]:
     """Load PDFs from IAEA and IAEA_other directories."""
     all_docs = []
@@ -429,9 +511,112 @@ def load_iaea_docs() -> list[Document]:
                 for d in docs:
                     d.metadata["document_type"] = "IAEA"
                 all_docs.extend(docs)
+            except DoclingFailedError:
+                raise
             except Exception as e:
-                tqdm.write(f"  Warning: skipped {pdf_path.name}: {e}")
+                _report_pdf_problem(
+                    pdf_path.name, f"skipped, nothing indexed ({_error_text(e)})"
+                )
     return all_docs
+
+
+class DoclingFailedError(RuntimeError):
+    """docling could not read a PDF, and the pypdf fallback was not allowed."""
+
+
+# The PDFs not read as usual and the registry sources not fetched, as (name,
+# what happened), for the summary at the end of a run; None outside
+# collecting_pdf_problems().
+_pdf_problems: ContextVar[list[tuple[str, str]] | None] = ContextVar(
+    "pdf_problems", default=None
+)
+
+
+@contextmanager
+def collecting_pdf_problems() -> Iterator[list[tuple[str, str]]]:
+    """Collect every PDF read inside the block that was not read as usual: on
+    the CPU, as plain text, with almost no text, or not at all; and every
+    source in document_sources.yaml that could not be fetched.
+
+    A context variable, not a module list: a PDF uploaded through the API while
+    an ingestion runs must neither add to the other's list nor empty it.
+    """
+    problems: list[tuple[str, str]] = []
+    token = _pdf_problems.set(problems)
+    try:
+        yield problems
+    finally:
+        _pdf_problems.reset(token)
+
+
+def _report_pdf_problem(name: str, what: str) -> None:
+    """Warn now, between the progress bars, and keep it for the summary."""
+    tqdm.write(f"  Warning: {name}: {what}")
+    problems = _pdf_problems.get()
+    if problems is not None:
+        problems.append((name, what))
+
+
+def _pdf_problem_summary(problems: list[tuple[str, str]]) -> str:
+    """One line per PDF or registry source with everything that happened to it."""
+    by_doc: dict[str, list[str]] = {}
+    for name, what in problems:
+        by_doc.setdefault(name, []).append(what)
+    count = "1 document was" if len(by_doc) == 1 else f"{len(by_doc)} documents were"
+    lines = [f"⚠️  Ingestion complete, but {count} not read as usual:"]
+    lines += [f"  - {name}: {'; '.join(whats)}" for name, whats in by_doc.items()]
+    return "\n".join(lines)
+
+
+def _error_text(e: BaseException) -> str:
+    return f"{type(e).__name__}: {e}"
+
+
+def _docling_chunks(
+    file_path: str | Path, converter: DocumentConverter | None = None
+) -> list[Document]:
+    """docling's chunks of a PDF; converter None runs docling on its default device."""
+    tokenizer = HuggingFaceTokenizer.from_pretrained(
+        model_name=NOMIC_EMBED_TOKENIZER_MODEL,
+        max_token_count=NOMIC_EMBED_MAX_TOKENS,
+    )
+    loader = DoclingLoader(
+        file_path=str(file_path),
+        converter=converter,
+        chunker=HybridChunker(tokenizer=tokenizer),
+        meta_extractor=_SimpleMetaExtractor(),
+    )
+    return loader.load()
+
+
+def _docling_cpu_converter() -> DocumentConverter:
+    """A docling converter that runs its layout and OCR models on the CPU."""
+    options = PdfPipelineOptions(
+        accelerator_options=AcceleratorOptions(device=AcceleratorDevice.CPU)
+    )
+    return DocumentConverter(
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
+    )
+
+
+def _read_with_docling(file_path: str | Path, name: str) -> list[Document]:
+    """docling's chunks of a PDF, read on the CPU when the default device fails.
+
+    The GPU may be held by a local answer model: on 2026-10-11 docling's models
+    could not run next to llama3.1:8b on a 6 GB card. Retrying on the CPU needs
+    no guess at how much GPU memory docling would need; it only costs time when
+    the first attempt has failed.
+    """
+    try:
+        return _docling_chunks(file_path)
+    except Exception as e:
+        docs = _docling_chunks(file_path, converter=_docling_cpu_converter())
+        _report_pdf_problem(
+            name,
+            f"docling failed on its default device ({_error_text(e)}); "
+            "read on the CPU instead",
+        )
+        return docs
 
 
 def _load_pdf_with_docling(
@@ -440,42 +625,71 @@ def _load_pdf_with_docling(
 ) -> list[Document]:
     """Load and chunk a PDF using DoclingLoader.
 
-    Returns semantic chunks with source metadata set. Falls back to
-    pypdf plain-text extraction if docling fails.
+    Returns semantic chunks with source metadata set, read on the CPU if
+    docling's default device fails. If docling cannot read the PDF on the CPU
+    either, raises DoclingFailedError, or with INGEST_ALLOW_PYPDF_FALLBACK falls
+    back to pypdf plain-text extraction.
     """
-    label = source_label or str(file_path)
+    # the label names an attachment or a downloaded PDF; its file is temporary
+    name = source_label or Path(file_path).name
     try:
-        tokenizer = HuggingFaceTokenizer.from_pretrained(
-            model_name=NOMIC_EMBED_TOKENIZER_MODEL,
-            max_token_count=NOMIC_EMBED_MAX_TOKENS,
-        )
-        chunker = HybridChunker(tokenizer=tokenizer)
-        loader = DoclingLoader(
-            file_path=str(file_path),
-            chunker=chunker,
-            meta_extractor=_SimpleMetaExtractor(),
-        )
-        docs = loader.load()
-        for d in docs:
-            d.metadata["source"] = label
-        return docs
+        docs = _read_with_docling(file_path, name)
     except Exception as e:
-        tqdm.write(
-            f"  Warning: docling failed for {Path(file_path).name}, falling back to pypdf: {e}"
-        )
-    # Fallback: pypdf plain-text extraction
-    reader = PdfReader(str(file_path))
-    docs = []
-    for i, page in enumerate(reader.pages):
-        text = page.extract_text() or ""
-        if text.strip():
-            docs.append(
-                Document(
-                    page_content=text,
-                    metadata={"source": label, "page": i},
-                )
-            )
+        if not env_bool("INGEST_ALLOW_PYPDF_FALLBACK"):
+            # pypdf reads plain text only, and nothing from a scanned PDF: with the
+            # GPU full, two PDFs became 4 chunks instead of 636 without a failure
+            raise DoclingFailedError(
+                f"docling could not read {name}, also not on the CPU: "
+                f"{_error_text(e)}. Its pypdf fallback indexes plain text only "
+                "(nothing from a scanned PDF). To index it as plain text anyway, "
+                "pass --allow-pypdf-fallback or set INGEST_ALLOW_PYPDF_FALLBACK=true "
+                "(for uploads through the app)."
+            ) from e
+        _report_pdf_problem(name, f"docling could not read it ({_error_text(e)})")
+        docs = _pypdf_pages(file_path)
+        _report_pdf_problem(name, "read as plain text with pypdf")
+    for d in docs:
+        d.metadata["source"] = source_label or str(file_path)
+    _warn_if_almost_no_text(name, file_path, docs)
     return docs
+
+
+def _pypdf_pages(file_path: str | Path) -> list[Document]:
+    """The plain text of each page that has any (no layout, no OCR)."""
+    pages = PdfReader(str(file_path)).pages
+    return [
+        Document(page_content=text, metadata={"page": i})
+        for i, page in enumerate(pages)
+        if (text := page.extract_text() or "").strip()
+    ]
+
+
+# a page of text holds some 2000 characters; per page, not per PDF, so a scan
+# behind a typed cover page counts as unread too
+_MIN_PDF_CHARS_PER_PAGE = 100
+
+
+def _pdf_page_count(file_path: str | Path) -> int:
+    try:
+        return len(PdfReader(str(file_path)).pages) or 1
+    except Exception:
+        return 1
+
+
+def _warn_if_almost_no_text(
+    name: str, file_path: str | Path, docs: list[Document]
+) -> None:
+    """A scanned PDF yields text only through OCR, which can fail without an
+    error (the 2.4 MB guidance PDF once gave one chunk of 65 characters)."""
+    chars = sum(len(d.page_content) for d in docs)
+    pages = _pdf_page_count(file_path)
+    if chars < _MIN_PDF_CHARS_PER_PAGE * pages:
+        _report_pdf_problem(
+            name,
+            f"almost no text ({chars} characters on {pages} "
+            f"page{'s' if pages != 1 else ''}); a scanned PDF needs OCR, "
+            "which may not have run",
+        )
 
 
 def _extract_and_load_attachments(
@@ -501,15 +715,19 @@ def _extract_and_load_attachments(
                     f.write(content)
             except Exception:
                 continue
+            label = f"{parent_path.name} (Anhang: {att_name})"
             try:
-                label = f"{parent_path.name} (Anhang: {att_name})"
                 docs = _load_pdf_with_docling(tmp_path, source_label=label)
                 for d in docs:
                     d.metadata["document_type"] = "Danish law"
                     d.metadata["parent_document"] = str(parent_path.name)
                 all_docs.extend(docs)
-            except Exception:
-                pass
+            except DoclingFailedError:
+                raise
+            except Exception as e:
+                _report_pdf_problem(
+                    label, f"skipped, nothing indexed ({_error_text(e)})"
+                )
             finally:
                 try:
                     os.unlink(tmp_path)
@@ -591,8 +809,12 @@ def load_dk_law_docs(skip_law_keys: set[str] | frozenset[str] = frozenset()):
                 if attach_docs:
                     tqdm.write(f"    + {len(attach_docs)} pages from attachments")
                     all_docs.extend(attach_docs)
+        except DoclingFailedError:
+            raise
         except Exception as e:
-            tqdm.write(f"    Warning: skipped {pdf_path.name}: {e}")
+            _report_pdf_problem(
+                pdf_path.name, f"skipped, nothing indexed ({_error_text(e)})"
+            )
     return all_docs
 
 
@@ -744,16 +966,18 @@ def ingest(dk_only: bool = False):
     print(f"📊 Using embedding provider: {ep}")
     print(f"📦 Collections: {dk_name if dk_only else f'{iaea_name}, {dk_name}'}\n")
 
-    with tqdm(
-        total=6,
-        desc="Overall ingestion progress",
-        unit="phase",
-        disable=False,
-        position=0,
-    ) as overall_progress:
-        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
-        embeddings = get_embeddings(ep)
-        overall_progress.update(1)
+    with (
+        collecting_pdf_problems() as problems,
+        tqdm(
+            total=6,
+            desc="Overall ingestion progress",
+            unit="phase",
+            disable=False,
+            position=0,
+        ) as overall_progress,
+    ):
+        # Read every document before emptying a collection: a stop while reading
+        # (e.g. docling failing on a PDF) leaves the existing index as it was.
 
         # Load from document_sources.yaml URLs (Retsinformation XML + IAEA/direct PDFs) — pre-chunked
         iaea_from_url, dk_from_url = _load_docs_from_registry(include_iaea=not dk_only)
@@ -768,15 +992,11 @@ def ingest(dk_only: bool = False):
         overall_progress.update(1)
 
         # IAEA collection: local dirs + registry URLs — all pre-chunked
+        iaea_docs = []
         if not dk_only:
             iaea_docs = load_iaea_docs()
             iaea_docs.extend(iaea_from_url)
-            if iaea_docs:
-                _add_documents_rate_limited(
-                    iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
-                )
-                tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
-        overall_progress.update(2)
+        overall_progress.update(1)
 
         # Danish law collection: registry XML + local PDFs not already read from XML
         xml_laws = {
@@ -788,12 +1008,27 @@ def ingest(dk_only: bool = False):
         dk_docs.extend(dk_from_url)
         overall_progress.update(1)
 
+        _clear_chroma_collections(ep, names=[dk_name] if dk_only else None)
+        embeddings = get_embeddings(ep)
+        overall_progress.update(1)
+
+        if iaea_docs:
+            _add_documents_rate_limited(
+                iaea_docs, iaea_name, embeddings, str(_CHROMA_DIR)
+            )
+            tqdm.write(f"✅ Ingested {len(iaea_docs)} chunks into {iaea_name}")
+        overall_progress.update(1)
+
         if dk_docs:
             _add_documents_rate_limited(dk_docs, dk_name, embeddings, str(_CHROMA_DIR))
             tqdm.write(f"✅ Ingested {len(dk_docs)} chunks into {dk_name}")
         overall_progress.update(1)
 
-    print("\n🎉 Ingestion complete!")
+    if problems:
+        # the warnings above scroll past between progress bars
+        print("\n" + _pdf_problem_summary(problems))
+    else:
+        print("\n🎉 Ingestion complete!")
 
 
 def reembed_target() -> str:
@@ -1022,10 +1257,10 @@ def get_retrievers(embedding_provider: str | None = None):
     return _retrievers_cache[key]
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description=ingest.__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--reembed-from",
         metavar="PROVIDER",
@@ -1037,8 +1272,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Rebuild only the Danish law collection; the IAEA collection is kept",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--allow-pypdf-fallback",
+        action="store_true",
+        help="Index a PDF docling cannot read as plain text (pypdf) instead of "
+        "stopping; nothing is read from a scanned PDF that way",
+    )
+    args = parser.parse_args(argv)
+    if args.allow_pypdf_fallback:
+        os.environ["INGEST_ALLOW_PYPDF_FALLBACK"] = "true"
     if args.reembed_from:
         reembed_from(args.reembed_from, target=reembed_target())
     else:
         ingest(dk_only=args.dk_only)
+
+
+if __name__ == "__main__":
+    main()
