@@ -945,21 +945,15 @@ def _add_documents_gemini_rate_limited(
                 time.sleep(delay_sec)
 
 
-def ingest(dk_only: bool = False):
+def ingest(dk_only: bool = False) -> list[tuple[str, str]]:
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
     PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are chunked
     along their paragraphs inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
     copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
     Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
+    Returns the PDFs not read as usual, as (file, what happened).
     """
-
-    def _signal_handler(signum, frame):
-        print("\n\n⚠️  Ingestion interrupted by user. Exiting...\n")
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, _signal_handler)
-
     print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
     iaea_name, dk_name = get_collection_names(ep)
@@ -1029,6 +1023,7 @@ def ingest(dk_only: bool = False):
         print("\n" + _pdf_problem_summary(problems))
     else:
         print("\n🎉 Ingestion complete!")
+    return problems
 
 
 def reembed_target() -> str:
@@ -1281,6 +1276,14 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.allow_pypdf_fallback:
         os.environ["INGEST_ALLOW_PYPDF_FALLBACK"] = "true"
+
+    def _signal_handler(signum, frame):
+        print("\n\n⚠️  Ingestion interrupted by user. Exiting...\n")
+        sys.exit(0)
+
+    # Here, not in ingest(): the API runs ingest() in a worker thread, where
+    # installing a signal handler raises ValueError.
+    signal.signal(signal.SIGINT, _signal_handler)
     if args.reembed_from:
         reembed_from(args.reembed_from, target=reembed_target())
     else:

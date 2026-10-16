@@ -61,3 +61,23 @@ def docling_reading(monkeypatch, results, default=None):
     monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
     monkeypatch.setattr(ingestion, "HybridChunker", lambda tokenizer: None)
     monkeypatch.setattr(ingestion, "DoclingLoader", Loader)
+
+
+def ingest_without_chroma(monkeypatch, tmp_path, *, read_registry=False):
+    """ingest() over the PDFs in tmp_path/Bekendtgørelse, and with read_registry
+    over the registry sources the test set up; returns what was embedded."""
+    added = {}
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    monkeypatch.setattr(ingestion, "get_embedding_provider", lambda *a: "scaleway")
+    monkeypatch.setattr(ingestion, "_clear_chroma_collections", lambda *a, **k: None)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep: object())
+    if not read_registry:
+        monkeypatch.setattr(
+            ingestion, "_load_docs_from_registry", lambda include_iaea=True: ([], [])
+        )
+    monkeypatch.setattr(
+        ingestion,
+        "_add_documents_rate_limited",
+        lambda docs, name, *a, **k: added.setdefault(name, docs),
+    )
+    return added

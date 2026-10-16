@@ -748,3 +748,93 @@ def test_an_upload_docling_cannot_read_names_the_setting_that_allows_plain_text(
     detail = res.json()["detail"]
     assert "CUDA out of memory" in detail
     assert "INGEST_ALLOW_PYPDF_FALLBACK=true" in detail
+
+
+def _one_danish_pdf(monkeypatch, tmp_path, docling_gives, pages=("Kapitel 1 " * 30,)):
+    """ingest() without Chroma over a single Danish PDF with these pages, which
+    docling reads as docling_gives (text, or an error to raise); returns what
+    was embedded."""
+    from tests.pdf_fakes import docling_reading, ingest_without_chroma, write_pdf
+
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    write_pdf(folder / "vejledning.pdf", list(pages))
+    docling_reading(monkeypatch, {"vejledning.pdf": docling_gives})
+    return ingest_without_chroma(monkeypatch, tmp_path)
+
+
+def test_an_ingestion_started_through_the_api_indexes_the_documents(
+    client: TestClient, monkeypatch, tmp_path
+):
+    """ingest() installed its Ctrl+C handler in the worker thread the API runs
+    it in: "signal only works in main thread", so every ingestion started from
+    the Documents panel stopped before reading a single PDF."""
+    added = _one_danish_pdf(monkeypatch, tmp_path, "Kapitel 1 " * 30)
+
+    res = client.post("/api/ingest")
+
+    assert res.status_code == 202
+    [chunks] = added.values()
+    assert chunks
+
+
+def test_the_ingestion_status_says_why_the_last_run_failed(
+    client: TestClient, monkeypatch, tmp_path
+):
+    """The DoclingFailedError reached only the server log; the status went back
+    to idle and the Documents panel said "Ingestion finished."."""
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_danish_pdf(monkeypatch, tmp_path, RuntimeError("CUDA out of memory"))
+
+    client.post("/api/ingest")
+    status = client.get("/api/ingest/status").json()
+
+    assert status["status"] == "idle"
+    assert "vejledning.pdf" in status["last_error"]
+    assert "CUDA out of memory" in status["last_error"]
+
+
+def test_a_run_that_succeeds_clears_the_previous_failure(
+    client: TestClient, monkeypatch, tmp_path
+):
+    from tests.pdf_fakes import docling_reading
+
+    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
+    _one_danish_pdf(monkeypatch, tmp_path, RuntimeError("CUDA out of memory"))
+    client.post("/api/ingest")
+    docling_reading(monkeypatch, {"vejledning.pdf": "Kapitel 1 " * 30})
+
+    client.post("/api/ingest")
+
+    assert client.get("/api/ingest/status").json()["last_error"] is None
+
+
+def test_the_ingestion_status_lists_the_pdfs_not_read_as_usual(
+    client: TestClient, monkeypatch, tmp_path
+):
+    """ingest() listed them at the end of its output, for whoever watched the
+    server log; the Documents panel said "Ingestion finished."."""
+    _one_danish_pdf(monkeypatch, tmp_path, "Sundhedsstyrelsen, 2025", [""] * 12)
+
+    client.post("/api/ingest")
+    status = client.get("/api/ingest/status").json()
+
+    assert status["last_error"] is None
+    [problem] = status["pdf_problems"]
+    assert problem["file"] == "vejledning.pdf"
+    assert "almost no text" in problem["problem"]
+
+
+def test_a_run_without_problems_clears_the_previous_list(
+    client: TestClient, monkeypatch, tmp_path
+):
+    from tests.pdf_fakes import docling_reading, write_pdf
+
+    _one_danish_pdf(monkeypatch, tmp_path, "Sundhedsstyrelsen, 2025", [""] * 12)
+    client.post("/api/ingest")
+    write_pdf(tmp_path / "Bekendtgørelse" / "vejledning.pdf", ["Kapitel 1 " * 30])
+    docling_reading(monkeypatch, {"vejledning.pdf": "Kapitel 1 " * 30})
+
+    client.post("/api/ingest")
+
+    assert client.get("/api/ingest/status").json()["pdf_problems"] == []
