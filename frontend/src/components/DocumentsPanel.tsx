@@ -17,6 +17,26 @@ export interface DocumentSourceStatus {
   error: string | null
 }
 
+/** A PDF the last ingestion did not read as usual, from GET /ingest/status. */
+export interface PdfProblem {
+  file: string
+  problem: string
+}
+
+interface IngestStatus {
+  status?: string
+  last_error?: string | null
+  pdf_problems?: PdfProblem[]
+}
+
+/** One entry per PDF with everything that happened to it, in the order the
+ * ingestion met them (as its summary in the server log). */
+function problemsByPdf(problems: PdfProblem[]): [string, string[]][] {
+  const byPdf = new Map<string, string[]>()
+  for (const { file, problem } of problems) byPdf.set(file, [...(byPdf.get(file) ?? []), problem])
+  return [...byPdf]
+}
+
 interface DocumentsPanelProps {
   onClose: () => void
 }
@@ -27,6 +47,8 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [ingesting, setIngesting] = useState(false)
   const [ingestMessage, setIngestMessage] = useState<string | null>(null)
+  const [ingestError, setIngestError] = useState<string | null>(null)
+  const [ingestProblems, setIngestProblems] = useState<[string, string[]][]>([])
   const [building, setBuilding] = useState(false)
   const [buildMessage, setBuildMessage] = useState<string | null>(null)
   const [addingPdf, setAddingPdf] = useState(false)
@@ -69,9 +91,25 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
     }
   }, [])
 
+  function showIngestOutcome(status: IngestStatus) {
+    const problems = problemsByPdf(status.pdf_problems ?? [])
+    setIngestProblems(problems)
+    if (status.last_error) {
+      setIngestMessage(null)
+      setIngestError(`Ingestion failed: ${status.last_error}`)
+    } else if (problems.length > 0) {
+      const count = problems.length === 1 ? '1 PDF was' : `${problems.length} PDFs were`
+      setIngestMessage(`Ingestion finished, but ${count} not read as usual:`)
+    } else {
+      setIngestMessage('Ingestion finished.')
+    }
+  }
+
   async function runIngest() {
     setIngesting(true)
     setIngestMessage('Starting ingestion…')
+    setIngestError(null)
+    setIngestProblems([])
     try {
       const res = await fetch(`${API_BASE}/ingest`, { method: 'POST' })
       const data = (await res.json()) as { status?: string; detail?: string; message?: string }
@@ -80,12 +118,12 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
       ingestPollRef.current = window.setInterval(async () => {
         try {
           const statusRes = await fetch(`${API_BASE}/ingest/status`)
-          const statusData = (await statusRes.json()) as { status?: string }
+          const statusData = (await statusRes.json()) as IngestStatus
           if (statusData.status === 'idle') {
             if (ingestPollRef.current) window.clearInterval(ingestPollRef.current)
             ingestPollRef.current = null
             setIngesting(false)
-            setIngestMessage('Ingestion finished.')
+            showIngestOutcome(statusData)
             void fetchCheckUpdates()
           }
         } catch {
@@ -457,6 +495,20 @@ export function DocumentsPanel({ onClose }: DocumentsPanelProps) {
           )}
           {ingestMessage && (
             <p className="documents-panel-ingest-msg">{ingestMessage}</p>
+          )}
+          {ingestProblems.length > 0 && (
+            <ul className="documents-panel-ingest-problems" aria-label="PDFs not read as usual">
+              {ingestProblems.map(([file, problems]) => (
+                <li key={file}>
+                  {file}: {problems.join('; ')}
+                </li>
+              ))}
+            </ul>
+          )}
+          {ingestError && (
+            <p className="documents-panel-ingest-error" role="alert">
+              {ingestError}
+            </p>
           )}
         </div>
       </div>

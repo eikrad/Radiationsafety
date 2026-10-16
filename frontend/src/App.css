@@ -494,6 +494,21 @@
   color: #888;
 }
 
+.documents-panel-ingest-problems {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.75rem;
+  color: #888;
+  overflow-wrap: anywhere;
+}
+
+.documents-panel-ingest-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: #e66;
+  overflow-wrap: anywhere;
+}
+
 /* Header: Documents (left) | Title (center) | Model + Settings (right) */
 .app-header {
   display: grid;
@@ -1489,6 +1504,9 @@
   }
   .documents-panel-ingest {
     border-top-color: #ddd;
+  }
+  .documents-panel-ingest-error {
+    color: #b42318;
   }
   .documents-panel-loading,
   .documents-panel-empty {
