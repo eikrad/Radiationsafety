@@ -351,6 +351,42 @@ def _save_danish_current_and_trim_backups(
             pass
 
 
+def _saved_danish_law(
+    source_id: str, name: str, registry_name: str, error: Exception
+) -> list[Document]:
+    """The chunks of a Danish law as last fetched, for when retsinformation.dk
+    cannot deliver it now.
+
+    _save_danish_current_and_trim_backups keeps that XML (tracked in git), so
+    the law keeps the text the index had and its PDF copy, perhaps an older
+    version, stays skipped. Without a saved copy the PDF stands in.
+    """
+    folder = DOCS_DIR / "Bekendtgørelse"
+    saved = folder / f"{source_id}_current.xml"
+    if saved.exists():
+        from ingestion_fetch import _label_from_danish_xml
+
+        try:
+            label = (folder / f"{source_id}_version.txt").read_text("utf-8").strip()
+        except OSError:
+            label = ""
+        label = label or _label_from_danish_xml(saved) or name
+        docs = structure_chunks(saved, label)
+        if docs:
+            _report_pdf_problem(
+                registry_name,
+                f"not fetched ({error}); indexed the copy saved by the last fetch "
+                f"({label}) instead",
+            )
+            return docs
+    _report_pdf_problem(
+        registry_name,
+        f"not fetched ({error}); no saved copy to index, so only a PDF of it in "
+        "documents/Bekendtgørelse, if there is one, is indexed",
+    )
+    return []
+
+
 def _load_docs_from_registry(
     include_iaea: bool = True,
 ) -> tuple[list[Document], list[Document]]:
@@ -390,11 +426,7 @@ def _load_docs_from_registry(
                     source_id, name, url, use_newest_dk=True
                 )
             except FetchError as e:
-                _report_pdf_problem(
-                    registry_name,
-                    f"not fetched ({e}); a PDF of it in documents/Bekendtgørelse, "
-                    "if there is one, is indexed instead",
-                )
+                dk_docs.extend(_saved_danish_law(source_id, name, registry_name, e))
                 continue
             if path is None:
                 continue  # not on retsinformation.dk: its PDF is read from the folder

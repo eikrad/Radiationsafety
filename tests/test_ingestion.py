@@ -980,3 +980,49 @@ def test_a_run_ends_by_listing_the_registry_sources_not_fetched(
     [line] = [line for line in summary.splitlines() if "dk-stoffer" in line]
     assert "timed out" in line
     assert "iaea-gsg-7" not in out
+
+
+def test_a_law_retsinformation_cannot_deliver_is_indexed_from_its_saved_xml(
+    monkeypatch, tmp_path, capsys
+):
+    """With retsinformation.dk unreachable, a --dk-only run indexed the law's
+    PDF copy, possibly an older version: the law was missing from the XML laws,
+    so its PDF was not skipped. The XML fetched last time is in the folder."""
+    folder = tmp_path / "Bekendtgørelse"
+    folder.mkdir()
+    (folder / "dk-stoffer_current.xml").write_text(RETSINFO_XML, encoding="utf-8")
+    (folder / "dk-stoffer_version.txt").write_text(
+        "BEK nr 1385 af 18/11/2025", encoding="utf-8"
+    )
+    write_pdf(folder / "B20250138505.pdf", ["BEK nr 1385 af 18/11/2025"])
+    monkeypatch.setattr(
+        ingestion,
+        "_pdf_first_lines",
+        lambda p, n=3: [
+            "BEK nr 1385 af 18/11/2025",
+            "Bekendtgørelse om radioaktive stoffer",
+        ],
+    )
+    docling_reading(monkeypatch, {"B20250138505.pdf": "Kapitel 1 " * 30})
+    _registry(
+        monkeypatch,
+        [STOFFER],
+        xml=_refused(f"URLError: <urlopen error timed out> ({STOFFER['url']}/xml)"),
+    )
+    added = _ingest_without_chroma(monkeypatch, tmp_path, read_registry=True)
+
+    ingestion.ingest(dk_only=True)
+
+    [chunks] = added.values()
+    assert {d.metadata["source"] for d in chunks} == {"BEK nr 1385 af 18/11/2025"}
+    assert {d.metadata["law_title"] for d in chunks} == {
+        "Bekendtgørelse om radioaktive stoffer"
+    }
+    summary = capsys.readouterr().out.rsplit("not read as usual", 1)[-1]
+    [line] = [line for line in summary.splitlines() if "dk-stoffer" in line]
+    assert "timed out" in line and "saved" in line
+    assert sorted(p.name for p in folder.iterdir()) == [
+        "B20250138505.pdf",
+        "dk-stoffer_current.xml",
+        "dk-stoffer_version.txt",
+    ]
