@@ -1026,3 +1026,95 @@ def test_a_law_retsinformation_cannot_deliver_is_indexed_from_its_saved_xml(
         "dk-stoffer_current.xml",
         "dk-stoffer_version.txt",
     ]
+
+
+# --- IAEA publications in the registry that have a local PDF ----------------------
+
+GSG_7_LOCAL = {
+    **GSG_7,
+    "filename_hint": "GSG-7 - Occupational Radiation Protection.pdf",
+}
+
+
+def _refused_and_recorded(calls):
+    """A fetch refused as every IAEA page is since 2026-10 (a Cloudflare
+    challenge), which records the source it was asked for."""
+    refuse = _refused("HTTPError: HTTP Error 403: Forbidden")
+
+    def fetch(source_id, *args, **kwargs):
+        calls.append(source_id)
+        return refuse(source_id, *args, **kwargs)
+
+    return fetch
+
+
+def test_an_iaea_source_with_a_local_pdf_is_not_fetched(monkeypatch, tmp_path):
+    """Every full run listed ~20 IAEA sources as not fetched, although
+    load_iaea_docs indexes their PDFs from documents/IAEA."""
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    (tmp_path / "IAEA").mkdir()
+    write_pdf(tmp_path / "IAEA" / GSG_7_LOCAL["filename_hint"], ["GSG-7"])
+    calls = []
+    _registry(monkeypatch, [GSG_7_LOCAL], pdf=_refused_and_recorded(calls))
+
+    with ingestion.collecting_pdf_problems() as problems:
+        iaea_docs, _ = ingestion._load_docs_from_registry()
+
+    assert calls == []
+    assert iaea_docs == [] and problems == []
+
+
+def test_an_iaea_source_without_its_local_pdf_is_still_fetched(monkeypatch, tmp_path):
+    """Its PDF is not in the folder, or it names none. The one PDF in
+    IAEA_other is not taken for it, as document_updates.get_local_pdf_path
+    would: a publication added by hand would never be indexed."""
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path)
+    (tmp_path / "IAEA").mkdir()
+    (tmp_path / "IAEA_other").mkdir()
+    write_pdf(tmp_path / "IAEA_other" / "IAEA-TECDOC-1638.pdf", ["TECDOC-1638"])
+    research_reactors = {
+        "id": "iaea-research-reactors",
+        "name": "Safety Assessment for Research Reactors",
+        "url": "https://www.iaea.org/publications/8639/safety-assessment-for-research-reactors-and-preparation-of-the-safety-analysis-report",
+        "folder": "IAEA_other",
+        "filename_hint": None,
+    }
+    calls = []
+    _registry(
+        monkeypatch,
+        [GSG_7_LOCAL, research_reactors],
+        pdf=_refused_and_recorded(calls),
+    )
+
+    with ingestion.collecting_pdf_problems() as problems:
+        ingestion._load_docs_from_registry()
+
+    assert calls == ["iaea-gsg-7", "iaea-research-reactors"]
+    assert [name for name, _ in problems] == [
+        "Occupational Radiation Protection (iaea-gsg-7)",
+        "Safety Assessment for Research Reactors (iaea-research-reactors)",
+    ]
+
+
+def test_a_full_run_indexes_an_iaea_publication_with_a_local_pdf_once(
+    monkeypatch, tmp_path, capsys
+):
+    """While its page could be fetched, the publication was indexed twice: from
+    the local PDF and from the download, under two source names."""
+    (tmp_path / "IAEA").mkdir()
+    local = write_pdf(tmp_path / "IAEA" / GSG_7_LOCAL["filename_hint"], ["GSG-7"])
+    download = write_pdf(tmp_path / "download.pdf", ["GSG-7"])
+    text = "Occupational exposure " * 30
+    docling_reading(monkeypatch, {local.name: text, download.name: text})
+    _registry(
+        monkeypatch,
+        [GSG_7_LOCAL],
+        pdf=lambda source_id, name, *a, **k: (download, name),
+    )
+    added = _ingest_without_chroma(monkeypatch, tmp_path, read_registry=True)
+
+    ingestion.ingest()
+
+    iaea_name, _ = ingestion.get_collection_names("scaleway")
+    assert [d.metadata["source"] for d in added[iaea_name]] == [str(local)]
+    assert "Ingestion complete!" in capsys.readouterr().out
