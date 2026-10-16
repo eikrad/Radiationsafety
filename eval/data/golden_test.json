@@ -3578,7 +3578,8 @@
     "text": "The inventory must also record the activity and form of each radioactive source",
     "importance": "vital",
     "evidence": [
-     "The activity and form of each radioactive source for which they are"
+     "The activity and form of each radioactive source for which they are",
+     "and the activity and physical and chemical form of each radioactive source"
     ]
    },
    {
