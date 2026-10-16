@@ -179,7 +179,7 @@
 .documents-panel-item-version,
 .documents-panel-item-remote {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--text-subtle);
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,16 +249,16 @@
 }
 
 .documents-panel-item-edit-url-link {
-  color: #666;
+  color: var(--text-subtle);
 }
 
 .documents-panel-item-edit-url-link:hover {
-  color: #999;
+  color: var(--text-muted);
   text-decoration: underline;
 }
 
 .documents-panel-item-search-url-link {
-  color: #555;
+  color: var(--text-subtle);
 }
 
 .documents-panel-item-search-url-link:hover {
@@ -398,7 +398,7 @@
 .documents-panel-add-pdf-hint {
   margin: 0 0 0.5rem;
   font-size: 0.75rem;
-  color: #888;
+  color: var(--text-subtle);
   line-height: 1.35;
 }
 
@@ -449,8 +449,8 @@
   width: 100%;
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
-  background: #646cff;
-  border: 1px solid #646cff;
+  background: var(--accent-strong);
+  border: 1px solid var(--accent-strong);
   border-radius: 6px;
   color: white;
   cursor: pointer;
@@ -458,7 +458,7 @@
 }
 
 .documents-panel-ingest-btn:hover:not(:disabled) {
-  background: #535bf2;
+  background: #4048d6;
 }
 
 .documents-panel-ingest-btn:disabled {
@@ -491,21 +491,21 @@
 .documents-panel-ingest-msg {
   margin: 0.4rem 0 0;
   font-size: 0.8rem;
-  color: #888;
+  color: var(--text-subtle);
 }
 
 .documents-panel-ingest-problems {
   margin: 0.25rem 0 0;
   padding-left: 1.1rem;
   font-size: 0.75rem;
-  color: #888;
+  color: var(--text-subtle);
   overflow-wrap: anywhere;
 }
 
 .documents-panel-ingest-error {
   margin: 0.4rem 0 0;
   font-size: 0.8rem;
-  color: #e66;
+  color: var(--error);
   overflow-wrap: anywhere;
 }
 
@@ -1504,9 +1504,6 @@
   }
   .documents-panel-ingest {
     border-top-color: #ddd;
-  }
-  .documents-panel-ingest-error {
-    color: #b42318;
   }
   .documents-panel-loading,
   .documents-panel-empty {
