@@ -750,14 +750,15 @@ def test_an_upload_docling_cannot_read_names_the_setting_that_allows_plain_text(
     assert "INGEST_ALLOW_PYPDF_FALLBACK=true" in detail
 
 
-def _one_danish_pdf(monkeypatch, tmp_path, docling_gives):
-    """ingest() without Chroma over a single Danish PDF that docling reads as
-    docling_gives (text, or an error to raise); returns what was embedded."""
+def _one_danish_pdf(monkeypatch, tmp_path, docling_gives, pages=("Kapitel 1 " * 30,)):
+    """ingest() without Chroma over a single Danish PDF with these pages, which
+    docling reads as docling_gives (text, or an error to raise); returns what
+    was embedded."""
     from tests.pdf_fakes import docling_reading, ingest_without_chroma, write_pdf
 
     folder = tmp_path / "Bekendtgørelse"
     folder.mkdir()
-    write_pdf(folder / "vejledning.pdf", ["Kapitel 1 " * 30])
+    write_pdf(folder / "vejledning.pdf", list(pages))
     docling_reading(monkeypatch, {"vejledning.pdf": docling_gives})
     return ingest_without_chroma(monkeypatch, tmp_path)
 
@@ -806,3 +807,34 @@ def test_a_run_that_succeeds_clears_the_previous_failure(
     client.post("/api/ingest")
 
     assert client.get("/api/ingest/status").json()["last_error"] is None
+
+
+def test_the_ingestion_status_lists_the_pdfs_not_read_as_usual(
+    client: TestClient, monkeypatch, tmp_path
+):
+    """ingest() listed them at the end of its output, for whoever watched the
+    server log; the Documents panel said "Ingestion finished."."""
+    _one_danish_pdf(monkeypatch, tmp_path, "Sundhedsstyrelsen, 2025", [""] * 12)
+
+    client.post("/api/ingest")
+    status = client.get("/api/ingest/status").json()
+
+    assert status["last_error"] is None
+    [problem] = status["pdf_problems"]
+    assert problem["file"] == "vejledning.pdf"
+    assert "almost no text" in problem["problem"]
+
+
+def test_a_run_without_problems_clears_the_previous_list(
+    client: TestClient, monkeypatch, tmp_path
+):
+    from tests.pdf_fakes import docling_reading, write_pdf
+
+    _one_danish_pdf(monkeypatch, tmp_path, "Sundhedsstyrelsen, 2025", [""] * 12)
+    client.post("/api/ingest")
+    write_pdf(tmp_path / "Bekendtgørelse" / "vejledning.pdf", ["Kapitel 1 " * 30])
+    docling_reading(monkeypatch, {"vejledning.pdf": "Kapitel 1 " * 30})
+
+    client.post("/api/ingest")
+
+    assert client.get("/api/ingest/status").json()["pdf_problems"] == []

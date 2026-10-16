@@ -42,6 +42,8 @@ app_state: dict = {
     "ingest_status": "idle",
     # why the last ingestion failed; None while it runs or when it succeeded
     "ingest_last_error": None,
+    # the PDFs the last ingestion did not read as usual, as {file, problem}
+    "ingest_pdf_problems": [],
     "started_at": time.time(),
     "rate_limit_store": {},
     "request_metrics": {
@@ -257,15 +259,19 @@ def require_admin(request: Request) -> None:
 
 def _run_ingest() -> None:
     """Run ingestion and clear retriever cache. Updates app_state ingest_status
-    and keeps why a run failed for GET /ingest/status: a background task's
-    exception reaches only the server log."""
+    and keeps why a run failed and which PDFs it did not read as usual for
+    GET /ingest/status: otherwise only the server log has them."""
     app_state["ingest_status"] = "running"
     app_state["ingest_last_error"] = None
+    app_state["ingest_pdf_problems"] = []
     try:
         import ingestion
 
-        ingestion.ingest()
+        problems = ingestion.ingest()
         ingestion.clear_retrievers_cache()
+        app_state["ingest_pdf_problems"] = [
+            {"file": name, "problem": what} for name, what in problems
+        ]
     except Exception as e:
         logger.exception("Ingestion failed")
         app_state["ingest_last_error"] = f"{type(e).__name__}: {e}"
@@ -644,11 +650,13 @@ def ingest_trigger(
 
 @api_router.get("/ingest/status")
 def ingest_status():
-    """Return current ingestion status (idle or running) and why the last run
-    failed (last_error, None if it did not)."""
+    """Return current ingestion status (idle or running), why the last run
+    failed (last_error, None if it did not) and the PDFs it did not read as
+    usual (pdf_problems: {file, problem})."""
     return {
         "status": app_state["ingest_status"],
         "last_error": app_state["ingest_last_error"],
+        "pdf_problems": app_state["ingest_pdf_problems"],
     }
 
 

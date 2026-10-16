@@ -876,13 +876,14 @@ def _add_documents_gemini_rate_limited(
                 time.sleep(delay_sec)
 
 
-def ingest(dk_only: bool = False):
+def ingest(dk_only: bool = False) -> list[tuple[str, str]]:
     """Run full ingestion: load PDFs (local + from document_sources URLs), embed, persist to Chroma.
 
     PDF docs are pre-chunked by docling's HybridChunker. XML-sourced Danish docs are chunked
     along their paragraphs inside _load_docs_from_registry; a Danish law read from XML is not read again from a PDF
     copy. dk_only rebuilds only the Danish law collection (the IAEA one stays as it is).
     Embedding provider is determined by EMBEDDING_PROVIDER (LLM_PROVIDER=ollama embeds locally).
+    Returns the PDFs not read as usual, as (file, what happened).
     """
     print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
@@ -953,6 +954,7 @@ def ingest(dk_only: bool = False):
         print("\n" + _pdf_problem_summary(problems))
     else:
         print("\n🎉 Ingestion complete!")
+    return problems
 
 
 def reembed_target() -> str:
