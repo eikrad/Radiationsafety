@@ -1,12 +1,16 @@
 """Shared retrieval helpers for graph nodes."""
 
+import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
-from ingestion import get_retrievers
+from graph.rerank import Reranker, get_reranker, rerank_candidates
+from ingestion import RETRIEVER_K, get_retrievers
+
+logger = logging.getLogger(__name__)
 
 
 def make_doc_key(doc: Document) -> str:
@@ -48,10 +52,17 @@ def invoke_dual_retrievers(
 
     k: chunks per collection; default the retrievers' own (RETRIEVER_K). Eval
     retrieves deeper through this same path, so it measures what the graph does.
+    With a re-ranker (RERANKER), each collection returns at least
+    RERANK_CANDIDATES chunks and the re-ranker's best k of them are kept.
     """
     iaea_retriever, dk_retriever = get_retrievers(embedding_provider)
     cfg = config or {}
-    search = {"k": k} if k is not None else {}
+    reranker = get_reranker()
+    keep = k if k is not None else RETRIEVER_K
+    if reranker is not None:
+        search = {"k": max(rerank_candidates(), keep)}
+    else:
+        search = {"k": k} if k is not None else {}
 
     def _invoke_safe(fn):
         try:
@@ -72,4 +83,26 @@ def invoke_dual_retrievers(
                 lambda: dk_retriever.invoke(query, config=cfg, **search)
             )
         )
-        return fut_iaea.result(), fut_dk.result()
+        iaea_docs, dk_docs = fut_iaea.result(), fut_dk.result()
+    if reranker is None:
+        return iaea_docs, dk_docs
+    return (
+        _reranked(reranker, query, iaea_docs, keep),
+        _reranked(reranker, query, dk_docs, keep),
+    )
+
+
+def _reranked(
+    reranker: Reranker, query: str, docs: list[Document], keep: int
+) -> list[Document]:
+    """The `keep` best docs by the re-ranker's scores; on failure, the first
+    `keep` in embedding order, so a broken re-ranker never fails a request."""
+    if not docs:
+        return docs
+    try:
+        scores = reranker.scores(query, [d.page_content for d in docs])
+    except Exception as exc:
+        logger.warning("Re-ranking failed, keeping the embedding order: %s", exc)
+        return docs[:keep]
+    order = sorted(range(len(docs)), key=lambda i: scores[i], reverse=True)
+    return [docs[i] for i in order[:keep]]

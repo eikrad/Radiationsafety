@@ -32,6 +32,8 @@ def _env_no_api_calls(monkeypatch):
         "SCW_ALLOWED_MODELS",
         "SCW_BASE_URL",
         "EMBED_QUERY_INSTRUCTION",
+        "RERANKER",
+        "RERANK_CANDIDATES",
         "EVAL_GRADER_PROVIDER",
         "EVAL_JUDGE_MODEL",
         "EVAL_JUDGE_VOTES",
