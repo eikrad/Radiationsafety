@@ -667,6 +667,45 @@ Cost: about €7.10 at Scaleway before tax for all runs of this section
 
 ---
 
+## Re-ranking retrieval candidates (#146, 2026-10-16)
+
+Step 4 of the held-out plan, first candidate. Each collection returns 20
+candidates by embedding similarity; a re-ranker orders them and the top
+k = 5 per collection go on as today, so the IAEA/Danish split of the context
+is unchanged. Candidates: the local cross-encoder `BAAI/bge-reranker-v2-m3`
+(multilingual), and for comparison Scaleway's `/v1/rerank` with
+`qwen3-embedding-8b` (an embedding model, so a second bi-encoder rather than
+a cross-encoder; Scaleway offers no cross-encoder). Off by default
+(`RERANKER=off`) until the rule below is met.
+
+Adoption rule, set before measuring, all on `tune`:
+1. **Retrieval-only**, against `tune-retrieval-bge-gemma2` (run
+   `20261016_185213`), on `bge-multilingual-gemma2`: the reciprocal-rank sign
+   test (questions with evidence ranked higher vs lower) must be significant
+   (p < 0.05), and recall@5 must not drop below 0.88. The same run on the
+   `bge-m3` collections is reported next to it, not decided on. If both
+   re-rankers pass, only the one with the higher MRR goes on to step 2.
+2. **Full `tune` run**, against `tune-baseline-rescore` (run
+   `20261016_182025`): the pass/fail sign test must be significant, net
+   improvements must exceed 1 (the flips between the two baselines), and no
+   refusal fault may be new (the three `tune` refusals stay refused; no
+   answerable question newly refused for reasons of scope).
+3. **Mistral rescore** of that run, against
+   `tune-baseline-judge-mistral-rescore` (run `20261016_184941`): the rule of
+   step 2 must hold under that judge too.
+
+Only a re-ranker that meets all three becomes the default. One that improves
+ranks (step 1) but not the pass rate significantly is reported as such and
+stays opt-in: on 53 questions, step 2 needs about 6 net flips. Latency per
+question (re-ranking 2 × 20 pairs) is reported with every run.
+
+Expectation recorded before measuring, a guess: step 1 holds for the
+cross-encoder, since 10 of the 12 retrieval misses have their evidence at
+ranks 6–20; step 2 is uncertain, because several of those questions are
+multi-part and fail on more than one nugget.
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous
