@@ -40,28 +40,60 @@ def _allowed(url: str) -> bool:
         return False
 
 
-def _download_to_temp(url: str) -> Path | None:
-    """Download URL to a temporary file. Returns path or None on failure."""
+class FetchError(Exception):
+    """A document could not be downloaded; the message says why, with the URL."""
+
+
+def _get(url: str, max_size: int, accept: str | None = None) -> bytes:
+    """The body of URL; FetchError if it cannot be had or is over max_size."""
     if not _allowed(url):
-        return None
-    req = urllib.request.Request(url, headers={"User-Agent": "RadiationSafetyRAG/1.0"})
+        raise FetchError(f"host not allowed ({url})")
+    headers = {"User-Agent": "RadiationSafetyRAG/1.0"}
+    if accept:
+        headers["Accept"] = accept
+    req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(
             req, timeout=_TIMEOUT, context=ssl.create_default_context()
         ) as resp:
             size = int(resp.headers.get("Content-Length") or 0)
-            if size > _MAX_SIZE:
-                return None
-            data = resp.read(_MAX_SIZE + 1)
-            if len(data) > _MAX_SIZE:
-                return None
-            if not data[:4].startswith(b"%PDF"):
-                return None
-            fd, path = tempfile.mkstemp(suffix=".pdf")
-            with open(fd, "wb") as f:
-                f.write(data)
-            return Path(path)
-    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+            data = resp.read(max_size + 1) if size <= max_size else b""
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError) as e:
+        raise FetchError(f"{type(e).__name__}: {e} ({url})") from e
+    if size > max_size or len(data) > max_size:
+        raise FetchError(f"larger than {max_size >> 20} MB ({url})")
+    return data
+
+
+def _to_temp(data: bytes, suffix: str) -> Path:
+    try:
+        fd, path = tempfile.mkstemp(suffix=suffix)
+        with open(fd, "wb") as f:
+            f.write(data)
+    except OSError as e:
+        raise FetchError(f"download not saved: {type(e).__name__}: {e}") from e
+    return Path(path)
+
+
+def _fetch_pdf(url: str) -> Path:
+    """Download a PDF to a temporary file; FetchError says why not."""
+    data = _get(url, _MAX_SIZE)
+    if not data.startswith(b"%PDF"):
+        raise FetchError(f"not a PDF ({url})")
+    return _to_temp(data, ".pdf")
+
+
+def _fetch_xml(url: str) -> Path:
+    """Download an XML document to a temporary file; FetchError says why not."""
+    data = _get(url, _MAX_XML_SIZE, accept="application/xml, text/xml, */*")
+    return _to_temp(data, ".xml")
+
+
+def _download_to_temp(url: str) -> Path | None:
+    """Download URL to a temporary file. Returns path or None on failure."""
+    try:
+        return _fetch_pdf(url)
+    except FetchError:
         return None
 
 
@@ -92,30 +124,9 @@ def get_xml_url_retsinformation(eli_url: str) -> str | None:
 
 def _download_xml(url: str) -> Path | None:
     """Download URL to a temporary XML file. Returns path or None on failure."""
-    if not _allowed(url):
-        return None
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "RadiationSafetyRAG/1.0",
-            "Accept": "application/xml, text/xml, */*",
-        },
-    )
     try:
-        with urllib.request.urlopen(
-            req, timeout=_TIMEOUT, context=ssl.create_default_context()
-        ) as resp:
-            size = int(resp.headers.get("Content-Length") or 0)
-            if size > _MAX_XML_SIZE:
-                return None
-            data = resp.read(_MAX_XML_SIZE + 1)
-            if len(data) > _MAX_XML_SIZE:
-                return None
-            fd, path = tempfile.mkstemp(suffix=".xml")
-            with open(fd, "wb") as f:
-                f.write(data)
-            return Path(path)
-    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+        return _fetch_xml(url)
+    except FetchError:
         return None
 
 
@@ -123,6 +134,14 @@ def get_pdf_url_iaea(publication_page_url: str, html: str | None = None) -> str 
     """Extract PDF download URL from IAEA publication page. If html is None, fetches the page."""
     if not _allowed(publication_page_url):
         return None
+    try:
+        return _iaea_pdf_url(publication_page_url, html)
+    except FetchError:
+        return None
+
+
+def _iaea_pdf_url(publication_page_url: str, html: str | None = None) -> str:
+    """The PDF link on an IAEA publication page; FetchError if there is none."""
     if html is None:
         req = urllib.request.Request(
             publication_page_url,
@@ -133,8 +152,18 @@ def get_pdf_url_iaea(publication_page_url: str, html: str | None = None) -> str 
                 req, timeout=_TIMEOUT, context=ssl.create_default_context()
             ) as resp:
                 html = resp.read(50000).decode("utf-8", errors="replace")
-        except (urllib.error.HTTPError, urllib.error.URLError):
-            return None
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            raise FetchError(f"{type(e).__name__}: {e} ({publication_page_url})") from e
+    pdf_url = _pdf_link(html)
+    if not pdf_url:
+        raise FetchError(
+            f"no PDF link on the publication page ({publication_page_url})"
+        )
+    return pdf_url
+
+
+def _pdf_link(html: str) -> str | None:
+    """The PDF a publication page links to."""
     # Match href to PDF (full URL or path to MTCD/Publications/PDF)
     m = re.search(
         r'href="(https?://[^"]+\.pdf[^"]*)"',
@@ -228,6 +257,8 @@ def fetch_danish_xml_for_source(
     """
     Fetch Danish XML. Prefer current registry URL; only resolve newest and update URL when current cannot be reached.
     Returns (temp_xml_path, label, resolved_eli_url). resolved_eli_url equals url when we used current URL (no registry update).
+    The path is None for a source not on retsinformation.dk (an sst.dk guidance PDF), which has
+    no XML; FetchError says why a law on retsinformation.dk could not be fetched.
     """
     from urllib.parse import urlparse
 
@@ -265,9 +296,8 @@ def fetch_danish_xml_for_source(
         eli_url, label = _resolve_newest_dk_url(source_id, url, name)
     xml_url = get_xml_url_retsinformation(eli_url)
     if not xml_url:
-        return None, name, eli_url
-    path = _download_xml(xml_url)
-    return path, label, eli_url
+        raise FetchError(f"no XML address for {eli_url}")
+    return _fetch_xml(xml_url), label, eli_url
 
 
 def fetch_pdf_for_source(
@@ -277,9 +307,10 @@ def fetch_pdf_for_source(
     folder: str,
     *,
     use_newest_dk: bool = True,
-) -> tuple[Path | None, str]:
+) -> tuple[Path, str]:
     """
-    Resolve and download the PDF for a document source. Returns (temp_path, label) or (None, name).
+    Resolve and download the PDF for a document source. Returns (temp_path, label);
+    FetchError says why there is none.
     Danish (Bekendtgørelse) sources should use fetch_danish_xml_for_source instead.
     If use_newest_dk and url is retsinformation, tries to get newest version first.
     """
@@ -295,14 +326,13 @@ def fetch_pdf_for_source(
             url = eli_url
         pdf_url = get_pdf_url_retsinformation(url)
     elif "iaea.org" in host:
-        pdf_url = get_pdf_url_iaea(url)
+        pdf_url = _iaea_pdf_url(url)
     elif url.lower().endswith(".pdf") and _allowed(url):
         pdf_url = url
 
     if not pdf_url:
-        return None, name
-    path = _download_to_temp(pdf_url)
-    return path, label
+        raise FetchError(f"no PDF address for {url}")
+    return _fetch_pdf(pdf_url), label
 
 
 def load_sources_registry() -> list[dict[str, Any]]:

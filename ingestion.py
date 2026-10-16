@@ -358,10 +358,13 @@ def _load_docs_from_registry(
 
     Returns (iaea_docs, dk_docs) — both lists are pre-chunked and ready to embed.
     XML-sourced Danish docs are chunked along their paragraphs (ingestion_dk).
+    A source that could not be fetched is reported with the reason, under its
+    name and id in document_sources.yaml.
     """
     try:
         from document_updates import update_registry_url, update_version_after_ingest
         from ingestion_fetch import (
+            FetchError,
             fetch_danish_xml_for_source,
             fetch_pdf_for_source,
             load_sources_registry,
@@ -380,12 +383,21 @@ def _load_docs_from_registry(
         folder = (s.get("folder") or "IAEA").strip()
         if not url:
             continue
+        registry_name = f"{name} ({source_id})" if source_id else name
         if folder == "Bekendtgørelse":
-            path, label, resolved_url = fetch_danish_xml_for_source(
-                source_id, name, url, use_newest_dk=True
-            )
-            if path is None:
+            try:
+                path, label, resolved_url = fetch_danish_xml_for_source(
+                    source_id, name, url, use_newest_dk=True
+                )
+            except FetchError as e:
+                _report_pdf_problem(
+                    registry_name,
+                    f"not fetched ({e}); a PDF of it in documents/Bekendtgørelse, "
+                    "if there is one, is indexed instead",
+                )
                 continue
+            if path is None:
+                continue  # not on retsinformation.dk: its PDF is read from the folder
             try:
                 dk_docs.extend(structure_chunks(path, label))
                 if resolved_url and resolved_url != url:
@@ -409,8 +421,12 @@ def _load_docs_from_registry(
         # IAEA or other: PDF — docling returns pre-chunked docs
         if not include_iaea:
             continue
-        path, label = fetch_pdf_for_source(source_id, name, url, folder)
-        if path is None:
+        try:
+            path, label = fetch_pdf_for_source(source_id, name, url, folder)
+        except FetchError as e:
+            _report_pdf_problem(
+                registry_name, f"not fetched, nothing indexed from its URL ({e})"
+            )
             continue
         try:
             docs = _load_pdf_with_docling(path, source_label=label)
@@ -457,8 +473,9 @@ class DoclingFailedError(RuntimeError):
     """docling could not read a PDF, and the pypdf fallback was not allowed."""
 
 
-# The PDFs not read as usual, as (file, what happened), for the summary at the
-# end of a run; None outside collecting_pdf_problems().
+# The PDFs not read as usual and the registry sources not fetched, as (name,
+# what happened), for the summary at the end of a run; None outside
+# collecting_pdf_problems().
 _pdf_problems: ContextVar[list[tuple[str, str]] | None] = ContextVar(
     "pdf_problems", default=None
 )
@@ -467,7 +484,8 @@ _pdf_problems: ContextVar[list[tuple[str, str]] | None] = ContextVar(
 @contextmanager
 def collecting_pdf_problems() -> Iterator[list[tuple[str, str]]]:
     """Collect every PDF read inside the block that was not read as usual: on
-    the CPU, as plain text, with almost no text, or not at all.
+    the CPU, as plain text, with almost no text, or not at all; and every
+    source in document_sources.yaml that could not be fetched.
 
     A context variable, not a module list: a PDF uploaded through the API while
     an ingestion runs must neither add to the other's list nor empty it.
@@ -489,13 +507,13 @@ def _report_pdf_problem(name: str, what: str) -> None:
 
 
 def _pdf_problem_summary(problems: list[tuple[str, str]]) -> str:
-    """One line per PDF with everything that happened to it."""
-    by_pdf: dict[str, list[str]] = {}
+    """One line per PDF or registry source with everything that happened to it."""
+    by_doc: dict[str, list[str]] = {}
     for name, what in problems:
-        by_pdf.setdefault(name, []).append(what)
-    count = "1 PDF was" if len(by_pdf) == 1 else f"{len(by_pdf)} PDFs were"
+        by_doc.setdefault(name, []).append(what)
+    count = "1 document was" if len(by_doc) == 1 else f"{len(by_doc)} documents were"
     lines = [f"⚠️  Ingestion complete, but {count} not read as usual:"]
-    lines += [f"  - {name}: {'; '.join(whats)}" for name, whats in by_pdf.items()]
+    lines += [f"  - {name}: {'; '.join(whats)}" for name, whats in by_doc.items()]
     return "\n".join(lines)
 
 
