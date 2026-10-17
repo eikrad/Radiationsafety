@@ -82,6 +82,7 @@ NUMERIC_METRICS = (
     "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
     "grade_documents_correct",
     "grade_documents_ablation_correct",  # --regrade: the retrieval minus its evidence
+    "grade_generation_correct",  # --regrade: answer grader verdict == judge verdict
     "evidence_position",  # context chunk holding the evidence (1 = first)
     "warning_shown",  # 1 if the answer carried a warning: lower is better
     # retrieval-only runs
@@ -740,22 +741,65 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
     )["web_search"]
 
 
-def _regrade(
-    run_id: str, golden: list[dict], output_dir: Path, history_file: Path
-) -> tuple[dict, list[dict], dict] | None:
-    """Run today's sufficiency grader on a saved run's first retrievals.
+def _grade_generation(question: str, context: str, generation: str, llm) -> bool:
+    """The graph's grade_generation verdict on this answer and its context."""
+    from graph.nodes.grade_generation import grade_generation
 
-    Per question: is the verdict right (sufficient exactly when every vital
-    nugget's evidence was retrieved; insufficient for questions to refuse)?
-    And, where the retrieval held all its evidence, the same retrieval with the
-    evidence chunks removed must be judged insufficient: labelled negatives
-    without new retrieval (#129). About two grader calls per question.
+    return grade_generation(
+        {
+            "question": question,
+            "documents": [],
+            "generation": generation,
+            "context_used_for_generation": context,
+            "llm": llm,
+        }
+    )["generation_passed_grading"]
+
+
+def _judged_passes(run_id: str, history_file: Path) -> dict[str, bool] | None:
+    """Per question, whether the judge passed the answer in this recorded run
+    (the latest record with that id)."""
+    run = next(
+        (r for r in reversed(load_runs(history_file)) if r["run_id"] == run_id), None
+    )
+    if run is None:
+        print(f"Run {run_id} is not in {history_file}", file=sys.stderr)
+        return None
+    return {r["id"]: r["pass"] for r in run["results"] if r.get("pass") is not None}
+
+
+def _regrade(
+    run_id: str,
+    golden: list[dict],
+    output_dir: Path,
+    history_file: Path,
+    labels_from: str | None = None,
+) -> tuple[dict, list[dict], dict] | None:
+    """Run today's sufficiency and answer graders on a saved run.
+
+    Sufficiency, per question: is the verdict right (sufficient exactly when
+    every vital nugget's evidence was retrieved; insufficient for questions to
+    refuse)? And, where the retrieval held all its evidence, the same retrieval
+    with the evidence chunks removed must be judged insufficient: labelled
+    negatives without new retrieval (#129).
+
+    Answers: grade_generation on the saved answer and the context it was
+    written from, checked against the judge's pass/fail in the run itself or
+    in labels_from (e.g. a rescore after a label fix). A failed answer the
+    grader passes is one the correction loop never sees.
+    About three grader calls per question.
     """
     outputs_path = _saved_outputs(run_id, output_dir, history_file)
     if outputs_path is None:
         return None
+    labels = _judged_passes(labels_from or run_id, history_file)
+    if labels is None:
+        return None
     outputs = load_outputs(outputs_path)
     saved = [item for item in golden if item["id"] in outputs]
+    confusion = dict.fromkeys(
+        ("failed_flagged", "failed_missed", "passed_flagged", "passed_kept"), 0
+    )
 
     from graph.llm_factory import get_llm
 
@@ -782,6 +826,21 @@ def _regrade(
             ablated = without_evidence(item, initial)
             said = _invoke_with_retry(_grade_sufficient, item["question"], ablated, llm)
             metrics["grade_documents_ablation_correct"] = float(not said)
+        output = outputs[item["id"]]
+        label = labels.get(item["id"])
+        if label is not None and output.get("generation"):
+            passed = _invoke_with_retry(
+                _grade_generation,
+                item["question"],
+                output.get("context_used_for_generation") or "",
+                output["generation"],
+                llm,
+            )
+            metrics["grade_generation_correct"] = float(passed == label)
+            if label:
+                confusion["passed_kept" if passed else "passed_flagged"] += 1
+            else:
+                confusion["failed_missed" if passed else "failed_flagged"] += 1
         print(f"  [{n}/{len(saved)}] regraded {item['id']}", file=sys.stderr)
         results.append(
             {
@@ -808,12 +867,17 @@ def _regrade(
             "grader_only": True,
             "llm_provider": llm_provider,
             "llm_model": _model_name(llm),
+            "labels_from": labels_from or run_id,
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
         "regraded_from": run_id,
     }
-    return summarize(results), results, header
+    return (
+        {**summarize(results), "grade_generation_confusion": confusion},
+        results,
+        header,
+    )
 
 
 def _write_report(
@@ -1030,7 +1094,17 @@ def main() -> int:
         default=None,
         help=(
             "Run today's sufficiency grader (grade_documents) on a saved run's first "
-            "retrievals, plus each retrieval without its evidence chunks; no answers"
+            "retrievals, plus each retrieval without its evidence chunks, and the "
+            "answer grader (grade_generation) on its saved answers; no new answers"
+        ),
+    )
+    parser.add_argument(
+        "--labels",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "--regrade: check the answer grader against the judge's verdicts of "
+            "this run (e.g. a rescore after a label fix); default the regraded run"
         ),
     )
     parser.add_argument(
@@ -1109,7 +1183,9 @@ def main() -> int:
         summary, results, header = rescored
         label = args.label or f"rescore of {args.rescore}"
     elif args.regrade:
-        regraded = _regrade(args.regrade, golden, args.output_dir, args.history_file)
+        regraded = _regrade(
+            args.regrade, golden, args.output_dir, args.history_file, args.labels
+        )
         if regraded is None:
             return 1
         summary, results, header = regraded
