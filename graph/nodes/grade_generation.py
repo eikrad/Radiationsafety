@@ -47,7 +47,7 @@ def grade_generation(
     except ValueError:  # no verdict even when asked again: not passed
         return {"generation_passed_grading": False, "reflection": _SENTINEL}
 
-    if score.passed:
+    if score.passes(docs_str):
         return {"generation_passed_grading": True, "reflection": ""}
 
     reflection = score.missing_info.strip() or _SENTINEL

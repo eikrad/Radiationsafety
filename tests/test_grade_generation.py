@@ -12,12 +12,22 @@ from graph.state import GraphState
 # ---------------------------------------------------------------------------
 
 
-def _parts(*statuses: str) -> list[PartVerdict]:
-    return [PartVerdict(part=f"part {n}", status=s) for n, s in enumerate(statuses, 1)]
+FACTS = (
+    "[Source: GSR Part 3 (IAEA)] The effective dose limit for occupational exposure "
+    "is 20 mSv per year, averaged over five consecutive years."
+)
+QUOTE = "20 mSv per year, averaged over five consecutive years"
+
+
+def _parts(*statuses: str, quote: str = QUOTE) -> list[PartVerdict]:
+    return [
+        PartVerdict(part=f"part {n}", status=s, quote=quote)
+        for n, s in enumerate(statuses, 1)
+    ]
 
 
 def _verdict(passed: bool, missing_info: str = "") -> GradeGeneration:
-    """A grader reply whose parts make it pass or fail."""
+    """A grader reply whose parts make it pass or fail against FACTS."""
     status = "answered_supported" if passed else "not_answered"
     return GradeGeneration(parts=_parts(status), missing_info=missing_info)
 
@@ -25,31 +35,55 @@ def _verdict(passed: bool, missing_info: str = "") -> GradeGeneration:
 def test_an_answer_passes_when_every_part_is_answered_from_the_facts():
     assert GradeGeneration(
         parts=_parts("answered_supported", "answered_supported")
-    ).passed
+    ).passes(FACTS)
 
 
 def test_an_answer_that_leaves_one_part_open_fails():
     """The grader once listed every part as not answered and still said passed (cs137)."""
     assert not GradeGeneration(
         parts=_parts("answered_supported", "not_answered")
-    ).passed
+    ).passes(FACTS)
 
 
 def test_an_answer_with_a_part_the_facts_do_not_state_fails():
     assert not GradeGeneration(
         parts=_parts("answered_supported", "answered_not_in_facts")
-    ).passed
+    ).passes(FACTS)
 
 
 def test_a_refusal_passes_only_when_the_facts_are_off_topic_for_every_part():
-    assert GradeGeneration(parts=_parts("facts_off_topic", "facts_off_topic")).passed
+    assert GradeGeneration(parts=_parts("facts_off_topic", "facts_off_topic")).passes(
+        FACTS
+    )
     assert not GradeGeneration(
         parts=_parts("facts_off_topic", "answered_supported")
-    ).passed
+    ).passes(FACTS)
 
 
 def test_a_reply_that_lists_no_parts_does_not_pass():
-    assert not GradeGeneration(parts=[]).passed
+    assert not GradeGeneration(parts=[]).passes(FACTS)
+
+
+def test_a_supported_part_needs_a_quote_the_facts_contain():
+    """The grader took the answer's reading of the context for 7 of 7 generator
+    misses; quoting the Facts makes it look there itself (ROADMAP, Step G1)."""
+    assert not GradeGeneration(parts=_parts("answered_supported", quote="")).passes(
+        FACTS
+    )
+    assert not GradeGeneration(
+        parts=_parts("answered_supported", quote="10 mSv per year")
+    ).passes(FACTS)
+
+
+def test_a_quote_matches_despite_case_spacing_quotes_and_elisions():
+    quote = '"The effective dose limit ... is 20  mSv per year, averaged"'
+    assert GradeGeneration(parts=_parts("answered_supported", quote=quote)).passes(
+        FACTS
+    )
+
+
+def test_a_refusal_needs_no_quote():
+    assert GradeGeneration(parts=_parts("facts_off_topic", quote="")).passes(FACTS)
 
 
 def test_missing_info_defaults_to_empty():
@@ -72,7 +106,7 @@ def _make_state(
     return {
         "question": "What are the dose limits?",
         "generation": generation,
-        "documents": documents or [Document(page_content="GSR-3 dose limits...")],
+        "documents": documents or [Document(page_content=FACTS)],
         "context_used_for_generation": context_used,
         "web_search": False,
         "web_search_attempted": web_search_attempted,
@@ -118,6 +152,20 @@ def test_grade_generation_node_uses_sentinel_when_missing_info_empty_on_fail():
         out = grade_generation(_make_state())
 
     assert out["reflection"] == "retry"
+
+
+def test_grade_generation_node_fails_an_answer_whose_quoted_support_is_not_in_the_context():
+    from graph.nodes.grade_generation import grade_generation
+
+    grade = GradeGeneration(
+        parts=_parts("answered_supported", quote="10 mSv per year"),
+        missing_info="occupational dose limit GSR Part 3",
+    )
+    with _patch_grader(grade):
+        out = grade_generation(_make_state(context_used=FACTS))
+
+    assert out["generation_passed_grading"] is False
+    assert out["reflection"] == "occupational dose limit GSR Part 3"
 
 
 def test_grade_generation_node_sets_generation_passed_grading_flag():
