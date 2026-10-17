@@ -20,6 +20,25 @@ def test_get_llm_returns_gemini_2_5_pro_when_chosen(monkeypatch):
     assert getattr(llm, "model", None) == "gemini-2.5-pro"
 
 
+def test_gemini_3_8_flash_answers_with_googles_settings_for_gemini_3(monkeypatch):
+    """Gemini 3 and later: temperature 1.0 (Google's guidance; lower values can
+    loop) and the documented default thinking level pinned to medium."""
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+    llm = get_llm(provider="gemini", model_variant="gemini-3.8-flash")
+
+    assert llm.model == "gemini-3.8-flash"
+    assert llm.temperature == 1.0
+    assert llm.thinking_level == "medium"
+
+
+def test_gemini_2_5_keeps_temperature_0_and_its_own_thinking(monkeypatch):
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+    llm = get_llm(provider="gemini", model_variant="gemini-2.5-flash")
+
+    assert llm.temperature == 0
+    assert getattr(llm, "thinking_level", None) is None
+
+
 def test_get_llm_returns_mistral_when_set(monkeypatch):
     """When LLM_PROVIDER=mistral, returns ChatMistralAI."""
     monkeypatch.setenv("LLM_PROVIDER", "mistral")

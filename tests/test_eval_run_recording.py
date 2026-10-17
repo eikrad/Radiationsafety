@@ -179,6 +179,24 @@ def test_a_finished_run_is_recorded_with_its_label_and_settings(monkeypatch, wor
     assert run["duration_sec"] >= 0
 
 
+def test_a_run_records_the_answer_models_temperature_and_thinking_level(
+    monkeypatch, workspace
+):
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm",
+        lambda provider=None, model_variant=None, **_: SimpleNamespace(
+            model=model_variant or "gemini-3.8-flash",
+            temperature=1.0,
+            thinking_level="medium",
+        ),
+    )
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["llm_temperature"] == 1.0
+    assert run["config"]["llm_thinking_level"] == "medium"
+
+
 def test_each_question_carries_its_error_type_and_scores(monkeypatch, workspace):
     _run(monkeypatch, workspace)
 

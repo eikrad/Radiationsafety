@@ -259,6 +259,19 @@ def _model_name(llm) -> str:
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
 
+def _sampling_config(llm) -> dict:
+    """The answer model's temperature and, where set, its thinking level."""
+    config = {}
+    for key, attr in (
+        ("llm_temperature", "temperature"),
+        ("llm_thinking_level", "thinking_level"),
+    ):
+        value = getattr(llm, attr, None)
+        if value is not None:
+            config[key] = value
+    return config
+
+
 def _judge_llm(
     default_llm, llm_provider: str, answer_model: str
 ) -> tuple[object, dict]:
@@ -449,6 +462,7 @@ def _run_eval(
             "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
+            **_sampling_config(graph_llm),
             # a local model reads at most this many tokens of the prompt
             **({"llm_num_ctx": ollama_num_ctx()} if llm_provider == "ollama" else {}),
             **judge_info,

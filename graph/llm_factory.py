@@ -33,8 +33,21 @@ class ProviderConfigError(ValueError):
 
 
 _GEMINI_MODELS = frozenset(
-    {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"}
+    {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.8-flash"}
 )
+
+
+def _gemini_sampling(model: str) -> dict:
+    """Gemini 3 and later: temperature 1.0, as Google advises (lower values can
+    loop), and the documented default thinking level pinned so a run records
+    it. Older models keep temperature 0 and their own thinking."""
+    version = model.removeprefix("gemini-").split("-")[0]
+    major = int(version.split(".")[0]) if version.split(".")[0].isdigit() else 0
+    if major >= 3:
+        return {"temperature": 1.0, "thinking_level": "medium"}
+    return {"temperature": 0}
+
+
 _OPENAI_MODELS = frozenset({"gpt-4o-mini", "gpt-4o"})
 
 _SCALEWAY_BASE_URL = "https://api.scaleway.ai/v1"
@@ -289,7 +302,7 @@ def get_llm(
             model = "gemini-2.5-pro"
         return ChatGoogleGenerativeAI(
             model=model,
-            temperature=0,
+            **_gemini_sampling(model),
             google_api_key=key,
             timeout=request_timeout(),
             max_retries=max_retries(),
