@@ -855,6 +855,49 @@ Expected cost: Gemma `confirm` run about €1.40, three Mistral rescores
 about €2.80, the Qwen judge for the Gemini run about €0.80, and the Gemini
 answers about $1–3.
 
+### Result (2026-10-17): not confirmed; Flash ahead, within the noise
+
+`confirm`, 53 questions, aggregate only. Runs: Gemma `confirm-optimised`
+`20261017_191022` (Mistral rescore `20261017_203622`), Gemini
+`confirm-gemini-3.8-flash` `20261017_190626` (Mistral `20261017_203329`),
+baseline Mistral rescore `20261017_203957`.
+
+| Judge | Run | Pass | 95 % interval | retrieval_miss | generator_miss | unsupported_claim |
+|---|---|---|---|---|---|---|
+| Qwen | baseline | 42/53 (79 %) | 67–88 % | 5 | 4 | 2 |
+| Qwen | optimised | 44/53 (83 %) | 71–91 % | 3 | 5 | 1 |
+| Qwen | Gemini 3.8 Flash | 47/53 (89 %) | 77–95 % | 3 | 2 | 1 |
+| Mistral | baseline | 45/53 (85 %) | 73–92 % | 5 | 2 | 1 |
+| Mistral | optimised | 44/53 (83 %) | 71–91 % | 3 | 1 | 5 |
+| Mistral | Gemini 3.8 Flash | 45/53 (85 %) | 73–92 % | 3 | 1 | 4 |
+
+**Confirmation: not met.** Optimised against baseline: Qwen 3 better,
+1 worse (net +2, p = 0.63); Mistral 3 better, 4 worse (net −1, p = 1.0).
+No new `wrong_refusal` under either judge, no significant regression. The
+net-positive condition fails under Mistral, so the tune gain is reported as
+not carried over to `confirm`, and nothing is changed on its strength. Both
+judges agree that the loop removes retrieval misses (5 → 3); under Mistral
+`unsupported_claim` rises from 1 to 5, under Qwen it does not (2 → 1). The
+same answers re-scored twice by Mistral gave 46 and 45 of 53 (the first
+report was lost to a run ID collision, fixed in `run_eval`), so one flip is
+inside the judge's own noise. First of at most three confirmations used.
+
+**Frontier comparison (reported only).** Flash is ahead of Gemma by 3
+questions under Qwen (5 better, 2 worse) and by 1 under Mistral (6 better,
+5 worse); every interval overlaps. Both fail 4 (Qwen) or 3 (Mistral)
+questions alike, and 2 of the 3 retrieval misses are the same questions
+for both models, so these failures sit in retrieval, not in the open
+model. Evidence recall of the first retrieval is the same (0.95); vital
+recall 0.95 (Gemma) and 0.98 (Flash). Cost of the answers for 53
+questions: Gemma €0.72, Flash $4.40, about six times as much.
+
+Cost of step 5: about €6.3 and $4.40 (Gemma run €1.60, Gemini run €0.96 +
+$4.40, three Mistral rescores €3.0, the lost baseline rescore €0.78).
+
+**Open question for the next round:** why Mistral finds more unsupported
+claims after the loop. To be looked into on `tune` (`tune-local-loop` and
+its Mistral rescore), never on `confirm`.
+
 ## Next round on `tune` (after step 5)
 
 Candidates, each measured on `tune` only under a rule committed before it
