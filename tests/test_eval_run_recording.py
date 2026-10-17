@@ -1,10 +1,13 @@
 """run_eval scores each question (scoring v2) and records the run (graph + judge mocked)."""
 
+import itertools
 import json
 from types import SimpleNamespace
 
 import pytest
 from langchain_core.documents import Document
+from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import AIMessage
 
 import eval.run_eval as run_eval
 from eval.graph_run import load_outputs
@@ -316,6 +319,18 @@ def test_the_report_carries_the_same_run_header(monkeypatch, workspace):
     assert "retrieval_miss" in markdown
 
 
+def test_the_pass_rate_comes_with_its_95_percent_interval(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    # 2 of 3 judged questions pass
+    assert run["summary"]["pass_rate_interval"] == pytest.approx(
+        [0.2077, 0.9385], abs=1e-4
+    )
+    markdown = (workspace.reports / run["report_file"]).with_suffix(".md").read_text()
+    assert "95 % interval 21–94 %" in markdown
+
+
 def test_the_report_shows_what_the_judge_flagged(monkeypatch, workspace):
     flagged = dict(VERDICTS)
     flagged["Hvor findes dosisgrænserne?"] = {
@@ -344,6 +359,64 @@ def test_a_limited_run_is_recorded_with_its_own_question_count(monkeypatch, work
 
     [run] = load_runs(workspace.history)
     assert run["dataset"]["n_items"] == 1
+
+
+def test_a_run_on_one_split_answers_only_the_questions_of_that_split(
+    monkeypatch, workspace
+):
+    tagged = [
+        {**item, "split": split}
+        for item, split in zip(GOLDEN, ["tune", "confirm", "tune"], strict=True)
+    ]
+    workspace.golden.write_text(json.dumps(tagged), encoding="utf-8")
+
+    assert _run(monkeypatch, workspace, "--split", "tune") == 0
+
+    [run] = load_runs(workspace.history)
+    assert set(_results(run)) == {"dk-dose-limits", "out-of-scope-mri"}
+    assert run["dataset"]["split"] == "tune"
+
+
+def _chat(model: str, tokens_in: int, tokens_out: int) -> GenericFakeChatModel:
+    reply = AIMessage(
+        content="ok",
+        usage_metadata={
+            "input_tokens": tokens_in,
+            "output_tokens": tokens_out,
+            "total_tokens": tokens_in + tokens_out,
+        },
+        response_metadata={"model_name": model},
+    )
+    return GenericFakeChatModel(messages=itertools.repeat(reply))
+
+
+def test_a_run_records_the_tokens_each_model_used(monkeypatch, workspace):
+    answering, judging = _chat("answer-model", 1000, 50), _chat("judge-model", 400, 20)
+    fake_graph, fake_judge = run_eval._invoke_graph, run_eval.judge_item
+
+    def graph_calling_its_model(question, graph, llm):
+        answering.invoke(question)
+        return fake_graph(question, graph, llm)
+
+    def judge_calling_its_model(item, answer, context, llm, votes=1):
+        judging.invoke(answer)
+        return fake_judge(item, answer, context, llm, votes)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", graph_calling_its_model)
+    monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
+
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    answers, judge = run["usage"]["answers"], run["usage"]["judge"]
+    assert set(answers) == {"answer-model"} and set(judge) == {"judge-model"}
+    assert (
+        answers["answer-model"]["input_tokens"],
+        judge["judge-model"]["output_tokens"],
+    ) == (
+        3 * 1000,
+        3 * 20,
+    )
 
 
 def test_no_history_leaves_the_history_untouched(monkeypatch, workspace):
@@ -403,6 +476,73 @@ def test_a_saved_run_can_be_rescored_without_running_the_graph(monkeypatch, work
     # the judgement is new
     assert rescored["config"]["judge_model"] == "gpt-4o"
     assert _results(rescored)["dk-dose-limits"]["error_type"] == "unsupported_claim"
+
+
+def test_a_rescore_records_only_the_judge_tokens(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    judging, fake_judge = _chat("judge-model", 400, 20), run_eval.judge_item
+
+    def judge_calling_its_model(item, answer, context, llm, votes=1):
+        judging.invoke(answer)
+        return fake_judge(item, answer, context, llm, votes)
+
+    monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
+
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    _, rescored = load_runs(workspace.history)
+    assert rescored["usage"] == {
+        "judge": {
+            "judge-model": {
+                "input_tokens": 1200,
+                "output_tokens": 60,
+                "total_tokens": 1260,
+            }
+        }
+    }
+
+
+def _archived(workspace, run_id):
+    return workspace.history.parent / "outputs" / f"{run_id}.json.gz"
+
+
+def test_a_recorded_run_archives_its_answers_next_to_the_history(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    archived = load_outputs(_archived(workspace, run["run_id"]))
+    assert set(archived) == {i["id"] for i in GOLDEN}
+    assert archived["dk-dose-limits"]["generation"].startswith("Answer to")
+
+
+def test_a_run_can_be_rescored_from_the_archive_on_another_machine(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    # another checkout has the history and its archive, not the local reports
+    (workspace.reports / f"outputs_{original['run_id']}.json").unlink()
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+
+    _, rescored = load_runs(workspace.history)
+    assert rescored["rescored_from"] == original["run_id"]
+
+
+def test_debugging_runs_and_rescores_add_nothing_to_the_archive(monkeypatch, workspace):
+    _run(monkeypatch, workspace, "--no-history")
+    assert not (workspace.history.parent / "outputs").exists()
+
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    assert [p.name for p in (workspace.history.parent / "outputs").iterdir()] == [
+        f"{original['run_id']}.json.gz"
+    ]
 
 
 def test_rescoring_an_unknown_run_says_so(monkeypatch, workspace, capsys):
@@ -471,6 +611,14 @@ def test_a_retrieval_only_run_scores_the_first_retrieval_without_answering_or_ju
     assert run["summary"]["evidence_recall_initial_mean"] == 0.5
     assert run["summary"]["pass_rate"] is None
     assert [q for q, _ in retrieval_only.asked] == [g["question"] for g in GOLDEN[:2]]
+
+
+def test_a_retrieval_only_run_is_not_archived_because_it_is_cheap_to_repeat(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    assert not (workspace.history.parent / "outputs").exists()
 
 
 def test_a_retrieval_only_run_records_the_embedding_settings(

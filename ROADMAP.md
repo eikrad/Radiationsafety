@@ -541,6 +541,133 @@ and faster for a model that spills into RAM.
 
 ---
 
+## Product — export the chat as a report (2026-10-13)
+
+Not an evaluation step, but a gap seen while working on the eval: an answer
+can only be read in the page. Whoever needs it for a safety assessment or an
+inspection file copies the text by hand and loses the sources, the warning,
+the web-search marker and the information on how the answer was produced.
+Planned in #170: a button that exports the whole chat or a single answer,
+built in the browser from the messages already on the page (so it also works
+in privacy mode and needs no new request), as Markdown first and then a
+print-ready page or PDF. Each report carries the questions and answers, the
+sources, the warning, the web-search marker, the model and whether privacy
+mode was on, and a fixed note that the text is AI-generated and has to be
+checked against the original standards.
+Open before building: whether `/query` can return the document version per
+source (an answer is only reproducible together with it), and whether the
+chunks carry page or section numbers for the source lines. It builds on the
+conversation kept in the browser (#135) and waits for streaming (#149) only
+in that finished answers are exported.
+
+---
+
+## Held-out test set — baselines (2026-10-16)
+
+First runs on `eval/data/golden_test.json` (#167), with the run plan in
+`docs/handoff-held-out-test-run.md`. Configuration as `prompt-145` but
+without web search: `gemma-4-26b-a4b-it`, `bge-multilingual-gemma2`, k = 5,
+judge `qwen3.8-27b` with 3 votes; index fingerprint `b0fc52f61a4e` /
+`d90d785f314c`. Expectation recorded before measuring: 65 to 85 %.
+
+| Run | Pass | 95 % interval |
+|---|---|---|
+| dev set, no web (`dev-no-web`) | 36/39 = 92 % | 80–97 % |
+| `tune` (`tune-baseline-rescore`) | 37/53 = 70 % | 56–80 % |
+| `tune`, repeat (`tune-baseline-repeat-rescore`) | 38/53 = 72 % | 58–82 % |
+| `tune`, judge `mistral-medium-3.5-128b` | 36/53 = 68 % | 55–79 % |
+| `confirm` (`confirm-baseline`, aggregate only) | 42/53 = 79 % | 67–88 % |
+| test, `tune` + `confirm` | 79/106 = 75 % | 65–82 % |
+| test without the 14 items on development chunks | 70/92 = 76 % | 66–84 % |
+
+The `tune` numbers are rescores after one evidence fix (commit `1109acd`,
+see below); before it, the two baselines scored 36/53 and 38/53.
+
+What can be claimed: the dev number overstates the system. On questions
+written before any system answer, about three in four pass (65–82 %), and
+removing the items on chunks the dev set quotes does not change that (the
+14 such items pass 9/14, no better than the rest). Dev and test intervals
+barely overlap (80–97 % vs 65–82 %). What cannot be claimed: that `confirm`
+is easier than `tune` (79 % vs 70 %, intervals overlapping), or any effect
+of web search: `prompt-145` (38/39) ran with it, `dev-no-web` (36/39)
+without, and two questions are within noise.
+
+Noise and judges. Between the two `tune` baselines, generated and judged
+anew, 1 question flipped (`test-iaea-dose-constraint-bands`); re-judging the
+same answers flipped `test-dk-kategori-øjelinse` as well. Both hinge on a
+`partial_support` for a vital nugget. Mistral changed 5 of 53 verdicts on
+the same answers: it passed those two and failed three Danish definition
+questions on an unsupported claim (`transportindeks-definition`,
+`referenceniveau-definitioner`, `en-pair-category-b-boundary`). Both judges
+agree on all 12 retrieval misses. A pass/fail effect smaller than about 3
+net questions is therefore not distinguishable from noise on `tune`.
+
+Retrieval-only on `tune` (`tune-retrieval-bge-gemma2` /
+`tune-retrieval-bge-m3`): recall@5 0.88 / 0.84, recall@20 0.97 / 0.90, MRR
+0.75 / 0.64. Scaleway's embedder stays ahead of the local one, by less on
+Danish law than in the privacy-mode comparison above.
+
+**Failed `tune` questions, classified** (the 16 failures of
+`tune-baseline-rescore`, plus `research-source-inventory`, which failed in
+both baselines before the label fix):
+
+| Class | n | Questions |
+|---|---|---|
+| Retrieval miss | 12 | see below |
+| Generation fault | 2 | `gsg2-fetus-criterion` (leaves out the fetus row of a table that is in the context), `transport-monitoring-dk-vs-iaea` (does not say that Danish law monitors categories A and B individually; strict judge) |
+| Judge noise (borderline generation) | 2 | `kategori-øjelinse`, `dose-constraint-bands`: correct answers, one vital nugget judged `partial_support` in some judgings |
+| Label problem | 1 | `research-source-inventory`, fixed |
+| Scope fault | 0 | the 3 `tune` refusals were refused in every run; no answerable question was refused for reasons of scope |
+
+The 12 retrieval misses: for 10 of them the missing evidence is ranked 6–20
+by `bge-multilingual-gemma2` (recall@20 = 1.0), for 2 it is not in the top
+20 (`gsr5-waste-management-approaches`, 4.3 on "dilute and disperse";
+`radiography-device-shipment-notification`, SSG-11 and the SSR-6 A1 table).
+Two questions refuse because of the miss, correctly relative to what was
+retrieved (`cs137-sikringsgruppe-c-krav`, `radiography-device-shipment`).
+
+Hypotheses written before measuring:
+- *Table chunks:* confirmed as a cause, but not the main one. BEK 1385 Bilag
+  6 (security groups) is missed by both security-group questions
+  (`ir192-…`, `cs137-…`; it is only reachable through § 80, so they are
+  multi-hop as well), the SSR-6 activity table by the shipment question, and
+  `gsg2-fetus-criterion` fails on reading a table row that was retrieved.
+- *Danish law asked in English:* not supported. English questions on Danish
+  law passed 6/7, Danish ones 19/26 (evidence recall@5 0.95 vs 0.91).
+- *Computed and multi-hop questions:* 1 of the 6 hard `tune` questions
+  passed. Every hard question that failed is multi-part, and the misses are typically one part of it: the paragraph
+  next to the one found (`tecdoc1380-intrusion-criteria`, the second chunk
+  of 3.3.2), or a cross-reference (§ 80 → Bilag 6).
+- *Refusal traps* (21-day deadline for the P-number question): held; all
+  three `tune` refusals passed in every run.
+- *Not expected:* IAEA questions fail more than Danish-law ones (9/16 vs
+  25/33 answerable), five of the seven on retrieval. Two misses retrieve a
+  neighbouring statement from another standard instead (GSR-2 Requirement 11
+  on the supply chain loses to the "prime responsibility" paragraphs of
+  GSR-1/GSR-3), and the definitions list in BEK 1386 § 4 is not found for the
+  X-ray therapy question, so the model classifies the treatment wrongly.
+
+Label fix (commit `1109acd`): `test-iaea-research-source-inventory` failed
+as a retrieval miss in both baselines with a correct answer: its second
+vital nugget quoted only GSR Part 3 para. 3.53, while GSG-7 para. 3.74,
+retrieved and cited, states the same inventory content (nugget 1 already
+matched it). It now also accepts the GSG-7 quote. Caveat: label problems
+were looked for only among failed questions, which can only raise the
+number; this is one question.
+
+What this means for step 4: with recall@20 at 0.97 but recall@5 at 0.88,
+most retrieval misses are ranking problems, not missing chunks, so
+re-ranking a larger candidate set (#146) is the candidate with the most
+room. The Danish second query of #146 has little to gain on these numbers
+(English questions on Danish law already pass). The scope check (#150) has
+no fault to fix on `tune`; there it can only show that it causes no new
+refusals.
+
+Cost: about €7.10 at Scaleway before tax for all runs of this section
+(full `tune` run about €1.07, Mistral rescore about €0.80).
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous

@@ -16,6 +16,7 @@ import webbrowser
 from collections import defaultdict
 from pathlib import Path
 
+from eval.costs import load_prices, run_cost
 from eval.history import DEFAULT_HISTORY_PATH, load_runs
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -35,6 +36,7 @@ def dashboard_data(
     runs: list[dict],
     reports_dir: Path | None = None,
     baseline_run_id: str | None = None,
+    prices: list[dict] | None = None,
 ) -> dict:
     """Everything the dashboard shows, computed from the run history.
 
@@ -42,6 +44,7 @@ def dashboard_data(
     reports_dir: where local full reports live, for answer previews (optional).
     baseline_run_id: compare every run in its question set against this run;
     by default the latest run labelled "baseline", else the set's first run.
+    prices: per-model prices (eval/costs.py) to show what each run cost.
     """
     runs = sorted(runs, key=lambda r: r.get("run_id", ""))
     by_set: dict[str, list[dict]] = defaultdict(list)
@@ -55,7 +58,7 @@ def dashboard_data(
     sets.sort(key=lambda s: s["run_ids"][-1], reverse=True)
     return {
         "metrics": _metric_names(runs),
-        "runs": {r["run_id"]: _run_view(r, reports_dir) for r in runs},
+        "runs": {r["run_id"]: _run_view(r, reports_dir, prices or []) for r in runs},
         "sets": sets,
     }
 
@@ -70,10 +73,11 @@ def _metric_names(runs: list[dict]) -> list[str]:
     return names
 
 
-def _run_view(run: dict, reports_dir: Path | None) -> dict:
+def _run_view(run: dict, reports_dir: Path | None, prices: list[dict]) -> dict:
     previews = _load_previews(run, reports_dir)
     return {
         **{k: v for k, v in run.items() if k != "results"},
+        "cost": run_cost(run, prices),
         "results": {
             r["id"]: {
                 "pass": r.get("pass"),
@@ -127,6 +131,12 @@ def _question_set(
     return {
         "questions_hash": questions_hash,
         "n_items": latest["dataset"].get("n_items"),
+        # held-out sets: which split, and how often new answers were looked at
+        # (eval/README.md allows at most three confirmations per confirm set)
+        "split": latest["dataset"].get("split"),
+        "new_runs": sum(
+            1 for r in runs if not (r.get("rescored_from") or r.get("regraded_from"))
+        ),
         "questions": [
             {
                 "id": r["id"],
@@ -415,6 +425,7 @@ def write_dashboard(
         load_runs(history_file),
         reports_dir=reports_dir,
         baseline_run_id=baseline_run_id,
+        prices=load_prices(),
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(render_html(data), encoding="utf-8")

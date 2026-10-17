@@ -18,6 +18,7 @@ The harness uses your `.env` for the LLMs (no API keys in golden data). Ensure i
 |--------|-------------|
 | `--golden PATH` | Path to golden JSON (default: `eval/data/golden.json`) |
 | `--limit N` | Run only on the first N items (useful for development) |
+| `--split tune\|confirm` | Run only the held-out items of one split (`--golden eval/data/golden_test.json`, see [Tune and confirm splits](#tune-and-confirm-splits)) |
 | `--no-web-search` | Disable web search for reproducible eval runs |
 | `--output-dir PATH` | Directory for reports and saved graph outputs (default: `eval/reports`) |
 | `--delay-after-graph SEC` | Seconds to wait after each graph run (default 5). Overrides `EVAL_DELAY_AFTER_GRAPH_SEC`. Use `0` to disable. |
@@ -103,9 +104,46 @@ No LLM decides relevance here: LLM relevance labels agree with people on system 
 
 - **Nuggets** are atomic facts a good answer contains (about one short sentence each, a yes/no decision for the judge). `vital` = the answer is wrong without it; `okay` = worth having. At least one vital nugget per answerable question. Nugget text can be in any language; the judge assigns by meaning.
 - **Evidence** quotes are copied **verbatim** from the source as ingested (the document's own language). Several quotes are *alternatives* (the same fact in the PDF and the XML version, or in a guidance document); any one counts. Keep quotes short (≤ 150 characters, the validator warns otherwise) and specific: sister regulations often share wording, so include the part that distinguishes the right paragraph. Choose passages by reading the regulation, not by keyword search, and add another quote when a retrieval variant finds a different valid passage (BEIR, Thakur et al. 2021, shows how keyword-chosen labels bias comparisons toward keyword retrieval).
+- **No pointers to the source**: a question must not say where the answer is written (no paragraph, annex, table or section, no standard number such as `GSR Part 3` or `SSG-46`, no name of an order). A real user does not know that; it gives the retriever the answer's address and makes the question easier. Name only the legal system ("under Danish rules", "according to the IAEA safety standards") and only where the two give different answers. Describe the situation instead, so that its content tells the retriever which order applies. `tests/test_golden_test_set.py` checks this for the held-out set.
 - **Jurisdiction**: the system answers from Danish law and IAEA standards together. When the two give different answers (e.g. dose constraints for carers, dose rates at a radiography barrier), name the source in the question ("According to the IAEA safety standards, …"); otherwise an answer from the other source is right too and is scored as wrong.
 - **`expected_behavior: refuse`** marks questions the sources do not answer; the system should say so. These items have no nuggets.
 - **Tags**: `topics` (one or more of `medical`, `industrial`, `research`, `transport`, `waste`, `emergency`, `occupational`, `general`), `language` of the question, `source` where the answer lives (`dk-law`, `iaea`, `both`). They power the dashboard's per-topic view and are left out of the dataset fingerprint, so retagging keeps runs comparable.
+
+### Held-out test questions
+
+`eval/data/golden_test.json` holds questions that are kept apart from the development set (#167). They were written from the source documents, before any system answer was looked at. Nothing is tuned on them: after a tuning step they count as development questions and a confirmation needs new ones. Run them with `--golden eval/data/golden_test.json`; their `questions_hash` then never mixes into the development trend.
+
+They weight what separates models and settings: conditions where "eller"/"samt" decide the outcome (category A vs B, both conditions of a disposal rule), boundary values, computed cases (security group from an activity, a TI from a dose rate, a mixture sum), numbers and units in annex tables, definition lists, multi-hop references between a paragraph and an annex, questions that need two documents (a requirement and its guide), Danish rule vs IAEA value, English questions about Danish law and Danish/English pairs on the same passage (#168), borderline in-scope topics that sound out of scope (aircrew, building materials), and six questions to refuse (in-domain ones such as the SST-id and a deadline for a P-number change, which the sources do not give). Every item was checked against the source text by independent model reviewers, the findings were worked in, and the maintainer approved every item. Evidence quotes are verbatim as ingested: they were checked against the index the development runs used (2026-10-13), where tables are linearised as "row, column = value" and sub- and superscripts read `222 Rn`, `A_1`, `CTDI_vol`. Re-run `uv run python -m eval.golden --golden eval/data/golden_test.json --check-index` after any re-ingestion.
+
+#### Tune and confirm splits
+
+Every item in `golden_test.json` carries a `split` and the reviewers' `difficulty` rating (`easy`, `medium`, `hard`, informational only). Neither tag is part of the dataset fingerprint.
+
+| Split | Items | Use |
+|-------|-------|-----|
+| `tune` | 53 | Tuning: retrieval, prompts, model choice. Failures are read and classified question by question. Holds every item whose evidence sits in a chunk the development set also quotes. |
+| `confirm` | 53 | Untouched confirmation. Only aggregate numbers are read: pass rate with its interval, error types, flips against a baseline. |
+
+```bash
+uv run python -m eval.run_eval --golden eval/data/golden_test.json --split tune --label tune-baseline
+uv run python -m eval.run_eval --golden eval/data/golden_test.json --split confirm --label confirm-baseline
+```
+
+A run on one split covers fewer items, so it has its own `questions_hash` and the dashboard never compares it with a run on the other split.
+
+How the split was made (`eval/split.py`, `uv run python -m eval.split`), before any system ran on these questions:
+
+- Items whose evidence sits in the same chunk of the search index form one group and share a split: tuning on one of them tunes the retrieval of the chunk the other tests. Chunks, not wording, decide, because sister regulations repeat phrases in different paragraphs. The Danish/English pairs (#168) therefore sit whole in one split, five in `tune` and two in `confirm`.
+- A group with a chunk the development set quotes goes to `tune`, so `confirm` stays free of chunks that shaped earlier choices.
+- The other groups are placed largest first, in an order fixed by a seed, on the side that keeps every stratum (expected behaviour × source × difficulty), language and topic most evenly divided. Result: 3 items to refuse and 6 hard items on each side.
+
+Rules:
+
+- Reading `confirm` failures question by question turns it into development data: ideas come from what was read, and label fixes made only where the system failed push the number up. Do that only at the end of a cycle, on purpose, and then write new confirm questions. A label problem found without looking at answers (e.g. by `--check-index`) may be fixed on both sides.
+- Confirm a change on `confirm` at most three times per set of confirm questions, each time with the adoption rule committed before the run; after that, `confirm` counts as development data.
+- Never move an item after a run. New questions are added without a split and `uv run python -m eval.split` places them: an item that shares a chunk with an assigned one joins its split, existing items keep theirs. New questions change the `questions_hash`, so baselines are run again.
+- After re-ingestion or new documents (#169), `--check-index` also reports split leaks: a chunk shared across the splits, or a `confirm` item on a chunk the development set quotes. A leak is recorded with the results, not fixed by moving items. New documents can also answer a question to refuse: check those six again.
+- The reviewers' difficulty ratings are model judgements made before the questions met a system. Re-rate from real results only to plan new questions.
 
 `run_eval` validates the file and lists every problem at once (unknown topic, vital nugget without evidence, refuse item with nuggets, the v1 `key_facts` format, …).
 
@@ -235,10 +273,11 @@ Runs each judge over `eval/judge_fixtures.json`: 16 cases with the verdict a goo
 - **JSON**: `eval/reports/report_<run_id>.json` – run header, summary and per-question results.
 - **Markdown**: `eval/reports/report_<run_id>.md` – the same for reading, with the error type and node path per question.
 - **Graph outputs**: `eval/reports/outputs_<run_id>.json` – full answers, first retrieval, generator context, sufficiency verdict, node path; used for re-scoring.
-- **History**: one line per run appended to `eval/history/runs.jsonl` (committed).
-- **Dashboard**: `eval/reports/dashboard.html`, refreshed after every recorded run.
+- **History**: one line per run appended to `eval/history/runs.jsonl` (committed), with the tokens each model used (`usage`) and the pass rate's 95 % interval.
+- **Archived answers**: `eval/history/outputs/<run_id>.json.gz` (committed), a gzipped copy of the graph outputs of every recorded full run, about 200 KB per 50 questions. Retrieval-only runs are not archived: they are cheap to repeat. Commit the archive with the history line.
+- **Dashboard**: `eval/reports/dashboard.html`, refreshed after every recorded run. It shows each run's cost at the prices valid on its day (`eval/data/prices.json`, per million tokens; add an entry when a price changes, do not edit the old one).
 
-Reports, outputs and the dashboard are gitignored; the history is committed so runs stay comparable across machines and over time.
+Reports, local outputs and the dashboard are gitignored; the history and the archived answers are committed, so runs stay comparable across machines and over time, and a run can be judged again after the model that answered it is gone.
 
 ## Re-scoring
 
@@ -246,7 +285,7 @@ Reports, outputs and the dashboard are gitignored; the history is committed so r
 uv run python -m eval.run_eval --rescore 20260926_101500
 ```
 
-Retrieval-only runs are re-scored from their saved ranked lists, without retrieving or judging (see [Pooling](#pooling-passages-the-golden-set-does-not-list-yet)). For full runs: judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning.
+Retrieval-only runs are re-scored from their saved ranked lists, without retrieving or judging (see [Pooling](#pooling-passages-the-golden-set-does-not-list-yet)). For full runs: judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning. Without the local `outputs_<run_id>.json` (another machine), the archived copy in `eval/history/outputs/` is used.
 
 ## Run history
 

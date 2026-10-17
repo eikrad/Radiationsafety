@@ -410,7 +410,8 @@ function initFilters() {
   setSelect.replaceChildren(
     ...DATA.sets.map((s) =>
       el("option", { value: s.questions_hash },
-        `${s.n_items} questions · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"} · ${s.questions_hash}`))
+        `${s.split ? `${s.split} · ` : ""}${s.n_items} questions · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"}` +
+        `${s.split === "confirm" ? ` (${s.new_runs} with new answers; at most 3 confirmations)` : ""} · ${s.questions_hash}`))
   );
   setSelect.addEventListener("change", () => {
     state.setId = setSelect.value;
@@ -446,6 +447,10 @@ function headline(set) {
       el("div", { class: "tile" },
         el("div", { class: "label" }, "Pass rate"),
         el("div", { class: "value" }, pct(run.summary.pass_rate)),
+        run.summary.pass_rate_interval
+          ? el("div", { class: "deltas" },
+              `95 % interval ${pct(run.summary.pass_rate_interval[0])}–${pct(run.summary.pass_rate_interval[1])}`)
+          : null,
         el("div", { class: "deltas" },
           prev ? ["vs previous ", passDelta(prev)] : "first run in this set",
           base ? ["  ·  vs baseline ", passDelta(base)] : null)),
@@ -466,7 +471,20 @@ function headline(set) {
         el("div", { class: "deltas" }, commit,
           run.config && run.config.llm_model ? ` · ${run.config.llm_model}` : "",
           run.duration_sec != null ? ` · ${Math.round(run.duration_sec / 60)} min` : ""),
+        el("div", { class: "deltas" }, costText(run.cost)),
         run.notes ? el("div", { class: "deltas" }, run.notes) : null)));
+}
+
+// Cost at the prices of the run's day (eval/costs.py), per stage; models without
+// a price are named, so a sum is never silently too low.
+function costText(cost) {
+  if (!cost) return "cost: tokens not recorded";
+  const money = (amounts) => Object.entries(amounts)
+    .map(([currency, v]) => `${currency === "EUR" ? "€" : currency === "USD" ? "$" : `${currency} `}${v.toFixed(2)}`)
+    .join(" + ") || "—";
+  const stages = Object.entries(cost.by_stage).map(([stage, amounts]) => `${stage} ${money(amounts)}`);
+  const missing = cost.unpriced.length ? ` · no price for ${cost.unpriced.join(", ")}` : "";
+  return `cost ${money(cost.total)} (${stages.join(", ")})${missing}`;
 }
 
 // A pass-rate change across a scoring change is not a change of the system.

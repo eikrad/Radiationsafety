@@ -96,6 +96,42 @@ def test_runs_on_different_question_sets_never_share_a_trend():
     assert [s["questions_hash"] for s in data["sets"]] == ["set-a", "set-b"]
 
 
+def test_a_confirm_set_counts_its_new_runs_but_not_rescores():
+    runs = [
+        _run(run_id, ALL_PASS, questions_hash="set-c")
+        for run_id in ("20261014_090000", "20261020_090000", "20261021_090000")
+    ]
+    for run in runs:
+        run["dataset"]["split"] = "confirm"
+    runs[2]["rescored_from"] = runs[1]["run_id"]
+
+    confirm = _set(dashboard_data(runs), "set-c")
+
+    assert (confirm["split"], confirm["new_runs"]) == ("confirm", 2)
+
+
+def test_a_development_set_has_no_split():
+    assert _set(dashboard_data([_run("20261014_090000", ALL_PASS)]))["split"] is None
+
+
+def test_each_run_shows_what_it_cost_at_the_prices_of_its_day():
+    run = _run("20261014_090000", ALL_PASS)
+    run["usage"] = {"judge": {"judge": {"input_tokens": 1_000_000, "output_tokens": 0}}}
+    prices = [
+        {
+            "model": "judge",
+            "currency": "EUR",
+            "since": "2026-10-01",
+            "input": 0.6,
+            "output": 3.3,
+        }
+    ]
+
+    data = dashboard_data([run], prices=prices)
+
+    assert data["runs"]["20261014_090000"]["cost"]["total"] == {"EUR": 0.6}
+
+
 def test_a_question_that_stopped_passing_is_a_regression_since_the_previous_run():
     runs = [
         _run("20260916_094008", ALL_PASS),

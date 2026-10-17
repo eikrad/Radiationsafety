@@ -84,6 +84,23 @@ def test_retagging_topics_does_not_break_comparability():
     assert dataset_fingerprint(retagged) == dataset_fingerprint(GOLDEN)
 
 
+def test_a_run_on_one_split_names_it_without_changing_the_hashes():
+    tune = [{**item, "split": "tune"} for item in GOLDEN]
+
+    fingerprint = dataset_fingerprint(tune)
+
+    assert fingerprint["split"] == "tune"
+    assert {
+        k: v for k, v in fingerprint.items() if k != "split"
+    } == dataset_fingerprint(GOLDEN)
+
+
+def test_a_run_over_both_splits_names_none():
+    mixed = [{**GOLDEN[0], "split": "tune"}, {**GOLDEN[1], "split": "confirm"}]
+
+    assert "split" not in dataset_fingerprint(mixed)
+
+
 def test_a_limited_run_is_not_comparable_with_the_full_set():
     assert (
         dataset_fingerprint(GOLDEN[:1])["questions_hash"]

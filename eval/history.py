@@ -44,6 +44,8 @@ def dataset_fingerprint(items: list[dict]) -> dict:
     with their evidence quotes, so it changes when grading targets change (e.g. a
     pooled quote is added) even though the questions stay the same.
     Tags (topics, language, source) are left out: retagging keeps runs comparable.
+    split: tune or confirm when every item carries that split (eval.split), so
+    the history shows which runs looked at confirm; not part of either hash.
     """
     questions = [[i.get("id", ""), i["question"]] for i in items]
     content = [
@@ -57,10 +59,12 @@ def dataset_fingerprint(items: list[dict]) -> dict:
         ]
         for i in items
     ]
+    splits = {i.get("split") for i in items}
     return {
         "questions_hash": _sha256_short(questions),
         "content_hash": _sha256_short(content),
         "n_items": len(items),
+        **({"split": splits.pop()} if len(splits) == 1 and None not in splits else {}),
     }
 
 
@@ -78,8 +82,13 @@ def build_run_record(
     report_file: str | None = None,
     rescored_from: str | None = None,
     regraded_from: str | None = None,
+    usage: dict | None = None,
 ) -> dict:
-    """Assemble one history record. Generated answers are left out to keep it small."""
+    """Assemble one history record. Generated answers are left out to keep it small.
+
+    usage: tokens per model, {"answers": {model: {...}}, "judge": {...}}; prices
+    change, tokens do not, so costs are computed from them later.
+    """
     return {
         "schema": SCHEMA_VERSION,
         "run_id": run_id,
@@ -93,6 +102,7 @@ def build_run_record(
         "report_file": report_file,
         "rescored_from": rescored_from,
         **({"regraded_from": regraded_from} if regraded_from else {}),
+        **({"usage": usage} if usage else {}),
         "summary": summary,
         "results": [
             {
