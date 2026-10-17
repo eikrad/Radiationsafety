@@ -1066,3 +1066,21 @@ def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, works
     result = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
     assert result["error_type"] != "graph_error"
     assert asked.count("What is the transport index?") == 2
+
+
+def test_runs_started_in_the_same_second_keep_their_own_reports(monkeypatch, workspace):
+    # two eval chains run in parallel; a shared run ID let one report overwrite the other
+    class FrozenClock(run_eval.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return run_eval.datetime(2026, 10, 17, 19, 6, 26, tzinfo=tz)
+
+    monkeypatch.setattr(run_eval, "datetime", FrozenClock)
+    assert _run(monkeypatch, workspace, "--label", "first") == 0
+    assert _run(monkeypatch, workspace, "--label", "second") == 0
+
+    first, second = load_runs(workspace.history)
+    assert first["run_id"] != second["run_id"]
+    for run in (first, second):
+        report = json.loads((workspace.reports / run["report_file"]).read_text())
+        assert report["label"] == run["label"]

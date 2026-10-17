@@ -17,7 +17,7 @@ import os
 import sys
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from langchain_core.callbacks import get_usage_metadata_callback
@@ -1015,6 +1015,24 @@ def _markdown_header_lines(header: dict) -> list[str]:
     return lines
 
 
+def _claim_run_id(output_dir: Path) -> str:
+    """The start time as run ID, one second later if another run took it.
+
+    Two runs started in the same second (parallel eval chains) would otherwise
+    write the same report and archive. The claim is an exclusive file create,
+    so it also holds between processes.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    moment = datetime.now(UTC)
+    while True:
+        run_id = moment.strftime("%Y%m%d_%H%M%S")
+        try:
+            (output_dir / f".run_{run_id}").touch(exist_ok=False)
+            return run_id
+        except FileExistsError:
+            moment += timedelta(seconds=1)
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
@@ -1189,7 +1207,7 @@ def main() -> int:
         )
         return 1
     started = time.monotonic()
-    run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    run_id = _claim_run_id(args.output_dir)
     if args.rescore:
         rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
         if rescored is None:
