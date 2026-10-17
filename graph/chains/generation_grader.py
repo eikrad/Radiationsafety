@@ -1,4 +1,4 @@
-"""Single chain to grade generation quality and extract a reflection hint on failure."""
+"""Grade an answer against the context it was written from; name what is missing on failure."""
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,53 +9,67 @@ from graph.llm_factory import LenientText, get_llm
 
 
 class GradeGeneration(BaseModel):
-    """Pass/fail verdict and optional reflection hint for the retry loop."""
+    """Step-by-step verdict; the steps come first so the verdict rests on them."""
 
+    parts: LenientText = Field(
+        default="",
+        description="Each thing the question asks for, numbered (a value, a condition, "
+        "who is responsible, a deadline, ...)",
+    )
+    assessment: LenientText = Field(
+        default="",
+        description="For each part: 'answered, supported by <source>', "
+        "'answered, not in the Facts', or 'not answered'",
+    )
     passed: bool = Field(
-        description=(
-            "True if the generation is grounded in the Facts AND fully addresses the question. "
-            "False otherwise."
-        )
+        description="True only if every part is answered and supported by the Facts, "
+        "with nothing beyond them; false otherwise"
     )
     missing_info: LenientText = Field(
         default="",
         description=(
-            "Only when passed=False: one short phrase (max 15 words) naming the specific "
-            "fact, section, or document missing from the retrieved context that would fix the answer. "
-            "Examples: 'occupational dose limits table Annex 2 GSR-3', "
-            "'Danish designated radioactive waste disposal facility name', "
-            "'BEK-2025-138405 section 4 notification requirements'. "
-            "Leave as empty string when passed=True."
+            "Only when passed is false: one short search phrase (max 15 words) for the "
+            "fact, paragraph, annex or table the answer lacks, e.g. 'Bilag 6 "
+            "sikringsgrupper nedre værdier Cs-137 BEK 1385' or 'GSR Part 3 "
+            "requirement 11 supply chain responsibility'. Empty when passed is true."
         ),
     )
 
 
-system = """You are a grader. The "Facts" below are the retrieved context given to the model. \
-The "Generation" is the model's answer.
+# Modelled on the sufficiency grader (steps, jurisdiction rule, one example):
+# the earlier single yes/no on "grounded AND addresses the question" let
+# partial answers and answers from the wrong order pass, so the retry path
+# never fired (ROADMAP, "The local correction loop never ran").
+system = """You are a grader checking an answer against the retrieved context ("Facts") it was written from. Each chunk starts with [Source: ... (Danish law | IAEA | web)].
 
-1) passed: Answer YES if the generation's factual content is supported by the Facts \
-(paraphrases, summaries, and citing the given sources are fine) AND the generation \
-addresses or resolves the user question. Answer NO if there are unsupported claims, \
-fabrication, or the question is not answered.
+Work in three steps and reply with one JSON object with the fields parts, assessment, passed and missing_info:
+1. parts: list each thing the question asks for. A question with several parts ("which group, how often, and what is required") has several.
+2. assessment: for each part, say whether the answer gives it and whether the Facts state it: 'answered, supported by <source>', 'answered, not in the Facts', or 'not answered'.
+3. passed: true only if every part is answered AND supported by the Facts. Otherwise false, and missing_info names what to search for next.
 
-2) missing_info: Only when passed=NO — write one short phrase (max 15 words) naming \
-the specific fact, document section, or source missing from the Facts that would fix the answer. \
-Examples: 'occupational dose limits table Annex 2 GSR-3', \
-'Danish designated radioactive waste disposal facility name'. \
-Leave as empty string when passed=YES."""
+Rules:
+- A part the answer leaves open, or says it cannot answer from the context, is 'not answered', even when the rest is right.
+- For a question about Danish rules, the Danish provision must support the answer; an IAEA value does not, and neither does a rule from a different Danish order than the one that governs the activity.
+- Judge against the Facts, not your own knowledge.
+- If the Facts contain nothing on the question's topic at all and the answer says so without adding claims, that is a correct refusal: passed is true.
+
+Example question: Under Danish rules, if a sealed source is lost, by when must this be reported, and to which authority?
+Example Facts: [Source: Bekendtgørelse om radioaktive stoffer (Danish law)] ... skal straks underrette ... hvis en lukket radioaktiv kilde er bortkommet ...
+Example answer: Loss of a sealed source must be reported immediately. The context does not say to which authority.
+Example reply: {{"parts": "1. the reporting deadline; 2. the authority to report to", "assessment": "1. answered, supported by Bekendtgørelse om radioaktive stoffer; 2. not answered", "passed": false, "missing_info": "authority notified of a lost sealed source Bekendtgørelse om radioaktive stoffer"}}"""
 
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
         (
             "human",
-            "Facts:\n\n{documents}\n\nQuestion: {question}\n\nGeneration: {generation}",
+            "Facts:\n\n{documents}\n\nQuestion: {question}\n\nAnswer: {generation}",
         ),
     ]
 )
 
 
 def get_generation_grader(llm: BaseChatModel | None = None) -> Runnable:
-    """Return a grader chain that produces GradeGeneration(passed, missing_info)."""
+    """Return a grader chain that produces GradeGeneration(..., passed, missing_info)."""
     model = llm or get_llm()
     return prompt | model.with_structured_output(GradeGeneration)
