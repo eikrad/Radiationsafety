@@ -19,7 +19,7 @@ QUESTIONS = {
 }
 
 CONFIG = {
-    "llm_model": "gemini-2.5-flash",
+    "llm_model": "gemini-3.8-flash",
     "retriever_k": 3,
     "metrics_version": 1,
     "prompts": {"generation.py": "aaa", "missing_query_chain.py": "bbb"},

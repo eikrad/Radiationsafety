@@ -32,9 +32,7 @@ class ProviderConfigError(ValueError):
     """
 
 
-_GEMINI_MODELS = frozenset(
-    {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.8-flash"}
-)
+_GEMINI_MODELS = frozenset({"gemini-3.8-flash"})
 
 
 def _gemini_sampling(model: str) -> dict:
@@ -255,7 +253,7 @@ def get_llm(
         provider: One of 'mistral', 'gemini', 'openai', 'ollama', 'scaleway'. If None, uses
             LLM_PROVIDER, else DEFAULT_PROVIDER.
         api_key: Override API key. If None, falls back to env (MISTRAL_API_KEY, etc.).
-        model_variant: Specific model ID (e.g. gemini-2.5-flash-lite, gpt-4o-mini).
+        model_variant: Specific model ID (e.g. gemini-3.8-flash, gpt-4o-mini).
 
     Returns:
         LangChain chat model instance.
@@ -302,14 +300,14 @@ def get_llm(
         key = api_key or os.getenv("GOOGLE_API_KEY")
         if not key:
             raise APIKeyError("Gemini")
-        # Default: 2.5 Pro. Override via model_variant or GEMINI_MODEL (e.g. gemini-2.5-flash-lite for free tier).
+        # The only Gemini model offered; model_variant or GEMINI_MODEL may name it.
         env_model = (os.getenv("GEMINI_MODEL") or "").strip()
         if model_variant and model_variant in _GEMINI_MODELS:
             model = model_variant
         elif env_model and env_model in _GEMINI_MODELS:
             model = env_model
         else:
-            model = "gemini-2.5-pro"
+            model = "gemini-3.8-flash"
         return ChatGoogleGenerativeAI(
             model=model,
             **_gemini_sampling(model),

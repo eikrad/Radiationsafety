@@ -276,12 +276,12 @@ def test_judging_with_the_answering_model_is_recorded_and_warned_about(
 
 def test_the_judge_model_can_be_chosen_separately(monkeypatch, workspace):
     monkeypatch.setenv("EVAL_GRADER_PROVIDER", "gemini")
-    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gemini-2.5-pro")
+    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gemini-3.8-flash")
 
     _run(monkeypatch, workspace)
 
     [run] = load_runs(workspace.history)
-    assert run["config"]["judge_model"] == "gemini-2.5-pro"
+    assert run["config"]["judge_model"] == "gemini-3.8-flash"
     assert run["config"]["judge_is_generator"] is False
 
 

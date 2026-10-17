@@ -10,14 +10,14 @@ from pydantic import BaseModel
 from graph.llm_factory import APIKeyError, get_embedding_provider, get_llm
 
 
-def test_get_llm_returns_gemini_2_5_pro_when_chosen(monkeypatch):
-    """LLM_PROVIDER=gemini answers with Gemini 2.5 Pro unless GEMINI_MODEL says otherwise."""
+def test_get_llm_returns_gemini_3_8_flash_when_chosen(monkeypatch):
+    """LLM_PROVIDER=gemini answers with Gemini 3.8 Flash, the only Gemini model offered."""
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
     monkeypatch.delenv("GEMINI_MODEL", raising=False)
     llm = get_llm()
     assert "google" in type(llm).__module__.lower() or "Google" in type(llm).__name__
-    assert getattr(llm, "model", None) == "gemini-2.5-pro"
+    assert getattr(llm, "model", None) == "gemini-3.8-flash"
 
 
 def test_gemini_3_8_flash_answers_with_googles_settings_for_gemini_3(monkeypatch):
@@ -31,12 +31,12 @@ def test_gemini_3_8_flash_answers_with_googles_settings_for_gemini_3(monkeypatch
     assert llm.thinking_level == "medium"
 
 
-def test_gemini_2_5_keeps_temperature_0_and_its_own_thinking(monkeypatch):
+def test_a_gemini_model_no_longer_offered_falls_back_to_gemini_3_8_flash(monkeypatch):
+    """A saved browser setting may still name gemini-2.5-flash-lite."""
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
-    llm = get_llm(provider="gemini", model_variant="gemini-2.5-flash")
+    llm = get_llm(provider="gemini", model_variant="gemini-2.5-flash-lite")
 
-    assert llm.temperature == 0
-    assert getattr(llm, "thinking_level", None) is None
+    assert llm.model == "gemini-3.8-flash"
 
 
 def test_get_llm_returns_mistral_when_set(monkeypatch):
@@ -53,9 +53,9 @@ def test_get_llm_gemini_uses_GEMINI_MODEL_env(monkeypatch):
     """When LLM_PROVIDER=gemini and GEMINI_MODEL is set, that model is used."""
     monkeypatch.setenv("LLM_PROVIDER", "gemini")
     monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
-    monkeypatch.setenv("GEMINI_MODEL", "gemini-2.5-pro")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
     llm = get_llm()
-    assert getattr(llm, "model", None) == "gemini-2.5-pro"
+    assert getattr(llm, "model", None) == "gemini-3.8-flash"
 
 
 def test_get_llm_returns_openai_when_set(monkeypatch):
