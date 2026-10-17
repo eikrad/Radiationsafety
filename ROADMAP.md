@@ -668,6 +668,56 @@ Cost: about €7.10 at Scaleway before tax for all runs of this section
 
 ---
 
+## The local correction loop never ran (2026-10-17)
+
+Every question of every held-out run, and of `dev-no-web`, took the straight
+path `retrieve → grade_documents → generate → grade_generation →
+verify_trusted → finalize`. Both correction paths depend on the web-search
+switch in `graph/graph.py`: `decide_to_generate` enters `retrieve_missing`
+only `if state["web_search"] and env_bool("WEB_SEARCH_ENABLED")`, and
+`_generation_retry_route` ends at once when web search is off. Web search is
+off by default, in privacy mode and in every eval run since #145, so the
+graders' verdicts are computed and then ignored. The tests pinned this
+(`test_decide_to_generate_routes_to_generate_when_web_search_disabled`,
+`test_route_after_grade_generation_end_when_failed_no_web_search`). The
+second-brain page on Sufficient Context had noted it in September; it was
+never acted on.
+
+What the two graders would have done on `tune-baseline-rescore`:
+`grade_documents` judged 7 of the 12 retrieval misses insufficient (and 4
+passing answers too). Whether `grade_generation` ever fails is not recorded;
+in `prompt-145`, which ran with web search and so with a live retry path, it
+passed all 39 answers, and no `tune` failure carried a warning.
+
+The answer grader (`graph/chains/generation_grader.py`) is the weaker of the
+two: one yes/no for "grounded" and "answers the question" with no steps, a
+loose "addresses or resolves the question" that a two-of-three answer or an
+honest "Bilag 6 is not in the context" meets, no Danish-versus-IAEA rule
+(unlike the sufficiency grader), and at run time it is the answering model
+grading itself.
+
+**Step G1, offline check of the answer grader, rule set before measuring.**
+`--regrade` also runs today's `grade_generation` on a saved run's answers
+(same context, same answer, the run's answering model as grader, as at run
+time) and compares each verdict with the judge's pass/fail. Measured on the
+saved answers of `tune-baseline` and `tune-baseline-repeat` against the
+verdicts of their rescores (`20261016_182025`, `20261016_183512`): 106
+answers, 31 failed and 75 passed, 6 of them refusals.
+- The current prompt is measured first, as the baseline.
+- A new prompt is adopted if, on the same 106 answers, it flags at least half
+  of the failed answers and at least twice as many as the current prompt,
+  and flags at most 15 % of the passing ones (11 of 75): each false alarm
+  costs a correction round. Correct refusals count as passing answers.
+- Reported alongside, not decided on: the same check against the Mistral
+  rescore of `tune-baseline` (`20261016_184941`).
+- `tune` only; `confirm` answers are not graded.
+
+Then step G2, the wiring: the loop runs without web search, web search stays
+the last resort and off by default, `retrieve_missing` gets the sufficiency
+grader's `needed`/`found`, and a full `tune` run decides under its own rule.
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous
