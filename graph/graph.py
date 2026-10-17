@@ -29,9 +29,16 @@ from graph.nodes import (
 from graph.state import GenerationRoute, GraphState, RouteAfterMissing
 
 
+def _web_search_allowed(state: GraphState) -> bool:
+    """Web search is the last resort: only when enabled and never in privacy mode."""
+    return bool(env_bool("WEB_SEARCH_ENABLED")) and not state.get("privacy_mode")
+
+
 def decide_to_generate(state: GraphState) -> str:
-    """Route to RETRIEVE_MISSING (then maybe WEB_SEARCH) if docs insufficient and fallback enabled, else GENERATE."""
-    if state["web_search"] and env_bool("WEB_SEARCH_ENABLED"):
+    """Search the database again (RETRIEVE_MISSING) if the context is insufficient, else GENERATE.
+
+    Independent of web search: with it off the loop used to be skipped entirely."""
+    if state.get("context_sufficient") is False:
         return RETRIEVE_MISSING
     return GENERATE
 
@@ -44,7 +51,7 @@ def decide_after_retrieve_missing(state: GraphState) -> RouteAfterMissing:
         return GENERATE
     if (state.get("retrieval_count") or 1) < 3:
         return RETRIEVE_MISSING
-    return WEB_SEARCH
+    return WEB_SEARCH if _web_search_allowed(state) else GENERATE
 
 
 def _generation_retry_route(
@@ -54,13 +61,13 @@ def _generation_retry_route(
     retry_count: int,
     privacy_mode: bool,
 ) -> GenerationRoute:
-    """Centralize generation retry routing for clearer behavior contract."""
-    if not web_search_enabled or web_search_attempted:
+    """Retry from the database twice, then the web if allowed, then show the answer."""
+    if web_search_attempted:
         return "end"
     if retry_count < 2:
         return "retry_retrieve"
     # Privacy mode: never fall through to WEB_SEARCH, even after retries.
-    return "end" if privacy_mode else "web_search"
+    return "web_search" if web_search_enabled and not privacy_mode else "end"
 
 
 def route_after_grade_generation(state: GraphState) -> GenerationRoute:

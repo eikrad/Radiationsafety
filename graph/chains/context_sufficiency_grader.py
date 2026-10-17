@@ -55,6 +55,11 @@ sufficiency_prompt = ChatPromptTemplate.from_messages(
 )
 
 
+def context_gap(verdict: GradeSufficiency) -> str:
+    """What an insufficient verdict says a complete answer needs and what it found."""
+    return f"Needed: {verdict.needed}\nFound: {verdict.found}"
+
+
 def get_context_sufficiency_grader(llm: BaseChatModel | None = None) -> Runnable:
     """Return context sufficiency grader. Uses get_llm() if llm is None."""
     model = llm or get_llm()

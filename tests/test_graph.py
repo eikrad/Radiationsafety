@@ -8,29 +8,33 @@ from langchain_core.documents import Document
 from graph.state import GraphState
 
 
-def test_decide_to_generate_routes_to_generate_when_web_search_disabled():
-    """Without web_search or WEB_SEARCH_ENABLED, route to GENERATE."""
+def test_decide_to_generate_routes_to_generate_when_the_context_is_sufficient():
     from graph.graph import decide_to_generate
 
     state: GraphState = {
         "question": "test",
         "generation": "",
         "web_search": False,
+        "context_sufficient": True,
         "documents": [],
         "web_search_attempted": False,
     }
     assert decide_to_generate(state) == "generate"
 
 
-def test_decide_to_generate_routes_to_retrieve_missing_when_enabled(monkeypatch):
-    """With web_search=True and WEB_SEARCH_ENABLED, route to RETRIEVE_MISSING (then maybe WEB_SEARCH)."""
-    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+@pytest.mark.parametrize("web_search_enabled", ["true", "false"])
+def test_decide_to_generate_searches_the_database_again_when_the_context_is_insufficient(
+    monkeypatch, web_search_enabled
+):
+    """Whether or not web search is enabled (it used to gate the whole loop)."""
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", web_search_enabled)
     from graph.graph import decide_to_generate
 
     state: GraphState = {
         "question": "test",
         "generation": "",
         "web_search": True,
+        "context_sufficient": False,
         "documents": [],
         "web_search_attempted": False,
     }
@@ -62,8 +66,18 @@ def test_decide_after_retrieve_missing_routes_to_retrieve_missing_again_when_not
     assert decide_after_retrieve_missing(state) == "retrieve_missing"
 
 
-def test_decide_after_retrieve_missing_routes_to_web_search_when_not_sufficient_and_count_3():
-    """When sufficient_after_missing is False and retrieval_count >= 3, route to WEB_SEARCH."""
+@pytest.mark.parametrize(
+    ("web_search_enabled", "privacy_mode", "expected"),
+    [
+        ("true", False, "web_search"),
+        ("false", False, "generate"),
+        ("true", True, "generate"),
+    ],
+)
+def test_after_three_insufficient_retrievals_the_web_is_searched_only_if_allowed(
+    monkeypatch, web_search_enabled, privacy_mode, expected
+):
+    monkeypatch.setenv("WEB_SEARCH_ENABLED", web_search_enabled)
     from graph.graph import decide_after_retrieve_missing
 
     state: GraphState = {
@@ -71,8 +85,9 @@ def test_decide_after_retrieve_missing_routes_to_web_search_when_not_sufficient_
         "documents": [],
         "sufficient_after_missing": False,
         "retrieval_count": 3,
+        "privacy_mode": privacy_mode,
     }
-    assert decide_after_retrieve_missing(state) == "web_search"
+    assert decide_after_retrieve_missing(state) == expected
 
 
 def test_decide_after_retrieve_missing_routes_to_generate_when_retry_after_generation():
@@ -105,8 +120,9 @@ def test_route_after_grade_generation_useful_when_passed(monkeypatch):
     assert route_after_grade_generation(state) == "useful"
 
 
-def test_route_after_grade_generation_end_when_failed_no_web_search(monkeypatch):
-    """When grading failed and web search disabled, route to 'end'."""
+def test_route_after_grade_generation_retries_from_the_database_with_web_search_off(
+    monkeypatch,
+):
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
     from graph.graph import route_after_grade_generation
 
@@ -119,7 +135,7 @@ def test_route_after_grade_generation_end_when_failed_no_web_search(monkeypatch)
         "generation_passed_grading": False,
         "retry_after_generation_count": 0,
     }
-    assert route_after_grade_generation(state) == "end"
+    assert route_after_grade_generation(state) == "retry_retrieve"
 
 
 def test_route_after_grade_generation_retry_then_web_search(monkeypatch):
@@ -237,7 +253,8 @@ def test_web_search_deduplicates_existing_results(monkeypatch):
 @pytest.mark.parametrize(
     ("enabled", "attempted", "retry_count", "privacy_mode", "expected"),
     [
-        (False, False, 0, False, "end"),
+        (False, False, 0, False, "retry_retrieve"),
+        (False, False, 2, False, "end"),
         (True, True, 0, False, "end"),
         (True, False, 0, False, "retry_retrieve"),
         (True, False, 1, False, "retry_retrieve"),
