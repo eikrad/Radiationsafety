@@ -747,9 +747,31 @@ timeout, which ended the whole regrade because the node only catches
 `ValueError`; it was rerun (`20261017_140950`), and G2 checks how a grader
 timeout behaves in the graph.
 
-Then step G2, the wiring: the loop runs without web search, web search stays
-the last resort and off by default, `retrieve_missing` gets the sufficiency
-grader's `needed`/`found`, and a full `tune` run decides under its own rule.
+**Step G2, the wiring, rule set before measuring.** The loop runs without web
+search: an insufficient first retrieval leads to up to two more database
+searches, a failed answer to up to two retries from the database. Web search
+stays the last resort, only when `WEB_SEARCH_ENABLED` and never in privacy
+mode. `retrieve_missing` searches for what the sufficiency grader named as
+missing (`needed`/`found`), or after a failed answer for the answer grader's
+hint, and each follow-up query is kept in the run outputs
+(`missing_queries`). Behaviour tests on the compiled graph
+(`tests/test_correction_loop.py`) replace the tests that pinned the old
+gating.
+
+A full `tune` run (`--no-web-search`), judged by Qwen and re-scored by
+Mistral, is compared with `tune-baseline` (`20261016_160821`; Qwen
+`20261016_182025`: 37 of 53, evidence recall in context 0.88; Mistral
+`20261016_184941`: 36 of 53). The loop stays on if all hold:
+- evidence recall in the generator's context is higher than 0.88;
+- passes do not drop under either judge (at least 37 Qwen, 36 Mistral);
+- at most 2 questions go from pass to fail under Qwen, each reported with
+  its node path;
+- no new `wrong_refusal`;
+- the run (answers and Qwen judge) costs less than €2.
+
+`tune-baseline-repeat` passed 38, so one or two questions either way is
+run-to-run noise: the rule asks that the loop does no harm and brings more
+evidence into the context, not that it proves a gain on 53 questions.
 
 ---
 
