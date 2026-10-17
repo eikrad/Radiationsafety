@@ -712,6 +712,27 @@ answers, 31 failed and 75 passed, 6 of them refusals.
   rescore of `tune-baseline` (`20261016_184941`).
 - `tune` only; `confirm` answers are not graded.
 
+Results (2026-10-17; failed flagged of 31, passing flagged of 75; Mistral
+labels of 17 and 36 alongside):
+
+| Prompt | Failed flagged | False alarms | Mistral labels | Runs |
+|---|---|---|---|---|
+| current (one yes/no) | 1 | 0 | 1 / 0 | `20261017_080243`, `_081752`, `_083147` |
+| candidate 1: parts listed, model gives the verdict | 8 | 2 | 4 / 0 | `20261017_085700`, `_091438`, `_093130` |
+| candidate 2: status per part, verdict computed | 13 | 5 | 7 / 1 | `20261017_095219`, `_101011`, `_102927` |
+
+Neither candidate meets the rule (16 flagged needed), so neither is adopted.
+Candidate 1 also contradicted itself: for `cs137` it marked every part not
+answered and still passed the answer, which is why candidate 2 computes the
+verdict from the part statuses. Candidate 2 by error type (Qwen labels, both
+runs): it flags 13 of 24 retrieval misses and none of the 7 generator misses,
+where the context holds the fact and the answer drops or bends it; the
+grader takes the answer's reading of the context. Four of its five false
+alarms are correct refusals marked `not_answered` instead of
+`facts_off_topic`; the fifth is `test-dk-myndighedskontrol-lukkede-kilder`
+in both runs. The branch keeps candidate 2 as the working state for the next
+candidate; it is not merged unless a candidate meets the rule.
+
 Then step G2, the wiring: the loop runs without web search, web search stays
 the last resort and off by default, `retrieve_missing` gets the sufficiency
 grader's `needed`/`found`, and a full `tune` run decides under its own rule.
