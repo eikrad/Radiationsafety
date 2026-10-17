@@ -1,62 +1,95 @@
 """Grade an answer against the context it was written from; name what is missing on failure."""
 
+from typing import Annotated, Literal
+
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 from graph.llm_factory import LenientText, get_llm
 
+PartStatus = Literal[
+    "answered_supported", "answered_not_in_facts", "not_answered", "facts_off_topic"
+]
+
+
+def _as_status(value: object) -> str:
+    """Tolerate 'Answered supported', 'answered-supported' and the like; anything
+    unrecognised counts as not answered, so a garbled reply never passes."""
+    text = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    allowed = PartStatus.__args__
+    return text if text in allowed else "not_answered"
+
+
+class PartVerdict(BaseModel):
+    """One thing the question asks for, and how the answer handles it."""
+
+    part: LenientText = Field(default="", description="What the question asks for")
+    status: Annotated[PartStatus, BeforeValidator(_as_status)] = Field(
+        description="answered_supported: the answer gives it and the Facts state it; "
+        "answered_not_in_facts: the answer gives it but the Facts do not state it; "
+        "not_answered: the answer leaves it open or says it cannot answer it; "
+        "facts_off_topic: the Facts contain nothing at all on this part's topic"
+    )
+
 
 class GradeGeneration(BaseModel):
-    """Step-by-step verdict; the steps come first so the verdict rests on them."""
+    """Part-by-part assessment; the verdict follows from it, not from the model.
 
-    parts: LenientText = Field(
-        default="",
-        description="Each thing the question asks for, numbered (a value, a condition, "
-        "who is responsible, a deadline, ...)",
-    )
-    assessment: LenientText = Field(
-        default="",
-        description="For each part: 'answered, supported by <source>', "
-        "'answered, not in the Facts', or 'not answered'",
-    )
-    passed: bool = Field(
-        description="True only if every part is answered and supported by the Facts, "
-        "with nothing beyond them; false otherwise"
+    The model's own overall verdict was unreliable: it listed every part of an
+    answer as not answered and still passed it (cs137, ROADMAP "Step G1").
+    """
+
+    parts: list[PartVerdict] = Field(
+        default_factory=list,
+        description="Each thing the question asks for, with its status",
     )
     missing_info: LenientText = Field(
         default="",
         description=(
-            "Only when passed is false: one short search phrase (max 15 words) for the "
-            "fact, paragraph, annex or table the answer lacks, e.g. 'Bilag 6 "
-            "sikringsgrupper nedre værdier Cs-137 BEK 1385' or 'GSR Part 3 "
-            "requirement 11 supply chain responsibility'. Empty when passed is true."
+            "When any part is not answered_supported: one short search phrase (max 15 "
+            "words) for the fact, paragraph, annex or table the answer lacks, e.g. "
+            "'Bilag 6 sikringsgrupper nedre værdier BEK 1385' or 'GSR Part 3 "
+            "requirement 11 supply chain responsibility'. Otherwise empty."
         ),
     )
 
+    @property
+    def passed(self) -> bool:
+        """Every part answered from the Facts, or (a correct refusal) the Facts
+        off topic for every part. No parts listed is not a pass."""
+        statuses = {p.status for p in self.parts}
+        return statuses == {"answered_supported"} or statuses == {"facts_off_topic"}
 
-# Modelled on the sufficiency grader (steps, jurisdiction rule, one example):
-# the earlier single yes/no on "grounded AND addresses the question" let
-# partial answers and answers from the wrong order pass, so the retry path
-# never fired (ROADMAP, "The local correction loop never ran").
+
+# Modelled on the sufficiency grader (steps, jurisdiction rule, one example).
+# The earlier single yes/no on "grounded AND addresses the question" flagged 1
+# of 31 failed tune answers, so the retry path never fired.
 system = """You are a grader checking an answer against the retrieved context ("Facts") it was written from. Each chunk starts with [Source: ... (Danish law | IAEA | web)].
 
-Work in three steps and reply with one JSON object with the fields parts, assessment, passed and missing_info:
-1. parts: list each thing the question asks for. A question with several parts ("which group, how often, and what is required") has several.
-2. assessment: for each part, say whether the answer gives it and whether the Facts state it: 'answered, supported by <source>', 'answered, not in the Facts', or 'not answered'.
-3. passed: true only if every part is answered AND supported by the Facts. Otherwise false, and missing_info names what to search for next.
+Reply with one JSON object with the fields parts and missing_info.
+
+parts: list each thing the question asks for, each with a status.
+- A question with several parts ("which group, how often, and what is required") has several.
+- A question asking which items or criteria apply has one part per item the Facts give, so an item the answer leaves out shows up as not_answered.
+- status is exactly one of:
+  answered_supported: the answer gives it and the Facts state it;
+  answered_not_in_facts: the answer gives it but the Facts do not state it;
+  not_answered: the answer leaves it open, gives it only conditionally, or says it cannot answer it;
+  facts_off_topic: the Facts contain nothing at all on this part's topic.
+
+missing_info: when any part is not answered_supported, one short search phrase for what is missing; otherwise empty.
 
 Rules:
-- A part the answer leaves open, or says it cannot answer from the context, is 'not answered', even when the rest is right.
-- For a question about Danish rules, the Danish provision must support the answer; an IAEA value does not, and neither does a rule from a different Danish order than the one that governs the activity.
+- For a question about Danish rules, only the Danish provision supports the answer; an IAEA value does not, and neither does a rule from a different Danish order than the one that governs the activity.
 - Judge against the Facts, not your own knowledge.
-- If the Facts contain nothing on the question's topic at all and the answer says so without adding claims, that is a correct refusal: passed is true.
+- Use facts_off_topic only when no chunk is on that topic. If chunks are on the topic but lack the specific value or condition, the part is not_answered.
 
 Example question: Under Danish rules, if a sealed source is lost, by when must this be reported, and to which authority?
 Example Facts: [Source: Bekendtgørelse om radioaktive stoffer (Danish law)] ... skal straks underrette ... hvis en lukket radioaktiv kilde er bortkommet ...
 Example answer: Loss of a sealed source must be reported immediately. The context does not say to which authority.
-Example reply: {{"parts": "1. the reporting deadline; 2. the authority to report to", "assessment": "1. answered, supported by Bekendtgørelse om radioaktive stoffer; 2. not answered", "passed": false, "missing_info": "authority notified of a lost sealed source Bekendtgørelse om radioaktive stoffer"}}"""
+Example reply: {{"parts": [{{"part": "the reporting deadline", "status": "answered_supported"}}, {{"part": "the authority to report to", "status": "not_answered"}}], "missing_info": "authority notified of a lost sealed source Bekendtgørelse om radioaktive stoffer"}}"""
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -70,6 +103,6 @@ prompt = ChatPromptTemplate.from_messages(
 
 
 def get_generation_grader(llm: BaseChatModel | None = None) -> Runnable:
-    """Return a grader chain that produces GradeGeneration(..., passed, missing_info)."""
+    """Return a grader chain that produces GradeGeneration(parts, missing_info)."""
     model = llm or get_llm()
     return prompt | model.with_structured_output(GradeGeneration)
