@@ -73,6 +73,16 @@ def _as_text(value: Any) -> Any:
 LenientText = Annotated[str, BeforeValidator(_as_text)]
 
 
+def reply_text(reply) -> str:
+    """A chat reply's text: Gemini 3 replies with a list of content blocks
+    (text with a signature), other models with a string."""
+    text = getattr(reply, "text", None)
+    if isinstance(text, str):
+        return text
+    content = getattr(reply, "content", reply)
+    return content if isinstance(content, str) else str(content)
+
+
 def _parse_text_reply(content: str, schema) -> object:
     """The JSON object in a plain-text reply, validated against schema."""
     match = _JSON_OBJECT.search(content or "")
@@ -116,7 +126,7 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
     def resolve(result: dict) -> dict:
         if result["parsed"] is None and result["parsing_error"] is None:
             try:
-                parsed = _parse_text_reply(result["raw"].content, schema)
+                parsed = _parse_text_reply(reply_text(result["raw"]), schema)
                 result = {**result, "parsed": parsed}
             except ValueError as e:  # json and pydantic errors are ValueErrors
                 result = {**result, "parsing_error": e}

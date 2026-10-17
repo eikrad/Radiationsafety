@@ -4,7 +4,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import Runnable
 
-from graph.llm_factory import get_llm
+from graph.llm_factory import get_llm, reply_text
 
 system = """You are helping to search a document database for radiation safety (IAEA and Danish legislation). The user asked a question but the current context does not fully answer it. Output a short search query (a few keywords or one short phrase) that would find the MISSING information in such a database.
 - Focus on the specific fact or entity that is missing (e.g. "designated facility radioactive waste Denmark", "Danish company authorized disposal").
@@ -59,9 +59,6 @@ def invoke_missing_query_chain(
         },
         config=cfg,
     )
-    if hasattr(out, "content"):
-        q = out.content
-    else:
-        q = str(out).strip()
+    q = reply_text(out)
     q = q.strip()[:150] or question
     return q
