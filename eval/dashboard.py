@@ -18,6 +18,7 @@ from pathlib import Path
 
 from eval.costs import load_prices, run_cost
 from eval.history import DEFAULT_HISTORY_PATH, load_runs
+from eval.scoring import wilson_interval
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _REPORTS_DIR = _PROJECT_ROOT / "eval" / "reports"
@@ -56,6 +57,7 @@ def dashboard_data(
         for qhash, set_runs in by_set.items()
     ]
     sets.sort(key=lambda s: s["run_ids"][-1], reverse=True)
+    _name_sets(sets)
     return {
         "metrics": _metric_names(runs),
         "runs": {r["run_id"]: _run_view(r, reports_dir, prices or []) for r in runs},
@@ -73,10 +75,56 @@ def _metric_names(runs: list[dict]) -> list[str]:
     return names
 
 
+def _name_sets(sets: list[dict]) -> None:
+    """A name a reader recognises instead of the question hash. sets: newest first.
+
+    Every edit of the dev questions starts a new set; only the newest is the
+    dev set, the others are named by when they were last run.
+    """
+    newest_dev = True
+    for s in sets:
+        size = f"{s['n_items']} questions"
+        if s["split"]:
+            s["name"] = f"Held-out {s['split']} · {size}"
+        elif newest_dev:
+            s["name"] = f"Dev set · {size}"
+            newest_dev = False
+        else:
+            last = s["run_ids"][-1]
+            s["name"] = (
+                f"Dev set, older version · {size} · "
+                f"last run {last[:4]}-{last[4:6]}-{last[6:8]}"
+            )
+
+
+def _kind(run: dict) -> str:
+    """What the run did: new answers, or a new look at answers already given."""
+    config = run.get("config") or {}
+    if config.get("retrieval_only"):
+        return "retrieval only"
+    if config.get("grader_only"):
+        return "grader check"
+    if run.get("rescored_from"):
+        return "rescore"
+    if run.get("regraded_from"):
+        return "regrade"
+    return "answers"
+
+
+def _pass_rate_interval(run: dict) -> list[float] | None:
+    """95 % Wilson interval, from the results for runs recorded without it."""
+    judged = [r for r in run.get("results", []) if r.get("pass") is not None]
+    interval = wilson_interval(sum(1 for r in judged if r["pass"]), len(judged))
+    return list(interval) if interval else None
+
+
 def _run_view(run: dict, reports_dir: Path | None, prices: list[dict]) -> dict:
     previews = _load_previews(run, reports_dir)
     return {
         **{k: v for k, v in run.items() if k != "results"},
+        "kind": _kind(run),
+        "judge": (run.get("config") or {}).get("judge_model"),
+        "pass_rate_interval": _pass_rate_interval(run),
         "cost": run_cost(run, prices),
         "results": {
             r["id"]: {
@@ -111,23 +159,19 @@ def _question_set(
 ) -> dict:
     latest = runs[-1]
     baseline = _pick_baseline(runs, baseline_run_id)
-    comparisons = {}
+    # every ordered pair, so the page can compare any two runs either way;
+    # flipped questions by id only, their scores are in the runs themselves
+    pairs = {
+        f"{a['run_id']}|{b['run_id']}": _slim(compare_runs(a, b))
+        for a in runs
+        for b in runs
+        if a is not b
+    }
     markers = []
-    for i, run in enumerate(runs):
-        previous = runs[i - 1] if i > 0 else None
-        against_baseline = (
-            baseline if baseline and baseline["run_id"] < run["run_id"] else None
-        )
-        comparisons[run["run_id"]] = {
-            "previous": compare_runs(previous, run) if previous else None,
-            "baseline": (
-                compare_runs(against_baseline, run) if against_baseline else None
-            ),
-        }
-        if previous:
-            reasons = _incomparability(previous, run)
-            if reasons:
-                markers.append({"run_id": run["run_id"], "reasons": reasons})
+    for previous, run in zip(runs, runs[1:]):
+        reasons = _incomparability(previous, run)
+        if reasons:
+            markers.append({"run_id": run["run_id"], "reasons": reasons})
     return {
         "questions_hash": questions_hash,
         "n_items": latest["dataset"].get("n_items"),
@@ -150,9 +194,40 @@ def _question_set(
         "run_ids": [r["run_id"] for r in runs],
         "baseline_run_id": baseline["run_id"] if baseline else None,
         "markers": markers,
-        "comparisons": comparisons,
+        "pairs": pairs,
+        "compare_with": _compare_with(runs, baseline),
         "breakdown": {r["run_id"]: tag_breakdown(r) for r in runs},
     }
+
+
+def _slim(comparison: dict) -> dict:
+    for key in ("regressions", "improvements", "changed"):
+        comparison[key] = [{"id": q["id"]} for q in comparison[key]]
+    return comparison
+
+
+def _compare_with(runs: list[dict], baseline: dict | None) -> dict[str, str | None]:
+    """Each run's default partner: the baseline if it came earlier and is
+    alike (same judge, scored the same way, both answering), else the latest
+    earlier run that is alike (a Mistral rescore against the previous Mistral
+    rescore), else the run before it."""
+    partners: dict[str, str | None] = {}
+    for i, run in enumerate(runs):
+        earlier = runs[:i]
+        alike = [r for r in earlier if _alike(r, run)]
+        if any(r is baseline for r in alike):
+            partners[run["run_id"]] = baseline["run_id"]
+        else:
+            partners[run["run_id"]] = (
+                (alike or earlier)[-1]["run_id"] if earlier else None
+            )
+    return partners
+
+
+def _alike(a: dict, b: dict) -> bool:
+    # _incomparability covers the judge, the scoring, the grading targets
+    # and retrieval-only or grader-only runs
+    return not _incomparability(a, b)
 
 
 def _pick_baseline(runs: list[dict], baseline_run_id: str | None) -> dict | None:
