@@ -773,6 +773,39 @@ Mistral, is compared with `tune-baseline` (`20261016_160821`; Qwen
 run-to-run noise: the rule asks that the loop does no harm and brings more
 evidence into the context, not that it proves a gain on 53 questions.
 
+Result (`tune-local-loop`, `20261017_143922`; Mistral `20261017_154702`):
+every condition holds and the loop stays on.
+
+| | `tune-baseline` | with the loop |
+|---|---|---|
+| Passes, Qwen | 37 | 40 |
+| Passes, Mistral | 36 | 40 |
+| Evidence recall in context | 0.88 | 0.905 |
+| Retrieval misses, Qwen | 12 | 7 |
+| Pass → fail, Qwen | | 0 |
+| Wrong refusals | 0 | 0 |
+| Cost (answers + Qwen judge) | €1.08 | €1.40 |
+
+- 14 of 53 questions took the loop (none did before), with no web search:
+  5 searched again after an insufficient first retrieval only, 5 retried
+  after a failed answer only, 4 did both.
+- Fail → pass under Qwen: `dose-constraint-bands`,
+  `en-nuclear-medicine-patient-release` (follow-up query "dokumentation af
+  radioaktivt materiale udskilt af patienter") and
+  `modtagekontrol-fejl-indberetning` (two follow-ups). Mistral also passes
+  `cs137-sikringsgruppe-c-krav` (three follow-ups, the first "Bilag 6
+  Bekendtgørelse om radioaktive stoffer sikringsgrupper").
+- The one pass → fail under Mistral, `generator-veterinær-underretning`,
+  took the straight path, so the loop did not touch it; Qwen passes it.
+- `gammaradiografi-uden-for-anlæg` ended in a Scaleway timeout
+  (`graph_error`). It failed in all three baselines too. More calls per
+  question mean more chances of a timeout.
+- Wasted rounds: the out-of-scope `refuse-skift-p-nummer` used every round
+  (four follow-ups, three of them the same query), as did
+  `lukket-kilde-anbefalet-anvendelsesperiode`, a false alarm of the
+  answer grader. Repeated queries and the scope check (#150) are the next
+  levers on cost; the user-facing hint when a gap remains is still open.
+
 ---
 
 ## Phase 1 — Continuous Scoring
