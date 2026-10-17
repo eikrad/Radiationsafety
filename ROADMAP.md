@@ -821,6 +821,42 @@ the grader flagged falsely (`myndighedskontrol-lukkede-kilder`,
 
 ---
 
+## Held-out step 5: confirmation and frontier comparison (2026-10-17)
+
+Rule set before any `confirm` run. `confirm` is read in aggregate only:
+pass rates with intervals, counts per error type and the number of flips,
+never question by question.
+
+**Confirmation of the optimised pipeline** (database correction loop,
+answer grader candidate 3, gap hint; Gemma, `bge-multilingual-gemma2`,
+k = 5, no web search, no re-ranker). One `confirm` run, judged by Qwen and
+re-scored by Mistral, against `confirm-baseline` (`20261016_173446`, 42 of
+53 under Qwen), which is re-scored by Mistral too for a like-for-like
+second judge. The pipeline is confirmed if, under both judges:
+- net flips against the baseline are positive (more fail → pass than
+  pass → fail), and
+- there is no significant regression (sign test on the flips, p < 0.05
+  towards worse);
+- and no new `wrong_refusal`.
+If it is not confirmed, the tune result is reported as not carried over;
+nothing is changed on the strength of `confirm`. This is the first of at
+most three confirmations on this set.
+
+**Frontier comparison.** The same pipeline with `gemini-3.8-flash` as the
+answer model (it also grades its own answers and context, as Gemma does;
+temperature 1.0, thinking level `medium`, recorded in the run config),
+embeddings unchanged, on `confirm`, judged by Qwen and re-scored by
+Mistral. First a smoke test (`--limit 2 --no-history`) with a cost check.
+Reported, not decided on: the gap in pass rate with both intervals, the
+counts per error type next to Gemma's, and whether Flash fails on the same
+retrieval misses (then the bottleneck is retrieval, not the open model).
+
+Expected cost: Gemma `confirm` run about €1.40, three Mistral rescores
+about €2.80, the Qwen judge for the Gemini run about €0.80, and the Gemini
+answers about $1–3.
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous
