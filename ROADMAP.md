@@ -878,8 +878,9 @@ net-positive condition fails under Mistral, so the tune gain is reported as
 not carried over to `confirm`, and nothing is changed on its strength. Both
 judges agree that the loop removes retrieval misses (5 → 3); under Mistral
 `unsupported_claim` rises from 1 to 5, under Qwen it does not (2 → 1). The
-same answers re-scored twice by Mistral gave 46 and 45 of 53 (the first
-report was lost to a run ID collision, fixed in `run_eval`), so one flip is
+same answers re-scored twice by Mistral gave 46 and 45 of 53 (`20261017_190627`
+and `20261017_203957`; the first shared its run ID with the Gemini run,
+which overwrote its report file, fixed in `run_eval`), so one flip is
 inside the judge's own noise. First of at most three confirmations used.
 
 **Frontier comparison (reported only).** Flash is ahead of Gemma by 3
@@ -892,7 +893,7 @@ recall 0.95 (Gemma) and 0.98 (Flash). Cost of the answers for 53
 questions: Gemma €0.72, Flash $4.40, about six times as much.
 
 Cost of step 5: about €6.3 and $4.40 (Gemma run €1.60, Gemini run €0.96 +
-$4.40, three Mistral rescores €3.0, the lost baseline rescore €0.78).
+$4.40, three Mistral rescores €3.0, the repeated baseline rescore €0.78).
 
 **Open question for the next round:** why Mistral finds more unsupported
 claims after the loop. To be looked into on `tune` (`tune-local-loop` and
