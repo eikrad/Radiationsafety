@@ -4,7 +4,10 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader
+from graph.chains.context_sufficiency_grader import (
+    context_gap,
+    get_context_sufficiency_grader,
+)
 from graph.chains.missing_query_chain import invoke_missing_query_chain
 from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.llm_factory import get_embedding_provider, get_llm
@@ -28,10 +31,11 @@ def retrieve_missing(
     context_str = (
         chat_context_prefix(chat_history) + "Document context:\n" + doc_context
     )
-    reflection = state.get("reflection") or ""
+    # after a failed answer the answer grader's hint, otherwise the context grader's gap
+    hint = state.get("reflection") or state.get("context_gap") or ""
     throttle_llm_if_needed()
     missing_query = invoke_missing_query_chain(
-        question, context_str, llm, config=cfg, reflection=reflection
+        question, context_str, llm, config=cfg, reflection=hint
     )
 
     ep = state.get("embedding_provider") or get_embedding_provider()
@@ -44,6 +48,7 @@ def retrieve_missing(
     trusted_merged = list(trusted) + new_docs
 
     sufficient = False
+    gap = state.get("context_gap") or ""
     if merged:
         context = format_context(merged, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
         throttle_llm_if_needed()
@@ -54,6 +59,7 @@ def retrieve_missing(
                 config=cfg,
             )
             sufficient = bool(result.binary_score)
+            gap = "" if sufficient else context_gap(result)
         except ValueError:  # no verdict even when asked again: not shown sufficient
             sufficient = False
 
@@ -61,6 +67,8 @@ def retrieve_missing(
         "documents": merged,
         "trusted_documents": trusted_merged,
         "sufficient_after_missing": sufficient,
+        "context_gap": gap,
+        "missing_queries": list(state.get("missing_queries") or []) + [missing_query],
     }
     # Only increment retrieval_count when in the initial flow (not retry-after-generation).
     if (state.get("retry_after_generation_count") or 0) == 0:

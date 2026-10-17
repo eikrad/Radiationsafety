@@ -4,7 +4,10 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from graph.chains.context_sufficiency_grader import get_context_sufficiency_grader
+from graph.chains.context_sufficiency_grader import (
+    context_gap,
+    get_context_sufficiency_grader,
+)
 from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.llm_factory import get_llm
 from graph.state import GraphState
@@ -26,18 +29,22 @@ def grade_documents(
             "documents": [],
             "trusted_documents": [],
             "web_search": False if privacy_mode else True,
+            "context_sufficient": False,
+            "context_gap": "",
         }
 
     context = format_context(documents, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
     throttle_llm_if_needed()
     sufficiency = get_context_sufficiency_grader(llm)
     try:
-        sufficient = sufficiency.invoke(
+        verdict = sufficiency.invoke(
             {"question": question, "context": context},
             config=cfg,
-        ).binary_score
+        )
+        sufficient = bool(verdict.binary_score)
+        gap = "" if sufficient else context_gap(verdict)
     except ValueError:  # no verdict even when asked again: not shown sufficient
-        sufficient = False
+        sufficient, gap = False, ""
     web_search = not sufficient
 
     # Privacy mode: never enable web search
@@ -48,4 +55,6 @@ def grade_documents(
         "documents": list(documents),
         "trusted_documents": list(documents),
         "web_search": web_search,
+        "context_sufficient": sufficient,
+        "context_gap": gap,
     }

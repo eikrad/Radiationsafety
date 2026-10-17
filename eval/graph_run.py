@@ -5,8 +5,9 @@ first retrieval and the grade_documents verdict. Streaming node updates keeps
 them, without changing the graph itself:
 
 - initial_documents: output of the first RETRIEVE (before retrieve_missing),
-- sufficient: the first GRADE_DOCUMENTS verdict (web_search=False means sufficient),
-- node_path: every node in execution order (retries and web search are visible).
+- sufficient: the first GRADE_DOCUMENTS verdict (context_sufficient),
+- node_path: every node in execution order (retries and web search are visible),
+- missing_queries: each follow-up query retrieve_missing sent to the database.
 
 Full outputs are saved per run (eval/reports/outputs_<run_id>.json, gitignored)
 so a run can be re-scored later without re-running the graph.
@@ -65,7 +66,9 @@ def run_graph(
             if node == RETRIEVE and initial_documents is None:
                 initial_documents = list(update.get("documents") or [])
             if node == GRADE_DOCUMENTS and sufficient is None:
-                sufficient = not update.get("web_search", False)
+                sufficient = update.get(
+                    "context_sufficient", not update.get("web_search", False)
+                )
 
     return {
         "generation": final.get("generation", ""),
@@ -76,6 +79,7 @@ def run_graph(
         "initial_documents": initial_documents or [],
         "sufficient": sufficient,
         "node_path": node_path,
+        "missing_queries": list(final.get("missing_queries") or []),
     }
 
 

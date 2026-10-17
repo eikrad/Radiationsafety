@@ -49,15 +49,17 @@ frontend/src/constants.ts — API URLs, configuration
 
 ```
 RETRIEVE → GRADE_DOCUMENTS
-               ↓ sufficient            ↓ insufficient + WEB_SEARCH_ENABLED
-           GENERATE ←── WEB_SEARCH  RETRIEVE_MISSING ──(loop up to 3×)──→ WEB_SEARCH
-               ↓
-        GRADE_GENERATION          ← Reflexion node: LLM grades, writes reflection hint
+               ↓ sufficient            ↓ insufficient (reads needed/found)
+           GENERATE ←── WEB_SEARCH  RETRIEVE_MISSING ──(up to 3 retrievals)──→ WEB_SEARCH*
+               ↓                                   └── else ──→ GENERATE
+        GRADE_GENERATION          ← Reflexion node: LLM grades part by part, writes reflection hint
                ↓ route_after_grade_generation (pure, no LLM)
     useful → VERIFY_TRUSTED → FINALIZE → END
-    retry  → PREPARE_RETRY_RETRIEVE → RETRIEVE_MISSING (reads reflection hint)
-    web    → WEB_SEARCH
+    retry  → PREPARE_RETRY_RETRIEVE → RETRIEVE_MISSING (reads reflection hint; up to 2 retries)
+    web    → WEB_SEARCH*
     end    → VERIFY_TRUSTED → FINALIZE → END
+
+* only with WEB_SEARCH_ENABLED and never in privacy mode; the database loop runs either way
 ```
 
 ### Key state fields

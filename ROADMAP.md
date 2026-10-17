@@ -668,6 +668,159 @@ Cost: about €7.10 at Scaleway before tax for all runs of this section
 
 ---
 
+## The local correction loop never ran (2026-10-17)
+
+Every question of every held-out run, and of `dev-no-web`, took the straight
+path `retrieve → grade_documents → generate → grade_generation →
+verify_trusted → finalize`. Both correction paths depend on the web-search
+switch in `graph/graph.py`: `decide_to_generate` enters `retrieve_missing`
+only `if state["web_search"] and env_bool("WEB_SEARCH_ENABLED")`, and
+`_generation_retry_route` ends at once when web search is off. Web search is
+off by default, in privacy mode and in every eval run since #145, so the
+graders' verdicts are computed and then ignored. The tests pinned this
+(`test_decide_to_generate_routes_to_generate_when_web_search_disabled`,
+`test_route_after_grade_generation_end_when_failed_no_web_search`). The
+second-brain page on Sufficient Context had noted it in September; it was
+never acted on.
+
+What the two graders would have done on `tune-baseline-rescore`:
+`grade_documents` judged 7 of the 12 retrieval misses insufficient (and 4
+passing answers too). Whether `grade_generation` ever fails is not recorded;
+in `prompt-145`, which ran with web search and so with a live retry path, it
+passed all 39 answers, and no `tune` failure carried a warning.
+
+The answer grader (`graph/chains/generation_grader.py`) is the weaker of the
+two: one yes/no for "grounded" and "answers the question" with no steps, a
+loose "addresses or resolves the question" that a two-of-three answer or an
+honest "Bilag 6 is not in the context" meets, no Danish-versus-IAEA rule
+(unlike the sufficiency grader), and at run time it is the answering model
+grading itself.
+
+**Step G1, offline check of the answer grader, rule set before measuring.**
+`--regrade` also runs today's `grade_generation` on a saved run's answers
+(same context, same answer, the run's answering model as grader, as at run
+time) and compares each verdict with the judge's pass/fail. Measured on the
+saved answers of `tune-baseline` and `tune-baseline-repeat` against the
+verdicts of their rescores (`20261016_182025`, `20261016_183512`): 106
+answers, 31 failed and 75 passed, 6 of them refusals.
+- The current prompt is measured first, as the baseline.
+- A new prompt is adopted if, on the same 106 answers, it flags at least half
+  of the failed answers and at least twice as many as the current prompt,
+  and flags at most 15 % of the passing ones (11 of 75): each false alarm
+  costs a correction round. Correct refusals count as passing answers.
+- Reported alongside, not decided on: the same check against the Mistral
+  rescore of `tune-baseline` (`20261016_184941`).
+- `tune` only; `confirm` answers are not graded.
+
+Results (2026-10-17; failed flagged of 31, passing flagged of 75; Mistral
+labels of 17 and 36 alongside):
+
+| Prompt | Failed flagged | False alarms | Mistral labels | Runs |
+|---|---|---|---|---|
+| current (one yes/no) | 1 | 0 | 1 / 0 | `20261017_080243`, `_081752`, `_083147` |
+| candidate 1: parts listed, model gives the verdict | 8 | 2 | 4 / 0 | `20261017_085700`, `_091438`, `_093130` |
+| candidate 2: status per part, verdict computed | 13 | 5 | 7 / 1 | `20261017_095219`, `_101011`, `_102927` |
+| candidate 3: candidate 2 plus a quote per supported part, checked against the context | 19 | 9 | 8 / 6 | `20261017_131258`, `_133431`, `_140950` |
+
+Candidates 1 and 2 miss the rule (16 flagged needed); candidate 3 meets it
+and is adopted.
+Candidate 1 also contradicted itself: for `cs137` it marked every part not
+answered and still passed the answer, which is why candidate 2 computes the
+verdict from the part statuses. Candidate 2 by error type (Qwen labels, both
+runs): it flags 13 of 24 retrieval misses and none of the 7 generator misses,
+where the context holds the fact and the answer drops or bends it; the
+grader takes the answer's reading of the context. Four of its five false
+alarms are correct refusals marked `not_answered` instead of
+`facts_off_topic`; the fifth is `test-dk-myndighedskontrol-lukkede-kilder`
+in both runs.
+
+Candidate 3 asks for the words from the Facts that state each supported
+part and passes the answer only if they occur in the context (case,
+spacing, quote marks and elisions ignored); a second example shows a
+correct refusal. By error type (Qwen labels, both runs) it flags 17 of 24
+retrieval misses and 2 of 7 generator misses. No correct refusal is flagged
+any more; the 9 false alarms are answered questions, most likely where the
+quote is not word for word, `myndighedskontrol-lukkede-kilder` and
+`lukket-kilde-anbefalet-anvendelsesperiode` in both runs. Each costs one
+correction round. The Mistral-label check first stopped on a Scaleway API
+timeout, which ended the whole regrade because the node only catches
+`ValueError`; it was rerun (`20261017_140950`), and G2 checks how a grader
+timeout behaves in the graph.
+
+**Step G2, the wiring, rule set before measuring.** The loop runs without web
+search: an insufficient first retrieval leads to up to two more database
+searches, a failed answer to up to two retries from the database. Web search
+stays the last resort, only when `WEB_SEARCH_ENABLED` and never in privacy
+mode. `retrieve_missing` searches for what the sufficiency grader named as
+missing (`needed`/`found`), or after a failed answer for the answer grader's
+hint, and each follow-up query is kept in the run outputs
+(`missing_queries`). Behaviour tests on the compiled graph
+(`tests/test_correction_loop.py`) replace the tests that pinned the old
+gating.
+
+A full `tune` run (`--no-web-search`), judged by Qwen and re-scored by
+Mistral, is compared with `tune-baseline` (`20261016_160821`; Qwen
+`20261016_182025`: 37 of 53, evidence recall in context 0.88; Mistral
+`20261016_184941`: 36 of 53). The loop stays on if all hold:
+- evidence recall in the generator's context is higher than 0.88;
+- passes do not drop under either judge (at least 37 Qwen, 36 Mistral);
+- at most 2 questions go from pass to fail under Qwen, each reported with
+  its node path;
+- no new `wrong_refusal`;
+- the run (answers and Qwen judge) costs less than €2.
+
+`tune-baseline-repeat` passed 38, so one or two questions either way is
+run-to-run noise: the rule asks that the loop does no harm and brings more
+evidence into the context, not that it proves a gain on 53 questions.
+
+Result (`tune-local-loop`, `20261017_143922`; Mistral `20261017_154702`):
+every condition holds and the loop stays on.
+
+| | `tune-baseline` | with the loop |
+|---|---|---|
+| Passes, Qwen | 37 | 40 |
+| Passes, Mistral | 36 | 40 |
+| Evidence recall in context | 0.88 | 0.905 |
+| Retrieval misses, Qwen | 12 | 7 |
+| Pass → fail, Qwen | | 0 |
+| Wrong refusals | 0 | 0 |
+| Cost (answers + Qwen judge) | €1.08 | €1.40 |
+
+- 14 of 53 questions took the loop (none did before), with no web search:
+  5 searched again after an insufficient first retrieval only, 5 retried
+  after a failed answer only, 4 did both.
+- Fail → pass under Qwen: `dose-constraint-bands`,
+  `en-nuclear-medicine-patient-release` (follow-up query "dokumentation af
+  radioaktivt materiale udskilt af patienter") and
+  `modtagekontrol-fejl-indberetning` (two follow-ups). Mistral also passes
+  `cs137-sikringsgruppe-c-krav` (three follow-ups, the first "Bilag 6
+  Bekendtgørelse om radioaktive stoffer sikringsgrupper").
+- The one pass → fail under Mistral, `generator-veterinær-underretning`,
+  took the straight path, so the loop did not touch it; Qwen passes it.
+- `gammaradiografi-uden-for-anlæg` ended in a Scaleway timeout
+  (`graph_error`). It failed in all three baselines too. More calls per
+  question mean more chances of a timeout.
+- Wasted rounds: the out-of-scope `refuse-skift-p-nummer` used every round
+  (four follow-ups, three of them the same query), as did
+  `lukket-kilde-anbefalet-anvendelsesperiode`, a false alarm of the
+  answer grader. Repeated queries and the scope check (#150) are the next
+  levers on cost.
+
+**The hint when a gap remains.** An answer the answer grader still fails
+after the database retries, without web search, now carries a warning in
+the question's language (en/de/da): the documents in the database may not
+cover everything the question asks, so the answer may be incomplete; with
+web search switched off (not in privacy mode) it adds that it is. A warning
+already set by `verify_trusted` (statements not matched to the sources)
+takes precedence. In `tune-local-loop` four answers ended with a failed
+grade and would carry it: `cs137-sikringsgruppe-c-krav` (failed under
+Qwen), the correct refusal `refuse-skift-p-nummer`, and two passing answers
+the grader flagged falsely (`myndighedskontrol-lukkede-kilder`,
+`lukket-kilde-anbefalet-anvendelsesperiode`). The grader's false alarms
+(9 of 75) are the hint's false alarms too.
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous

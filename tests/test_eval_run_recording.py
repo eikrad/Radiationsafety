@@ -859,6 +859,7 @@ def regrade(monkeypatch, workspace):
         raise AssertionError("regrading neither answers nor judges")
 
     monkeypatch.setattr(run_eval, "_grade_sufficient", fake_grader)
+    monkeypatch.setattr(run_eval, "_grade_generation", lambda *a: True)
     monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
     monkeypatch.setattr(run_eval, "judge_item", must_not_run)
     return SimpleNamespace(run_id=run["run_id"], seen=seen)
@@ -895,6 +896,74 @@ def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
         not in _results(run)["iaea-transport-index"]["metrics"]
     )
     assert run["summary"]["grade_documents_ablation_correct_mean"] == 1.0
+
+
+@pytest.fixture
+def answer_grader(monkeypatch):
+    """An answer grader that passes every answer except the transport one."""
+    seen = []
+
+    def fake_answer_grader(question, context, generation, llm):
+        seen.append((question, context, generation))
+        return "transport" not in question
+
+    monkeypatch.setattr(run_eval, "_grade_generation", fake_answer_grader)
+    return seen
+
+
+def test_regrading_checks_the_answer_grader_against_the_judges_verdicts(
+    monkeypatch, workspace, regrade, answer_grader
+):
+    """The answer grader sees the saved answer with the context it was written from."""
+    _run(monkeypatch, workspace, "--regrade", regrade.run_id)
+
+    run = load_runs(workspace.history)[-1]
+    results = _results(run)
+    # dk passed and was passed; transport failed and was flagged; the MRI
+    # refusal passed and was passed
+    for qid in ("dk-dose-limits", "iaea-transport-index", "out-of-scope-mri"):
+        assert results[qid]["metrics"]["grade_generation_correct"] == 1.0
+    assert run["summary"]["grade_generation_confusion"] == {
+        "failed_flagged": 1,
+        "failed_missed": 0,
+        "passed_flagged": 0,
+        "passed_kept": 2,
+    }
+    assert (
+        "Hvor findes dosisgrænserne?",
+        ANNEX_2,
+        "Answer to Hvor findes dosisgrænserne?",
+    ) in answer_grader
+
+
+def test_regrading_can_take_the_verdicts_from_a_later_rescore(
+    monkeypatch, workspace, regrade, answer_grader
+):
+    """A rescore after a label fix holds the verdicts the grader is checked against."""
+    monkeypatch.setattr(
+        run_eval,
+        "judge_item",
+        lambda item, answer, context, llm, votes=1: {
+            "nuggets": ["not_support"] * len(item.get("nuggets") or []),
+            "unsupported_claims": [],
+            "refused": False,
+        },
+    )
+    _run(monkeypatch, workspace, "--rescore", regrade.run_id)
+    rescore_id = load_runs(workspace.history)[-1]["run_id"]
+    monkeypatch.setattr(run_eval, "judge_item", lambda *a, **k: pytest.fail("judged"))
+
+    _run(monkeypatch, workspace, "--regrade", regrade.run_id, "--labels", rescore_id)
+
+    run = load_runs(workspace.history)[-1]
+    # the rescore failed every answer; the grader passed two of them
+    assert run["summary"]["grade_generation_confusion"] == {
+        "failed_flagged": 1,
+        "failed_missed": 2,
+        "passed_flagged": 0,
+        "passed_kept": 0,
+    }
+    assert run["config"]["labels_from"] == rescore_id
 
 
 def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
