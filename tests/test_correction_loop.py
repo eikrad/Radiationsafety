@@ -33,6 +33,7 @@ MISSING = Document(
     metadata={"source": "BEK-1385.xml", "document_type": "dk-law"},
 )
 GAP = "Bilag 6 sikringsgruppe for Cs-137"
+QUESTION = "Hvilken sikringsgruppe gælder for Cs-137?"
 
 
 def _chain(*replies):
@@ -126,7 +127,7 @@ def _run(
         for target, fake in fakes.items():
             stack.enter_context(patch(target, fake))
         out = run_graph(
-            "Hvilken sikringsgruppe gælder for Cs-137?",
+            QUESTION,
             app,
             llm=MagicMock(),
             embedding_provider="scaleway",
@@ -225,3 +226,49 @@ def test_the_follow_up_queries_are_recorded_in_the_run_output(web_off):
     out, _ = _run(sufficiency=[False, False, False], answers_pass=[True])
 
     assert len(out["missing_queries"]) == 2
+
+
+# --- the hint when a gap remains -------------------------------------------------
+
+
+def _incomplete_hint(*, web_search_off: bool) -> str:
+    from graph.i18n import detect_language, get_warning_answer_may_be_incomplete
+
+    return get_warning_answer_may_be_incomplete(
+        detect_language(QUESTION), web_search_off=web_search_off
+    )
+
+
+def test_an_answer_still_failing_after_the_retries_comes_with_a_hint(web_off):
+    out, _ = _run(sufficiency=[True, True, True], answers_pass=[False, False, False])
+
+    assert out["retrieval_warning"] == _incomplete_hint(web_search_off=True)
+
+
+def test_an_answer_that_passes_after_a_retry_comes_without_a_hint(web_off):
+    out, _ = _run(sufficiency=[True, True], answers_pass=[False, True])
+
+    assert out["retrieval_warning"] is None
+
+
+def test_in_privacy_mode_the_hint_does_not_mention_web_search(web_on):
+    out, _ = _run(
+        sufficiency=[True, True, True],
+        answers_pass=[False, False, False],
+        privacy_mode=True,
+    )
+
+    assert out["retrieval_warning"] == _incomplete_hint(web_search_off=False)
+
+
+def test_the_hint_is_written_in_the_language_of_the_question():
+    from graph.i18n import get_warning_answer_may_be_incomplete
+
+    texts = {
+        lang: get_warning_answer_may_be_incomplete(lang, web_search_off=True)
+        for lang in ("en", "de", "da")
+    }
+    assert len(set(texts.values())) == 3
+    assert (
+        get_warning_answer_may_be_incomplete("fr", web_search_off=True) == texts["en"]
+    )

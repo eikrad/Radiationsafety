@@ -16,7 +16,11 @@ from graph.consts import (
     WEB_SEARCH,
     env_bool,
 )
-from graph.i18n import detect_language, get_warning_web_search_poor
+from graph.i18n import (
+    detect_language,
+    get_warning_answer_may_be_incomplete,
+    get_warning_web_search_poor,
+)
 from graph.nodes import (
     generate,
     grade_documents,
@@ -89,13 +93,28 @@ def prepare_retry_retrieve(state: GraphState) -> dict[str, Any]:
 
 
 def finalize(state: GraphState) -> dict[str, Any]:
-    """Set retrieval_warning if not already set by verify_trusted. Message in the language of the question."""
+    """Set retrieval_warning if not already set by verify_trusted. Message in the language of the question.
+
+    An answer the grader still fails after the database retries, without web
+    search, gets a hint that the documents may not cover the whole question."""
     warning = state.get("retrieval_warning")
     web_attempted = bool(state.get("web_search_attempted"))
     trusted_verified = bool(state.get("trusted_verified"))
+    lang = detect_language(state.get("question") or "")
     if warning is None and web_attempted and not trusted_verified:
-        lang = detect_language(state.get("question") or "")
         warning = get_warning_web_search_poor(lang)
+    elif (
+        warning is None
+        and not web_attempted
+        and state.get("generation_passed_grading") is False
+    ):
+        # privacy mode never has web search, so it is not worth mentioning there
+        web_search_off = not env_bool("WEB_SEARCH_ENABLED") and not state.get(
+            "privacy_mode"
+        )
+        warning = get_warning_answer_may_be_incomplete(
+            lang, web_search_off=web_search_off
+        )
     if web_attempted:
         outcome = "web_search_verified" if trusted_verified else "web_search_unverified"
     else:
