@@ -720,8 +720,10 @@ labels of 17 and 36 alongside):
 | current (one yes/no) | 1 | 0 | 1 / 0 | `20261017_080243`, `_081752`, `_083147` |
 | candidate 1: parts listed, model gives the verdict | 8 | 2 | 4 / 0 | `20261017_085700`, `_091438`, `_093130` |
 | candidate 2: status per part, verdict computed | 13 | 5 | 7 / 1 | `20261017_095219`, `_101011`, `_102927` |
+| candidate 3: candidate 2 plus a quote per supported part, checked against the context | 19 | 9 | 8 / 6 | `20261017_131258`, `_133431`, `_140950` |
 
-Neither candidate meets the rule (16 flagged needed), so neither is adopted.
+Candidates 1 and 2 miss the rule (16 flagged needed); candidate 3 meets it
+and is adopted.
 Candidate 1 also contradicted itself: for `cs137` it marked every part not
 answered and still passed the answer, which is why candidate 2 computes the
 verdict from the part statuses. Candidate 2 by error type (Qwen labels, both
@@ -730,8 +732,20 @@ where the context holds the fact and the answer drops or bends it; the
 grader takes the answer's reading of the context. Four of its five false
 alarms are correct refusals marked `not_answered` instead of
 `facts_off_topic`; the fifth is `test-dk-myndighedskontrol-lukkede-kilder`
-in both runs. The branch keeps candidate 2 as the working state for the next
-candidate; it is not merged unless a candidate meets the rule.
+in both runs.
+
+Candidate 3 asks for the words from the Facts that state each supported
+part and passes the answer only if they occur in the context (case,
+spacing, quote marks and elisions ignored); a second example shows a
+correct refusal. By error type (Qwen labels, both runs) it flags 17 of 24
+retrieval misses and 2 of 7 generator misses. No correct refusal is flagged
+any more; the 9 false alarms are answered questions, most likely where the
+quote is not word for word, `myndighedskontrol-lukkede-kilder` and
+`lukket-kilde-anbefalet-anvendelsesperiode` in both runs. Each costs one
+correction round. The Mistral-label check first stopped on a Scaleway API
+timeout, which ended the whole regrade because the node only catches
+`ValueError`; it was rerun (`20261017_140950`), and G2 checks how a grader
+timeout behaves in the graph.
 
 Then step G2, the wiring: the loop runs without web search, web search stays
 the last resort and off by default, `retrieve_missing` gets the sufficiency
