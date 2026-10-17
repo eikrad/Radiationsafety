@@ -804,7 +804,20 @@ every condition holds and the loop stays on.
   (four follow-ups, three of them the same query), as did
   `lukket-kilde-anbefalet-anvendelsesperiode`, a false alarm of the
   answer grader. Repeated queries and the scope check (#150) are the next
-  levers on cost; the user-facing hint when a gap remains is still open.
+  levers on cost.
+
+**The hint when a gap remains.** An answer the answer grader still fails
+after the database retries, without web search, now carries a warning in
+the question's language (en/de/da): the documents in the database may not
+cover everything the question asks, so the answer may be incomplete; with
+web search switched off (not in privacy mode) it adds that it is. A warning
+already set by `verify_trusted` (statements not matched to the sources)
+takes precedence. In `tune-local-loop` four answers ended with a failed
+grade and would carry it: `cs137-sikringsgruppe-c-krav` (failed under
+Qwen), the correct refusal `refuse-skift-p-nummer`, and two passing answers
+the grader flagged falsely (`myndighedskontrol-lukkede-kilder`,
+`lukket-kilde-anbefalet-anvendelsesperiode`). The grader's false alarms
+(9 of 75) are the hint's false alarms too.
 
 ---
 
