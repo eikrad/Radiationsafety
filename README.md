@@ -10,7 +10,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **RAG over IAEA and Danish sources** — covers IAEA GSR, SSG, SSR, TECDOC standards and Danish Bekendtgørelser
 - **Multi-provider LLM** — Scaleway (EU-hosted, default), Gemini, OpenAI, Mistral, or fully-local Ollama (privacy mode, zero data leaves your machine)
 - **Grounded answers** — every answer is verified against retrieved source documents; unverified web results are flagged
-- **Web search fallback** — Brave Search kicks in when local documents don't cover the query
+- **Optional web search fallback** — off by default; with `WEB_SEARCH_ENABLED=true` and a Brave Search key it fills gaps the local documents leave, and the answer is still checked against trusted sources (never used in privacy mode)
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
 - **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
@@ -29,7 +29,7 @@ flowchart TB
         RETRIEVE[Retrieve\nfrom both Chroma collections]
         GRADE[Grade documents]
         RETRIEVE_MISSING[Retrieve missing\n+ reflection hint]
-        WEB_SEARCH[Web search fallback\nBrave Search]
+        WEB_SEARCH[Optional web search\nBrave Search]
         GENERATE[Generate answer]
         GRADE_GEN[Grade generation]
         PREPARE_RETRY[Prepare retry]
@@ -43,14 +43,15 @@ flowchart TB
     GRADE -->|insufficient| RETRIEVE_MISSING
     RETRIEVE_MISSING -->|enough docs| GENERATE
     RETRIEVE_MISSING -->|still low, under retry cap| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|retry cap reached| WEB_SEARCH
+    RETRIEVE_MISSING -->|"retry cap reached, web search on"| WEB_SEARCH
+    RETRIEVE_MISSING -->|"retry cap reached, web search off"| GENERATE
     WEB_SEARCH --> GENERATE
     GENERATE --> GRADE_GEN
     GRADE_GEN -->|passed| VERIFY
     GRADE_GEN -->|failed, retries left| PREPARE_RETRY
     PREPARE_RETRY --> RETRIEVE_MISSING
-    GRADE_GEN -->|failed, no retries left| WEB_SEARCH
-    GRADE_GEN -->|failed, web search off| VERIFY
+    GRADE_GEN -->|"failed, no retries left, web search on"| WEB_SEARCH
+    GRADE_GEN -->|"failed, no retries left, web search off"| VERIFY
     VERIFY --> FINALIZE
     FINALIZE --> RESPONSE([Answer + sources + routing_outcome])
 ```

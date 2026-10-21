@@ -20,17 +20,18 @@ flowchart TB
 
     MODEL --> RETRIEVE
     RETRIEVE --> GRADE
-    GRADE -->|"docs OK / web off"| GENERATE
-    GRADE -->|"docs low + web on"| RETRIEVE_MISSING
+    GRADE -->|"docs sufficient"| GENERATE
+    GRADE -->|"docs insufficient"| RETRIEVE_MISSING
     RETRIEVE_MISSING -->|"enough docs or retry path"| GENERATE
     RETRIEVE_MISSING -->|"still low,\nretrieval_count < 3"| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|"retrieval cap reached"| WEB_SEARCH
+    RETRIEVE_MISSING -->|"cap reached,\nweb search on"| WEB_SEARCH
+    RETRIEVE_MISSING -->|"cap reached,\nweb search off"| GENERATE
     WEB_SEARCH --> GENERATE
     GENERATE --> GRADE_GEN
     GRADE_GEN -->|"passed"| VERIFY
     GRADE_GEN -->|"failed, retries left\nreflection → RETRIEVE_MISSING"| PREPARE_RETRY
-    GRADE_GEN -->|"failed, no retries"| WEB_SEARCH
-    GRADE_GEN -->|"web off + failed"| VERIFY
+    GRADE_GEN -->|"failed, retries used up,\nweb search on"| WEB_SEARCH
+    GRADE_GEN -->|"failed, retries used up,\nweb search off or tried"| VERIFY
     PREPARE_RETRY --> RETRIEVE_MISSING
     VERIFY --> FINALIZE
 

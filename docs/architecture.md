@@ -59,18 +59,19 @@ flowchart TD
         FIN[FINALIZE\nSet routing_outcome\nAttach warning if needed]
 
         R --> GD
-        GD -->|sufficient, or insufficient + web off| GEN
-        GD -->|insufficient + web enabled| RM
+        GD -->|sufficient| GEN
+        GD -->|insufficient| RM
         RM -->|enough docs, or retry-after-generation path| GEN
         RM -->|"still insufficient, retrieval_count < 3"| RM
-        RM -->|retrieval cap reached| WS
+        RM -->|"cap reached, web search on"| WS
+        RM -->|"cap reached, web search off"| GEN
         WS --> GEN
         GEN --> GG
         GG -->|pass| VT
-        GG -->|fail, retries < 2 + web enabled| PRR
+        GG -->|"fail, retries < 2"| PRR
         PRR --> RM
-        GG -->|fail, retries exhausted + web enabled| WS
-        GG -->|fail, web search disabled or already attempted| VT
+        GG -->|"fail, retries used up, web search on"| WS
+        GG -->|"fail, retries used up, web search off or already tried"| VT
         VT --> FIN
     end
 
@@ -103,10 +104,10 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
 | `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
-| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter before another `RETRIEVE_MISSING` pass (max 2 before falling back to web search) |
+| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter before another `RETRIEVE_MISSING` pass (max 2; then web search if enabled, else the answer is shown with a warning) |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
-| `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
+| `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and the user-facing warning (web results unverified, or the answer may be incomplete when grading still fails) |
 
 Shared helpers used across nodes: `graph/nodes/retrieval_common.py` (shared Chroma retrieval logic for `RETRIEVE`/`RETRIEVE_MISSING`), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
 
