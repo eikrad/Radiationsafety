@@ -32,6 +32,61 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-10-21
+
+> **Open PRs (verified via `mcp__github__list_pull_requests`, state=open):** #185 (feat: held-out step 5), #186-#190 (Dependabot: `@typescript-eslint/parser`, `@typescript-eslint/eslint-plugin`, `react-dom`, `eslint`, `react`). Those five packages are already proposed there and were **not duplicated** here.
+
+### Checks performed
+- `git fetch origin`; branch `claude/modest-faraday-eg3kyy` reset to `origin/staging`.
+- Baseline **before changes**: `uv sync --all-extras`; `uv run pytest tests/ -n auto` -> **595 passed**; `ruff`, `black --check`, `isort --check`, `mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` clean. Frontend: `npm ci`, `test` -> **76 passed (10 files)**, `lint`, `build` clean. **Nothing broken on `staging`.**
+- Playwright E2E not run in the sandbox (proxy blocks `cdn.playwright.dev`); CI runs it with full network access.
+- Security: `pip-audit --path .venv/lib/python*/site-packages` (the `requirements.txt` export route fails here because `networkx==3.7` needs a newer Python than the audit venv); `npm -C frontend audit`.
+- Outdated: `uv pip list --outdated`, `npm -C frontend outdated`.
+
+### Security findings
+
+**`npm -C frontend audit`** -- **0 vulnerabilities** before and after.
+
+**`pip-audit`** -- 32 findings in 6 packages, **unchanged before and after** (none fixable without a major or at all):
+
+| Package | Version | Fix | Resolution |
+|---|---|---|---|
+| `pillow` | 12.3.0 | 13.0.0 (**major**), 8 CVEs (CVE-2026-112395/-397/-400/-404/-895/-896/-897/-899) | **Not applied**, see major changes. Pillow only decodes locally supplied PDFs/page images during ingestion, not user uploads |
+| `docling`, `docling-slim` | 2.120.3 | 2.131.0 / 2.132.0 (15 PYSEC-2026-4190..4216 advisories) | **Not applied**: every docling >= 2.131 requires `docling-ibm-models` 4 (major). Ingestion only reads trusted local PDFs/XML |
+| `oauthlib` | 3.3.1 | 4.0.0 (major), PYSEC-2026-4114 | Not applied; transitive via `kubernetes` <- `chromadb`; no OAuth server code in this app |
+| `chromadb` | 1.5.9 | none upstream (5 PYSEC advisories, HTTP server) | Not fixable; not reachable (embedded `PersistentClient` only) |
+| `virtualenv` | 21.14.5 | 21.14.7 (CVE-2026-113725) | Dev/tooling only, not in `uv.lock` as a project dependency; installed by `pre-commit`. Not pinned |
+| `certifi` | 2026.7.22 | -- | Bumped to 2026.10.19 (below) |
+
+### Dependency updates
+
+**Python** (one batched `uv lock --upgrade-package ...`, `pyproject.toml` unchanged): `fastapi` 0.143.1->0.158.1, `starlette` 1.8.0->1.9.0, `langchain-core` 1.6.10->1.6.12, `langgraph` 1.2.15->1.2.16, `langgraph-prebuilt` 1.1.0->1.1.1, `langgraph-sdk` 0.4.7->0.4.8, `langchain-protocol` 0.0.19->0.0.20, `langsmith` 0.14.8->0.14.11, `google-genai` 2.30.1->2.32.0, `transformers` 5.19.0->5.20.2, `sqlalchemy` 2.1.4->2.1.6, `pypdf` 6.20.1->6.21.2, `pydantic-settings` 2.16.0->2.16.1, `polyfactory` 3.3.0->3.5.0 (dev), `ruff` 0.17.0->0.17.1 (dev), `pluggy` 1.6.0->1.7.0, `certifi` 2026.7.22->2026.10.19, `ormsgpack` 1.12.2->1.13.0, `jsonpatch` 1.35->1.36, `jsonpointer` 3.2.1->3.4, `platformdirs`, `distlib`, `python-discovery`, `setuptools` 84.2.1, `ast-serialize` 0.13.1. Compatibility: the langchain/langgraph/langsmith set was moved together; `fastapi` and `starlette` were moved together (fastapi's starlette range allows 1.9.0). The full test suite exercises the API, graph and chains.
+
+**Frontend** (floors in `package.json` raised to match the lockfile, no range widened): `vite` 8.3.4->8.3.5, `vitest` and `@vitest/coverage-v8` 5.0.4->5.0.5 (moved together), `jsdom` 30.1.2->30.1.3, `@testing-library/user-event` 14.6.8, `@axe-core/playwright` 4.14.0. (`npm update` hit the known npm arborist bug `Cannot read properties of null (reading 'edgesOut')`; applied with `npm install --package-lock-only --save <pkg>@<ver>`.) `react`, `react-dom`, `eslint`, `@typescript-eslint/*` left to Dependabot #186-#190. `@playwright/test` is pinned to 1.64.0 on purpose (visual snapshots / Docker image) and was not touched.
+
+### Major changes -- flagged for your decision, NOT applied
+
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `pillow` (transitive) | 12.3.0 | 13.0.0 | Fixes 8 CVEs. `uv lock --upgrade-package pillow` does not move it (resolver keeps 12.3.0, i.e. a dependency in the docling/torch stack still constrains it; not investigated further). Highest-value item to look at next |
+| `docling` / `docling-slim` / `docling-core` / `docling-parse` | 2.120.3 | 2.141.0 | Security fixes (see above) need `docling-ibm-models` 4.0.4 (major); needs an ingestion regression run on real PDFs |
+| `docling-ibm-models` (transitive) | 3.14.0 | 4.0.4 | See above |
+| `langchain-docling` (direct) | 2.0.0 | 3.0.0 | Major; review together with the docling upgrade |
+| `oauthlib` (transitive) | 3.3.1 | 4.0.0 | Major; advisory not reachable |
+| `openai` (transitive) | 2.53.0 | 3.36.0 | `langchain-openai` still pins 2.x |
+| `huggingface-hub` | 1.32.0 | 2.2.0 | Major |
+| `multidict`, `filelock`, `kubernetes`, `semchunk`, `websockets`, `xxhash`, `uuid-utils`, `packaging`, `soupsieve`, `isort` (dev, 9.0.2) | -- | -- | Majors, no CVE driving them |
+| `torch` / `torchvision` | 2.13.0 / 0.28.0 | 2.14.1 / 0.29.1 | Minor but a heavy ML stack that docling pins loosely; held to be done with the docling upgrade |
+| `typescript` | 6.0.3 | 7.0.2 | Major (native compiler rewrite) |
+| `jsdom` | 30.1.3 | "29.1.1" shown as latest | npm dist-tag oddity, ignore |
+
+### Post-change verification
+- `uv run pytest tests/ -n auto` -> **595 passed**
+- `ruff check .`, `black --check .`, `isort --check .`, `mypy ...`, `pre-commit run --all-files` -> clean
+- `npm -C frontend ci`, `test` -> **76 passed (10 files)**, `lint`, `build`, `audit` (0 vulnerabilities) -> clean
+
+---
+
 ## 2026-10-07
 
 > **Open PRs (verified via `mcp__github__list_pull_requests`, state=open):** #155 (docs: privacy-mode plan), #127 (vitest 5 combined), #124 / #123 (Dependabot `@vitest/coverage-v8` / `vitest` 5.x). The vitest 5 bump is already proposed there and was **not duplicated**.
