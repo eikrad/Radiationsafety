@@ -246,7 +246,7 @@ flowchart LR
 flowchart LR
     ENV[LLM_PROVIDER env var\nor frontend override] --> FAC{llm_factory}
     FAC -->|scaleway| SCW[Scaleway\nSCW_MODEL · default]
-    FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
+    FAC -->|gemini| GEM[langchain-google-genai\nGemini 3.8 Flash]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
     FAC -->|ollama| OLL[langchain-ollama\nqwen3.5:4b · runs locally]
