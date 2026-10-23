@@ -47,7 +47,7 @@ docker compose --profile ollama up    # adds an Ollama container; the models are
   hardening as the other services (`no-new-privileges`, `cap_drop` where Ollama still runs).
 - **`ollama-pull`**: one-shot service with the same image and `OLLAMA_HOST=ollama:11434`, same
   pattern as `chroma-permissions`. Waits for the `ollama` healthcheck, pulls
-  `${OLLAMA_MODEL:-qwen3.5:4b}` and `${OLLAMA_EMBED_MODEL:-bge-m3}` (about 5 GB),
+  `${OLLAMA_MODEL:-gemma4:e4b-it-qat}` and `${OLLAMA_EMBED_MODEL:-bge-m3}` (about 7 GB),
   then exits. Later starts finish in seconds because the models are already in the volume.
 - **`backend`**: `OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}`, so without an entry
   in `.env` it points at the container and with one at an external Ollama. Add
@@ -79,7 +79,7 @@ both remedies (`ollama serve`, or `--profile ollama` under Docker). Test in `tes
 
 ### 5. README: "Privacy mode with Docker"
 
-- **With the container**: command, about 5 GB on first start, progress via
+- **With the container**: command, about 7 GB on first start, progress via
   `docker compose logs -f ollama-pull`, local index via
   `docker compose run --rm -e LLM_PROVIDER=ollama backend python ingestion.py`, and how long
   that takes on a CPU (to be measured).
@@ -92,7 +92,7 @@ both remedies (`ollama serve`, or `--profile ollama` under Docker). Test in `tes
 ### 6. CI (`docker-integration` job)
 
 `docker compose --profile ollama config --quiet` keeps the profile valid. Pulling models in CI is
-out of scope (5 GB per run); starting the Ollama container without models is possible but adds an
+out of scope (7 GB per run); starting the Ollama container without models is possible but adds an
 image of 1–2 GB per run, so it is left out unless the profile breaks in practice.
 
 ## Verification
@@ -108,9 +108,9 @@ image of 1–2 GB per run, so it is left out unless the profile breaks in practi
 
 ## Decisions
 
-- **Default models** are those of the local install, `qwen3.5:4b` and `bge-m3` (`graph/llm_factory.py`);
+- **Default models** are those of the local install, `gemma4:e4b-it-qat` and `bge-m3` (`graph/llm_factory.py`);
   other models are one `.env` line away.
-- **No automatic model download** without the profile: the 5 GB only come when someone asks for
+- **No automatic model download** without the profile: the 7 GB only come when someone asks for
   privacy mode in Docker.
 
 ## Out of scope

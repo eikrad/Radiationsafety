@@ -44,22 +44,24 @@ class TestOllamaLLM:
         assert getattr(llm, "model", None) == "mistral:7b"
 
     def test_default_model_fits_a_small_gpu(self, monkeypatch):
-        """qwen3.5:4b runs fully in 6 GB of VRAM, 2.5x faster than llama3.1:8b,
-        which spilled ~10 GB into RAM; answer quality was even under an
-        independent judge (ROADMAP, privacy mode step P2)."""
+        """gemma4:e4b-it-qat runs fully in 6 GB of VRAM and beat qwen3.5:4b on
+        tune by 16 questions net under Qwen and 7 under Mistral, at a median of
+        50 s per question (ROADMAP, local model for privacy mode, stage 1)."""
         monkeypatch.delenv("OLLAMA_MODEL", raising=False)
         from graph.llm_factory import get_llm
 
         llm = get_llm(provider="ollama")
-        assert getattr(llm, "model", None) == "qwen3.5:4b"
+        assert getattr(llm, "model", None) == "gemma4:e4b-it-qat"
 
     def test_a_missing_answer_model_names_the_one_to_pull(self, monkeypatch):
         monkeypatch.delenv("OLLAMA_MODEL", raising=False)
         from api.main import _ollama_error_detail
 
-        detail = _ollama_error_detail(Exception('model "qwen3.5:4b" not found (404)'))
+        detail = _ollama_error_detail(
+            Exception('model "gemma4:e4b-it-qat" not found (404)')
+        )
 
-        assert "ollama pull qwen3.5:4b" in detail
+        assert "ollama pull gemma4:e4b-it-qat" in detail
 
     def test_model_variant_overrides_env(self, monkeypatch):
         """model_variant parameter should take precedence over OLLAMA_MODEL env."""
