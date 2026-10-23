@@ -32,9 +32,20 @@ class ProviderConfigError(ValueError):
     """
 
 
-_GEMINI_MODELS = frozenset(
-    {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"}
-)
+_GEMINI_MODELS = frozenset({"gemini-3.8-flash"})
+
+
+def _gemini_sampling(model: str) -> dict:
+    """Gemini 3 and later: temperature 1.0, as Google advises (lower values can
+    loop), and the documented default thinking level pinned so a run records
+    it. Older models keep temperature 0 and their own thinking."""
+    version = model.removeprefix("gemini-").split("-")[0]
+    major = int(version.split(".")[0]) if version.split(".")[0].isdigit() else 0
+    if major >= 3:
+        return {"temperature": 1.0, "thinking_level": "medium"}
+    return {"temperature": 0}
+
+
 _OPENAI_MODELS = frozenset({"gpt-4o-mini", "gpt-4o"})
 
 _SCALEWAY_BASE_URL = "https://api.scaleway.ai/v1"
@@ -58,6 +69,16 @@ def _as_text(value: Any) -> Any:
 
 # A str field in a structured-output schema that also accepts an object or list.
 LenientText = Annotated[str, BeforeValidator(_as_text)]
+
+
+def reply_text(reply) -> str:
+    """A chat reply's text: Gemini 3 replies with a list of content blocks
+    (text with a signature), other models with a string."""
+    text = getattr(reply, "text", None)
+    if isinstance(text, str):
+        return text
+    content = getattr(reply, "content", reply)
+    return content if isinstance(content, str) else str(content)
 
 
 def _parse_text_reply(content: str, schema) -> object:
@@ -103,7 +124,7 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
     def resolve(result: dict) -> dict:
         if result["parsed"] is None and result["parsing_error"] is None:
             try:
-                parsed = _parse_text_reply(result["raw"].content, schema)
+                parsed = _parse_text_reply(reply_text(result["raw"]), schema)
                 result = {**result, "parsed": parsed}
             except ValueError as e:  # json and pydantic errors are ValueErrors
                 result = {**result, "parsing_error": e}
@@ -232,7 +253,7 @@ def get_llm(
         provider: One of 'mistral', 'gemini', 'openai', 'ollama', 'scaleway'. If None, uses
             LLM_PROVIDER, else DEFAULT_PROVIDER.
         api_key: Override API key. If None, falls back to env (MISTRAL_API_KEY, etc.).
-        model_variant: Specific model ID (e.g. gemini-2.5-flash-lite, gpt-4o-mini).
+        model_variant: Specific model ID (e.g. gemini-3.8-flash, gpt-4o-mini).
 
     Returns:
         LangChain chat model instance.
@@ -279,17 +300,17 @@ def get_llm(
         key = api_key or os.getenv("GOOGLE_API_KEY")
         if not key:
             raise APIKeyError("Gemini")
-        # Default: 2.5 Pro. Override via model_variant or GEMINI_MODEL (e.g. gemini-2.5-flash-lite for free tier).
+        # The only Gemini model offered; model_variant or GEMINI_MODEL may name it.
         env_model = (os.getenv("GEMINI_MODEL") or "").strip()
         if model_variant and model_variant in _GEMINI_MODELS:
             model = model_variant
         elif env_model and env_model in _GEMINI_MODELS:
             model = env_model
         else:
-            model = "gemini-2.5-pro"
+            model = "gemini-3.8-flash"
         return ChatGoogleGenerativeAI(
             model=model,
-            temperature=0,
+            **_gemini_sampling(model),
             google_api_key=key,
             timeout=request_timeout(),
             max_retries=max_retries(),

@@ -1,4 +1,4 @@
-import { STORAGE_KEYS, type Model } from './constants'
+import { MODEL_VARIANTS, STORAGE_KEYS, type Model } from './constants'
 
 export function loadEnforcePrivacyMode(): boolean {
   try {
@@ -32,7 +32,7 @@ const DEFAULT_VARIANTS: Record<Model, string> = {
   // 'default' = the server's SCW_MODEL
   scaleway: 'default',
   mistral: 'default',
-  gemini: 'gemini-2.5-pro',
+  gemini: 'gemini-3.8-flash',
   openai: 'gpt-4o-mini',
   ollama: 'default',
 }
@@ -96,7 +96,10 @@ export function loadModelVariants(): Record<Model, string> {
     return {
       scaleway: parsed.scaleway ?? DEFAULT_VARIANTS.scaleway,
       mistral: parsed.mistral ?? DEFAULT_VARIANTS.mistral,
-      gemini: parsed.gemini ?? DEFAULT_VARIANTS.gemini,
+      // a model saved before it was dropped from the list falls back to the default
+      gemini:
+        MODEL_VARIANTS.gemini.find((v) => v.id === parsed.gemini)?.id ??
+        DEFAULT_VARIANTS.gemini,
       openai: parsed.openai ?? DEFAULT_VARIANTS.openai,
       ollama: DEFAULT_VARIANTS.ollama,
     }

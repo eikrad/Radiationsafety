@@ -19,7 +19,7 @@ QUESTIONS = {
 }
 
 CONFIG = {
-    "llm_model": "gemini-2.5-flash",
+    "llm_model": "gemini-3.8-flash",
     "retriever_k": 3,
     "metrics_version": 1,
     "prompts": {"generation.py": "aaa", "missing_query_chain.py": "bbb"},
@@ -73,6 +73,13 @@ ALL_PASS = dict.fromkeys(QUESTIONS, True)
 
 def _set(data, questions_hash="set-a"):
     return next(s for s in data["sets"] if s["questions_hash"] == questions_hash)
+
+
+def _vs_previous(data, run_id, questions_hash="set-a"):
+    """The comparison of a run with the run before it on its question set."""
+    s = _set(data, questions_hash)
+    previous = s["run_ids"][s["run_ids"].index(run_id) - 1]
+    return s["pairs"][f"{previous}|{run_id}"]
 
 
 def test_no_runs_gives_an_empty_dashboard():
@@ -138,9 +145,7 @@ def test_a_question_that_stopped_passing_is_a_regression_since_the_previous_run(
         _run("20260925_101500", {**ALL_PASS, "dk-xray-license": False}),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["base_run_id"] == "20260916_094008"
     assert [q["id"] for q in comparison["regressions"]] == ["dk-xray-license"]
@@ -152,10 +157,8 @@ def test_a_question_that_stopped_passing_is_a_regression_since_the_previous_run(
 def test_the_first_run_of_a_set_has_nothing_to_compare_against():
     data = dashboard_data([_run("20260916_094008", ALL_PASS)])
 
-    assert _set(data)["comparisons"]["20260916_094008"] == {
-        "previous": None,
-        "baseline": None,
-    }
+    assert _set(data)["pairs"] == {}
+    assert _set(data)["compare_with"] == {"20260916_094008": None}
 
 
 def test_runs_are_compared_against_the_latest_run_labelled_baseline():
@@ -169,10 +172,9 @@ def test_runs_are_compared_against_the_latest_run_labelled_baseline():
     s = _set(dashboard_data(runs))
 
     assert s["baseline_run_id"] == "20260917_090000"
-    against = s["comparisons"]["20260925_101500"]["baseline"]
+    against = s["pairs"]["20260917_090000|20260925_101500"]
     assert against["base_run_id"] == "20260917_090000"
     assert [q["id"] for q in against["regressions"]] == ["en-transport-index"]
-    assert s["comparisons"]["20260917_090000"]["baseline"] is None
 
 
 def test_a_baseline_can_be_chosen_explicitly():
@@ -204,9 +206,7 @@ def test_a_comparison_names_only_the_settings_that_changed():
         _run("20260925_101500", ALL_PASS, config=changed),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["config_diff"] == [
         {"field": "prompts.generation.py", "before": "aaa", "after": "ccc"},
@@ -220,9 +220,7 @@ def test_comparing_with_an_imported_run_says_its_settings_are_unknown():
         _run("20260925_101500", ALL_PASS),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["config_diff"] is None
     assert any("not recorded" in w for w in comparison["warnings"])
@@ -239,7 +237,7 @@ def test_changed_grading_targets_are_marked_and_warned_about():
     assert s["markers"] == [
         {"run_id": "20260925_101500", "reasons": ["grading targets changed"]}
     ]
-    comparison = s["comparisons"]["20260925_101500"]["previous"]
+    comparison = s["pairs"]["20260916_094008|20260925_101500"]
     assert "grading targets changed" in comparison["warnings"]
 
 
@@ -254,7 +252,7 @@ def test_a_scoring_change_is_marked_and_warned_about():
 
     assert s["markers"][0]["reasons"] == ["scoring changed"]
     assert (
-        "scoring changed" in s["comparisons"]["20260925_101500"]["previous"]["warnings"]
+        "scoring changed" in s["pairs"]["20260916_094008|20260925_101500"]["warnings"]
     )
 
 
@@ -382,7 +380,7 @@ def _flips(regressed: int, improved: int, stable: int = 2):
     for i in range(stable):
         before[f"s{i}"], after[f"s{i}"] = True, True
     runs = [_run("20260916_094008", before), _run("20260925_101500", after)]
-    return _set(dashboard_data(runs))["comparisons"]["20260925_101500"]["previous"]
+    return _vs_previous(dashboard_data(runs), "20260925_101500")
 
 
 def test_a_single_flipped_question_is_not_significant():
@@ -457,9 +455,7 @@ def test_a_question_the_judge_could_not_score_is_neither_regression_nor_improvem
         ),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260926_100000"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260926_100000")
 
     assert comparison["regressions"] == []
     assert comparison["improvements"] == []
@@ -515,9 +511,7 @@ def test_flips_across_a_scoring_change_are_not_presented_as_regressions():
         ),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["comparable"] is False
     assert comparison["verdict"] == "Not directly comparable: scoring changed"
@@ -533,9 +527,7 @@ def test_a_different_judge_makes_runs_not_directly_comparable():
         _run("20260925_101500", ALL_PASS, config=majority_of_three),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["comparable"] is False
     assert comparison["verdict"] == "Not directly comparable: judge changed"
@@ -547,9 +539,7 @@ def test_a_retrieval_only_run_is_not_compared_with_a_full_run_as_like_for_like()
         _run("20260925_101500", ALL_PASS, config={**CONFIG, "retrieval_only": True}),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["comparable"] is False
     assert comparison["verdict"] == "Not directly comparable: retrieval only"
@@ -558,9 +548,7 @@ def test_a_retrieval_only_run_is_not_compared_with_a_full_run_as_like_for_like()
 def test_runs_scored_the_same_way_are_comparable():
     runs = [_run("20260916_094008", ALL_PASS), _run("20260925_101500", ALL_PASS)]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["comparable"] is True
 
@@ -592,9 +580,7 @@ def _retrieval_run(run_id: str, reciprocal_ranks: dict[str, float], **kwargs):
 
 
 def _compare(before, after):
-    return _set(dashboard_data([before, after]))["comparisons"][after["run_id"]][
-        "previous"
-    ]
+    return _vs_previous(dashboard_data([before, after]), after["run_id"])
 
 
 def test_evidence_ranked_higher_or_lower_counts_as_improvement_or_regression():
@@ -647,8 +633,117 @@ def test_a_grader_only_run_is_not_compared_with_a_full_run_as_like_for_like():
         _run("20260925_101500", ALL_PASS, config={**CONFIG, "grader_only": True}),
     ]
 
-    comparison = _set(dashboard_data(runs))["comparisons"]["20260925_101500"][
-        "previous"
-    ]
+    comparison = _vs_previous(dashboard_data(runs), "20260925_101500")
 
     assert comparison["verdict"] == "Not directly comparable: grader only"
+
+
+def test_every_run_shows_its_pass_rate_with_a_95_percent_interval():
+    # recorded before intervals were: the dashboard works it out from the results
+    run = _run("20260916_094008", {**ALL_PASS, "dk-xray-license": False})
+
+    low, high = dashboard_data([run])["runs"]["20260916_094008"]["pass_rate_interval"]
+
+    assert round(low, 2) == 0.21 and round(high, 2) == 0.94  # Wilson, 2 of 3
+
+
+def test_any_two_runs_of_a_set_can_be_compared_either_way():
+    gemma = _run("20260916_094008", {**ALL_PASS, "dk-xray-license": False})
+    frontier = _run("20260917_090000", ALL_PASS)
+    later = _run("20260918_090000", {**ALL_PASS, "en-transport-index": False})
+
+    pairs = _set(dashboard_data([gemma, frontier, later]))["pairs"]
+
+    assert len(pairs) == 6
+    assert [
+        q["id"] for q in pairs["20260916_094008|20260918_090000"]["improvements"]
+    ] == ["dk-xray-license"]
+    backwards = pairs["20260918_090000|20260916_094008"]
+    assert [q["id"] for q in backwards["regressions"]] == ["dk-xray-license"]
+    assert [q["id"] for q in backwards["improvements"]] == ["en-transport-index"]
+
+
+def test_question_sets_have_readable_names():
+    held_out = _run("20261016_090000", ALL_PASS, questions_hash="tune-set")
+    held_out["dataset"]["split"] = "tune"
+    old_dev = _run("20260916_094008", ALL_PASS, questions_hash="dev-v1")
+    dev = _run("20260925_101500", ALL_PASS, questions_hash="dev-v2")
+
+    names = {
+        s["questions_hash"]: s["name"]
+        for s in dashboard_data([held_out, old_dev, dev])["sets"]
+    }
+
+    assert names == {
+        "tune-set": "Held-out tune · 3 questions",
+        "dev-v2": "Dev set · 3 questions",
+        "dev-v1": "Dev set, older version · 3 questions · last run 2026-09-16",
+    }
+
+
+def test_each_run_says_what_kind_of_run_it_is_and_who_judged_it():
+    judged = {**CONFIG, "judge_model": "qwen3.8-27b"}
+    answers = _run("20260916_094008", ALL_PASS, config=judged)
+    rescore = _run(
+        "20260917_090000", ALL_PASS, config={**judged, "judge_model": "mistral-medium"}
+    )
+    rescore["rescored_from"] = "20260916_094008"
+    retrieval = _run(
+        "20260918_090000", ALL_PASS, config={**CONFIG, "retrieval_only": True}
+    )
+    grader = _run("20260919_090000", ALL_PASS, config={**CONFIG, "grader_only": True})
+
+    runs = dashboard_data([answers, rescore, retrieval, grader])["runs"]
+
+    assert [(r["kind"], r["judge"]) for r in runs.values()] == [
+        ("answers", "qwen3.8-27b"),
+        ("rescore", "mistral-medium"),
+        ("retrieval only", None),
+        ("grader check", None),
+    ]
+
+
+def test_a_run_is_compared_by_default_with_the_previous_run_of_its_kind_and_judge():
+    qwen = {**CONFIG, "judge_model": "qwen3.8-27b"}
+    mistral = {**CONFIG, "judge_model": "mistral-medium"}
+    runs = [
+        _run("20260916_090000", ALL_PASS, config=qwen),
+        _run("20260916_100000", ALL_PASS, config=mistral),
+        _run("20260917_090000", ALL_PASS, config={**CONFIG, "retrieval_only": True}),
+        _run("20260918_090000", ALL_PASS, config=qwen),
+        _run("20260918_100000", ALL_PASS, config=mistral),
+    ]
+    runs[1]["rescored_from"] = "20260916_090000"
+    runs[4]["rescored_from"] = "20260918_090000"
+
+    compare_with = _set(dashboard_data(runs))["compare_with"]
+
+    assert compare_with["20260918_090000"] == "20260916_090000"
+    assert compare_with["20260918_100000"] == "20260916_100000"
+    assert compare_with["20260916_100000"] == "20260916_090000"  # first of its kind
+
+
+def test_a_run_alike_the_baseline_is_compared_with_the_baseline_by_default():
+    runs = [
+        _run("20260916_090000", ALL_PASS, label="baseline"),
+        _run("20260917_090000", ALL_PASS),
+        _run("20260918_090000", ALL_PASS),
+    ]
+
+    assert _set(dashboard_data(runs))["compare_with"] == {
+        "20260916_090000": None,
+        "20260917_090000": "20260916_090000",
+        "20260918_090000": "20260916_090000",
+    }
+
+
+def test_a_run_is_not_compared_by_default_with_a_run_graded_against_other_targets():
+    runs = [
+        _run("20260916_090000", ALL_PASS, label="baseline", content_hash="old"),
+        _run("20260917_090000", ALL_PASS),
+        _run("20260918_090000", ALL_PASS),
+    ]
+
+    assert _set(dashboard_data(runs))["compare_with"]["20260918_090000"] == (
+        "20260917_090000"
+    )
