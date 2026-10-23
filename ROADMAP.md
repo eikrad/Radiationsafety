@@ -996,6 +996,52 @@ Expected cost: the answers are local; per run the Qwen judge about €0.80
 and the Mistral rescore about €1.00, so about €3.60 for stage 1 and €1.80
 for stage 2. Run time about 1–2 hours per run, one run at a time.
 
+### Stage 1 result (2026-10-24): Gemma 4 E4B becomes the default
+
+Smoke test of `gemma4:e4b-it-qat`: 61 and 70 s per question, 100 % on the
+GPU (3.0 GB at 12288), graders parsed. Full `tune` runs:
+`tune-local-qwen35-4b` `20261023_194741` (Mistral `20261023_212914`),
+`tune-local-gemma4-e4b` `20261023_213313` (Mistral `20261023_225123`);
+Gemma 26B in the cloud for reference (`tune-local-loop`, bge-gemma2
+embeddings).
+
+| Judge | Answer model | Pass | 95 % interval | unsupported_claim | retrieval_miss | generator_miss | wrong_refusal |
+|---|---|---|---|---|---|---|---|
+| Qwen | `qwen3.5:4b` | 18/53 (34 %) | 23–47 % | 21 | 9 | 1 | 3 |
+| Qwen | `gemma4:e4b-it-qat` | 34/53 (64 %) | 51–76 % | 7 | 9 | 2 | 1 |
+| Qwen | Gemma 26B (cloud) | 40/53 (75 %) | 62–85 % | 0 | 7 | 5 | 0 |
+| Mistral | `qwen3.5:4b` | 24/53 (45 %) | 33–59 % | 17 | 9 | 0 | 3 |
+| Mistral | `gemma4:e4b-it-qat` | 31/53 (58 %) | 45–71 % | 11 | 9 | 1 | 1 |
+| Mistral | Gemma 26B (cloud) | 40/53 (75 %) | 62–85 % | 1 | 7 | 4 | 0 |
+
+**Rule met.** Gemma 4 E4B against `qwen3.5:4b`: Qwen 18 better, 2 worse
+(net +16, sign test p < 0.001); Mistral 11 better, 4 worse (net +7,
+p = 0.12). Median time per question 50 s against 76 s (whole run 78 min
+against 101 min). `OLLAMA_MODEL` defaults to `gemma4:e4b-it-qat` (the
+measured QAT build, not the `gemma4:e4b` tag, which is another
+quantisation).
+
+What `tune` shows question by question:
+- Retrieval is not where the local models lose: evidence recall of the
+  first retrieval is 0.84 with bge-m3 against 0.87 with bge-gemma2 in the
+  cloud, and both local models have the same 9 retrieval misses.
+- They lose on grounding. `qwen3.5:4b` mostly states the right content but
+  cites provisions that are not in the context or are wrong ("§ 209",
+  § 14 for § 15, a footnote number read as "§ 225", the definition placed
+  in § 36 instead of § 3, nr. 59), turns "should" into "must", and adds
+  thresholds; 16 questions the cloud model answers correctly fail this way
+  under Qwen. Gemma 4 E4B does this far less often (7 and 11).
+- Gemma 4 E4B still trails the cloud model on `tune`: Qwen 2 better, 8
+  worse (net −6, p = 0.11); Mistral 1 better, 10 worse (net −9, p = 0.01).
+  This is `tune`, not the stage 2 decision, but it makes "comparable" on
+  `confirm` unlikely.
+- Hardware: Ollama's runner takes about 8.3–8.5 GB of RAM during a run
+  for either model, although the model sits on the GPU; on this 16 GB
+  laptop a run needed the browser and the Docker containers closed.
+
+Cost: €4.89 for the four judge passes (Qwen €1.19 and €1.00, Mistral €1.43
+and €1.27), above the €3.60 estimate; the answers are local and free.
+
 ## Language or structure (#168): existing data (2026-10-23)
 
 From existing retrieval-only runs, no new calls; `confirm` not read.
