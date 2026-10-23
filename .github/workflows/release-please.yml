@@ -44,6 +44,9 @@ jobs:
         if: steps.release.outputs.pr
         with:
           node-version: "22"
+          # The newest 22.x, not the runner's cached one: 22.23.3 still trusted the eMudhra
+          # intermediates compromised in October 2026, 22.23.4 does not.
+          check-latest: true
       - name: Sync lockfiles with the new version
         if: steps.release.outputs.pr
         run: |

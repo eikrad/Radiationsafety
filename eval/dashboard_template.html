@@ -102,7 +102,8 @@ code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
   background: var(--page);
   border-bottom: 1px solid var(--border);
 }
-label { color: var(--ink-2); font-size: 13px; }
+label { color: var(--ink-2); font-size: 13px; max-width: 100%; }
+#set-select { max-width: min(100%, calc(100vw - 32px)); }
 select {
   font: inherit; color: var(--ink); background: var(--surface);
   border: 1px solid var(--axis); border-radius: 6px; padding: 4px 8px;
@@ -226,6 +227,50 @@ summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
 .previews div { font-size: 12px; background: var(--page); border-radius: 6px; padding: 8px; white-space: pre-wrap; }
 .previews .ph { color: var(--ink-2); font-weight: 600; display: block; margin-bottom: 4px; }
 .empty { color: var(--ink-2); padding: 24px 0; }
+
+/* Runs table: pick A and B */
+.pick { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 13px; }
+.pick strong { font-weight: 600; }
+.pick .ab { display: inline-block; min-width: 18px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 0 4px; margin-right: 4px; }
+.ab.a { background: var(--page); color: var(--ink-2); border: 1px solid var(--axis); }
+.ab.b { background: var(--series); color: #ffffff; border: 1px solid var(--series); }
+button.swap, .kinds button {
+  font: inherit; font-size: 13px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--axis); border-radius: 6px; padding: 2px 8px; cursor: pointer;
+}
+.kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 12px; align-items: center; }
+.kinds button[aria-pressed="true"] { background: var(--seq-0); border-color: var(--seq-3); color: var(--seq-ink-0); }
+.runs-table { width: 100%; }
+.runs-table td.choose { text-align: center; padding: 2px 4px; }
+.runs-table td.choose button {
+  width: 28px; height: 26px; border-radius: 4px; cursor: pointer; font: 700 11px system-ui, sans-serif;
+  border: 1px solid var(--axis); background: transparent; color: var(--muted);
+}
+.runs-table td.choose button.on.a { background: var(--page); color: var(--ink); border-color: var(--ink-2); }
+.runs-table td.choose button.on.b { background: var(--series); color: #ffffff; border-color: var(--series); }
+.runs-table tr.is-b th, .runs-table tr.is-b td { background: var(--seq-0); color: var(--seq-ink-0); }
+.runs-table tr.is-a th, .runs-table tr.is-a td { background: var(--page); }
+.runs-table .kind { color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.runs-table .run-name { font-weight: 500; }
+.runs-table .run-date { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+.ci-cell { min-width: 220px; }
+.ci { display: flex; align-items: center; gap: 8px; }
+.ci .txt { font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 92px; }
+.ci .txt small { color: var(--muted); }
+.ci svg { flex: 1; min-width: 100px; height: 14px; }
+.ci-scale { margin-left: 100px; display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; font-weight: 400; }
+
+/* Question grid: header row and question column stay in view while scrolling */
+.freeze { max-height: 75vh; overflow: auto; border: 1px solid var(--border); border-radius: 6px; }
+.freeze thead th { position: sticky; top: 0; z-index: 3; background: var(--surface); box-shadow: 0 1px 0 var(--axis); }
+.freeze tbody th.q, .freeze tbody th[scope="row"] { position: sticky; left: 0; z-index: 2; background: var(--surface); }
+.freeze thead th:first-child { left: 0; z-index: 4; }
+.freeze .group-row th { background: var(--surface); }
+.freeze .group-row th span { position: sticky; left: 8px; }
+.freeze .matrix th.run { max-width: 120px; overflow-wrap: anywhere; white-space: normal; }
+.matrix th.run.col-a { box-shadow: inset 0 -3px 0 var(--ink-2), 0 1px 0 var(--axis); }
+.matrix th.run.col-b { box-shadow: inset 0 -3px 0 var(--series), 0 1px 0 var(--axis); color: var(--ink); font-weight: 600; }
+.matrix th.run .ab { margin: 0 0 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
@@ -237,11 +282,7 @@ summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
   </header>
   <div class="filters" id="filters">
     <label>Question set <select id="set-select"></select></label>
-    <label>Run <select id="run-select"></select></label>
-    <label>Compared with <select id="against-select">
-      <option value="baseline">Baseline</option>
-      <option value="previous">Previous run</option>
-    </select></label>
+    <div class="pick" id="pick" aria-live="polite"></div>
   </div>
   <main id="main"></main>
 </div>
@@ -295,7 +336,16 @@ const ERROR_LABELS = {
 const DIMENSIONS = { topics: "Topic", language: "Language", source: "Source" };
 const MAX_COLUMNS = 16;
 
-const state = { setId: null, runId: null, against: "baseline", dimension: "topics" };
+// a: the run compared from, b: the run looked at. kinds: which kinds of run are shown.
+const KINDS = {
+  "answers": "New answers",
+  "rescore": "Rescores (other judge)",
+  "regrade": "Regrades",
+  "grader check": "Grader checks",
+  "retrieval only": "Retrieval only",
+};
+const DEFAULT_KINDS = ["answers", "rescore", "retrieval only"];
+const state = { setId: null, a: null, b: null, kinds: new Set(DEFAULT_KINDS), dimension: "topics" };
 
 // ---------- small DOM helpers (text only via textContent) ----------
 function el(tag, attrs, ...children) {
@@ -357,6 +407,13 @@ function significanceText(sig, basis) {
     : `Could be chance (sign test, p ${p}, ${n}). Treat single flips as hints.`;
 }
 const runName = (run) => (run.label ? `${run.label} · ${runDate(run)}` : runDate(run));
+const intervalText = (run) => (run.pass_rate_interval
+  ? `${pct(run.pass_rate_interval[0])}–${pct(run.pass_rate_interval[1])}` : null);
+// "44/53 · 83 %" reads faster than the rate alone and shows how few questions it is.
+function passCount(run) {
+  const judged = Object.values(run.results).filter((r) => r.pass != null);
+  return judged.length ? `${judged.filter((r) => r.pass).length}/${judged.length}` : null;
+}
 const shortLabel = (run) => run.label || runDate(run, false);
 const summaryValue = (run, metric) =>
   metric === "pass_rate" ? run.summary.pass_rate : run.summary[`${metric}_mean`];
@@ -398,81 +455,178 @@ const hideTooltip = () => { tooltip.hidden = true; };
 
 // ---------- state ----------
 const currentSet = () => DATA.sets.find((s) => s.questions_hash === state.setId);
-const setRuns = (set) => set.run_ids.map((id) => DATA.runs[id]);
+// Runs of the set in run order, only the kinds switched on.
+const setRuns = (set) => set.run_ids.map((id) => DATA.runs[id]).filter((r) => state.kinds.has(r.kind));
+const allSetRuns = (set) => set.run_ids.map((id) => DATA.runs[id]);
+// Clicking a run anywhere makes it B; A stays unless it is the same run.
 function selectRun(runId) {
-  state.runId = runId;
-  document.getElementById("run-select").value = runId;
+  const set = currentSet();
+  state.b = runId;
+  if (!state.a || state.a === runId) state.a = set.compare_with[runId];
   render();
 }
+function selectA(runId) {
+  state.a = runId === state.b ? currentSet().compare_with[runId] : runId;
+  render();
+}
+function swapAB() {
+  if (!state.a) return;
+  [state.a, state.b] = [state.b, state.a];
+  render();
+}
+const currentPair = (set) => (state.a ? set.pairs[`${state.a}|${state.b}`] : null);
 
 function initFilters() {
   const setSelect = document.getElementById("set-select");
   setSelect.replaceChildren(
     ...DATA.sets.map((s) =>
       el("option", { value: s.questions_hash },
-        `${s.split ? `${s.split} · ` : ""}${s.n_items} questions · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"}` +
-        `${s.split === "confirm" ? ` (${s.new_runs} with new answers; at most 3 confirmations)` : ""} · ${s.questions_hash}`))
+        `${s.name} · ${s.run_ids.length} run${s.run_ids.length === 1 ? "" : "s"}` +
+        `${s.split === "confirm" ? ` (${s.new_runs} with new answers; at most 3 confirmations)` : ""}`))
   );
   setSelect.addEventListener("change", () => {
     state.setId = setSelect.value;
-    state.runId = null;
-    render();
-  });
-  document.getElementById("run-select").addEventListener("change", (e) => selectRun(e.target.value));
-  document.getElementById("against-select").addEventListener("change", (e) => {
-    state.against = e.target.value;
+    state.a = state.b = null;
     render();
   });
 }
 
-function syncRunSelect(set) {
-  const runSelect = document.getElementById("run-select");
-  runSelect.replaceChildren(
-    ...setRuns(set).slice().reverse().map((run) => el("option", { value: run.run_id }, runName(run)))
-  );
-  runSelect.value = state.runId;
+// The sticky bar names A and B, so the choice stays in view while scrolling.
+function syncPick() {
+  const a = state.a ? DATA.runs[state.a] : null, b = DATA.runs[state.b];
+  const tag = (cls, letter) => el("span", { class: `ab ${cls}` }, letter);
+  document.getElementById("pick").replaceChildren(
+    el("span", {}, tag("b", "B"), el("strong", {}, runName(b)), " ", pct(b.summary.pass_rate)),
+    el("span", {}, "compared with"),
+    a ? el("span", {}, tag("a", "A"), el("strong", {}, runName(a)), " ", pct(a.summary.pass_rate)) : el("span", {}, "nothing"),
+    a ? el("button", { type: "button", class: "swap", onclick: swapAB, title: "Swap A and B" }, "⇄ swap") : null);
 }
 
 // ---------- sections ----------
 function headline(set) {
-  const run = DATA.runs[state.runId];
-  const cmp = set.comparisons[state.runId];
-  const prev = cmp.previous, base = cmp.baseline;
+  const run = DATA.runs[state.b];
+  const cmp = currentPair(set);
+  const base = state.a ? DATA.runs[state.a] : null;
   const commit = run.git && run.git.commit
     ? `${run.git.commit}${run.git.dirty ? " + uncommitted changes" : ""}`
     : "commit not recorded";
+  const count = passCount(run);
   return el("section", { class: "card", "aria-labelledby": "h-headline" },
     el("h2", { id: "h-headline", class: "sr-only" }, "Selected run"),
     el("div", { class: "tiles" },
       el("div", { class: "tile" },
-        el("div", { class: "label" }, "Pass rate"),
+        el("div", { class: "label" }, "Pass rate of B"),
         el("div", { class: "value" }, pct(run.summary.pass_rate)),
-        run.summary.pass_rate_interval
-          ? el("div", { class: "deltas" },
-              `95 % interval ${pct(run.summary.pass_rate_interval[0])}–${pct(run.summary.pass_rate_interval[1])}`)
-          : null,
         el("div", { class: "deltas" },
-          prev ? ["vs previous ", passDelta(prev)] : "first run in this set",
-          base ? ["  ·  vs baseline ", passDelta(base)] : null)),
+          count ? `${count} passed · ` : "",
+          intervalText(run) ? `95 % interval ${intervalText(run)}` : "no interval"),
+        el("div", { class: "deltas" },
+          cmp ? ["vs A ", passDelta(cmp)] : "nothing to compare with",
+          base && intervalText(base) ? `  ·  A: ${pct(base.summary.pass_rate)} (${intervalText(base)})` : "")),
       el("div", { class: "tile" },
-        el("div", { class: "label" }, state.against === "baseline" ? "Since baseline" : "Since previous run"),
-        el("div", { class: "value small" }, cmp[state.against] ? cmp[state.against].verdict : "Nothing to compare with"),
-        cmp[state.against] && cmp[state.against].comparable !== false
-          ? el("div", { class: "deltas" }, significanceText(cmp[state.against].significance, cmp[state.against].basis))
+        el("div", { class: "label" }, "B against A"),
+        el("div", { class: "value small" }, cmp ? cmp.verdict : "Nothing to compare with"),
+        cmp && cmp.comparable !== false
+          ? el("div", { class: "deltas" }, significanceText(cmp.significance, cmp.basis))
           : null,
         el("div", { class: "deltas" },
-          cmp[state.against] && cmp[state.against].warnings.length
-            ? `${cmp[state.against].warnings.length} caveat${cmp[state.against].warnings.length === 1 ? "" : "s"}, see Compare`
+          cmp && cmp.warnings.length
+            ? `${cmp.warnings.length} caveat${cmp.warnings.length === 1 ? "" : "s"}, see Compare`
             : "")),
       failureTile(run),
       el("div", { class: "tile" },
-        el("div", { class: "label" }, "Run"),
+        el("div", { class: "label" }, "Run B"),
         el("div", { class: "value small" }, runName(run)),
-        el("div", { class: "deltas" }, commit,
+        el("div", { class: "deltas" }, KINDS[run.kind] || run.kind, " · ", commit,
           run.config && run.config.llm_model ? ` · ${run.config.llm_model}` : "",
+          run.judge ? ` · judge ${run.judge}` : "",
           run.duration_sec != null ? ` · ${Math.round(run.duration_sec / 60)} min` : ""),
         el("div", { class: "deltas" }, costText(run.cost)),
         run.notes ? el("div", { class: "deltas" }, run.notes) : null)));
+}
+
+// ---------- runs table: every run with its interval; pick A and B here ----------
+function runsTable(set) {
+  const runs = setRuns(set).slice().reverse();
+  const counts = {};
+  for (const r of allSetRuns(set)) counts[r.kind] = (counts[r.kind] || 0) + 1;
+  const kinds = el("div", { class: "kinds", role: "group", "aria-label": "Kinds of run shown" },
+    el("span", { class: "note", style: "margin:0" }, "Show:"),
+    Object.entries(KINDS).filter(([k]) => counts[k]).map(([k, name]) =>
+      el("button", { type: "button", "aria-pressed": state.kinds.has(k) ? "true" : "false",
+        onclick: () => {
+          if (state.kinds.has(k)) state.kinds.delete(k); else state.kinds.add(k);
+          render();
+        } }, `${name} (${counts[k]})`)));
+  const section = el("section", { class: "card", "aria-labelledby": "h-runs" },
+    el("h2", { id: "h-runs" }, "Runs"),
+    el("p", { class: "note" },
+      "Newest first. Pick B, the run to look at, and A, the run to compare it with; everything below follows. " +
+      "The bar is the 95 % interval of the pass rate: where two bars overlap a lot, the difference may be chance. " +
+      "A rescore judges the same answers again with another judge, so compare it with runs of the same judge."),
+    kinds);
+  if (!runs.length) {
+    section.append(el("p", { class: "empty" }, "No run of the kinds switched on."));
+    return section;
+  }
+  // One scale for every bar, in whole tens, so the bars can be read against each other.
+  const lows = runs.map((r) => r.pass_rate_interval && r.pass_rate_interval[0]).filter((v) => v != null);
+  const highs = runs.map((r) => r.pass_rate_interval && r.pass_rate_interval[1]).filter((v) => v != null);
+  const lo = lows.length ? Math.floor(Math.min(...lows) * 10) / 10 : 0;
+  const hi = highs.length ? Math.ceil(Math.max(...highs) * 10) / 10 : 1;
+  const W = 200, H = 14;
+  const x = (v) => ((v - lo) / Math.max(0.1, hi - lo)) * (W - 8) + 4;
+  const bar = (run) => {
+    const iv = run.pass_rate_interval, v = run.summary.pass_rate;
+    if (!iv || v == null) return null;
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", "aria-hidden": "true" });
+    for (let t = lo; t <= hi + 1e-9; t += 0.1) {
+      svg.append(svgEl("line", { x1: x(t), x2: x(t), y1: 0, y2: H, stroke: "var(--grid)", "stroke-width": 1 }));
+    }
+    const isB = run.run_id === state.b;
+    svg.append(svgEl("line", { x1: x(iv[0]), x2: x(iv[1]), y1: H / 2, y2: H / 2,
+      stroke: isB ? "var(--series)" : "var(--ink-2)", "stroke-width": 3, "stroke-linecap": "round", opacity: isB ? 1 : 0.55 }));
+    svg.append(svgEl("circle", { cx: x(v), cy: H / 2, r: 4, fill: isB ? "var(--series)" : "var(--ink-2)",
+      stroke: "var(--surface)", "stroke-width": 1.5 }));
+    return svg;
+  };
+  const chooser = (run, which) => {
+    const on = state[which] === run.run_id;
+    return el("td", { class: "choose" }, el("button", {
+      type: "button", class: `${which}${on ? " on" : ""}`, "aria-pressed": on ? "true" : "false",
+      "aria-label": `Use ${runName(run)} as ${which.toUpperCase()}`,
+      onclick: () => (which === "b" ? selectRun(run.run_id) : selectA(run.run_id)),
+    }, which.toUpperCase()));
+  };
+  const table = el("table", { class: "runs-table" },
+    el("thead", {}, el("tr", {},
+      el("th", { class: "num" }, "A"), el("th", { class: "num" }, "B"),
+      el("th", {}, "Run"), el("th", {}, "Kind"), el("th", {}, "Answer model"), el("th", {}, "Judge"),
+      el("th", { class: "num" }, "Passed"),
+      el("th", { class: "ci-cell" }, "Pass rate, 95 % interval",
+        el("div", { class: "ci-scale", "aria-hidden": "true" }, el("span", {}, pct(lo)), el("span", {}, pct(hi)))),
+      el("th", { class: "num" }, "Cost"))),
+    el("tbody", {}, runs.map((run) => el("tr", {
+        class: run.run_id === state.b ? "is-b" : run.run_id === state.a ? "is-a" : null },
+      chooser(run, "a"), chooser(run, "b"),
+      el("th", { scope: "row" }, el("span", { class: "run-name" }, run.label || "(no label)"),
+        el("span", { class: "run-date" }, runDate(run), run.run_id === set.baseline_run_id ? " · baseline" : "",
+          run.rescored_from ? ` · answers of ${DATA.runs[run.rescored_from] ? shortLabel(DATA.runs[run.rescored_from]) : run.rescored_from}` : "")),
+      el("td", { class: "kind" }, KINDS[run.kind] || run.kind),
+      el("td", {}, (run.config && run.config.llm_model) || "—"),
+      el("td", {}, run.judge || "—"),
+      el("td", { class: "num" }, passCount(run) || "—"),
+      el("td", { class: "ci-cell" }, el("div", { class: "ci" },
+        el("span", { class: "txt" }, pct(run.summary.pass_rate), " ",
+          intervalText(run) ? el("small", {}, intervalText(run)) : null),
+        bar(run))),
+      el("td", { class: "num" }, run.cost ? shortCost(run.cost) : "—")))));
+  section.append(el("div", { class: "scroll" }, table));
+  return section;
+}
+function shortCost(cost) {
+  return Object.entries(cost.total)
+    .map(([c, v]) => `${c === "EUR" ? "€" : c === "USD" ? "$" : `${c} `}${v.toFixed(2)}`).join(" + ") || "—";
 }
 
 // Cost at the prices of the run's day (eval/costs.py), per stage; models without
@@ -512,7 +666,8 @@ function trends(set) {
   const section = el("section", { class: "card", "aria-labelledby": "h-trends" },
     el("h2", { id: "h-trends" }, "Scores over time"),
     el("p", { class: "note" },
-      "One point per run, in run order. Hover or use ← → on a chart to read every score for a run; click to select it."));
+      "One point per run of the kinds shown, in run order. Pass rate: the vertical bar is the 95 % interval. " +
+      "Hover or use ← → on a chart to read every score for a run; click to make it B."));
   if (runs.length < 2) {
     section.append(el("p", { class: "empty" }, "Only one run on this question set so far. The trend appears from the second run."));
   }
@@ -528,6 +683,7 @@ function trends(set) {
     el("span", {}, el("span", { class: "key-dash" }), `${i + 1}: ${m.reasons.join(", ")} (${runName(DATA.runs[m.run_id])})`));
   section.append(el("div", { class: "legend-markers" },
     el("span", {}, el("span", { class: "key-ring" }), "baseline run"),
+    el("span", {}, el("span", { class: "key-dash", style: "border-top:3px solid var(--series);opacity:.35;width:3px;height:12px;border-left:0" }), "95 % interval (pass rate)"),
     markerNotes));
 
   // Table twin for every chart value.
@@ -535,7 +691,9 @@ function trends(set) {
     el("thead", {}, el("tr", {}, el("th", {}, "Run"), metrics.map((m) => el("th", { class: "num" }, METRIC_LABELS[m] || m)))),
     el("tbody", {}, runs.map((run) =>
       el("tr", {}, el("th", {}, runName(run)),
-        metrics.map((m) => el("td", { class: "num" }, m === "pass_rate" ? pct(summaryValue(run, m)) : score(summaryValue(run, m))))))));
+        metrics.map((m) => el("td", { class: "num" }, m === "pass_rate"
+          ? `${pct(summaryValue(run, m))}${intervalText(run) ? ` (${intervalText(run)})` : ""}`
+          : score(summaryValue(run, m))))))));
   section.append(el("details", {}, el("summary", {}, "Show as table"), el("div", { class: "scroll" }, table)));
 
   if (trendsResize) trendsResize.disconnect();
@@ -621,7 +779,7 @@ function drawPanels(panels, runs, set) {
   const hovers = [];
   const setHover = (index) => hovers.forEach((fn) => fn(index));
   const baseIndex = runs.findIndex((r) => r.run_id === set.baseline_run_id);
-  const selectedIndex = runs.findIndex((r) => r.run_id === state.runId);
+  const selectedIndex = runs.findIndex((r) => r.run_id === state.b);
   const markers = set.markers
     .map((m, i) => ({ number: i + 1, index: runs.findIndex((r) => r.run_id === m.run_id), reasons: m.reasons }))
     .filter((m) => m.index >= 0);
@@ -648,7 +806,10 @@ function drawPanels(panels, runs, set) {
     const width = Math.max(120, plot.clientWidth);
     const inner = { l: PAD.left, r: width - PAD.right, t: PAD.top, b: PLOT_H - PAD.bottom };
     const xFor = (i) => runs.length === 1 ? (inner.l + inner.r) / 2 : inner.l + (i / (runs.length - 1)) * (inner.r - inner.l);
-    const { max, step, ticks } = niceValueTicks(Math.max(...values.filter((v) => v != null)));
+    // Pass rate carries its 95 % interval; the scale must reach the top of it.
+    const intervals = asPct ? runs.map((r) => r.pass_rate_interval) : runs.map(() => null);
+    const { max, step, ticks } = niceValueTicks(Math.max(...values.filter((v) => v != null),
+      ...intervals.filter(Boolean).map((iv) => iv[1])));
     const yFor = (v) => inner.b - (v / max) * (inner.b - inner.t);
     const tickLabel = asPct ? (v) => `${Math.round(v * 100)}%` : (v) => v.toFixed(stepDecimals(step));
     const svg = svgEl("svg", { viewBox: `0 0 ${width} ${PLOT_H}`, height: PLOT_H, "aria-hidden": "true" });
@@ -699,6 +860,11 @@ function drawPanels(panels, runs, set) {
     const crosshair = svgEl("line", { y1: inner.t, y2: inner.b, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
     svg.append(crosshair);
 
+    intervals.forEach((iv, i) => {
+      if (!iv || values[i] == null) return;
+      svg.append(svgEl("line", { x1: xFor(i), x2: xFor(i), y1: yFor(iv[0]), y2: yFor(iv[1]),
+        stroke: "var(--series)", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.25 }));
+    });
     // A run without this metric breaks the line rather than bridging it.
     const d = values.map((v, i) => (v == null ? null : `${xFor(i).toFixed(1)} ${yFor(v).toFixed(1)}`))
       .map((p, i, all) => (p == null ? "" : `${i === 0 || all[i - 1] == null ? "M" : "L"} ${p}`)).join(" ");
@@ -745,7 +911,7 @@ function drawPanels(panels, runs, set) {
       const rows = panels.map((p) => p.metric).map((m) =>
         el("div", { class: "t-row" }, el("span", { class: "t-key" }),
           el("strong", {}, m === "pass_rate" ? pct(summaryValue(run, m)) : score(summaryValue(run, m))),
-          METRIC_LABELS[m] || m));
+          METRIC_LABELS[m] || m, m === "pass_rate" && intervalText(run) ? ` (${intervalText(run)})` : ""));
       const marker = set.markers.find((mk) => mk.run_id === run.run_id);
       return [
         el("div", { class: "t-head" }, runName(run), run.run_id === set.baseline_run_id ? " · baseline" : ""),
@@ -775,19 +941,21 @@ function drawPanels(panels, runs, set) {
 }
 
 function comparison(set) {
-  const cmp = set.comparisons[state.runId][state.against];
+  const cmp = currentPair(set);
   const section = el("section", { class: "card", "aria-labelledby": "h-compare" },
-    el("h2", { id: "h-compare" }, "Compare runs"));
+    el("h2", { id: "h-compare" }, "Compare A → B"));
   if (!cmp) {
     section.append(el("p", { class: "empty" },
-      state.against === "baseline"
-        ? "This run is the baseline or came before it. Pick a later run, or compare with the previous run."
-        : "This is the first run on this question set; there is no previous run."));
+      "This is the only run on this question set so far; there is nothing to compare it with."));
     return section;
   }
   const base = DATA.runs[cmp.base_run_id], run = DATA.runs[cmp.run_id];
+  // Flipped questions come as ids; question text and scores are in the runs.
+  const questionText = Object.fromEntries(set.questions.map((q) => [q.id, q.question]));
+  const full = (q) => ({ id: q.id, question: questionText[q.id] || q.id,
+    before: (base.results[q.id] || {}).metrics || {}, after: (run.results[q.id] || {}).metrics || {} });
   section.append(
-    el("p", { class: "pair" }, `${runName(base)}  →  ${runName(run)}`,
+    el("p", { class: "pair" }, `A: ${runName(base)}  →  B: ${runName(run)}`,
       cmp.commits[0] || cmp.commits[1] ? `   (${cmp.commits[0] || "?"} → ${cmp.commits[1] || "?"})` : ""),
     el("p", { class: "verdict" }, cmp.verdict),
     cmp.comparable === false
@@ -805,14 +973,14 @@ function comparison(set) {
     .filter((m) => summaryValue(base, m) != null || summaryValue(run, m) != null)
     .sort((a, b) => rank(a) - rank(b))];
   section.append(el("h3", {}, "Scores"), el("div", { class: "scroll" }, el("table", {},
-    el("thead", {}, el("tr", {}, el("th", {}, "Metric"), el("th", { class: "num" }, "Before"), el("th", { class: "num" }, "After"), el("th", { class: "num" }, "Change"))),
+    el("thead", {}, el("tr", {}, el("th", {}, "Metric"), el("th", { class: "num" }, "A"), el("th", { class: "num" }, "B"), el("th", { class: "num" }, "Change"))),
     el("tbody", {}, keys.map((m) => {
       const asPct = m === "pass_rate";
       const fmt = asPct ? pct : score;
       const key = asPct ? m : `${m}_mean`;
       return el("tr", {}, el("th", {}, METRIC_LABELS[m] || m),
-        el("td", { class: "num" }, fmt(base.summary[key])),
-        el("td", { class: "num" }, fmt(run.summary[key])),
+        el("td", { class: "num" }, fmt(base.summary[key]), asPct && intervalText(base) ? el("small", { class: "sub" }, ` (${intervalText(base)})`) : null),
+        el("td", { class: "num" }, fmt(run.summary[key]), asPct && intervalText(run) ? el("small", { class: "sub" }, ` (${intervalText(run)})`) : null),
         el("td", { class: "num" }, deltaEl(cmp.summary_delta[key], asPct, LOWER_IS_BETTER.has(m))));
     })))));
 
@@ -830,12 +998,12 @@ function comparison(set) {
 
   const flipList = (title, items, status) =>
     items.length
-      ? [el("h3", {}, `${title} (${items.length})`), ...items.map((q) => flipCard(q, status, base, run))]
+      ? [el("h3", {}, `${title} (${items.length})`), ...items.map((q) => flipCard(full(q), status, base, run))]
       : [];
   const byRank = cmp.basis === "evidence rank";
   const flips = [
-    ...flipList(byRank ? "Evidence ranked lower" : "Regressions: passed before, fail now", cmp.regressions, byRank ? "lower" : "fail"),
-    ...flipList(byRank ? "Evidence ranked higher" : "Improvements: failed before, pass now", cmp.improvements, byRank ? "higher" : "pass"),
+    ...flipList(byRank ? "Evidence ranked lower in B" : "Regressions: passed in A, fail in B", cmp.regressions, byRank ? "lower" : "fail"),
+    ...flipList(byRank ? "Evidence ranked higher in B" : "Improvements: failed in A, pass in B", cmp.improvements, byRank ? "higher" : "pass"),
   ];
   if (cmp.comparable === false && flips.length) {
     section.append(el("details", {},
@@ -849,7 +1017,7 @@ function comparison(set) {
   if (cmp.changed.length) {
     section.append(el("details", {},
       el("summary", {}, `Other score changes, no pass/fail flip (${cmp.changed.length})`),
-      cmp.changed.map((q) => flipCard(q, null, base, run))));
+      cmp.changed.map((q) => flipCard(full(q), null, base, run))));
   }
   if (cmp.unjudged && cmp.unjudged.length) {
     section.append(el("p", { class: "note" },
@@ -873,8 +1041,8 @@ function flipCard(q, status, base, run) {
   const previews = before.preview || after.preview
     ? el("details", {}, el("summary", {}, "Answers"),
         el("div", { class: "previews" },
-          el("div", {}, el("span", { class: "ph" }, "Before"), before.preview || "Not available (report not on this machine)."),
-          el("div", {}, el("span", { class: "ph" }, "After"), after.preview || "Not available (report not on this machine).")))
+          el("div", {}, el("span", { class: "ph" }, "A"), before.preview || "Not available (report not on this machine)."),
+          el("div", {}, el("span", { class: "ph" }, "B"), after.preview || "Not available (report not on this machine).")))
     : null;
   return el("div", { class: "flip" },
     el("div", {},
@@ -885,17 +1053,23 @@ function flipCard(q, status, base, run) {
     previews);
 }
 
+// Pass/fail per question: retrieval-only runs answer nothing, so they stay out.
 function visibleRuns(set) {
-  const runs = setRuns(set);
-  return runs.slice(-MAX_COLUMNS);
+  const answered = setRuns(set).filter((r) => r.kind !== "retrieval only");
+  // the latest runs, and A and B even when they are older
+  return answered.filter((r, k) => k >= answered.length - MAX_COLUMNS || r.run_id === state.a || r.run_id === state.b);
 }
 function runHeader(run) {
-  return el("th", { class: `run${run.run_id === state.runId ? " selected" : ""}`, scope: "col" },
-    shortLabel(run), el("br"), run.label ? runDate(run, false) : "");
+  const which = run.run_id === state.b ? "b" : run.run_id === state.a ? "a" : null;
+  return el("th", { class: `run${which ? ` col-${which}` : ""}`, scope: "col", title: runName(run) },
+    which ? [el("span", { class: `ab ${which}` }, which.toUpperCase()), el("br")] : null,
+    shortLabel(run), el("br"), run.label ? runDate(run, false) : "",
+    run.judge ? [el("br"), run.judge.split("-")[0]] : "");
 }
 function truncatedNote(set) {
-  return set.run_ids.length > MAX_COLUMNS
-    ? el("p", { class: "note" }, `Showing the latest ${MAX_COLUMNS} of ${set.run_ids.length} runs.`)
+  const answered = setRuns(set).filter((r) => r.kind !== "retrieval only").length;
+  return answered > visibleRuns(set).length
+    ? el("p", { class: "note" }, `Showing the latest ${MAX_COLUMNS} of ${answered} runs, and A and B.`)
     : null;
 }
 
@@ -942,7 +1116,7 @@ function topicTable(set) {
         btn.addEventListener("click", () => selectRun(run.run_id));
         return el("td", { class: "cell" }, btn);
       })))));
-  section.append(el("div", { class: "scroll" }, table));
+  section.append(el("div", { class: "freeze" }, table));
   return section;
 }
 
@@ -963,11 +1137,11 @@ function questionGrid(set) {
   }
   const section = el("section", { class: "card", "aria-labelledby": "h-grid" },
     el("h2", { id: "h-grid" }, "Questions"),
-    el("p", { class: "note" }, "✓ passed, ✗ failed, ? not judged. Hover or focus a cell for its scores and why it failed; click to select that run."),
+    el("p", { class: "note" }, "✓ passed, ✗ failed, ? not judged. Hover or focus a cell for its scores and why it failed; click to make that run B. The header row and the questions stay in view while you scroll."),
     truncatedNote(set));
   const body = el("tbody");
   for (const [group, questions] of [...groups.entries()].sort()) {
-    body.append(el("tr", { class: "group-row" }, el("th", { colspan: runs.length + 1, scope: "rowgroup" }, group)));
+    body.append(el("tr", { class: "group-row" }, el("th", { colspan: runs.length + 1, scope: "rowgroup" }, el("span", {}, group))));
     for (const q of questions) {
       body.append(el("tr", {},
         el("th", { class: "q", scope: "row" },
@@ -997,7 +1171,7 @@ function questionGrid(set) {
         })));
     }
   }
-  section.append(el("div", { class: "scroll" }, el("table", { class: "matrix" },
+  section.append(el("div", { class: "freeze" }, el("table", { class: "matrix" },
     el("thead", {}, el("tr", {}, el("th", { scope: "col" }, "Question"), runs.map(runHeader))),
     body)));
   return section;
@@ -1009,11 +1183,19 @@ function render() {
   const main = document.getElementById("main");
   const set = currentSet();
   if (!set) return;
-  if (!state.runId || !set.run_ids.includes(state.runId)) state.runId = set.run_ids[set.run_ids.length - 1];
-  syncRunSelect(set);
+  const shown = setRuns(set);
+  const pool = shown.length ? shown : allSetRuns(set);
+  if (!state.b || !set.run_ids.includes(state.b)) {
+    // newest run with new answers: a rescore of old answers is rarely what one opens the page for
+    const answers = pool.filter((r) => r.kind === "answers");
+    const candidates = answers.length ? answers : pool;
+    state.b = candidates[candidates.length - 1].run_id;
+    state.a = set.compare_with[state.b];
+  }
+  if (state.a && !set.run_ids.includes(state.a)) state.a = set.compare_with[state.b];
+  syncPick();
   document.getElementById("set-select").value = state.setId;
-  document.getElementById("against-select").value = state.against;
-  main.replaceChildren(headline(set), trends(set), comparison(set), topicTable(set), questionGrid(set));
+  main.replaceChildren(headline(set), runsTable(set), comparison(set), trends(set), topicTable(set), questionGrid(set));
 }
 
 const runCount = Object.keys(DATA.runs).length;
