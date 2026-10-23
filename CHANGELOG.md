@@ -23,10 +23,8 @@ All notable changes to this project are documented in this file.
 * **graph:** derive the answer grader's verdict from per-part statuses (candidate 2) ([bd609e0](https://github.com/eikrad/Radiationsafety/commit/bd609e093597458d8893d5b457d9f3a64505f507))
 * **graph:** grade answers part by part against the context (candidate) ([ba9ba20](https://github.com/eikrad/Radiationsafety/commit/ba9ba20e563728dca02547dba5698797f73b7028))
 * **graph:** warn that the answer may be incomplete when a gap remains ([a088326](https://github.com/eikrad/Radiationsafety/commit/a0883266bef8b41be32fc99c3e25231e4d296847))
-* held-out step 5, Gemini 3.8 Flash and dashboard intervals ([0913d1b](https://github.com/eikrad/Radiationsafety/commit/0913d1b16d2b42e442502bd430fb217a105bcac7))
 * **ingestion:** list every PDF that was not read fully at the end of the run ([810963e](https://github.com/eikrad/Radiationsafety/commit/810963e290c8f52131480fd64d504f39a65bf4e5))
 * **ingestion:** read a PDF again on the CPU before docling gives up on it ([86f5f2f](https://github.com/eikrad/Radiationsafety/commit/86f5f2f0c6b5e932cb172c97297e0ea30783ccc9))
-* **ingestion:** read on the CPU before giving up, and list every PDF not read as usual ([be89384](https://github.com/eikrad/Radiationsafety/commit/be893840be678de2a57c1517dcfa6bfe1c81fb00))
 * **llm:** add Gemini 3.8 Flash with temperature 1.0 and thinking level medium ([65765a2](https://github.com/eikrad/Radiationsafety/commit/65765a2737198738d2cc9db490c94d3c585f4b5c))
 * offer Gemini 3.8 Flash as the only Gemini model ([3bda11c](https://github.com/eikrad/Radiationsafety/commit/3bda11c2e6c7e155e135152f09e509e78d5ce0e2))
 
@@ -38,14 +36,11 @@ All notable changes to this project are documented in this file.
 * **eval:** give runs started in the same second their own run ID ([7ea3749](https://github.com/eikrad/Radiationsafety/commit/7ea37497ae27aa0b2fdebec20e206e80f956d405))
 * **eval:** pair consecutive runs with pairwise for ruff B905 ([1294869](https://github.com/eikrad/Radiationsafety/commit/1294869324ac1cab25618ac439c610587c4af09d))
 * **graph:** run the database correction loop without web search ([11de569](https://github.com/eikrad/Radiationsafety/commit/11de569d99b80e6af7430e14be19c3056b4a9e1a))
-* **graph:** run the database correction loop without web search; stricter answer grader; gap hint ([6f03956](https://github.com/eikrad/Radiationsafety/commit/6f0395629332e010ff9960dc16d3937fcc2accf4))
 * **ingestion:** a PDF attachment docling cannot read stops the ingestion ([47c1a6c](https://github.com/eikrad/Radiationsafety/commit/47c1a6c4f9365bbbbbd22f36611136d33ae26720))
 * **ingestion:** an ingestion started through the API no longer stops at the Ctrl+C handler ([e06bc71](https://github.com/eikrad/Radiationsafety/commit/e06bc71dda5e2b5edeb25e244ed79e131ae5e30c))
 * **ingestion:** index a Danish law from its saved XML when it cannot be fetched ([05f1aca](https://github.com/eikrad/Radiationsafety/commit/05f1aca58249c5d8521cf421954a28322cad8333))
-* **ingestion:** index an IAEA publication with a local PDF from that file only ([5ffab30](https://github.com/eikrad/Radiationsafety/commit/5ffab3005f2f1be931c64e83e73cfd6913611d97))
 * **ingestion:** index an IAEA publication with a local PDF from that file only ([05c31f4](https://github.com/eikrad/Radiationsafety/commit/05c31f40c419192309d0492286d4e24365b3597e))
 * **ingestion:** name a registry source that could not be fetched ([882eeff](https://github.com/eikrad/Radiationsafety/commit/882eeff55f9854821a1c47396e31991cd3a6b421))
-* **ingestion:** report registry sources that could not be fetched ([30ea38a](https://github.com/eikrad/Radiationsafety/commit/30ea38a40cb4824d92f7e6253bee48acb6546a0e))
 * **llm:** read Gemini 3 replies given as content blocks ([d0a24ac](https://github.com/eikrad/Radiationsafety/commit/d0a24aca2b3116865ac2a5ddffb0c20e6712ed5c))
 
 
