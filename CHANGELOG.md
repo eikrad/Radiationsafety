@@ -6,6 +6,49 @@ All notable changes to this project are documented in this file.
      messages (see docs/releasing.md). Notes that commits cannot carry,
      such as upgrade steps, are added by hand below the generated entry. -->
 
+## [0.6.1](https://github.com/eikrad/Radiationsafety/compare/v0.6.0...v0.6.1) (2026-10-23)
+
+
+### Features
+
+* **api:** a PDF upload says when the PDF was not read as usual ([f23c898](https://github.com/eikrad/Radiationsafety/commit/f23c898ed441e10af7fdd12d59cc95b5cf2766b1))
+* **api:** the ingestion status lists the PDFs not read as usual ([ab9d748](https://github.com/eikrad/Radiationsafety/commit/ab9d748f1fc091ef868e40dde89b71fd3f19f759))
+* **api:** the ingestion status says why the last run failed ([cc4413e](https://github.com/eikrad/Radiationsafety/commit/cc4413ede26487ecc418486ad4c005782050d2ca))
+* **eval:** check the answer grader against the judge in --regrade ([7f1b0f2](https://github.com/eikrad/Radiationsafety/commit/7f1b0f2424acd751596aa34f093219191e3ec1bc))
+* **eval:** dashboard shows 95 % intervals and compares any two runs ([9df07e0](https://github.com/eikrad/Radiationsafety/commit/9df07e0fdf3110c30a4c3d7c4bbc8677acae0323))
+* **eval:** held-out test set with tune/confirm split, and its first baselines ([793af02](https://github.com/eikrad/Radiationsafety/commit/793af022935021f20e35ed414b5e1880f7854e33))
+* **frontend:** the Documents panel picks up a running ingestion and a failed last run when it opens ([5caadb1](https://github.com/eikrad/Radiationsafety/commit/5caadb1eec88c6f29b44cb70045bb80f7293a240))
+* **frontend:** the Documents panel says why an ingestion failed and which PDFs were not read as usual ([427e2cc](https://github.com/eikrad/Radiationsafety/commit/427e2ccbae8efeabe36a6769491f48048d603f63))
+* **graph:** a supported part needs a quote the context contains (candidate 3) ([57fbf4c](https://github.com/eikrad/Radiationsafety/commit/57fbf4c693de4e4148a8e241860b6a9deb2ec0c0))
+* **graph:** derive the answer grader's verdict from per-part statuses (candidate 2) ([bd609e0](https://github.com/eikrad/Radiationsafety/commit/bd609e093597458d8893d5b457d9f3a64505f507))
+* **graph:** grade answers part by part against the context (candidate) ([ba9ba20](https://github.com/eikrad/Radiationsafety/commit/ba9ba20e563728dca02547dba5698797f73b7028))
+* **graph:** warn that the answer may be incomplete when a gap remains ([a088326](https://github.com/eikrad/Radiationsafety/commit/a0883266bef8b41be32fc99c3e25231e4d296847))
+* **ingestion:** list every PDF that was not read fully at the end of the run ([810963e](https://github.com/eikrad/Radiationsafety/commit/810963e290c8f52131480fd64d504f39a65bf4e5))
+* **ingestion:** read a PDF again on the CPU before docling gives up on it ([86f5f2f](https://github.com/eikrad/Radiationsafety/commit/86f5f2f0c6b5e932cb172c97297e0ea30783ccc9))
+* **llm:** add Gemini 3.8 Flash with temperature 1.0 and thinking level medium ([65765a2](https://github.com/eikrad/Radiationsafety/commit/65765a2737198738d2cc9db490c94d3c585f4b5c))
+* offer Gemini 3.8 Flash as the only Gemini model ([3bda11c](https://github.com/eikrad/Radiationsafety/commit/3bda11c2e6c7e155e135152f09e509e78d5ce0e2))
+
+
+### Bug Fixes
+
+* **eval:** accept GSG-7 3.74 as evidence for the inventory's activity and form ([1109acd](https://github.com/eikrad/Radiationsafety/commit/1109acd947a90cf76763d80bcec4187c5591f7fb))
+* **eval:** correct the records hit by the run ID collision ([5b5a73f](https://github.com/eikrad/Radiationsafety/commit/5b5a73f42b247a2b7ed0524a139fb5c9d32388ef))
+* **eval:** give runs started in the same second their own run ID ([7ea3749](https://github.com/eikrad/Radiationsafety/commit/7ea37497ae27aa0b2fdebec20e206e80f956d405))
+* **eval:** pair consecutive runs with pairwise for ruff B905 ([1294869](https://github.com/eikrad/Radiationsafety/commit/1294869324ac1cab25618ac439c610587c4af09d))
+* **graph:** run the database correction loop without web search ([11de569](https://github.com/eikrad/Radiationsafety/commit/11de569d99b80e6af7430e14be19c3056b4a9e1a))
+* **ingestion:** a PDF attachment docling cannot read stops the ingestion ([47c1a6c](https://github.com/eikrad/Radiationsafety/commit/47c1a6c4f9365bbbbbd22f36611136d33ae26720))
+* **ingestion:** an ingestion started through the API no longer stops at the Ctrl+C handler ([e06bc71](https://github.com/eikrad/Radiationsafety/commit/e06bc71dda5e2b5edeb25e244ed79e131ae5e30c))
+* **ingestion:** index a Danish law from its saved XML when it cannot be fetched ([05f1aca](https://github.com/eikrad/Radiationsafety/commit/05f1aca58249c5d8521cf421954a28322cad8333))
+* **ingestion:** index an IAEA publication with a local PDF from that file only ([05c31f4](https://github.com/eikrad/Radiationsafety/commit/05c31f40c419192309d0492286d4e24365b3597e))
+* **ingestion:** name a registry source that could not be fetched ([882eeff](https://github.com/eikrad/Radiationsafety/commit/882eeff55f9854821a1c47396e31991cd3a6b421))
+* **llm:** read Gemini 3 replies given as content blocks ([d0a24ac](https://github.com/eikrad/Radiationsafety/commit/d0a24aca2b3116865ac2a5ddffb0c20e6712ed5c))
+
+
+### Security
+
+* **deps:** certifi 2026.10.23 distrusts the compromised eMudhra roots ([fc1a339](https://github.com/eikrad/Radiationsafety/commit/fc1a33966557b0a712d5b4069bc914268ed39f41))
+* **docker:** images with the CA store that distrusts eMudhra ([3a4c0d3](https://github.com/eikrad/Radiationsafety/commit/3a4c0d3520bee5c5f6ac46d462877effea998d1f))
+
 ## [0.6.0](https://github.com/eikrad/Radiationsafety/compare/v0.5.0...v0.6.0) (2026-10-11)
 
 
