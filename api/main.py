@@ -145,7 +145,7 @@ class QueryRequest(BaseModel):
     question: str
     chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
     model: str | None = None  # "scaleway" | "mistral" | "gemini" | "openai" | "ollama"
-    model_variant: str | None = None  # e.g. "gemini-2.5-flash-lite", "gpt-4o-mini"
+    model_variant: str | None = None  # e.g. "gemini-3.8-flash", "gpt-4o-mini"
     api_keys: dict[str, str] | None = (
         None  # {"mistral": "...", "gemini": "...", "openai": "..."}
     )

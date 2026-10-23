@@ -1,6 +1,12 @@
 # Backend: FastAPI + RAG graph. Chroma DB is empty by default; run ingestion once or mount a pre-built DB.
 FROM python:3.12-slim
 
+# The newest CA store Debian has, even when the cached base image is older: ca-certificates
+# 20250419+deb13u1 drops the eMudhra root whose intermediates were compromised in October 2026.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

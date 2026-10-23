@@ -179,6 +179,24 @@ def test_a_finished_run_is_recorded_with_its_label_and_settings(monkeypatch, wor
     assert run["duration_sec"] >= 0
 
 
+def test_a_run_records_the_answer_models_temperature_and_thinking_level(
+    monkeypatch, workspace
+):
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm",
+        lambda provider=None, model_variant=None, **_: SimpleNamespace(
+            model=model_variant or "gemini-3.8-flash",
+            temperature=1.0,
+            thinking_level="medium",
+        ),
+    )
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["llm_temperature"] == 1.0
+    assert run["config"]["llm_thinking_level"] == "medium"
+
+
 def test_each_question_carries_its_error_type_and_scores(monkeypatch, workspace):
     _run(monkeypatch, workspace)
 
@@ -258,12 +276,12 @@ def test_judging_with_the_answering_model_is_recorded_and_warned_about(
 
 def test_the_judge_model_can_be_chosen_separately(monkeypatch, workspace):
     monkeypatch.setenv("EVAL_GRADER_PROVIDER", "gemini")
-    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gemini-2.5-pro")
+    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gemini-3.8-flash")
 
     _run(monkeypatch, workspace)
 
     [run] = load_runs(workspace.history)
-    assert run["config"]["judge_model"] == "gemini-2.5-pro"
+    assert run["config"]["judge_model"] == "gemini-3.8-flash"
     assert run["config"]["judge_is_generator"] is False
 
 
@@ -1048,3 +1066,21 @@ def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, works
     result = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
     assert result["error_type"] != "graph_error"
     assert asked.count("What is the transport index?") == 2
+
+
+def test_runs_started_in_the_same_second_keep_their_own_reports(monkeypatch, workspace):
+    # two eval chains run in parallel; a shared run ID let one report overwrite the other
+    class FrozenClock(run_eval.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return run_eval.datetime(2026, 10, 17, 19, 6, 26, tzinfo=tz)
+
+    monkeypatch.setattr(run_eval, "datetime", FrozenClock)
+    assert _run(monkeypatch, workspace, "--label", "first") == 0
+    assert _run(monkeypatch, workspace, "--label", "second") == 0
+
+    first, second = load_runs(workspace.history)
+    assert first["run_id"] != second["run_id"]
+    for run in (first, second):
+        report = json.loads((workspace.reports / run["report_file"]).read_text())
+        assert report["label"] == run["label"]

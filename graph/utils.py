@@ -33,7 +33,7 @@ def chat_context_prefix(chat_history: list, max_answer_chars: int = 400) -> str:
 def throttle_llm_if_needed() -> None:
     """Sleep briefly to avoid LLM rate limits.
 
-    - Gemini: when LLM_PROVIDER=gemini, use GEMINI_MIN_DELAY_SEC (e.g. 4–6 for flash-lite free tier ~15 RPM, ~12 for pro ~5 RPM). Applied before every LLM call.
+    - Gemini: when LLM_PROVIDER=gemini, use GEMINI_MIN_DELAY_SEC (only needed on a rate-limited free tier). Applied before every LLM call.
     - Mistral: when WEB_SEARCH_ENABLED is true, use MISTRAL_MIN_DELAY_SEC.
     """
     prov = (os.getenv("LLM_PROVIDER") or "").lower()

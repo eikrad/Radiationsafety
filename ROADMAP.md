@@ -821,6 +821,114 @@ the grader flagged falsely (`myndighedskontrol-lukkede-kilder`,
 
 ---
 
+## Held-out step 5: confirmation and frontier comparison (2026-10-17)
+
+Rule set before any `confirm` run. `confirm` is read in aggregate only:
+pass rates with intervals, counts per error type and the number of flips,
+never question by question.
+
+**Confirmation of the optimised pipeline** (database correction loop,
+answer grader candidate 3, gap hint; Gemma, `bge-multilingual-gemma2`,
+k = 5, no web search, no re-ranker). One `confirm` run, judged by Qwen and
+re-scored by Mistral, against `confirm-baseline` (`20261016_173446`, 42 of
+53 under Qwen), which is re-scored by Mistral too for a like-for-like
+second judge. The pipeline is confirmed if, under both judges:
+- net flips against the baseline are positive (more fail → pass than
+  pass → fail), and
+- there is no significant regression (sign test on the flips, p < 0.05
+  towards worse);
+- and no new `wrong_refusal`.
+If it is not confirmed, the tune result is reported as not carried over;
+nothing is changed on the strength of `confirm`. This is the first of at
+most three confirmations on this set.
+
+**Frontier comparison.** The same pipeline with `gemini-3.8-flash` as the
+answer model (it also grades its own answers and context, as Gemma does;
+temperature 1.0, thinking level `medium`, recorded in the run config),
+embeddings unchanged, on `confirm`, judged by Qwen and re-scored by
+Mistral. First a smoke test (`--limit 2 --no-history`) with a cost check.
+Reported, not decided on: the gap in pass rate with both intervals, the
+counts per error type next to Gemma's, and whether Flash fails on the same
+retrieval misses (then the bottleneck is retrieval, not the open model).
+
+Expected cost: Gemma `confirm` run about €1.40, three Mistral rescores
+about €2.80, the Qwen judge for the Gemini run about €0.80, and the Gemini
+answers about $1–3.
+
+### Result (2026-10-17): not confirmed; Flash ahead, within the noise
+
+`confirm`, 53 questions, aggregate only. Runs: Gemma `confirm-optimised`
+`20261017_191022` (Mistral rescore `20261017_203622`), Gemini
+`confirm-gemini-3.8-flash` `20261017_190626` (Mistral `20261017_203329`),
+baseline Mistral rescore `20261017_203957`.
+
+| Judge | Run | Pass | 95 % interval | retrieval_miss | generator_miss | unsupported_claim |
+|---|---|---|---|---|---|---|
+| Qwen | baseline | 42/53 (79 %) | 67–88 % | 5 | 4 | 2 |
+| Qwen | optimised | 44/53 (83 %) | 71–91 % | 3 | 5 | 1 |
+| Qwen | Gemini 3.8 Flash | 47/53 (89 %) | 77–95 % | 3 | 2 | 1 |
+| Mistral | baseline | 45/53 (85 %) | 73–92 % | 5 | 2 | 1 |
+| Mistral | optimised | 44/53 (83 %) | 71–91 % | 3 | 1 | 5 |
+| Mistral | Gemini 3.8 Flash | 45/53 (85 %) | 73–92 % | 3 | 1 | 4 |
+
+**Confirmation: not met.** Optimised against baseline: Qwen 3 better,
+1 worse (net +2, p = 0.63); Mistral 3 better, 4 worse (net −1, p = 1.0).
+No new `wrong_refusal` under either judge, no significant regression. The
+net-positive condition fails under Mistral, so the tune gain is reported as
+not carried over to `confirm`, and nothing is changed on its strength. Both
+judges agree that the loop removes retrieval misses (5 → 3); under Mistral
+`unsupported_claim` rises from 1 to 5, under Qwen it does not (2 → 1). The
+same answers re-scored twice by Mistral gave 46 and 45 of 53 (`20261017_190627`
+and `20261017_203957`; the first shared its run ID with the Gemini run,
+which overwrote its report file, fixed in `run_eval`), so one flip is
+inside the judge's own noise. First of at most three confirmations used.
+
+**Frontier comparison (reported only).** Flash is ahead of Gemma by 3
+questions under Qwen (5 better, 2 worse) and by 1 under Mistral (6 better,
+5 worse); every interval overlaps. Both fail 4 (Qwen) or 3 (Mistral)
+questions alike, and 2 of the 3 retrieval misses are the same questions
+for both models, so these failures sit in retrieval, not in the open
+model. Evidence recall of the first retrieval is the same (0.95); vital
+recall 0.95 (Gemma) and 0.98 (Flash). Cost of the answers for 53
+questions: Gemma €0.72, Flash $4.40, about six times as much.
+
+Cost of step 5: about €6.3 and $4.40 (Gemma run €1.60, Gemini run €0.96 +
+$4.40, three Mistral rescores €3.0, the repeated baseline rescore €0.78).
+
+**Open question for the next round:** why Mistral finds more unsupported
+claims after the loop. To be looked into on `tune` (`tune-local-loop` and
+its Mistral rescore), never on `confirm`.
+
+## Next round on `tune` (after step 5)
+
+Candidates, each measured on `tune` only under a rule committed before it
+runs; retrieval-only first where that can decide (cheap), a full run only
+for what passes. Sources are in the second brain (2026-10-17 ingest).
+
+- **Re-rank 50 candidates per collection** (#146, `RERANKER=bge-reranker-v2-m3`,
+  `RERANK_CANDIDATES=50`). The first measurement re-ranked 20 and missed the
+  rule (13 to 5, p = 0.10); on text-and-table documents re-ranking 20
+  candidates was ineffective and 50 to 100 made it the largest single gain
+  (TextTableRetrieval-Akarsu2026). Retrieval-only against
+  `tune-retrieval-bge-gemma2`, same rule as the first round; local, so
+  nearly free, but slow on a throttled GPU.
+- **Hybrid retrieval (BM25 + dense, RRF)** for exact terms (nuclides, §,
+  "Bilag 6"): BM25 beat a strong dense embedder on financial tables
+  (TextTableRetrieval-Akarsu2026). Retrieval-only.
+- **Neighbour chunks** (small-to-big: add the previous and next chunk of the
+  same section) for answers split across Stk. or table rows
+  (FinancialRAGTechniques-Lumer2025). Retrieval-only, evidence recall in
+  context against context length.
+- **Reference edges at ingestion** ("jf. bilag N", "§ N, stk. M"), expanding
+  a retrieved paragraph to the units it cites, direct neighbours only
+  (ViHERMES-Nguyen2026). Needs a re-ingestion, so ask first.
+- **Follow-up queries from structured gaps** (target + slot instead of free
+  text) and no repeated query in one loop (S2GRAG-Li2026,
+  PartialAnswerQuality-Tian2026): cuts the wasted rounds seen on
+  `refuse-skift-p-nummer`. Full run, since it acts inside the loop.
+
+---
+
 ## Phase 1 — Continuous Scoring
 
 **Goal:** Replace binary (0 or 1) metric scores with genuine 0.0–1.0 continuous

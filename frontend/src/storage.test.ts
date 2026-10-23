@@ -151,4 +151,14 @@ describe('Scaleway key and model storage', () => {
   it('uses the server default Scaleway model until one is picked', () => {
     expect(loadModelVariants().scaleway).toBe('default')
   })
+
+  it('replaces a saved Gemini model that is no longer offered with the default', () => {
+    localStorage.setItem(
+      'radiation-safety-model-variants',
+      JSON.stringify({ gemini: 'gemini-2.5-flash-lite', openai: 'gpt-4o' }),
+    )
+    const variants = loadModelVariants()
+    expect(variants.gemini).toBe('gemini-3.8-flash')
+    expect(variants.openai).toBe('gpt-4o')
+  })
 })
