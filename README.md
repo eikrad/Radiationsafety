@@ -10,7 +10,7 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **RAG over IAEA and Danish sources** — covers IAEA GSR, SSG, SSR, TECDOC standards and Danish Bekendtgørelser
 - **Multi-provider LLM** — Scaleway (EU-hosted, default), Gemini, OpenAI, Mistral, or fully-local Ollama (privacy mode, zero data leaves your machine)
 - **Grounded answers** — every answer is verified against retrieved source documents; unverified web results are flagged
-- **Web search fallback** — Brave Search kicks in when local documents don't cover the query
+- **Optional web search fallback** — off by default; with `WEB_SEARCH_ENABLED=true` and a Brave Search key it fills gaps the local documents leave, and the answer is still checked against trusted sources (never used in privacy mode)
 - **Document management UI** — check for updated versions of source documents and re-ingest from the browser
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
 - **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
@@ -29,7 +29,7 @@ flowchart TB
         RETRIEVE[Retrieve\nfrom both Chroma collections]
         GRADE[Grade documents]
         RETRIEVE_MISSING[Retrieve missing\n+ reflection hint]
-        WEB_SEARCH[Web search fallback\nBrave Search]
+        WEB_SEARCH[Optional web search\nBrave Search]
         GENERATE[Generate answer]
         GRADE_GEN[Grade generation]
         PREPARE_RETRY[Prepare retry]
@@ -43,14 +43,15 @@ flowchart TB
     GRADE -->|insufficient| RETRIEVE_MISSING
     RETRIEVE_MISSING -->|enough docs| GENERATE
     RETRIEVE_MISSING -->|still low, under retry cap| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|retry cap reached| WEB_SEARCH
+    RETRIEVE_MISSING -->|"retry cap reached, web search on"| WEB_SEARCH
+    RETRIEVE_MISSING -->|"retry cap reached, web search off"| GENERATE
     WEB_SEARCH --> GENERATE
     GENERATE --> GRADE_GEN
     GRADE_GEN -->|passed| VERIFY
     GRADE_GEN -->|failed, retries left| PREPARE_RETRY
     PREPARE_RETRY --> RETRIEVE_MISSING
-    GRADE_GEN -->|failed, no retries left| WEB_SEARCH
-    GRADE_GEN -->|failed, web search off| VERIFY
+    GRADE_GEN -->|"failed, no retries left, web search on"| WEB_SEARCH
+    GRADE_GEN -->|"failed, no retries left, web search off"| VERIFY
     VERIFY --> FINALIZE
     FINALIZE --> RESPONSE([Answer + sources + routing_outcome])
 ```
@@ -142,12 +143,12 @@ Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDE
    ```
    Each embedding model gets its own collections (`radiation-iaea-scw-<model>`, …), so switching back needs no rebuild.
 
-   Danish orders are read from retsinformation.dk XML (the sources in `document_sources.yaml`, kept current by the update check). A PDF of the same order in `documents/Bekendtgørelse/` is skipped, so each law is indexed once and an old PDF cannot sit next to a newer version; other PDFs there (e.g. SST guidance) are still read. To rebuild only the Danish collection, e.g. after an update:
+   Danish orders are read from retsinformation.dk XML (the sources in `document_sources.yaml`, kept current by the update check). A PDF of the same order in `documents/Bekendtgørelse/` is skipped, so each law is indexed once and an old PDF cannot sit next to a newer version; other PDFs there (e.g. SST guidance) are still read. If retsinformation.dk cannot deliver an order, the XML saved by its last fetch (`<id>_current.xml`) is indexed instead, so the PDF stays skipped. To rebuild only the Danish collection, e.g. after an update:
    ```bash
    uv run python ingestion.py --dk-only
    ```
 
-   PDFs are read with docling (layout and OCR). If docling cannot read one, for example because a local model fills the GPU, ingestion stops and names the file before any collection is emptied. Free the GPU and run it again, or pass `--allow-pypdf-fallback` to index that PDF as plain text (a scanned PDF then gives no text). A PDF that yields almost no text is reported as well.
+   PDFs are read with docling (layout and OCR). If docling fails on its default device, for example because a local model fills the GPU, it reads the PDF again on the CPU, which is slower (`DOCLING_DEVICE=cpu uv run python ingestion.py` uses the CPU from the start). If docling cannot read a PDF on the CPU either, ingestion stops and names the file and the error before any collection is emptied. Pass `--allow-pypdf-fallback` to index that PDF as plain text instead (a scanned PDF then gives no text). The run ends with a list of every PDF that was not read as usual: read on the CPU, read as plain text, skipped, or with almost no text (fewer than 100 characters per page, likely a scan without OCR); and every source in `document_sources.yaml` that could not be fetched, with the reason. A PDF uploaded in the Documents panel reports the same in its message, and an ingestion started there shows that list, or why it failed, in the panel.
 
 4. Start the backend:
    ```bash
@@ -172,6 +173,8 @@ uv run python build_document_sources.py
 ```
 
 The **Documents** panel in the UI lets you check for newer versions (retsinformation.dk, IAEA) and trigger re-ingestion without leaving the browser. Danish sources are always fetched as the newest version of the series; older versions are backed up to `documents/backup/Bekendtgørelse/`.
+
+An IAEA source whose PDF (its `filename_hint`) is in `documents/IAEA/` or `documents/IAEA_other/` is indexed from that file and not fetched again during ingestion, so each publication is indexed once. A new edition has its own publication page, which only the update check finds; downloading it replaces the local PDF and keeps the old one in `documents/backup/`. Only an IAEA source without a local PDF is fetched from its URL.
 
 ## Privacy Mode (Fully Local)
 

@@ -59,18 +59,19 @@ flowchart TD
         FIN[FINALIZE\nSet routing_outcome\nAttach warning if needed]
 
         R --> GD
-        GD -->|sufficient, or insufficient + web off| GEN
-        GD -->|insufficient + web enabled| RM
+        GD -->|sufficient| GEN
+        GD -->|insufficient| RM
         RM -->|enough docs, or retry-after-generation path| GEN
         RM -->|"still insufficient, retrieval_count < 3"| RM
-        RM -->|retrieval cap reached| WS
+        RM -->|"cap reached, web search on"| WS
+        RM -->|"cap reached, web search off"| GEN
         WS --> GEN
         GEN --> GG
         GG -->|pass| VT
-        GG -->|fail, retries < 2 + web enabled| PRR
+        GG -->|"fail, retries < 2"| PRR
         PRR --> RM
-        GG -->|fail, retries exhausted + web enabled| WS
-        GG -->|fail, web search disabled or already attempted| VT
+        GG -->|"fail, retries used up, web search on"| WS
+        GG -->|"fail, retries used up, web search off or already tried"| VT
         VT --> FIN
     end
 
@@ -103,10 +104,10 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
 | `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
-| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter before another `RETRIEVE_MISSING` pass (max 2 before falling back to web search) |
+| `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter before another `RETRIEVE_MISSING` pass (max 2; then web search if enabled, else the answer is shown with a warning) |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
-| `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and user-facing warning |
+| `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and the user-facing warning (web results unverified, or the answer may be incomplete when grading still fails) |
 
 Shared helpers used across nodes: `graph/nodes/retrieval_common.py` (shared Chroma retrieval logic for `RETRIEVE`/`RETRIEVE_MISSING`), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
 
@@ -170,7 +171,7 @@ flowchart TD
 
     LOCAL --> CHUNK
     DKURL -->|fetch newest XML| CHUNK
-    IAEAURL -->|parse page, fetch PDF| CHUNK
+    IAEAURL -->|no local PDF: parse page, fetch PDF| CHUNK
     DIRECT -->|download PDF| CHUNK
 
     subgraph CHUNK [Chunking]
@@ -194,7 +195,9 @@ flowchart TD
 - **Collection names:** Gemini uses the plain names `radiation-iaea` / `radiation-dk-law`; Scaleway uses `-scw-<model>` suffixes (default `bge-multilingual-gemma2`); Ollama uses `-ollama`.
 - **Embeddings follow `EMBEDDING_PROVIDER`** (Scaleway by default, Gemini optional), independently of the answering model; each provider/model has its own collections.
 - Changing `LLM_PROVIDER` (Scaleway / Gemini / OpenAI / Mistral for *generation*) does **not** require re-ingestion.
-- Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series.
+- **PDFs are read with docling**; if it fails on its default device (e.g. a GPU held by a local model), once more on the CPU. If it fails there too, ingestion stops before any collection is emptied, unless `--allow-pypdf-fallback` / `INGEST_ALLOW_PYPDF_FALLBACK=true` lets pypdf index the plain text. Every PDF not read as usual (on the CPU, as plain text, skipped, fewer than 100 characters per page) is listed at the end of the run, in the upload message and, for an ingestion started from the Documents panel, in `GET /ingest/status` and the panel.
+- Danish sources are always fetched as XML (not PDF) and updated to the newest version of the series. A registry source that cannot be fetched is listed at the end of the run with the reason and does not stop it; a Danish law is then indexed from the XML saved by its last fetch (`<id>_current.xml`).
+- An IAEA registry source whose PDF (`filename_hint`) is in `documents/IAEA/` or `documents/IAEA_other/` is indexed from that file only, never also fetched: the fetch indexed the publication twice and never gave a newer edition, which has its own page and comes through the update check (`download_update_for_source` replaces the local PDF).
 - Older Danish versions are kept in `documents/backup/Bekendtgørelse/` (max 2 per source).
 - The Gemini collection names (`radiation-iaea`, `radiation-dk-law`) and their suffixed variants must not be renamed without re-ingesting.
 - **Ollama mode** uses `bge-m3` for embeddings and stores them in separate `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` collections. Every local embedding model gets its own pair (`-ollama-<model>`); the earlier default `nomic-embed-text` keeps `radiation-iaea-ollama` / `radiation-dk-law-ollama`.
@@ -243,7 +246,7 @@ flowchart LR
 flowchart LR
     ENV[LLM_PROVIDER env var\nor frontend override] --> FAC{llm_factory}
     FAC -->|scaleway| SCW[Scaleway\nSCW_MODEL · default]
-    FAC -->|gemini| GEM[langchain-google-genai\nGemini 2.5 Pro / Flash / Flash-Lite]
+    FAC -->|gemini| GEM[langchain-google-genai\nGemini 3.8 Flash]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
     FAC -->|ollama| OLL[langchain-ollama\nqwen3.5:4b · runs locally]
@@ -289,7 +292,7 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `GET` | `/documents/check-updates` | Public | Check for newer document versions |
 | `GET` | `/documents/source/{id}/file` | Public | Serve the local PDF for a document source |
 | `POST` | `/ingest` | Admin | Trigger full re-ingestion |
-| `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`) |
+| `GET` | `/ingest/status` | Public | Current ingestion status (`idle` or `running`), why the last run failed (`last_error`, or `null`) and the PDFs it did not read as usual (`pdf_problems`: `{file, problem}`) |
 | `POST` | `/documents/add-pdf` | Admin | Upload and register a new PDF |
 | `PATCH` | `/documents/source/{id}/url` | Admin | Update a source URL manually |
 | `POST` | `/documents/source/{id}/lookup-url` | Admin | Auto-resolve newest URL for a source |

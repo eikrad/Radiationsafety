@@ -10,6 +10,13 @@ quickest win to most complex.
 - Playwright UI-E2E-Abdeckung (essentielle Interface-Flows, gemocktes API):
   `.cursor/plans/playwright_essential_e2e_975e1548.plan.md`
 
+## Planned — Privacy mode with Docker
+
+`docker compose --profile ollama up` starts an optional Ollama container and pulls the models
+once, so privacy mode works on Windows, macOS and Linux without a per-machine setup script; an
+Ollama already installed on the host keeps working. Prompted by #106. Plan:
+[`docs/privacy-mode-docker-plan.md`](docs/privacy-mode-docker-plan.md).
+
 ---
 
 ## Done — Run History & Dashboard
@@ -531,6 +538,394 @@ qwen run to measure the noise.
 Also measured: llama at k = 4 with an 8192-token window passed 22/39 in 64
 minutes, against 20/39 in 94 minutes at k = 5 (12288), so k = 4 was not worse
 and faster for a model that spills into RAM.
+
+---
+
+## Product — export the chat as a report (2026-10-13)
+
+Not an evaluation step, but a gap seen while working on the eval: an answer
+can only be read in the page. Whoever needs it for a safety assessment or an
+inspection file copies the text by hand and loses the sources, the warning,
+the web-search marker and the information on how the answer was produced.
+Planned in #170: a button that exports the whole chat or a single answer,
+built in the browser from the messages already on the page (so it also works
+in privacy mode and needs no new request), as Markdown first and then a
+print-ready page or PDF. Each report carries the questions and answers, the
+sources, the warning, the web-search marker, the model and whether privacy
+mode was on, and a fixed note that the text is AI-generated and has to be
+checked against the original standards.
+Open before building: whether `/query` can return the document version per
+source (an answer is only reproducible together with it), and whether the
+chunks carry page or section numbers for the source lines. It builds on the
+conversation kept in the browser (#135) and waits for streaming (#149) only
+in that finished answers are exported.
+
+---
+
+## Held-out test set — baselines (2026-10-16)
+
+First runs on `eval/data/golden_test.json` (#167), with the run plan in
+`docs/handoff-held-out-test-run.md`. Configuration as `prompt-145` but
+without web search: `gemma-4-26b-a4b-it`, `bge-multilingual-gemma2`, k = 5,
+judge `qwen3.8-27b` with 3 votes; index fingerprint `b0fc52f61a4e` /
+`d90d785f314c`. Expectation recorded before measuring: 65 to 85 %.
+
+| Run | Pass | 95 % interval |
+|---|---|---|
+| dev set, no web (`dev-no-web`) | 36/39 = 92 % | 80–97 % |
+| `tune` (`tune-baseline-rescore`) | 37/53 = 70 % | 56–80 % |
+| `tune`, repeat (`tune-baseline-repeat-rescore`) | 38/53 = 72 % | 58–82 % |
+| `tune`, judge `mistral-medium-3.5-128b` | 36/53 = 68 % | 55–79 % |
+| `confirm` (`confirm-baseline`, aggregate only) | 42/53 = 79 % | 67–88 % |
+| test, `tune` + `confirm` | 79/106 = 75 % | 65–82 % |
+| test without the 14 items on development chunks | 70/92 = 76 % | 66–84 % |
+
+The `tune` numbers are rescores after one evidence fix (commit `1109acd`,
+see below); before it, the two baselines scored 36/53 and 38/53.
+
+What can be claimed: the dev number overstates the system. On questions
+written before any system answer, about three in four pass (65–82 %), and
+removing the items on chunks the dev set quotes does not change that (the
+14 such items pass 9/14, no better than the rest). Dev and test intervals
+barely overlap (80–97 % vs 65–82 %). What cannot be claimed: that `confirm`
+is easier than `tune` (79 % vs 70 %, intervals overlapping), or any effect
+of web search: `prompt-145` (38/39) ran with it, `dev-no-web` (36/39)
+without, and two questions are within noise.
+
+Noise and judges. Between the two `tune` baselines, generated and judged
+anew, 1 question flipped (`test-iaea-dose-constraint-bands`); re-judging the
+same answers flipped `test-dk-kategori-øjelinse` as well. Both hinge on a
+`partial_support` for a vital nugget. Mistral changed 5 of 53 verdicts on
+the same answers: it passed those two and failed three Danish definition
+questions on an unsupported claim (`transportindeks-definition`,
+`referenceniveau-definitioner`, `en-pair-category-b-boundary`). Both judges
+agree on all 12 retrieval misses. A pass/fail effect smaller than about 3
+net questions is therefore not distinguishable from noise on `tune`.
+
+Retrieval-only on `tune` (`tune-retrieval-bge-gemma2` /
+`tune-retrieval-bge-m3`): recall@5 0.88 / 0.84, recall@20 0.97 / 0.90, MRR
+0.75 / 0.64. Scaleway's embedder stays ahead of the local one, by less on
+Danish law than in the privacy-mode comparison above.
+
+**Failed `tune` questions, classified** (the 16 failures of
+`tune-baseline-rescore`, plus `research-source-inventory`, which failed in
+both baselines before the label fix):
+
+| Class | n | Questions |
+|---|---|---|
+| Retrieval miss | 12 | see below |
+| Generation fault | 2 | `gsg2-fetus-criterion` (leaves out the fetus row of a table that is in the context), `transport-monitoring-dk-vs-iaea` (does not say that Danish law monitors categories A and B individually; strict judge) |
+| Judge noise (borderline generation) | 2 | `kategori-øjelinse`, `dose-constraint-bands`: correct answers, one vital nugget judged `partial_support` in some judgings |
+| Label problem | 1 | `research-source-inventory`, fixed |
+| Scope fault | 0 | the 3 `tune` refusals were refused in every run; no answerable question was refused for reasons of scope |
+
+The 12 retrieval misses: for 10 of them the missing evidence is ranked 6–20
+by `bge-multilingual-gemma2` (recall@20 = 1.0), for 2 it is not in the top
+20 (`gsr5-waste-management-approaches`, 4.3 on "dilute and disperse";
+`radiography-device-shipment-notification`, SSG-11 and the SSR-6 A1 table).
+Two questions refuse because of the miss, correctly relative to what was
+retrieved (`cs137-sikringsgruppe-c-krav`, `radiography-device-shipment`).
+
+Hypotheses written before measuring:
+- *Table chunks:* confirmed as a cause, but not the main one. BEK 1385 Bilag
+  6 (security groups) is missed by both security-group questions
+  (`ir192-…`, `cs137-…`; it is only reachable through § 80, so they are
+  multi-hop as well), the SSR-6 activity table by the shipment question, and
+  `gsg2-fetus-criterion` fails on reading a table row that was retrieved.
+- *Danish law asked in English:* not supported. English questions on Danish
+  law passed 6/7, Danish ones 19/26 (evidence recall@5 0.95 vs 0.91).
+- *Computed and multi-hop questions:* 1 of the 6 hard `tune` questions
+  passed. Every hard question that failed is multi-part, and the misses are typically one part of it: the paragraph
+  next to the one found (`tecdoc1380-intrusion-criteria`, the second chunk
+  of 3.3.2), or a cross-reference (§ 80 → Bilag 6).
+- *Refusal traps* (21-day deadline for the P-number question): held; all
+  three `tune` refusals passed in every run.
+- *Not expected:* IAEA questions fail more than Danish-law ones (9/16 vs
+  25/33 answerable), five of the seven on retrieval. Two misses retrieve a
+  neighbouring statement from another standard instead (GSR-2 Requirement 11
+  on the supply chain loses to the "prime responsibility" paragraphs of
+  GSR-1/GSR-3), and the definitions list in BEK 1386 § 4 is not found for the
+  X-ray therapy question, so the model classifies the treatment wrongly.
+
+Label fix (commit `1109acd`): `test-iaea-research-source-inventory` failed
+as a retrieval miss in both baselines with a correct answer: its second
+vital nugget quoted only GSR Part 3 para. 3.53, while GSG-7 para. 3.74,
+retrieved and cited, states the same inventory content (nugget 1 already
+matched it). It now also accepts the GSG-7 quote. Caveat: label problems
+were looked for only among failed questions, which can only raise the
+number; this is one question.
+
+What this means for step 4: with recall@20 at 0.97 but recall@5 at 0.88,
+most retrieval misses are ranking problems, not missing chunks, so
+re-ranking a larger candidate set (#146) is the candidate with the most
+room. The Danish second query of #146 has little to gain on these numbers
+(English questions on Danish law already pass). The scope check (#150) has
+no fault to fix on `tune`; there it can only show that it causes no new
+refusals.
+
+Cost: about €7.10 at Scaleway before tax for all runs of this section
+(full `tune` run about €1.07, Mistral rescore about €0.80).
+
+---
+
+## The local correction loop never ran (2026-10-17)
+
+Every question of every held-out run, and of `dev-no-web`, took the straight
+path `retrieve → grade_documents → generate → grade_generation →
+verify_trusted → finalize`. Both correction paths depend on the web-search
+switch in `graph/graph.py`: `decide_to_generate` enters `retrieve_missing`
+only `if state["web_search"] and env_bool("WEB_SEARCH_ENABLED")`, and
+`_generation_retry_route` ends at once when web search is off. Web search is
+off by default, in privacy mode and in every eval run since #145, so the
+graders' verdicts are computed and then ignored. The tests pinned this
+(`test_decide_to_generate_routes_to_generate_when_web_search_disabled`,
+`test_route_after_grade_generation_end_when_failed_no_web_search`). The
+second-brain page on Sufficient Context had noted it in September; it was
+never acted on.
+
+What the two graders would have done on `tune-baseline-rescore`:
+`grade_documents` judged 7 of the 12 retrieval misses insufficient (and 4
+passing answers too). Whether `grade_generation` ever fails is not recorded;
+in `prompt-145`, which ran with web search and so with a live retry path, it
+passed all 39 answers, and no `tune` failure carried a warning.
+
+The answer grader (`graph/chains/generation_grader.py`) is the weaker of the
+two: one yes/no for "grounded" and "answers the question" with no steps, a
+loose "addresses or resolves the question" that a two-of-three answer or an
+honest "Bilag 6 is not in the context" meets, no Danish-versus-IAEA rule
+(unlike the sufficiency grader), and at run time it is the answering model
+grading itself.
+
+**Step G1, offline check of the answer grader, rule set before measuring.**
+`--regrade` also runs today's `grade_generation` on a saved run's answers
+(same context, same answer, the run's answering model as grader, as at run
+time) and compares each verdict with the judge's pass/fail. Measured on the
+saved answers of `tune-baseline` and `tune-baseline-repeat` against the
+verdicts of their rescores (`20261016_182025`, `20261016_183512`): 106
+answers, 31 failed and 75 passed, 6 of them refusals.
+- The current prompt is measured first, as the baseline.
+- A new prompt is adopted if, on the same 106 answers, it flags at least half
+  of the failed answers and at least twice as many as the current prompt,
+  and flags at most 15 % of the passing ones (11 of 75): each false alarm
+  costs a correction round. Correct refusals count as passing answers.
+- Reported alongside, not decided on: the same check against the Mistral
+  rescore of `tune-baseline` (`20261016_184941`).
+- `tune` only; `confirm` answers are not graded.
+
+Results (2026-10-17; failed flagged of 31, passing flagged of 75; Mistral
+labels of 17 and 36 alongside):
+
+| Prompt | Failed flagged | False alarms | Mistral labels | Runs |
+|---|---|---|---|---|
+| current (one yes/no) | 1 | 0 | 1 / 0 | `20261017_080243`, `_081752`, `_083147` |
+| candidate 1: parts listed, model gives the verdict | 8 | 2 | 4 / 0 | `20261017_085700`, `_091438`, `_093130` |
+| candidate 2: status per part, verdict computed | 13 | 5 | 7 / 1 | `20261017_095219`, `_101011`, `_102927` |
+| candidate 3: candidate 2 plus a quote per supported part, checked against the context | 19 | 9 | 8 / 6 | `20261017_131258`, `_133431`, `_140950` |
+
+Candidates 1 and 2 miss the rule (16 flagged needed); candidate 3 meets it
+and is adopted.
+Candidate 1 also contradicted itself: for `cs137` it marked every part not
+answered and still passed the answer, which is why candidate 2 computes the
+verdict from the part statuses. Candidate 2 by error type (Qwen labels, both
+runs): it flags 13 of 24 retrieval misses and none of the 7 generator misses,
+where the context holds the fact and the answer drops or bends it; the
+grader takes the answer's reading of the context. Four of its five false
+alarms are correct refusals marked `not_answered` instead of
+`facts_off_topic`; the fifth is `test-dk-myndighedskontrol-lukkede-kilder`
+in both runs.
+
+Candidate 3 asks for the words from the Facts that state each supported
+part and passes the answer only if they occur in the context (case,
+spacing, quote marks and elisions ignored); a second example shows a
+correct refusal. By error type (Qwen labels, both runs) it flags 17 of 24
+retrieval misses and 2 of 7 generator misses. No correct refusal is flagged
+any more; the 9 false alarms are answered questions, most likely where the
+quote is not word for word, `myndighedskontrol-lukkede-kilder` and
+`lukket-kilde-anbefalet-anvendelsesperiode` in both runs. Each costs one
+correction round. The Mistral-label check first stopped on a Scaleway API
+timeout, which ended the whole regrade because the node only catches
+`ValueError`; it was rerun (`20261017_140950`), and G2 checks how a grader
+timeout behaves in the graph.
+
+**Step G2, the wiring, rule set before measuring.** The loop runs without web
+search: an insufficient first retrieval leads to up to two more database
+searches, a failed answer to up to two retries from the database. Web search
+stays the last resort, only when `WEB_SEARCH_ENABLED` and never in privacy
+mode. `retrieve_missing` searches for what the sufficiency grader named as
+missing (`needed`/`found`), or after a failed answer for the answer grader's
+hint, and each follow-up query is kept in the run outputs
+(`missing_queries`). Behaviour tests on the compiled graph
+(`tests/test_correction_loop.py`) replace the tests that pinned the old
+gating.
+
+A full `tune` run (`--no-web-search`), judged by Qwen and re-scored by
+Mistral, is compared with `tune-baseline` (`20261016_160821`; Qwen
+`20261016_182025`: 37 of 53, evidence recall in context 0.88; Mistral
+`20261016_184941`: 36 of 53). The loop stays on if all hold:
+- evidence recall in the generator's context is higher than 0.88;
+- passes do not drop under either judge (at least 37 Qwen, 36 Mistral);
+- at most 2 questions go from pass to fail under Qwen, each reported with
+  its node path;
+- no new `wrong_refusal`;
+- the run (answers and Qwen judge) costs less than €2.
+
+`tune-baseline-repeat` passed 38, so one or two questions either way is
+run-to-run noise: the rule asks that the loop does no harm and brings more
+evidence into the context, not that it proves a gain on 53 questions.
+
+Result (`tune-local-loop`, `20261017_143922`; Mistral `20261017_154702`):
+every condition holds and the loop stays on.
+
+| | `tune-baseline` | with the loop |
+|---|---|---|
+| Passes, Qwen | 37 | 40 |
+| Passes, Mistral | 36 | 40 |
+| Evidence recall in context | 0.88 | 0.905 |
+| Retrieval misses, Qwen | 12 | 7 |
+| Pass → fail, Qwen | | 0 |
+| Wrong refusals | 0 | 0 |
+| Cost (answers + Qwen judge) | €1.08 | €1.40 |
+
+- 14 of 53 questions took the loop (none did before), with no web search:
+  5 searched again after an insufficient first retrieval only, 5 retried
+  after a failed answer only, 4 did both.
+- Fail → pass under Qwen: `dose-constraint-bands`,
+  `en-nuclear-medicine-patient-release` (follow-up query "dokumentation af
+  radioaktivt materiale udskilt af patienter") and
+  `modtagekontrol-fejl-indberetning` (two follow-ups). Mistral also passes
+  `cs137-sikringsgruppe-c-krav` (three follow-ups, the first "Bilag 6
+  Bekendtgørelse om radioaktive stoffer sikringsgrupper").
+- The one pass → fail under Mistral, `generator-veterinær-underretning`,
+  took the straight path, so the loop did not touch it; Qwen passes it.
+- `gammaradiografi-uden-for-anlæg` ended in a Scaleway timeout
+  (`graph_error`). It failed in all three baselines too. More calls per
+  question mean more chances of a timeout.
+- Wasted rounds: the out-of-scope `refuse-skift-p-nummer` used every round
+  (four follow-ups, three of them the same query), as did
+  `lukket-kilde-anbefalet-anvendelsesperiode`, a false alarm of the
+  answer grader. Repeated queries and the scope check (#150) are the next
+  levers on cost.
+
+**The hint when a gap remains.** An answer the answer grader still fails
+after the database retries, without web search, now carries a warning in
+the question's language (en/de/da): the documents in the database may not
+cover everything the question asks, so the answer may be incomplete; with
+web search switched off (not in privacy mode) it adds that it is. A warning
+already set by `verify_trusted` (statements not matched to the sources)
+takes precedence. In `tune-local-loop` four answers ended with a failed
+grade and would carry it: `cs137-sikringsgruppe-c-krav` (failed under
+Qwen), the correct refusal `refuse-skift-p-nummer`, and two passing answers
+the grader flagged falsely (`myndighedskontrol-lukkede-kilder`,
+`lukket-kilde-anbefalet-anvendelsesperiode`). The grader's false alarms
+(9 of 75) are the hint's false alarms too.
+
+---
+
+## Held-out step 5: confirmation and frontier comparison (2026-10-17)
+
+Rule set before any `confirm` run. `confirm` is read in aggregate only:
+pass rates with intervals, counts per error type and the number of flips,
+never question by question.
+
+**Confirmation of the optimised pipeline** (database correction loop,
+answer grader candidate 3, gap hint; Gemma, `bge-multilingual-gemma2`,
+k = 5, no web search, no re-ranker). One `confirm` run, judged by Qwen and
+re-scored by Mistral, against `confirm-baseline` (`20261016_173446`, 42 of
+53 under Qwen), which is re-scored by Mistral too for a like-for-like
+second judge. The pipeline is confirmed if, under both judges:
+- net flips against the baseline are positive (more fail → pass than
+  pass → fail), and
+- there is no significant regression (sign test on the flips, p < 0.05
+  towards worse);
+- and no new `wrong_refusal`.
+If it is not confirmed, the tune result is reported as not carried over;
+nothing is changed on the strength of `confirm`. This is the first of at
+most three confirmations on this set.
+
+**Frontier comparison.** The same pipeline with `gemini-3.8-flash` as the
+answer model (it also grades its own answers and context, as Gemma does;
+temperature 1.0, thinking level `medium`, recorded in the run config),
+embeddings unchanged, on `confirm`, judged by Qwen and re-scored by
+Mistral. First a smoke test (`--limit 2 --no-history`) with a cost check.
+Reported, not decided on: the gap in pass rate with both intervals, the
+counts per error type next to Gemma's, and whether Flash fails on the same
+retrieval misses (then the bottleneck is retrieval, not the open model).
+
+Expected cost: Gemma `confirm` run about €1.40, three Mistral rescores
+about €2.80, the Qwen judge for the Gemini run about €0.80, and the Gemini
+answers about $1–3.
+
+### Result (2026-10-17): not confirmed; Flash ahead, within the noise
+
+`confirm`, 53 questions, aggregate only. Runs: Gemma `confirm-optimised`
+`20261017_191022` (Mistral rescore `20261017_203622`), Gemini
+`confirm-gemini-3.8-flash` `20261017_190626` (Mistral `20261017_203329`),
+baseline Mistral rescore `20261017_203957`.
+
+| Judge | Run | Pass | 95 % interval | retrieval_miss | generator_miss | unsupported_claim |
+|---|---|---|---|---|---|---|
+| Qwen | baseline | 42/53 (79 %) | 67–88 % | 5 | 4 | 2 |
+| Qwen | optimised | 44/53 (83 %) | 71–91 % | 3 | 5 | 1 |
+| Qwen | Gemini 3.8 Flash | 47/53 (89 %) | 77–95 % | 3 | 2 | 1 |
+| Mistral | baseline | 45/53 (85 %) | 73–92 % | 5 | 2 | 1 |
+| Mistral | optimised | 44/53 (83 %) | 71–91 % | 3 | 1 | 5 |
+| Mistral | Gemini 3.8 Flash | 45/53 (85 %) | 73–92 % | 3 | 1 | 4 |
+
+**Confirmation: not met.** Optimised against baseline: Qwen 3 better,
+1 worse (net +2, p = 0.63); Mistral 3 better, 4 worse (net −1, p = 1.0).
+No new `wrong_refusal` under either judge, no significant regression. The
+net-positive condition fails under Mistral, so the tune gain is reported as
+not carried over to `confirm`, and nothing is changed on its strength. Both
+judges agree that the loop removes retrieval misses (5 → 3); under Mistral
+`unsupported_claim` rises from 1 to 5, under Qwen it does not (2 → 1). The
+same answers re-scored twice by Mistral gave 46 and 45 of 53 (`20261017_190627`
+and `20261017_203957`; the first shared its run ID with the Gemini run,
+which overwrote its report file, fixed in `run_eval`), so one flip is
+inside the judge's own noise. First of at most three confirmations used.
+
+**Frontier comparison (reported only).** Flash is ahead of Gemma by 3
+questions under Qwen (5 better, 2 worse) and by 1 under Mistral (6 better,
+5 worse); every interval overlaps. Both fail 4 (Qwen) or 3 (Mistral)
+questions alike, and 2 of the 3 retrieval misses are the same questions
+for both models, so these failures sit in retrieval, not in the open
+model. Evidence recall of the first retrieval is the same (0.95); vital
+recall 0.95 (Gemma) and 0.98 (Flash). Cost of the answers for 53
+questions: Gemma €0.72, Flash $4.40, about six times as much.
+
+Cost of step 5: about €6.3 and $4.40 (Gemma run €1.60, Gemini run €0.96 +
+$4.40, three Mistral rescores €3.0, the repeated baseline rescore €0.78).
+
+**Open question for the next round:** why Mistral finds more unsupported
+claims after the loop. To be looked into on `tune` (`tune-local-loop` and
+its Mistral rescore), never on `confirm`.
+
+## Next round on `tune` (after step 5)
+
+Candidates, each measured on `tune` only under a rule committed before it
+runs; retrieval-only first where that can decide (cheap), a full run only
+for what passes. Sources are in the second brain (2026-10-17 ingest).
+
+- **Re-rank 50 candidates per collection** (#146, `RERANKER=bge-reranker-v2-m3`,
+  `RERANK_CANDIDATES=50`). The first measurement re-ranked 20 and missed the
+  rule (13 to 5, p = 0.10); on text-and-table documents re-ranking 20
+  candidates was ineffective and 50 to 100 made it the largest single gain
+  (TextTableRetrieval-Akarsu2026). Retrieval-only against
+  `tune-retrieval-bge-gemma2`, same rule as the first round; local, so
+  nearly free, but slow on a throttled GPU.
+- **Hybrid retrieval (BM25 + dense, RRF)** for exact terms (nuclides, §,
+  "Bilag 6"): BM25 beat a strong dense embedder on financial tables
+  (TextTableRetrieval-Akarsu2026). Retrieval-only.
+- **Neighbour chunks** (small-to-big: add the previous and next chunk of the
+  same section) for answers split across Stk. or table rows
+  (FinancialRAGTechniques-Lumer2025). Retrieval-only, evidence recall in
+  context against context length.
+- **Reference edges at ingestion** ("jf. bilag N", "§ N, stk. M"), expanding
+  a retrieved paragraph to the units it cites, direct neighbours only
+  (ViHERMES-Nguyen2026). Needs a re-ingestion, so ask first.
+- **Follow-up queries from structured gaps** (target + slot instead of free
+  text) and no repeated query in one loop (S2GRAG-Li2026,
+  PartialAnswerQuality-Tian2026): cuts the wasted rounds seen on
+  `refuse-skift-p-nummer`. Full run, since it acts inside the loop.
 
 ---
 

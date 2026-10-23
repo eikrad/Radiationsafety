@@ -11,13 +11,16 @@ can be re-scored without re-running the graph.
 """
 
 import argparse
+import gzip
 import json
 import os
 import sys
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+from langchain_core.callbacks import get_usage_metadata_callback
 
 from eval.dashboard import write_dashboard
 from eval.golden import GoldenError, golden_warnings, load_golden
@@ -38,8 +41,10 @@ from eval.scoring import (
     evidence_ranks,
     ranking_metrics,
     score_item,
+    wilson_interval,
     without_evidence,
 )
+from eval.split import SPLITS, select_split
 from graph.llm_factory import DEFAULT_PROVIDER
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -77,6 +82,7 @@ NUMERIC_METRICS = (
     "unsupported_claim",  # 1 if the answer has any unsupported claim: lower is better
     "grade_documents_correct",
     "grade_documents_ablation_correct",  # --regrade: the retrieval minus its evidence
+    "grade_generation_correct",  # --regrade: answer grader verdict == judge verdict
     "evidence_position",  # context chunk holding the evidence (1 = first)
     "warning_shown",  # 1 if the answer carried a warning: lower is better
     # retrieval-only runs
@@ -253,6 +259,19 @@ def _model_name(llm) -> str:
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
 
+def _sampling_config(llm) -> dict:
+    """The answer model's temperature and, where set, its thinking level."""
+    config = {}
+    for key, attr in (
+        ("llm_temperature", "temperature"),
+        ("llm_thinking_level", "thinking_level"),
+    ):
+        value = getattr(llm, attr, None)
+        if value is not None:
+            config[key] = value
+    return config
+
+
 def _judge_llm(
     default_llm, llm_provider: str, answer_model: str
 ) -> tuple[object, dict]:
@@ -392,6 +411,15 @@ def summarize(results: list[dict]) -> dict:
         "pass_rate": (
             sum(1 for r in judged if r["pass"]) / len(judged) if judged else None
         ),
+        "pass_rate_interval": (
+            list(interval)
+            if (
+                interval := wilson_interval(
+                    sum(1 for r in judged if r["pass"]), len(judged)
+                )
+            )
+            else None
+        ),
         "pass_rule": "v2-strict",
         "error_counts": dict(
             Counter(r["error_type"] for r in results if r["error_type"])
@@ -434,6 +462,7 @@ def _run_eval(
             "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
+            **_sampling_config(graph_llm),
             # a local model reads at most this many tokens of the prompt
             **({"llm_num_ctx": ollama_num_ctx()} if llm_provider == "ollama" else {}),
             **judge_info,
@@ -460,6 +489,35 @@ def _run_eval(
     _warn_if_self_judged(judge_info)
 
     outputs: dict[str, dict] = {}
+    with get_usage_metadata_callback() as answering:
+        _answer_all(
+            golden,
+            graph,
+            graph_llm,
+            outputs,
+            delay_after_graph_sec,
+            delay_between_items_sec,
+        )
+    errors = [o["error"] for o in outputs.values() if o.get("error")]
+    if errors and len(errors) == len(outputs):
+        # nothing was answered: a broken setup, not a measurement
+        raise RuntimeError(f"Every question failed; the first: {errors[0]}")
+    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
+
+    with get_usage_metadata_callback() as judging:
+        results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
+    header["usage"] = _usage(answers=answering, judge=judging)
+    return summarize(results), results, header
+
+
+def _answer_all(
+    golden: list[dict],
+    graph,
+    graph_llm,
+    outputs: dict[str, dict],
+    delay_after_graph_sec: float,
+    delay_between_items_sec: float,
+) -> None:
     for n, item in enumerate(golden, start=1):
         started = time.monotonic()
         outputs[item["id"]] = _answer(item, graph, graph_llm)
@@ -473,14 +531,15 @@ def _run_eval(
             time.sleep(delay_after_graph_sec)
         if delay_between_items_sec > 0 and item is not golden[-1]:
             time.sleep(delay_between_items_sec)
-    errors = [o["error"] for o in outputs.values() if o.get("error")]
-    if errors and len(errors) == len(outputs):
-        # nothing was answered: a broken setup, not a measurement
-        raise RuntimeError(f"Every question failed; the first: {errors[0]}")
-    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
 
-    results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
-    return summarize(results), results, header
+
+def _usage(**stages) -> dict:
+    """Tokens per model for each stage that called a model (usage callbacks)."""
+    return {
+        name: dict(cb.usage_metadata)
+        for name, cb in stages.items()
+        if cb.usage_metadata
+    }
 
 
 def _run_retrieval_only(
@@ -598,6 +657,38 @@ def _score_retrieval(
     return summary, results
 
 
+def _archive_path(run_id: str, history_file: Path) -> Path:
+    """Gzipped answers of a recorded run, committed next to the history."""
+    return history_file.parent / "outputs" / f"{run_id}.json.gz"
+
+
+def _archive_outputs(run_id: str, output_dir: Path, history_file: Path) -> Path:
+    """Keep a recorded run's answers with the history, so it can be judged again
+    on another machine or by a later judge after the model behind it is gone."""
+    archive = _archive_path(run_id, history_file)
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    raw = (output_dir / f"outputs_{run_id}.json").read_bytes()
+    # mtime=0: the same answers always give the same bytes in git
+    archive.write_bytes(gzip.compress(raw, compresslevel=9, mtime=0))
+    return archive
+
+
+def _saved_outputs(run_id: str, output_dir: Path, history_file: Path) -> Path | None:
+    """The run's saved answers: the local file, else the archived copy."""
+    for path in (
+        output_dir / f"outputs_{run_id}.json",
+        _archive_path(run_id, history_file),
+    ):
+        if path.exists():
+            return path
+    print(
+        f"There are no saved outputs for run {run_id} in {output_dir} "
+        f"or {_archive_path(run_id, history_file).parent}",
+        file=sys.stderr,
+    )
+    return None
+
+
 def _rescore(
     run_id: str, golden: list[dict], output_dir: Path, history_file: Path
 ) -> tuple[dict, list[dict], dict] | None:
@@ -607,12 +698,8 @@ def _rescore(
     and git state, are the original run's; only the judgement is new.
     Returns None (after printing why) if the run cannot be found.
     """
-    outputs_path = output_dir / f"outputs_{run_id}.json"
-    if not outputs_path.exists():
-        print(
-            f"There are no saved outputs for run {run_id} in {output_dir}",
-            file=sys.stderr,
-        )
+    outputs_path = _saved_outputs(run_id, output_dir, history_file)
+    if outputs_path is None:
         return None
     outputs = load_outputs(outputs_path)
     original = next((r for r in load_runs(history_file) if r["run_id"] == run_id), None)
@@ -647,12 +734,14 @@ def _rescore(
         get_llm(), llm_provider, config.get("llm_model") or "n/a"
     )
     _warn_if_self_judged(judge_info)
-    results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
+    with get_usage_metadata_callback() as judging:
+        results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
     header = {
         "git": original.get("git"),
         "dataset": dataset_fingerprint(saved),
         "config": {**config, **judge_info, "metrics_version": METRICS_VERSION},
         "rescored_from": run_id,
+        "usage": _usage(judge=judging),
     }
     return summarize(results), results, header
 
@@ -666,26 +755,65 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
     )["web_search"]
 
 
-def _regrade(
-    run_id: str, golden: list[dict], output_dir: Path
-) -> tuple[dict, list[dict], dict] | None:
-    """Run today's sufficiency grader on a saved run's first retrievals.
+def _grade_generation(question: str, context: str, generation: str, llm) -> bool:
+    """The graph's grade_generation verdict on this answer and its context."""
+    from graph.nodes.grade_generation import grade_generation
 
-    Per question: is the verdict right (sufficient exactly when every vital
-    nugget's evidence was retrieved; insufficient for questions to refuse)?
-    And, where the retrieval held all its evidence, the same retrieval with the
-    evidence chunks removed must be judged insufficient: labelled negatives
-    without new retrieval (#129). About two grader calls per question.
+    return grade_generation(
+        {
+            "question": question,
+            "documents": [],
+            "generation": generation,
+            "context_used_for_generation": context,
+            "llm": llm,
+        }
+    )["generation_passed_grading"]
+
+
+def _judged_passes(run_id: str, history_file: Path) -> dict[str, bool] | None:
+    """Per question, whether the judge passed the answer in this recorded run
+    (the latest record with that id)."""
+    run = next(
+        (r for r in reversed(load_runs(history_file)) if r["run_id"] == run_id), None
+    )
+    if run is None:
+        print(f"Run {run_id} is not in {history_file}", file=sys.stderr)
+        return None
+    return {r["id"]: r["pass"] for r in run["results"] if r.get("pass") is not None}
+
+
+def _regrade(
+    run_id: str,
+    golden: list[dict],
+    output_dir: Path,
+    history_file: Path,
+    labels_from: str | None = None,
+) -> tuple[dict, list[dict], dict] | None:
+    """Run today's sufficiency and answer graders on a saved run.
+
+    Sufficiency, per question: is the verdict right (sufficient exactly when
+    every vital nugget's evidence was retrieved; insufficient for questions to
+    refuse)? And, where the retrieval held all its evidence, the same retrieval
+    with the evidence chunks removed must be judged insufficient: labelled
+    negatives without new retrieval (#129).
+
+    Answers: grade_generation on the saved answer and the context it was
+    written from, checked against the judge's pass/fail in the run itself or
+    in labels_from (e.g. a rescore after a label fix). A failed answer the
+    grader passes is one the correction loop never sees.
+    About three grader calls per question.
     """
-    outputs_path = output_dir / f"outputs_{run_id}.json"
-    if not outputs_path.exists():
-        print(
-            f"There are no saved outputs for run {run_id} in {output_dir}",
-            file=sys.stderr,
-        )
+    outputs_path = _saved_outputs(run_id, output_dir, history_file)
+    if outputs_path is None:
+        return None
+    labels = _judged_passes(labels_from or run_id, history_file)
+    if labels is None:
         return None
     outputs = load_outputs(outputs_path)
     saved = [item for item in golden if item["id"] in outputs]
+    confusion = dict.fromkeys(
+        ("failed_flagged", "failed_missed", "passed_flagged", "passed_kept"), 0
+    )
 
     from graph.llm_factory import get_llm
 
@@ -712,6 +840,21 @@ def _regrade(
             ablated = without_evidence(item, initial)
             said = _invoke_with_retry(_grade_sufficient, item["question"], ablated, llm)
             metrics["grade_documents_ablation_correct"] = float(not said)
+        output = outputs[item["id"]]
+        label = labels.get(item["id"])
+        if label is not None and output.get("generation"):
+            passed = _invoke_with_retry(
+                _grade_generation,
+                item["question"],
+                output.get("context_used_for_generation") or "",
+                output["generation"],
+                llm,
+            )
+            metrics["grade_generation_correct"] = float(passed == label)
+            if label:
+                confusion["passed_kept" if passed else "passed_flagged"] += 1
+            else:
+                confusion["failed_missed" if passed else "failed_flagged"] += 1
         print(f"  [{n}/{len(saved)}] regraded {item['id']}", file=sys.stderr)
         results.append(
             {
@@ -738,12 +881,17 @@ def _regrade(
             "grader_only": True,
             "llm_provider": llm_provider,
             "llm_model": _model_name(llm),
+            "labels_from": labels_from or run_id,
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
         "regraded_from": run_id,
     }
-    return summarize(results), results, header
+    return (
+        {**summarize(results), "grade_generation_confusion": confusion},
+        results,
+        header,
+    )
 
 
 def _write_report(
@@ -778,6 +926,7 @@ def _write_report(
         "",
         (
             f"- **Pass rate:** {pass_rate:.0%} of {summary['judged']} judged questions"
+            f"{_interval_text(summary)}"
             if pass_rate is not None
             else "- **Pass rate:** no question could be judged"
         ),
@@ -812,6 +961,14 @@ def _write_report(
         f.write("\n".join(lines))
 
     return json_path, md_path
+
+
+def _interval_text(summary: dict) -> str:
+    interval = summary.get("pass_rate_interval")
+    if not interval:
+        return ""
+    low, high = interval
+    return f" (95 % interval {low * 100:.0f}–{high * 100:.0f} %)"
 
 
 def _markdown_header_lines(header: dict) -> list[str]:
@@ -858,6 +1015,24 @@ def _markdown_header_lines(header: dict) -> list[str]:
     return lines
 
 
+def _claim_run_id(output_dir: Path) -> str:
+    """The start time as run ID, one second later if another run took it.
+
+    Two runs started in the same second (parallel eval chains) would otherwise
+    write the same report and archive. The claim is an exclusive file create,
+    so it also holds between processes.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    moment = datetime.now(UTC)
+    while True:
+        run_id = moment.strftime("%Y%m%d_%H%M%S")
+        try:
+            (output_dir / f".run_{run_id}").touch(exist_ok=False)
+            return run_id
+        except FileExistsError:
+            moment += timedelta(seconds=1)
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
@@ -871,6 +1046,13 @@ def main() -> int:
         type=Path,
         default=_PROJECT_ROOT / "eval" / "data" / "golden.json",
         help="Path to golden JSON",
+    )
+    parser.add_argument(
+        "--split",
+        choices=SPLITS,
+        default=None,
+        help="Run only the held-out items of this split (tune: for tuning; "
+        "confirm: untouched confirmation, eval/README.md); default: all items",
     )
     parser.add_argument(
         "--limit",
@@ -944,7 +1126,17 @@ def main() -> int:
         default=None,
         help=(
             "Run today's sufficiency grader (grade_documents) on a saved run's first "
-            "retrievals, plus each retrieval without its evidence chunks; no answers"
+            "retrievals, plus each retrieval without its evidence chunks, and the "
+            "answer grader (grade_generation) on its saved answers; no new answers"
+        ),
+    )
+    parser.add_argument(
+        "--labels",
+        metavar="RUN_ID",
+        default=None,
+        help=(
+            "--regrade: check the answer grader against the judge's verdicts of "
+            "this run (e.g. a rescore after a label fix); default the regraded run"
         ),
     )
     parser.add_argument(
@@ -984,6 +1176,11 @@ def main() -> int:
         return 1
     for warning in golden_warnings(golden):
         print(f"Warning: {warning}", file=sys.stderr)
+    if args.split is not None:
+        golden = select_split(golden, args.split)
+        if not golden:
+            print(f"No golden items in split {args.split!r}", file=sys.stderr)
+            return 1
     if args.limit is not None:
         golden = golden[: args.limit]
 
@@ -1010,7 +1207,7 @@ def main() -> int:
         )
         return 1
     started = time.monotonic()
-    run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    run_id = _claim_run_id(args.output_dir)
     if args.rescore:
         rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
         if rescored is None:
@@ -1018,7 +1215,9 @@ def main() -> int:
         summary, results, header = rescored
         label = args.label or f"rescore of {args.rescore}"
     elif args.regrade:
-        regraded = _regrade(args.regrade, golden, args.output_dir)
+        regraded = _regrade(
+            args.regrade, golden, args.output_dir, args.history_file, args.labels
+        )
         if regraded is None:
             return 1
         summary, results, header = regraded
@@ -1078,6 +1277,11 @@ def main() -> int:
             args.history_file,
         )
         print(f"Run recorded: {args.history_file}")
+        # only new answers are worth keeping: a retrieval-only run is cheap to
+        # repeat, a rescore or regrade reuses the answers already archived
+        if not (args.rescore or args.regrade or args.retrieval_only):
+            archive = _archive_outputs(run_id, args.output_dir, args.history_file)
+            print(f"Answers archived: {archive}")
         dashboard = write_dashboard(
             args.output_dir / "dashboard.html",
             args.history_file,
@@ -1087,7 +1291,10 @@ def main() -> int:
     print(f"Report written: {json_path}")
     print(f"Report written: {md_path}")
     if summary["pass_rate"] is not None:
-        print(f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged")
+        print(
+            f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged"
+            f"{_interval_text(summary)}"
+        )
     if summary.get("evidence_recall_initial_mean") is not None:
         print(
             f"Evidence recall (first retrieval): {summary['evidence_recall_initial_mean']:.2f}"

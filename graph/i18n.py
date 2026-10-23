@@ -59,6 +59,19 @@ WARNING_NOT_VERIFIED_TRUSTED_ONLY: dict[str, str] = {
     "da": "En automatisk kontrol kunne ikke finde belæg for alle udsagn i svaret i de fundne kilder. Tjek de citerede passager, før du bruger svaret.",
 }
 
+# The answer grader still finds a part unanswered after the database retries:
+# the indexed documents may not cover the whole question.
+WARNING_ANSWER_MAY_BE_INCOMPLETE: dict[str, str] = {
+    "en": "The documents in the database may not cover everything this question asks, so the answer may be incomplete. Check the cited passages before relying on it.",
+    "de": "Die Dokumente in der Datenbank decken diese Frage möglicherweise nicht vollständig ab, die Antwort kann daher unvollständig sein. Prüfen Sie die zitierten Stellen, bevor Sie sich darauf verlassen.",
+    "da": "Dokumenterne i databasen dækker muligvis ikke alt, hvad spørgsmålet handler om, så svaret kan være ufuldstændigt. Tjek de citerede passager, før du bruger svaret.",
+}
+WEB_SEARCH_OFF_NOTE: dict[str, str] = {
+    "en": "Web search is switched off.",
+    "de": "Die Websuche ist ausgeschaltet.",
+    "da": "Websøgning er slået fra.",
+}
+
 # Embeddings not built yet. Retrieval always uses Gemini; hint tells user to run ingestion with GOOGLE_API_KEY.
 WARNING_EMBEDDINGS_NOT_BUILT_GEMINI: dict[str, str] = {
     "en": "Gemini embeddings are not built yet. Set GOOGLE_API_KEY in .env, then run: uv run python ingestion.py",
@@ -107,6 +120,18 @@ def get_warning_not_verified_trusted_only(lang: str) -> str:
         WARNING_NOT_VERIFIED_TRUSTED_ONLY.get(lang)
         or WARNING_NOT_VERIFIED_TRUSTED_ONLY["en"]
     )
+
+
+def get_warning_answer_may_be_incomplete(lang: str, *, web_search_off: bool) -> str:
+    """web_search_off: add that web search was not available as a fallback
+    (not in privacy mode, where it never is)."""
+    text = (
+        WARNING_ANSWER_MAY_BE_INCOMPLETE.get(lang)
+        or WARNING_ANSWER_MAY_BE_INCOMPLETE["en"]
+    )
+    if web_search_off:
+        text += " " + (WEB_SEARCH_OFF_NOTE.get(lang) or WEB_SEARCH_OFF_NOTE["en"])
+    return text
 
 
 def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:

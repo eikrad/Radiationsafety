@@ -39,6 +39,14 @@ class GraphState(TypedDict):
     trusted_documents: NotRequired[list[Document]]
     # Set by verify_trusted when answer was confirmed against trusted sources; finalize then skips generic web-search warning
     trusted_verified: NotRequired[bool]
+    # Set by grade_documents: the first retrieval is sufficient to answer. Unlike
+    # web_search it does not depend on privacy mode or WEB_SEARCH_ENABLED.
+    context_sufficient: NotRequired[bool]
+    # The context grader's needed/found on the latest insufficient verdict;
+    # retrieve_missing searches for what it names as missing.
+    context_gap: NotRequired[str]
+    # Every follow-up query retrieve_missing sent to the database, in order.
+    missing_queries: NotRequired[list[str]]
     # Set by retrieve_missing: True if after second retrieval the context was sufficient, so we skip web search
     sufficient_after_missing: NotRequired[bool]
     # Number of vector-store retrievals so far (1 after RETRIEVE; 2–3 after RETRIEVE_MISSING). Used to allow up to 3 before WEB_SEARCH.

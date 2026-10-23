@@ -3,7 +3,13 @@
 import pytest
 from langchain_core.documents import Document
 
-from eval.scoring import evidence_found, evidence_ranks, ranking_metrics, score_item
+from eval.scoring import (
+    evidence_found,
+    evidence_ranks,
+    ranking_metrics,
+    score_item,
+    wilson_interval,
+)
 from graph.consts import CONTEXT_SEPARATOR
 
 ANNEX_2 = "Dosisgrænser for erhvervsmæssig bestråling fremgår af bilag 2."
@@ -389,3 +395,23 @@ def test_a_warning_shown_with_the_answer_is_recorded():
 
     assert score_item(ITEM, output, _verdict())["warning_shown"] is True
     assert score_item(ITEM, _output(), _verdict())["warning_shown"] is False
+
+
+@pytest.mark.parametrize(
+    "passed, n, interval",
+    # reference values: scipy.stats.binomtest(k, n).proportion_ci(method="wilson")
+    [(81, 263, (0.2553, 0.3662)), (15, 148, (0.0624, 0.1605)), (0, 20, (0.0, 0.1611))],
+)
+def test_the_pass_rate_interval_is_the_wilson_score_interval(passed, n, interval):
+    assert wilson_interval(passed, n) == pytest.approx(interval, abs=1e-4)
+
+
+def test_a_perfect_score_on_few_questions_still_leaves_room_below():
+    low, high = wilson_interval(39, 39)
+
+    assert high == pytest.approx(1.0)
+    assert low < 0.92
+
+
+def test_no_judged_question_has_no_interval():
+    assert wilson_interval(0, 0) is None

@@ -1,5 +1,6 @@
 """FastAPI backend: /query, /health, /metrics, document updates, ingest, and optional frontend serving."""
 
+import logging
 import os
 import secrets
 import time
@@ -34,9 +35,15 @@ from api.rate_limit import enforce_rate_limit, env_float, env_int
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 app_state: dict = {
     "graph": None,
     "ingest_status": "idle",
+    # why the last ingestion failed; None while it runs or when it succeeded
+    "ingest_last_error": None,
+    # the PDFs the last ingestion did not read as usual, as {file, problem}
+    "ingest_pdf_problems": [],
     "started_at": time.time(),
     "rate_limit_store": {},
     "request_metrics": {
@@ -138,7 +145,7 @@ class QueryRequest(BaseModel):
     question: str
     chat_history: list[list[str]] | None = None  # [[q,a],[q,a],...] for follow-ups
     model: str | None = None  # "scaleway" | "mistral" | "gemini" | "openai" | "ollama"
-    model_variant: str | None = None  # e.g. "gemini-2.5-flash-lite", "gpt-4o-mini"
+    model_variant: str | None = None  # e.g. "gemini-3.8-flash", "gpt-4o-mini"
     api_keys: dict[str, str] | None = (
         None  # {"mistral": "...", "gemini": "...", "openai": "..."}
     )
@@ -251,13 +258,23 @@ def require_admin(request: Request) -> None:
 
 
 def _run_ingest() -> None:
-    """Run ingestion and clear retriever cache. Updates app_state ingest_status."""
+    """Run ingestion and clear retriever cache. Updates app_state ingest_status
+    and keeps why a run failed and which PDFs it did not read as usual for
+    GET /ingest/status: otherwise only the server log has them."""
     app_state["ingest_status"] = "running"
+    app_state["ingest_last_error"] = None
+    app_state["ingest_pdf_problems"] = []
     try:
         import ingestion
 
-        ingestion.ingest()
+        problems = ingestion.ingest()
         ingestion.clear_retrievers_cache()
+        app_state["ingest_pdf_problems"] = [
+            {"file": name, "problem": what} for name, what in problems
+        ]
+    except Exception as e:
+        logger.exception("Ingestion failed")
+        app_state["ingest_last_error"] = f"{type(e).__name__}: {e}"
     finally:
         app_state["ingest_status"] = "idle"
 
@@ -589,11 +606,15 @@ async def documents_add_pdf(
             filename_hint=safe_name,
             version=version,
         )
-        chunks = ingestion.add_single_pdf_to_collection(
-            dest, folder=folder, source_label=display_name
-        )
+        with ingestion.collecting_pdf_problems() as problems:
+            chunks = ingestion.add_single_pdf_to_collection(
+                dest, folder=folder, source_label=display_name
+            )
         ingestion.clear_retrievers_cache()
         msg = f"Added PDF to collection ({chunks} chunks)."
+        # the UI shows the message as it is; otherwise only the server log would
+        # say that the PDF was read on the CPU or gave almost no text
+        msg += "".join(f" Warning: {what}." for _name, what in problems)
         if url:
             msg += f" URL: {url}"
         else:
@@ -629,8 +650,14 @@ def ingest_trigger(
 
 @api_router.get("/ingest/status")
 def ingest_status():
-    """Return current ingestion status: idle or running."""
-    return {"status": app_state["ingest_status"]}
+    """Return current ingestion status (idle or running), why the last run
+    failed (last_error, None if it did not) and the PDFs it did not read as
+    usual (pdf_problems: {file, problem})."""
+    return {
+        "status": app_state["ingest_status"],
+        "last_error": app_state["ingest_last_error"],
+        "pdf_problems": app_state["ingest_pdf_problems"],
+    }
 
 
 def _to_tuples(history: list[list[str]] | None) -> list[tuple[str, str]]:

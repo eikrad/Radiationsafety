@@ -198,6 +198,23 @@ def check_evidence_in_index(
     return errors, warnings
 
 
+def index_chunks() -> tuple[list[str], list[str]] | None:
+    """Chunk texts and collection names of the configured search index.
+
+    None (after printing which) if a collection has not been built.
+    """
+    from graph.llm_factory import get_embedding_provider
+    from ingestion import load_chunk_texts
+
+    collections = load_chunk_texts(get_embedding_provider())
+    missing = [name for name, texts in collections.items() if texts is None]
+    if missing:
+        print(f"Collections not built: {', '.join(missing)}", file=sys.stderr)
+        return None
+    chunks = [text for texts in collections.values() for text in texts or []]
+    return chunks, list(collections)
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
@@ -209,6 +226,13 @@ def main() -> int:
         action="store_true",
         help="Also check every evidence quote against the configured search index",
     )
+    parser.add_argument(
+        "--dev",
+        type=Path,
+        default=_DEFAULT_GOLDEN,
+        help="Development set for the split check: no confirm item may share a "
+        "chunk with it",
+    )
     args = parser.parse_args()
     try:
         items = load_golden(args.golden)
@@ -217,19 +241,23 @@ def main() -> int:
         return 1
     errors, warnings = [], golden_warnings(items)
     if args.check_index:
-        from graph.llm_factory import get_embedding_provider
-        from ingestion import load_chunk_texts
-
-        collections = load_chunk_texts(get_embedding_provider())
-        missing = [name for name, texts in collections.items() if texts is None]
-        if missing:
-            print(f"Collections not built: {', '.join(missing)}", file=sys.stderr)
+        index = index_chunks()
+        if index is None:
             return 1
-        chunks = [t for texts in collections.values() for t in texts or []]
+        chunks, names = index
         index_errors, index_warnings = check_evidence_in_index(items, chunks)
         errors += index_errors
         warnings += index_warnings
-        print(f"Checked against {len(chunks)} chunks in {', '.join(collections)}")
+        if any(item.get("split") for item in items):
+            from eval.split import split_leaks
+
+            try:
+                dev_items = load_golden(args.dev)
+            except GoldenError as err:
+                print(err, file=sys.stderr)
+                return 1
+            errors += split_leaks(items, chunks, dev_items)
+        print(f"Checked against {len(chunks)} chunks in {', '.join(names)}")
     for warning in warnings:
         print(f"Warning: {warning}")
     for error in errors:

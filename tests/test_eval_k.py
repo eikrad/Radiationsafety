@@ -1,6 +1,7 @@
 """k test (step 5): the same question answered from the top 3 or the top 5 per collection."""
 
 from langchain_core.documents import Document
+from langchain_core.runnables import RunnableLambda
 
 from eval.k_test import contexts, stratum
 from eval.position_test import answer_score, compare
@@ -75,9 +76,8 @@ def test_the_retriever_k_can_be_set_without_a_code_change(monkeypatch):
         _retriever_k()
 
 
-def test_a_run_answers_each_question_from_both_contexts(monkeypatch):
+def _fake_models(monkeypatch, generate):
     import eval.judge
-    import eval.k_test as k_test
     import eval.run_eval
     import graph.chains.generation
     import graph.llm_factory
@@ -94,13 +94,10 @@ def test_a_run_answers_each_question_from_both_contexts(monkeypatch):
     monkeypatch.setattr(
         eval.run_eval, "_judge_llm", lambda g, p, m: (object(), {"judge_model": "j"})
     )
-
-    class Chain:
-        def invoke(self, inputs):
-            return "20 mSv og 6 mSv" if "20 mSv" in inputs["context"] else "ved ikke"
-
     monkeypatch.setattr(
-        graph.chains.generation, "get_generation_chain", lambda llm: Chain()
+        graph.chains.generation,
+        "get_generation_chain",
+        lambda llm: RunnableLambda(generate),
     )
     monkeypatch.setattr(
         eval.judge,
@@ -111,6 +108,17 @@ def test_a_run_answers_each_question_from_both_contexts(monkeypatch):
             "unsupported_claims": [],
             "refused": "ved ikke" in answer,
         },
+    )
+
+
+def test_a_run_answers_each_question_from_both_contexts(monkeypatch):
+    import eval.k_test as k_test
+
+    _fake_models(
+        monkeypatch,
+        lambda inputs: (
+            "20 mSv og 6 mSv" if "20 mSv" in inputs["context"] else "ved ikke"
+        ),
     )
 
     record = k_test.run([ANSWER, REFUSE], "test", delay_sec=0)
@@ -128,41 +136,15 @@ def test_a_run_answers_each_question_from_both_contexts(monkeypatch):
 
 def test_the_record_describes_the_code_as_it_was_when_the_test_started(monkeypatch):
     import eval.history
-    import eval.judge
     import eval.k_test as k_test
-    import eval.run_eval
-    import graph.chains.generation
-    import graph.llm_factory
 
-    docs = [Document(page_content="grænsen er 20 mSv pr. år")]
-    monkeypatch.setattr(
-        eval.run_eval, "_retrieve_ranked", lambda q, ep, depth: {"iaea": docs, "dk": []}
-    )
-    monkeypatch.setattr(graph.llm_factory, "get_llm", lambda: object())
-    monkeypatch.setattr(
-        eval.run_eval, "_judge_llm", lambda g, p, m: (object(), {"judge_model": "j"})
-    )
     edited = []
 
-    class ChainWhileSomeoneEdits:
-        def invoke(self, inputs):
-            edited.append(True)
-            return "20 mSv"
+    def generate_while_someone_edits(inputs):
+        edited.append(True)
+        return "20 mSv og 6 mSv"
 
-    monkeypatch.setattr(
-        graph.chains.generation,
-        "get_generation_chain",
-        lambda llm: ChainWhileSomeoneEdits(),
-    )
-    monkeypatch.setattr(
-        eval.judge,
-        "judge_item",
-        lambda item, answer, context, llm, votes=1: {
-            "nuggets": ["support"] * len(item["nuggets"]),
-            "unsupported_claims": [],
-            "refused": False,
-        },
-    )
+    _fake_models(monkeypatch, generate_while_someone_edits)
     monkeypatch.setattr(
         eval.history,
         "git_info",

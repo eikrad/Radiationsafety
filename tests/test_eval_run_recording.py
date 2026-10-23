@@ -1,10 +1,13 @@
 """run_eval scores each question (scoring v2) and records the run (graph + judge mocked)."""
 
+import itertools
 import json
 from types import SimpleNamespace
 
 import pytest
 from langchain_core.documents import Document
+from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+from langchain_core.messages import AIMessage
 
 import eval.run_eval as run_eval
 from eval.graph_run import load_outputs
@@ -176,6 +179,24 @@ def test_a_finished_run_is_recorded_with_its_label_and_settings(monkeypatch, wor
     assert run["duration_sec"] >= 0
 
 
+def test_a_run_records_the_answer_models_temperature_and_thinking_level(
+    monkeypatch, workspace
+):
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm",
+        lambda provider=None, model_variant=None, **_: SimpleNamespace(
+            model=model_variant or "gemini-3.8-flash",
+            temperature=1.0,
+            thinking_level="medium",
+        ),
+    )
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    assert run["config"]["llm_temperature"] == 1.0
+    assert run["config"]["llm_thinking_level"] == "medium"
+
+
 def test_each_question_carries_its_error_type_and_scores(monkeypatch, workspace):
     _run(monkeypatch, workspace)
 
@@ -255,12 +276,12 @@ def test_judging_with_the_answering_model_is_recorded_and_warned_about(
 
 def test_the_judge_model_can_be_chosen_separately(monkeypatch, workspace):
     monkeypatch.setenv("EVAL_GRADER_PROVIDER", "gemini")
-    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gemini-2.5-pro")
+    monkeypatch.setenv("EVAL_JUDGE_MODEL", "gemini-3.8-flash")
 
     _run(monkeypatch, workspace)
 
     [run] = load_runs(workspace.history)
-    assert run["config"]["judge_model"] == "gemini-2.5-pro"
+    assert run["config"]["judge_model"] == "gemini-3.8-flash"
     assert run["config"]["judge_is_generator"] is False
 
 
@@ -316,6 +337,18 @@ def test_the_report_carries_the_same_run_header(monkeypatch, workspace):
     assert "retrieval_miss" in markdown
 
 
+def test_the_pass_rate_comes_with_its_95_percent_interval(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    # 2 of 3 judged questions pass
+    assert run["summary"]["pass_rate_interval"] == pytest.approx(
+        [0.2077, 0.9385], abs=1e-4
+    )
+    markdown = (workspace.reports / run["report_file"]).with_suffix(".md").read_text()
+    assert "95 % interval 21–94 %" in markdown
+
+
 def test_the_report_shows_what_the_judge_flagged(monkeypatch, workspace):
     flagged = dict(VERDICTS)
     flagged["Hvor findes dosisgrænserne?"] = {
@@ -344,6 +377,64 @@ def test_a_limited_run_is_recorded_with_its_own_question_count(monkeypatch, work
 
     [run] = load_runs(workspace.history)
     assert run["dataset"]["n_items"] == 1
+
+
+def test_a_run_on_one_split_answers_only_the_questions_of_that_split(
+    monkeypatch, workspace
+):
+    tagged = [
+        {**item, "split": split}
+        for item, split in zip(GOLDEN, ["tune", "confirm", "tune"], strict=True)
+    ]
+    workspace.golden.write_text(json.dumps(tagged), encoding="utf-8")
+
+    assert _run(monkeypatch, workspace, "--split", "tune") == 0
+
+    [run] = load_runs(workspace.history)
+    assert set(_results(run)) == {"dk-dose-limits", "out-of-scope-mri"}
+    assert run["dataset"]["split"] == "tune"
+
+
+def _chat(model: str, tokens_in: int, tokens_out: int) -> GenericFakeChatModel:
+    reply = AIMessage(
+        content="ok",
+        usage_metadata={
+            "input_tokens": tokens_in,
+            "output_tokens": tokens_out,
+            "total_tokens": tokens_in + tokens_out,
+        },
+        response_metadata={"model_name": model},
+    )
+    return GenericFakeChatModel(messages=itertools.repeat(reply))
+
+
+def test_a_run_records_the_tokens_each_model_used(monkeypatch, workspace):
+    answering, judging = _chat("answer-model", 1000, 50), _chat("judge-model", 400, 20)
+    fake_graph, fake_judge = run_eval._invoke_graph, run_eval.judge_item
+
+    def graph_calling_its_model(question, graph, llm):
+        answering.invoke(question)
+        return fake_graph(question, graph, llm)
+
+    def judge_calling_its_model(item, answer, context, llm, votes=1):
+        judging.invoke(answer)
+        return fake_judge(item, answer, context, llm, votes)
+
+    monkeypatch.setattr(run_eval, "_invoke_graph", graph_calling_its_model)
+    monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
+
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    answers, judge = run["usage"]["answers"], run["usage"]["judge"]
+    assert set(answers) == {"answer-model"} and set(judge) == {"judge-model"}
+    assert (
+        answers["answer-model"]["input_tokens"],
+        judge["judge-model"]["output_tokens"],
+    ) == (
+        3 * 1000,
+        3 * 20,
+    )
 
 
 def test_no_history_leaves_the_history_untouched(monkeypatch, workspace):
@@ -403,6 +494,73 @@ def test_a_saved_run_can_be_rescored_without_running_the_graph(monkeypatch, work
     # the judgement is new
     assert rescored["config"]["judge_model"] == "gpt-4o"
     assert _results(rescored)["dk-dose-limits"]["error_type"] == "unsupported_claim"
+
+
+def test_a_rescore_records_only_the_judge_tokens(monkeypatch, workspace):
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    judging, fake_judge = _chat("judge-model", 400, 20), run_eval.judge_item
+
+    def judge_calling_its_model(item, answer, context, llm, votes=1):
+        judging.invoke(answer)
+        return fake_judge(item, answer, context, llm, votes)
+
+    monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
+
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    _, rescored = load_runs(workspace.history)
+    assert rescored["usage"] == {
+        "judge": {
+            "judge-model": {
+                "input_tokens": 1200,
+                "output_tokens": 60,
+                "total_tokens": 1260,
+            }
+        }
+    }
+
+
+def _archived(workspace, run_id):
+    return workspace.history.parent / "outputs" / f"{run_id}.json.gz"
+
+
+def test_a_recorded_run_archives_its_answers_next_to_the_history(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    archived = load_outputs(_archived(workspace, run["run_id"]))
+    assert set(archived) == {i["id"] for i in GOLDEN}
+    assert archived["dk-dose-limits"]["generation"].startswith("Answer to")
+
+
+def test_a_run_can_be_rescored_from_the_archive_on_another_machine(
+    monkeypatch, workspace
+):
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    # another checkout has the history and its archive, not the local reports
+    (workspace.reports / f"outputs_{original['run_id']}.json").unlink()
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+
+    _, rescored = load_runs(workspace.history)
+    assert rescored["rescored_from"] == original["run_id"]
+
+
+def test_debugging_runs_and_rescores_add_nothing_to_the_archive(monkeypatch, workspace):
+    _run(monkeypatch, workspace, "--no-history")
+    assert not (workspace.history.parent / "outputs").exists()
+
+    _run(monkeypatch, workspace)
+    [original] = load_runs(workspace.history)
+    _run(monkeypatch, workspace, "--rescore", original["run_id"])
+
+    assert [p.name for p in (workspace.history.parent / "outputs").iterdir()] == [
+        f"{original['run_id']}.json.gz"
+    ]
 
 
 def test_rescoring_an_unknown_run_says_so(monkeypatch, workspace, capsys):
@@ -471,6 +629,14 @@ def test_a_retrieval_only_run_scores_the_first_retrieval_without_answering_or_ju
     assert run["summary"]["evidence_recall_initial_mean"] == 0.5
     assert run["summary"]["pass_rate"] is None
     assert [q for q, _ in retrieval_only.asked] == [g["question"] for g in GOLDEN[:2]]
+
+
+def test_a_retrieval_only_run_is_not_archived_because_it_is_cheap_to_repeat(
+    monkeypatch, workspace, retrieval_only
+):
+    _run(monkeypatch, workspace, "--retrieval-only")
+
+    assert not (workspace.history.parent / "outputs").exists()
 
 
 def test_a_retrieval_only_run_records_the_embedding_settings(
@@ -711,6 +877,7 @@ def regrade(monkeypatch, workspace):
         raise AssertionError("regrading neither answers nor judges")
 
     monkeypatch.setattr(run_eval, "_grade_sufficient", fake_grader)
+    monkeypatch.setattr(run_eval, "_grade_generation", lambda *a: True)
     monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
     monkeypatch.setattr(run_eval, "judge_item", must_not_run)
     return SimpleNamespace(run_id=run["run_id"], seen=seen)
@@ -747,6 +914,74 @@ def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
         not in _results(run)["iaea-transport-index"]["metrics"]
     )
     assert run["summary"]["grade_documents_ablation_correct_mean"] == 1.0
+
+
+@pytest.fixture
+def answer_grader(monkeypatch):
+    """An answer grader that passes every answer except the transport one."""
+    seen = []
+
+    def fake_answer_grader(question, context, generation, llm):
+        seen.append((question, context, generation))
+        return "transport" not in question
+
+    monkeypatch.setattr(run_eval, "_grade_generation", fake_answer_grader)
+    return seen
+
+
+def test_regrading_checks_the_answer_grader_against_the_judges_verdicts(
+    monkeypatch, workspace, regrade, answer_grader
+):
+    """The answer grader sees the saved answer with the context it was written from."""
+    _run(monkeypatch, workspace, "--regrade", regrade.run_id)
+
+    run = load_runs(workspace.history)[-1]
+    results = _results(run)
+    # dk passed and was passed; transport failed and was flagged; the MRI
+    # refusal passed and was passed
+    for qid in ("dk-dose-limits", "iaea-transport-index", "out-of-scope-mri"):
+        assert results[qid]["metrics"]["grade_generation_correct"] == 1.0
+    assert run["summary"]["grade_generation_confusion"] == {
+        "failed_flagged": 1,
+        "failed_missed": 0,
+        "passed_flagged": 0,
+        "passed_kept": 2,
+    }
+    assert (
+        "Hvor findes dosisgrænserne?",
+        ANNEX_2,
+        "Answer to Hvor findes dosisgrænserne?",
+    ) in answer_grader
+
+
+def test_regrading_can_take_the_verdicts_from_a_later_rescore(
+    monkeypatch, workspace, regrade, answer_grader
+):
+    """A rescore after a label fix holds the verdicts the grader is checked against."""
+    monkeypatch.setattr(
+        run_eval,
+        "judge_item",
+        lambda item, answer, context, llm, votes=1: {
+            "nuggets": ["not_support"] * len(item.get("nuggets") or []),
+            "unsupported_claims": [],
+            "refused": False,
+        },
+    )
+    _run(monkeypatch, workspace, "--rescore", regrade.run_id)
+    rescore_id = load_runs(workspace.history)[-1]["run_id"]
+    monkeypatch.setattr(run_eval, "judge_item", lambda *a, **k: pytest.fail("judged"))
+
+    _run(monkeypatch, workspace, "--regrade", regrade.run_id, "--labels", rescore_id)
+
+    run = load_runs(workspace.history)[-1]
+    # the rescore failed every answer; the grader passed two of them
+    assert run["summary"]["grade_generation_confusion"] == {
+        "failed_flagged": 1,
+        "failed_missed": 2,
+        "passed_flagged": 0,
+        "passed_kept": 0,
+    }
+    assert run["config"]["labels_from"] == rescore_id
 
 
 def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
@@ -831,3 +1066,21 @@ def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, works
     result = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
     assert result["error_type"] != "graph_error"
     assert asked.count("What is the transport index?") == 2
+
+
+def test_runs_started_in_the_same_second_keep_their_own_reports(monkeypatch, workspace):
+    # two eval chains run in parallel; a shared run ID let one report overwrite the other
+    class FrozenClock(run_eval.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return run_eval.datetime(2026, 10, 17, 19, 6, 26, tzinfo=tz)
+
+    monkeypatch.setattr(run_eval, "datetime", FrozenClock)
+    assert _run(monkeypatch, workspace, "--label", "first") == 0
+    assert _run(monkeypatch, workspace, "--label", "second") == 0
+
+    first, second = load_runs(workspace.history)
+    assert first["run_id"] != second["run_id"]
+    for run in (first, second):
+        report = json.loads((workspace.reports / run["report_file"]).read_text())
+        assert report["label"] == run["label"]

@@ -1,0 +1,12 @@
+[
+ {"model": "gemma-4-26b-a4b-it", "currency": "EUR", "since": "2026-10-13", "input": 0.25, "output": 0.50, "source": "Scaleway Generative APIs pricing page, before tax, seen 2026-10-13"},
+ {"model": "qwen3.8-27b", "currency": "EUR", "since": "2026-10-13", "input": 0.60, "cached_input": 0.12, "output": 3.30, "source": "Scaleway console and pricing page, before tax, seen 2026-10-13"},
+ {"model": "deepseek-v4-flash-0731", "currency": "EUR", "since": "2026-10-13", "input": 0.40, "cached_input": 0.08, "output": 0.80, "source": "Scaleway pricing page (DeepSeek v4 Flash), before tax, seen 2026-10-13"},
+ {"model": "deepseek-v4.1-flash", "currency": "EUR", "since": "2026-10-13", "input": 0.60, "cached_input": 0.12, "output": 1.80, "source": "Scaleway console, before tax, seen 2026-10-13"},
+ {"model": "mistral-medium-3.5-128b", "currency": "EUR", "since": "2026-10-13", "input": 1.50, "output": 7.50, "source": "Scaleway pricing page, before tax, seen 2026-10-13"},
+ {"model": "glm-5.2", "currency": "EUR", "since": "2026-10-13", "input": 1.80, "output": 5.50, "source": "Scaleway pricing page, before tax, seen 2026-10-13"},
+ {"model": "gemini-3.8-flash", "currency": "USD", "since": "2026-10-13", "input": 0.75, "output": 3.75, "source": "ai.google.dev/gemini-api/docs/pricing, paid tier, introductory price through 2026-12-31"},
+ {"model": "gemini-3.8-flash", "currency": "USD", "since": "2027-01-01", "input": 1.50, "output": 7.50, "source": "ai.google.dev/gemini-api/docs/pricing, paid tier"},
+ {"model": "gemini-4-argon", "currency": "USD", "since": "2026-10-13", "input": 2.00, "output": 10.00, "source": "ai.google.dev/gemini-api/docs/pricing, paid tier, through 2026-11-30"},
+ {"model": "gemini-4-argon", "currency": "USD", "since": "2026-12-01", "input": 4.00, "output": 20.00, "source": "ai.google.dev/gemini-api/docs/pricing, paid tier"}
+]

@@ -1,6 +1,7 @@
 """Position test (#132): the same chunks, the evidence first or in the middle."""
 
 from langchain_core.documents import Document
+from langchain_core.runnables import RunnableLambda
 
 from eval.position_test import compare, evidence_indices, placements, vital_score
 
@@ -80,9 +81,8 @@ def test_pairs_are_compared_by_sign_test_over_the_questions_that_differ():
     assert summary["mean_first"] == 0.875 and summary["mean_middle"] == 0.625
 
 
-def test_a_run_answers_each_question_twice_and_skips_what_cannot_be_moved(monkeypatch):
+def _fake_models(monkeypatch, generate):
     import eval.judge
-    import eval.position_test as position_test
     import eval.run_eval
     import graph.chains.generation
     import graph.llm_factory
@@ -96,14 +96,10 @@ def test_a_run_answers_each_question_twice_and_skips_what_cannot_be_moved(monkey
     monkeypatch.setattr(
         eval.run_eval, "_judge_llm", lambda g, p, m: (object(), {"judge_model": "j"})
     )
-
-    class Chain:
-        def invoke(self, inputs):
-            first = inputs["context"].split("\n")[1]
-            return "20 mSv" if "20 mSv" in first else "unclear"
-
     monkeypatch.setattr(
-        graph.chains.generation, "get_generation_chain", lambda llm: Chain()
+        graph.chains.generation,
+        "get_generation_chain",
+        lambda llm: RunnableLambda(generate),
     )
     monkeypatch.setattr(
         eval.judge,
@@ -117,6 +113,16 @@ def test_a_run_answers_each_question_twice_and_skips_what_cannot_be_moved(monkey
             "refused": False,
         },
     )
+
+
+def test_a_run_answers_each_question_twice_and_skips_what_cannot_be_moved(monkeypatch):
+    import eval.position_test as position_test
+
+    def generate(inputs):
+        first = inputs["context"].split("\n")[1]
+        return "20 mSv" if "20 mSv" in first else "unclear"
+
+    _fake_models(monkeypatch, generate)
     golden = [ITEM, {**ITEM, "id": "none", "question": "Ingen evidens?"}]
 
     record = position_test.run(golden, "test", delay_sec=0)
@@ -129,42 +135,15 @@ def test_a_run_answers_each_question_twice_and_skips_what_cannot_be_moved(monkey
 
 def test_the_record_describes_the_code_as_it_was_when_the_test_started(monkeypatch):
     import eval.history
-    import eval.judge
     import eval.position_test as position_test
-    import eval.run_eval
-    import graph.chains.generation
-    import graph.llm_factory
 
-    monkeypatch.setattr(
-        eval.run_eval,
-        "_retrieve_initial",
-        lambda q, ep: _docs("IAEA one", "grænsen er 20 mSv pr. år", "other"),
-    )
-    monkeypatch.setattr(graph.llm_factory, "get_llm", lambda: object())
-    monkeypatch.setattr(
-        eval.run_eval, "_judge_llm", lambda g, p, m: (object(), {"judge_model": "j"})
-    )
     edited = []
 
-    class ChainWhileSomeoneEdits:
-        def invoke(self, inputs):
-            edited.append(True)
-            return "20 mSv"
+    def generate_while_someone_edits(inputs):
+        edited.append(True)
+        return "20 mSv"
 
-    monkeypatch.setattr(
-        graph.chains.generation,
-        "get_generation_chain",
-        lambda llm: ChainWhileSomeoneEdits(),
-    )
-    monkeypatch.setattr(
-        eval.judge,
-        "judge_item",
-        lambda item, answer, context, llm, votes=1: {
-            "nuggets": ["support", "not_support"],
-            "unsupported_claims": [],
-            "refused": False,
-        },
-    )
+    _fake_models(monkeypatch, generate_while_someone_edits)
     monkeypatch.setattr(
         eval.history,
         "git_info",
