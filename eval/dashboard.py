@@ -14,6 +14,7 @@ import math
 import sys
 import webbrowser
 from collections import defaultdict
+from itertools import pairwise
 from pathlib import Path
 
 from eval.costs import load_prices, run_cost
@@ -168,7 +169,7 @@ def _question_set(
         if a is not b
     }
     markers = []
-    for previous, run in zip(runs, runs[1:]):
+    for previous, run in pairwise(runs):
         reasons = _incomparability(previous, run)
         if reasons:
             markers.append({"run_id": run["run_id"], "reasons": reasons})
