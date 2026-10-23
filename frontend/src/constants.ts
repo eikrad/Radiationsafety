@@ -31,11 +31,7 @@ export const MODEL_VARIANTS: Record<Model, { id: string; label: string }[]> = {
   // Scaleway models come from GET /api/config (the server's .env), not from here.
   scaleway: [],
   mistral: [{ id: 'default', label: 'Mistral (default)' }],
-  gemini: [
-    { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (default)' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (10 RPM)' },
-    { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (15 RPM, free tier)' },
-  ],
+  gemini: [{ id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (default)' }],
   openai: [
     { id: 'gpt-4o-mini', label: 'GPT-4o mini (recommended)' },
     { id: 'gpt-4o', label: 'GPT-4o' },

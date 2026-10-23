@@ -322,13 +322,16 @@ uv run python -m eval.dashboard --open
 | `--reports-dir PATH` | Local reports, for answer previews in the comparison (default: `eval/reports`) |
 | `--open` | Open the page in the browser |
 
-One self-contained HTML file, no network needed. Pick a question set, a run, and whether to compare it with the baseline or the previous run; every section follows that choice:
+One self-contained HTML file, no network needed. Pick a question set (held-out `tune` and `confirm`, the dev set, older dev versions by date), then two runs in the **Runs** table: **B**, the run to look at, and **A**, the run to compare it with. Any two runs of a set can be compared either way; the bar at the top names A and B and swaps them. By default B is the newest run with new answers and A the baseline, or, when the baseline was scored differently or by another judge, the latest earlier run that was not. Every section follows that choice:
 
-- **Headline**: pass rate with change vs previous and baseline, the verdict (regressions / improvements) with a sign test, and **why questions failed** (retrieval vs generation).
-- **Scores over time**: pass rate and each metric as small charts in run order; dashed lines mark where scoring or grading targets changed; the ringed point is the baseline.
-- **Compare runs**: score changes, changed settings (models, `retriever_k`, prompts, …), questions that flipped (regressions first, with the reason) and answer previews, and caveats such as uncommitted changes. Runs scored under different rules are marked *not directly comparable* instead of getting a regression verdict.
+- **Headline**: B's pass rate with its 95 % interval and the count passed, the change against A, the verdict (regressions / improvements) with a sign test, and **why questions failed** (retrieval vs generation).
+- **Runs**: every run, newest first, with kind (new answers, rescore by another judge, regrade, grader check, retrieval only; switch kinds on and off), answer model, judge, passed count, pass rate with its **95 % interval as a bar** on one shared scale, and cost. Bars that overlap a lot mean the difference may be chance.
+- **Compare A → B**: score changes (pass rate with both intervals), changed settings (models, `retriever_k`, prompts, …), questions that flipped (regressions first, with the reason) and answer previews, and caveats such as uncommitted changes. Runs scored under different rules are marked *not directly comparable* instead of getting a regression verdict.
+- **Scores over time**: pass rate (with its interval as a vertical bar) and each metric as small charts in run order; dashed lines mark where scoring or grading targets changed; the ringed point is the baseline.
 - **By topic**: pass rate per topic, language or source (judged questions only).
-- **Questions**: ✓ / ✗ / ? (not judged) for every question in every run, with the reason on hover.
+- **Questions**: ✓ / ✗ / ? (not judged) for every question in every run with answers, A and B marked, the reason on hover. The header row and the question column stay in view while scrolling.
+
+On a `confirm` set the page shows single questions like any other; the rule to read `confirm` in aggregate only still applies, so stay with the headline and the runs table there.
 
 Typical workflow for a retrieval or prompt change:
 
