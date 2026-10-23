@@ -939,26 +939,62 @@ remedy for the next round: tell the generator that a value a follow-up
 query searched for and did not find must be reported as missing (fits the
 "structured gaps" item below); measured on `tune` under its own rule.
 
-## Local model on `confirm` (rule, 2026-10-23)
+## Local model for privacy mode (rule, 2026-10-23)
 
-Rule set before the run. `qwen3.5:4b` (Ollama, `OLLAMA_NUM_CTX=12288` as in
-the earlier local runs) with `bge-m3` (`-ollama-bge-m3` collections, index
-fingerprints `b0fc52f61a4e` / `d90d785f314c`), the same pipeline as the
-Gemma and Gemini `confirm` runs including the database correction loop, no
-web search; judged by Qwen (`qwen3.8-27b`, 3 votes) and re-scored by
-Mistral.
+Rules set before any run. Two decisions: which local model privacy mode
+uses by default (on `tune`), and what the app and README say about its
+quality (one run on `confirm`). Common setup: Ollama on the maintainer's
+laptop (RTX 3060 Laptop, 6 GB VRAM), `OLLAMA_NUM_CTX=12288` as in the
+earlier local runs, `bge-m3` embeddings (`-ollama-bge-m3` collections,
+index fingerprints `b0fc52f61a4e` / `d90d785f314c`), the database
+correction loop, no web search; judged by Qwen (`qwen3.8-27b`, 3 votes)
+and re-scored by Mistral. The local model also grades its own context and
+answers inside the graph, as Gemma does.
 
-**Reported, not decided on.** It is not a confirmation of the optimised
-pipeline and does not count towards the three; `confirm` stays aggregate
-only. Reported: the pass rate with its 95 % interval under both judges,
-the counts per error type, the gap to Gemma (`confirm-optimised`) and
-Flash with both intervals (no ranking where they overlap), and how many
-of the local model's retrieval misses are shared with Gemma's (a count,
-not the questions). Also recorded: duration per question and the share of
-the model on the GPU. Nothing in the pipeline is changed on its strength.
+**Why the challenger.** The default `qwen3.5:4b` scores 47 F1 on Danish
+reading comprehension in EuroEval (`multi_wiki_qa_da`, leaderboard of
+2026-04-17), the lowest of the small models there; `gemma4:e4b` (about
+4.5B effective parameters, the same family as the cloud
+`gemma-4-26b-a4b-it`) scores 73. `qwen3.5:9b` (53 F1) does not fit in 6 GB
+and is left out. EuroEval is general Danish, not RAG on legal text
+(`llama3.1:8b` scores 75 there but trailed `qwen3.5:4b` on the dev set,
+51 % vs 59 %), so it picks the challenger, not the winner.
 
-Expected cost: the answers are local; the Qwen judge about €0.80 and the
-Mistral rescore about €1.00.
+**Stage 1, `tune`: default model.** First a smoke test of
+`gemma4:e4b-it-qat` (`--limit 2 --no-history`): seconds per question, share
+on the GPU (`ollama ps`), and whether the graders' structured output
+parses. Then one full `tune` run each for `qwen3.5:4b` and `gemma4:e4b`.
+Gemma 4 E4B becomes the privacy-mode default (`OLLAMA_MODEL` in
+`.env.example`) if, under both judges, it gains at least 3 questions net
+over `qwen3.5:4b` and its median time per question stays under 3 minutes;
+otherwise `qwen3.5:4b` stays (on a tie the faster model stays). If the
+smoke test is slower than 3 minutes per question or the output does not
+parse, Gemma 4 E4B is dropped with that reason and stage 1 is the
+`qwen3.5:4b` run alone. `tune` may be read question by question: whether
+the local model fails on retrieval (shared with Gemma's `tune-local-loop`,
+`20261017_143922`, 40 of 53) or on the answer.
+
+**Stage 2, `confirm`: quality statement.** One run of the stage 1 winner
+against Gemma `confirm-optimised` (`20261017_191022`, Mistral
+`20261017_203622`; 44 of 53 under both). Read in aggregate only: pass
+rates with 95 % intervals, counts per error type, flips as counts with the
+sign test, the number of retrieval misses shared with Gemma (a count).
+- **Comparable:** under both judges net flips ≥ −3 and no significant
+  regression (sign test, p < 0.05 towards worse). README and the
+  privacy-mode setting then say "same quality as the cloud model, slower".
+- **Weaker:** otherwise. Privacy mode then shows a quality notice in the
+  app, and the README gives the measured gap with intervals.
+- **Where to work next** (not a change made on `confirm`): if most of the
+  local model's failures are retrieval misses Gemma shares, the next
+  retrieval round covers privacy mode too; if answer faults (generator
+  miss, unsupported claim) make up most of them, the next lever is the
+  model, measured on `tune`.
+This run changes nothing in the pipeline and is not one of the three
+confirmations of the optimised pipeline.
+
+Expected cost: the answers are local; per run the Qwen judge about €0.80
+and the Mistral rescore about €1.00, so about €3.60 for stage 1 and €1.80
+for stage 2. Run time about 1–2 hours per run, one run at a time.
 
 ## Next round on `tune` (after step 5)
 
