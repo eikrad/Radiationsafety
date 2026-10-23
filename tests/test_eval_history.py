@@ -130,7 +130,7 @@ def _record(run_id: str, **overrides) -> dict:
             _result("b", False),
         ],
         "dataset": dataset_fingerprint(GOLDEN),
-        "config": {"llm_model": "gemini-2.5-flash", "retriever_k": 3},
+        "config": {"llm_model": "gemini-3.8-flash", "retriever_k": 3},
         "git": {"commit": "abc1234", "branch": "staging", "dirty": False},
         "label": "baseline",
     }

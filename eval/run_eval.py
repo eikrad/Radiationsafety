@@ -17,7 +17,7 @@ import os
 import sys
 import time
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from langchain_core.callbacks import get_usage_metadata_callback
@@ -259,6 +259,19 @@ def _model_name(llm) -> str:
     return getattr(llm, "model", None) or getattr(llm, "model_name", None) or "n/a"
 
 
+def _sampling_config(llm) -> dict:
+    """The answer model's temperature and, where set, its thinking level."""
+    config = {}
+    for key, attr in (
+        ("llm_temperature", "temperature"),
+        ("llm_thinking_level", "thinking_level"),
+    ):
+        value = getattr(llm, attr, None)
+        if value is not None:
+            config[key] = value
+    return config
+
+
 def _judge_llm(
     default_llm, llm_provider: str, answer_model: str
 ) -> tuple[object, dict]:
@@ -449,6 +462,7 @@ def _run_eval(
             "retrieval_only": False,
             "llm_provider": llm_provider,
             "llm_model": _model_name(graph_llm),
+            **_sampling_config(graph_llm),
             # a local model reads at most this many tokens of the prompt
             **({"llm_num_ctx": ollama_num_ctx()} if llm_provider == "ollama" else {}),
             **judge_info,
@@ -1001,6 +1015,24 @@ def _markdown_header_lines(header: dict) -> list[str]:
     return lines
 
 
+def _claim_run_id(output_dir: Path) -> str:
+    """The start time as run ID, one second later if another run took it.
+
+    Two runs started in the same second (parallel eval chains) would otherwise
+    write the same report and archive. The claim is an exclusive file create,
+    so it also holds between processes.
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    moment = datetime.now(UTC)
+    while True:
+        run_id = moment.strftime("%Y%m%d_%H%M%S")
+        try:
+            (output_dir / f".run_{run_id}").touch(exist_ok=False)
+            return run_id
+        except FileExistsError:
+            moment += timedelta(seconds=1)
+
+
 def main() -> int:
     from dotenv import load_dotenv
 
@@ -1175,7 +1207,7 @@ def main() -> int:
         )
         return 1
     started = time.monotonic()
-    run_id = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    run_id = _claim_run_id(args.output_dir)
     if args.rescore:
         rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
         if rescored is None:
