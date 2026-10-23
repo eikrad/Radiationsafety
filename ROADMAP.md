@@ -899,6 +899,67 @@ $4.40, three Mistral rescores €3.0, the repeated baseline rescore €0.78).
 claims after the loop. To be looked into on `tune` (`tune-local-loop` and
 its Mistral rescore), never on `confirm`.
 
+### Open question on `tune` (2026-10-23): the rise does not recur there
+
+From archived answers and judge records only, no new calls. Baseline
+answers `20261016_160821` (Qwen `20261016_182025`, Mistral
+`20261016_184941` and `20261016_165052`), loop answers `20261017_143922`
+(Qwen) with Mistral rescore `20261017_154702`; 53 questions, 14 of them
+took the loop path (`retrieve_missing`), one loop answer is a timeout.
+
+| Judge | Answers | `unsupported_claim` as error type | Questions with a flagged claim |
+|---|---|---|---|
+| Mistral | baseline | 3 (both rescores, same questions) | 5 |
+| Mistral | loop | 1 | 2 |
+| Qwen | baseline | 0 | 1 |
+| Qwen | loop | 0 | 1 |
+
+On `tune` Mistral flags fewer unsupported claims after the loop, not more.
+Of the four baseline answers it flagged and no longer flags, three did not
+take the loop path and were simply written anew, and the fourth is the
+timeout; that drop is sampling, not the loop. One flag is the same in both runs on a question
+without a loop (the transport index, where the quoted IAEA sentence is in
+the first retrieval's context): a Mistral false alarm, not a loop effect.
+
+The one new flag shows a plausible mechanism. On the Ir-192 shipment
+question the loop ran two follow-up queries, one of them for "Ir-192 A1
+and A2 values"; the context grew from 12k to 31k characters but did not
+contain those values, and the answer wrote them in anyway (A1 1 TBq, A2
+0.6 TBq) and built five derived statements on them. Mistral flagged all
+five, Qwen none. So the extra claims come from the answer, not from the
+follow-up chunks: a follow-up query that names a missing value and does
+not find it invites the generator to fill the slot from its own knowledge.
+The question fails as a retrieval miss under both judges either way.
+Across the 14 looped questions the context roughly doubles (median 12k →
+22k characters) while the answers do not get longer (median 963 → 948).
+
+Cannot be settled from `tune`: one question shows the mechanism, and the
+`confirm` rise (1 → 5) is not looked at question by question. Candidate
+remedy for the next round: tell the generator that a value a follow-up
+query searched for and did not find must be reported as missing (fits the
+"structured gaps" item below); measured on `tune` under its own rule.
+
+## Local model on `confirm` (rule, 2026-10-23)
+
+Rule set before the run. `qwen3.5:4b` (Ollama, `OLLAMA_NUM_CTX=12288` as in
+the earlier local runs) with `bge-m3` (`-ollama-bge-m3` collections, index
+fingerprints `b0fc52f61a4e` / `d90d785f314c`), the same pipeline as the
+Gemma and Gemini `confirm` runs including the database correction loop, no
+web search; judged by Qwen (`qwen3.8-27b`, 3 votes) and re-scored by
+Mistral.
+
+**Reported, not decided on.** It is not a confirmation of the optimised
+pipeline and does not count towards the three; `confirm` stays aggregate
+only. Reported: the pass rate with its 95 % interval under both judges,
+the counts per error type, the gap to Gemma (`confirm-optimised`) and
+Flash with both intervals (no ranking where they overlap), and how many
+of the local model's retrieval misses are shared with Gemma's (a count,
+not the questions). Also recorded: duration per question and the share of
+the model on the GPU. Nothing in the pipeline is changed on its strength.
+
+Expected cost: the answers are local; the Qwen judge about €0.80 and the
+Mistral rescore about €1.00.
+
 ## Next round on `tune` (after step 5)
 
 Candidates, each measured on `tune` only under a rule committed before it
