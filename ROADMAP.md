@@ -996,6 +996,70 @@ Expected cost: the answers are local; per run the Qwen judge about €0.80
 and the Mistral rescore about €1.00, so about €3.60 for stage 1 and €1.80
 for stage 2. Run time about 1–2 hours per run, one run at a time.
 
+## Language or structure (#168): existing data (2026-10-23)
+
+From existing retrieval-only runs, no new calls; `confirm` not read.
+`tune`: `tune-retrieval-bge-gemma2` (`20261016_185213`) and
+`tune-retrieval-bge-m3` (`20261016_185243`), 50 answerable questions. Dev:
+`dense-ref` (`20261002_194518`, bge-gemma2) and `privacy-emb-bge-m3`
+(`20261011_090449`), 35 answerable questions; same index for all. A
+question counts as complete when every evidence passage is in the top 5.
+Question types were tagged by hand for this analysis
+(`eval/data/question_types.json`, one primary type per question, first
+that applies: table or annex row, cross-reference or combination of
+provisions, multi-part, definition, single passage); the golden set is
+unchanged.
+
+**3.1, by factor (`tune`, complete at 5, bge-gemma2 / bge-m3):**
+
+| Factor | Group | Complete | Fisher p (group vs rest) |
+|---|---|---|---|
+| Source | IAEA | 11/16 / 9/16 | 0.49 / 0.11 |
+| | Danish law | 26/33 / 27/33 | |
+| Question language (Danish law only) | English | 6/7 / 6/7 | 1.0 / 1.0 |
+| | Danish | 20/26 / 21/26 | |
+| Question type | single passage or definition | 10/10 / 10/10 | |
+| | table or cross-reference | 12/19 / 11/19 | 0.06 / 0.03 (against simple) |
+| | multi-part | 16/21 / 15/21 | 1.0 / 1.0 |
+
+- Every incomplete Danish-law question but one is a table or a
+  cross-reference question (6 of 7 under bge-gemma2), all of them asked in
+  Danish; the incomplete IAEA questions are mostly multi-part (4 of 5).
+  No simple question is incomplete under either embedder.
+- Type and source are confounded: 12 of the 16 IAEA `tune` questions are
+  multi-part and none is a single passage or a definition, so "IAEA fails
+  more often" is largely "multi-part questions fail more often" (within
+  multi-part: IAEA 8/12, Danish law 8/9).
+- Language and type are confounded too: the seven English questions on
+  Danish law include two table or cross-reference questions, the 26 Danish
+  ones twelve. The better pass rate of English questions on Danish law
+  (6 of 7 against 19 of 26) fits their simpler types as well as their
+  language.
+- Dev cannot separate anything: 34 of 35 questions are complete under
+  bge-gemma2 at k = 5, and 23 of 35 are single-passage questions. The
+  earlier "misses only in Danish law" came from k = 3 and the old index.
+
+**3.2, Danish/English pairs (`tune`, same evidence, retrieval-only):**
+five pairs (dosimeter period, category B boundary, transport index,
+50 mSv in special cases, breastfeeding worker). bge-gemma2: four ties, one
+pair one rank better in English. bge-m3: one pair better in English (rank
+1 against 5, transport index), one better in Danish (1 against 2, dosimeter
+period), three ties. Sign test p = 1.0 under both embedders. The pairs are
+simple questions near the ceiling, so they cannot show a language effect
+either way; with five pairs the sign test could not reach p < 0.05 anyway.
+
+**Result under #168's rule: not separable at this set size.** The only
+contrast near significance is question type (table or cross-reference
+against simple, p = 0.03 under bge-m3 and 0.06 under bge-gemma2), and that
+grouping was chosen after looking at the data, so it is a hint, not a
+finding. The hint points to structure rather than language: misses
+concentrate in table and cross-reference questions (Danish law) and in
+multi-part questions (IAEA), not in a question or document language. It
+fits the candidates already listed for the next round (neighbour chunks
+and reference edges for split or cited units, re-ranking more candidates
+for tables); the PDF-versus-XML comparison (#168 step 1) stays open and
+needs an index build.
+
 ## Next round on `tune` (after step 5)
 
 Candidates, each measured on `tune` only under a rule committed before it
