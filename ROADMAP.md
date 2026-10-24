@@ -1042,7 +1042,7 @@ What `tune` shows question by question:
 Cost: €4.89 for the four judge passes (Qwen €1.19 and €1.00, Mistral €1.43
 and €1.27), above the €3.60 estimate; the answers are local and free.
 
-### Stage 2 result (2026-10-24): privacy mode is weaker
+### Stage 2 result (2026-10-24): the small model trails the large one
 
 `confirm-local-gemma4-e4b` `20261024_085918` (Mistral rescore
 `20261024_101909`): `gemma4:e4b-it-qat`, bge-m3, loop, `num_ctx` 12288, no
@@ -1060,6 +1060,25 @@ test p = 0.002); Mistral 3 better, 15 worse (net −12, p = 0.008). Both
 judges agree on the gap. Privacy mode gets a quality notice in the app,
 and the README states the gap: about 60 % (47–72 %) against 83 % (71–91 %)
 on held-out questions.
+
+**What this measures.** "Local against cloud" is the wrong frame: the cloud
+model, Gemma 4 26B-A4B, is open weights too and would run locally on
+hardware with enough memory. The gap is model size (E4B on a 6 GB laptop GPU
+against 26B), plus the embedding difference (bge-m3 against the Scaleway
+embeddings). Open against closed was measured in step 5 on the same 53
+questions and the same pipeline:
+
+| Model | Kind | Qwen | Mistral |
+|---|---|---|---|
+| Gemini 3.8 Flash | closed | 47/53 (77–95 %) | 45/53 (73–92 %) |
+| Gemma 4 26B-A4B | open, large | 44/53 (71–91 %) | 44/53 (71–91 %) |
+| Gemma 4 E4B | open, small, laptop | 32/53 (47–72 %) | 32/53 (47–72 %) |
+
+26B against Flash: Qwen net −3 (p = 0.45), Mistral net −1 (p = 1.0), within
+the noise. E4B against Flash: Qwen net −15 (p < 0.001), Mistral net −13
+(p = 0.007). Open against closed barely matters here; model size does. The
+quality notice should say so: privacy mode runs a small model on this
+computer, and a model of the 26B class needs about 24–32 GB of memory.
 
 Where to work next: 3 of the 9 local retrieval misses are shared with the
 cloud run, so most local failures are not shared retrieval misses. Answer
@@ -1166,6 +1185,28 @@ for what passes. Sources are in the second brain (2026-10-17 ingest).
   text) and no repeated query in one loop (S2GRAG-Li2026,
   PartialAnswerQuality-Tian2026): cuts the wasted rounds seen on
   `refuse-skift-p-nummer`. Full run, since it acts inside the loop.
+
+## Outlook: training for behaviour and retrieval, not knowledge (2026-10-24)
+
+Not before the talk; ideas to measure on `tune` later, each under a rule
+committed first. The golden questions must never be training data.
+
+- **Not: training the documents into the model.** Answers would lose their
+  source, single facts (limits, §, table values) are learned unreliably, and
+  every new order would mean retraining. A study on this (Gekhman et al.
+  2024, "Does Fine-Tuning LLMs on New Knowledge Encourage Hallucinations?")
+  is to be read in full and ingested before it is cited.
+- **Behaviour fine-tuning of the small local model** (LoRA, DPO on
+  preference pairs): attribute content to the right §, read tables by row
+  and column, keep "should", report missing values. These are E4B's error
+  patterns on `tune`. Trust-Align (DPO on about 19k pairs) improved grounded
+  answers and correct refusals of an 8B model where prompting failed; plain
+  SFT on "I don't know" lowered abstention and raised hallucination
+  (Sufficient Context). Training data synthetic from the documents.
+- **Domain-adapted embeddings** (bge-m3 fine-tuned on synthetic
+  question–passage pairs from the documents): the misses Gemma and Flash
+  share sit in retrieval, so this helps every mode. Cheaper than training
+  the answer model.
 
 ---
 
