@@ -1042,6 +1042,39 @@ What `tune` shows question by question:
 Cost: €4.89 for the four judge passes (Qwen €1.19 and €1.00, Mistral €1.43
 and €1.27), above the €3.60 estimate; the answers are local and free.
 
+### Stage 2 result (2026-10-24): privacy mode is weaker
+
+`confirm-local-gemma4-e4b` `20261024_085918` (Mistral rescore
+`20261024_101909`): `gemma4:e4b-it-qat`, bge-m3, loop, `num_ctx` 12288, no
+web search. Read in aggregate only, as the rule says.
+
+| Judge | Setup | Pass | 95 % interval | unsupported_claim | retrieval_miss | generator_miss | wrong_refusal |
+|---|---|---|---|---|---|---|---|
+| Qwen | local Gemma 4 E4B | 32/53 (60 %) | 47–72 % | 10 | 9 | 1 | 1 |
+| Qwen | cloud `confirm-optimised` | 44/53 (83 %) | 71–91 % | 1 | 3 | 5 | 0 |
+| Mistral | local Gemma 4 E4B | 32/53 (60 %) | 47–72 % | 10 | 9 | 1 | 1 |
+| Mistral | cloud `confirm-optimised` | 44/53 (83 %) | 71–91 % | 5 | 3 | 1 | 0 |
+
+**Weaker.** Local against cloud: Qwen 1 better, 13 worse (net −12, sign
+test p = 0.002); Mistral 3 better, 15 worse (net −12, p = 0.008). Both
+judges agree on the gap. Privacy mode gets a quality notice in the app,
+and the README states the gap: about 60 % (47–72 %) against 83 % (71–91 %)
+on held-out questions.
+
+Where to work next: 3 of the 9 local retrieval misses are shared with the
+cloud run, so most local failures are not shared retrieval misses. Answer
+faults (10 unsupported claims, 1 generator miss) make up 11 of the 21
+failures, so the next lever is the model, measured on `tune`. The 6
+retrieval misses only the local setup has point at the local embeddings
+(bge-m3 against the cloud embeddings); on `tune` recall was nearly equal,
+so this is a hint, not a finding.
+
+Run time 80 min for the answers (about 90 s per question on average). The
+first attempt was stopped by Claude Code under
+memory pressure after 25 questions (Ollama's runner took 9.2 GB); the
+recorded run ran in a separate terminal. Cost €2.30 (Qwen judge €1.01,
+Mistral rescore €1.29).
+
 ## Language or structure (#168): existing data (2026-10-23)
 
 From existing retrieval-only runs, no new calls; `confirm` not read.
