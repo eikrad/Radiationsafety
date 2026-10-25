@@ -123,3 +123,36 @@ describe('asking a question', () => {
     await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
   })
 })
+
+describe('choosing the local model', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', memoryStorage())
+    vi.stubGlobal('sessionStorage', memoryStorage())
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ server_has_llm_key: true, providers: {} }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('says the local model is weaker, with the measured pass rates', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    expect(screen.queryByRole('note', { name: 'Local model quality' })).toBeNull()
+
+    await user.selectOptions(screen.getByRole('combobox'), 'ollama')
+
+    const notice = screen.getByRole('note', { name: 'Local model quality' })
+    expect(notice).toHaveTextContent('60 %')
+    expect(notice).toHaveTextContent('83 %')
+  })
+})

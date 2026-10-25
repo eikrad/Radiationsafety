@@ -899,6 +899,265 @@ $4.40, three Mistral rescores €3.0, the repeated baseline rescore €0.78).
 claims after the loop. To be looked into on `tune` (`tune-local-loop` and
 its Mistral rescore), never on `confirm`.
 
+### Open question on `tune` (2026-10-23): the rise does not recur there
+
+From archived answers and judge records only, no new calls. Baseline
+answers `20261016_160821` (Qwen `20261016_182025`, Mistral
+`20261016_184941` and `20261016_165052`), loop answers `20261017_143922`
+(Qwen) with Mistral rescore `20261017_154702`; 53 questions, 14 of them
+took the loop path (`retrieve_missing`), one loop answer is a timeout.
+
+| Judge | Answers | `unsupported_claim` as error type | Questions with a flagged claim |
+|---|---|---|---|
+| Mistral | baseline | 3 (both rescores, same questions) | 5 |
+| Mistral | loop | 1 | 2 |
+| Qwen | baseline | 0 | 1 |
+| Qwen | loop | 0 | 1 |
+
+On `tune` Mistral flags fewer unsupported claims after the loop, not more.
+Of the four baseline answers it flagged and no longer flags, three did not
+take the loop path and were simply written anew, and the fourth is the
+timeout; that drop is sampling, not the loop. One flag is the same in both runs on a question
+without a loop (the transport index, where the quoted IAEA sentence is in
+the first retrieval's context): a Mistral false alarm, not a loop effect.
+
+The one new flag shows a plausible mechanism. On the Ir-192 shipment
+question the loop ran two follow-up queries, one of them for "Ir-192 A1
+and A2 values"; the context grew from 12k to 31k characters but did not
+contain those values, and the answer wrote them in anyway (A1 1 TBq, A2
+0.6 TBq) and built five derived statements on them. Mistral flagged all
+five, Qwen none. So the extra claims come from the answer, not from the
+follow-up chunks: a follow-up query that names a missing value and does
+not find it invites the generator to fill the slot from its own knowledge.
+The question fails as a retrieval miss under both judges either way.
+Across the 14 looped questions the context roughly doubles (median 12k →
+22k characters) while the answers do not get longer (median 963 → 948).
+
+Cannot be settled from `tune`: one question shows the mechanism, and the
+`confirm` rise (1 → 5) is not looked at question by question. Candidate
+remedy for the next round: tell the generator that a value a follow-up
+query searched for and did not find must be reported as missing (fits the
+"structured gaps" item below); measured on `tune` under its own rule.
+
+## Local model for privacy mode (rule, 2026-10-23)
+
+Rules set before any run. Two decisions: which local model privacy mode
+uses by default (on `tune`), and what the app and README say about its
+quality (one run on `confirm`). Common setup: Ollama on the maintainer's
+laptop (RTX 3060 Laptop, 6 GB VRAM), `OLLAMA_NUM_CTX=12288` as in the
+earlier local runs, `bge-m3` embeddings (`-ollama-bge-m3` collections,
+index fingerprints `b0fc52f61a4e` / `d90d785f314c`), the database
+correction loop, no web search; judged by Qwen (`qwen3.8-27b`, 3 votes)
+and re-scored by Mistral. The local model also grades its own context and
+answers inside the graph, as Gemma does.
+
+**Why the challenger.** The default `qwen3.5:4b` scores 47 F1 on Danish
+reading comprehension in EuroEval (`multi_wiki_qa_da`, leaderboard of
+2026-04-17), the lowest of the small models there; `gemma4:e4b` (about
+4.5B effective parameters, the same family as the cloud
+`gemma-4-26b-a4b-it`) scores 73. `qwen3.5:9b` (53 F1) does not fit in 6 GB
+and is left out. EuroEval is general Danish, not RAG on legal text
+(`llama3.1:8b` scores 75 there but trailed `qwen3.5:4b` on the dev set,
+51 % vs 59 %), so it picks the challenger, not the winner.
+
+**Stage 1, `tune`: default model.** First a smoke test of
+`gemma4:e4b-it-qat` (`--limit 2 --no-history`): seconds per question, share
+on the GPU (`ollama ps`), and whether the graders' structured output
+parses. Then one full `tune` run each for `qwen3.5:4b` and `gemma4:e4b`.
+Gemma 4 E4B becomes the privacy-mode default (`OLLAMA_MODEL` in
+`.env.example`) if, under both judges, it gains at least 3 questions net
+over `qwen3.5:4b` and its median time per question stays under 3 minutes;
+otherwise `qwen3.5:4b` stays (on a tie the faster model stays). If the
+smoke test is slower than 3 minutes per question or the output does not
+parse, Gemma 4 E4B is dropped with that reason and stage 1 is the
+`qwen3.5:4b` run alone. `tune` may be read question by question: whether
+the local model fails on retrieval (shared with Gemma's `tune-local-loop`,
+`20261017_143922`, 40 of 53) or on the answer.
+
+**Stage 2, `confirm`: quality statement.** One run of the stage 1 winner
+against Gemma `confirm-optimised` (`20261017_191022`, Mistral
+`20261017_203622`; 44 of 53 under both). Read in aggregate only: pass
+rates with 95 % intervals, counts per error type, flips as counts with the
+sign test, the number of retrieval misses shared with Gemma (a count).
+- **Comparable:** under both judges net flips ≥ −3 and no significant
+  regression (sign test, p < 0.05 towards worse). README and the
+  privacy-mode setting then say "same quality as the cloud model, slower".
+- **Weaker:** otherwise. Privacy mode then shows a quality notice in the
+  app, and the README gives the measured gap with intervals.
+- **Where to work next** (not a change made on `confirm`): if most of the
+  local model's failures are retrieval misses Gemma shares, the next
+  retrieval round covers privacy mode too; if answer faults (generator
+  miss, unsupported claim) make up most of them, the next lever is the
+  model, measured on `tune`.
+This run changes nothing in the pipeline and is not one of the three
+confirmations of the optimised pipeline.
+
+Expected cost: the answers are local; per run the Qwen judge about €0.80
+and the Mistral rescore about €1.00, so about €3.60 for stage 1 and €1.80
+for stage 2. Run time about 1–2 hours per run, one run at a time.
+
+### Stage 1 result (2026-10-24): Gemma 4 E4B becomes the default
+
+Smoke test of `gemma4:e4b-it-qat`: 61 and 70 s per question, 100 % on the
+GPU (3.0 GB at 12288), graders parsed. Full `tune` runs:
+`tune-local-qwen35-4b` `20261023_194741` (Mistral `20261023_212914`),
+`tune-local-gemma4-e4b` `20261023_213313` (Mistral `20261023_225123`);
+Gemma 26B in the cloud for reference (`tune-local-loop`, bge-gemma2
+embeddings).
+
+| Judge | Answer model | Pass | 95 % interval | unsupported_claim | retrieval_miss | generator_miss | wrong_refusal |
+|---|---|---|---|---|---|---|---|
+| Qwen | `qwen3.5:4b` | 18/53 (34 %) | 23–47 % | 21 | 9 | 1 | 3 |
+| Qwen | `gemma4:e4b-it-qat` | 34/53 (64 %) | 51–76 % | 7 | 9 | 2 | 1 |
+| Qwen | Gemma 26B (cloud) | 40/53 (75 %) | 62–85 % | 0 | 7 | 5 | 0 |
+| Mistral | `qwen3.5:4b` | 24/53 (45 %) | 33–59 % | 17 | 9 | 0 | 3 |
+| Mistral | `gemma4:e4b-it-qat` | 31/53 (58 %) | 45–71 % | 11 | 9 | 1 | 1 |
+| Mistral | Gemma 26B (cloud) | 40/53 (75 %) | 62–85 % | 1 | 7 | 4 | 0 |
+
+**Rule met.** Gemma 4 E4B against `qwen3.5:4b`: Qwen 18 better, 2 worse
+(net +16, sign test p < 0.001); Mistral 11 better, 4 worse (net +7,
+p = 0.12). Median time per question 50 s against 76 s (whole run 78 min
+against 101 min). `OLLAMA_MODEL` defaults to `gemma4:e4b-it-qat` (the
+measured QAT build, not the `gemma4:e4b` tag, which is another
+quantisation).
+
+What `tune` shows question by question:
+- Retrieval is not where the local models lose: evidence recall of the
+  first retrieval is 0.84 with bge-m3 against 0.87 with bge-gemma2 in the
+  cloud, and both local models have the same 9 retrieval misses.
+- They lose on grounding. `qwen3.5:4b` mostly states the right content but
+  cites provisions that are not in the context or are wrong ("§ 209",
+  § 14 for § 15, a footnote number read as "§ 225", the definition placed
+  in § 36 instead of § 3, nr. 59), turns "should" into "must", and adds
+  thresholds; 16 questions the cloud model answers correctly fail this way
+  under Qwen. Gemma 4 E4B does this far less often (7 and 11).
+- Gemma 4 E4B still trails the cloud model on `tune`: Qwen 2 better, 8
+  worse (net −6, p = 0.11); Mistral 1 better, 10 worse (net −9, p = 0.01).
+  This is `tune`, not the stage 2 decision, but it makes "comparable" on
+  `confirm` unlikely.
+- Hardware: Ollama's runner takes about 8.3–8.5 GB of RAM during a run
+  for either model, although the model sits on the GPU; on this 16 GB
+  laptop a run needed the browser and the Docker containers closed.
+
+Cost: €4.89 for the four judge passes (Qwen €1.19 and €1.00, Mistral €1.43
+and €1.27), above the €3.60 estimate; the answers are local and free.
+
+### Stage 2 result (2026-10-24): the small model trails the large one
+
+`confirm-local-gemma4-e4b` `20261024_085918` (Mistral rescore
+`20261024_101909`): `gemma4:e4b-it-qat`, bge-m3, loop, `num_ctx` 12288, no
+web search. Read in aggregate only, as the rule says.
+
+| Judge | Setup | Pass | 95 % interval | unsupported_claim | retrieval_miss | generator_miss | wrong_refusal |
+|---|---|---|---|---|---|---|---|
+| Qwen | local Gemma 4 E4B | 32/53 (60 %) | 47–72 % | 10 | 9 | 1 | 1 |
+| Qwen | cloud `confirm-optimised` | 44/53 (83 %) | 71–91 % | 1 | 3 | 5 | 0 |
+| Mistral | local Gemma 4 E4B | 32/53 (60 %) | 47–72 % | 10 | 9 | 1 | 1 |
+| Mistral | cloud `confirm-optimised` | 44/53 (83 %) | 71–91 % | 5 | 3 | 1 | 0 |
+
+**Weaker.** Local against cloud: Qwen 1 better, 13 worse (net −12, sign
+test p = 0.002); Mistral 3 better, 15 worse (net −12, p = 0.008). Both
+judges agree on the gap. Privacy mode gets a quality notice in the app,
+and the README states the gap: about 60 % (47–72 %) against 83 % (71–91 %)
+on held-out questions.
+
+**What this measures.** "Local against cloud" is the wrong frame: the cloud
+model, Gemma 4 26B-A4B, is open weights too and would run locally on
+hardware with enough memory. The gap is model size (E4B on a 6 GB laptop GPU
+against 26B), plus the embedding difference (bge-m3 against the Scaleway
+embeddings). Open against closed was measured in step 5 on the same 53
+questions and the same pipeline:
+
+| Model | Kind | Qwen | Mistral |
+|---|---|---|---|
+| Gemini 3.8 Flash | closed | 47/53 (77–95 %) | 45/53 (73–92 %) |
+| Gemma 4 26B-A4B | open, large | 44/53 (71–91 %) | 44/53 (71–91 %) |
+| Gemma 4 E4B | open, small, laptop | 32/53 (47–72 %) | 32/53 (47–72 %) |
+
+26B against Flash: Qwen net −3 (p = 0.45), Mistral net −1 (p = 1.0), within
+the noise. E4B against Flash: Qwen net −15 (p < 0.001), Mistral net −13
+(p = 0.007). Open against closed barely matters here; model size does. The
+quality notice should say so: privacy mode runs a small model on this
+computer, and a model of the 26B class needs about 24–32 GB of memory.
+
+Where to work next: 3 of the 9 local retrieval misses are shared with the
+cloud run, so most local failures are not shared retrieval misses. Answer
+faults (10 unsupported claims, 1 generator miss) make up 11 of the 21
+failures, so the next lever is the model, measured on `tune`. The 6
+retrieval misses only the local setup has point at the local embeddings
+(bge-m3 against the cloud embeddings); on `tune` recall was nearly equal,
+so this is a hint, not a finding.
+
+Run time 80 min for the answers (about 90 s per question on average). The
+first attempt was stopped by Claude Code under
+memory pressure after 25 questions (Ollama's runner took 9.2 GB); the
+recorded run ran in a separate terminal. Cost €2.30 (Qwen judge €1.01,
+Mistral rescore €1.29).
+
+## Language or structure (#168): existing data (2026-10-23)
+
+From existing retrieval-only runs, no new calls; `confirm` not read.
+`tune`: `tune-retrieval-bge-gemma2` (`20261016_185213`) and
+`tune-retrieval-bge-m3` (`20261016_185243`), 50 answerable questions. Dev:
+`dense-ref` (`20261002_194518`, bge-gemma2) and `privacy-emb-bge-m3`
+(`20261011_090449`), 35 answerable questions; same index for all. A
+question counts as complete when every evidence passage is in the top 5.
+Question types were tagged by hand for this analysis
+(`eval/data/question_types.json`, one primary type per question, first
+that applies: table or annex row, cross-reference or combination of
+provisions, multi-part, definition, single passage); the golden set is
+unchanged.
+
+**3.1, by factor (`tune`, complete at 5, bge-gemma2 / bge-m3):**
+
+| Factor | Group | Complete | Fisher p (group vs rest) |
+|---|---|---|---|
+| Source | IAEA | 11/16 / 9/16 | 0.49 / 0.11 |
+| | Danish law | 26/33 / 27/33 | |
+| Question language (Danish law only) | English | 6/7 / 6/7 | 1.0 / 1.0 |
+| | Danish | 20/26 / 21/26 | |
+| Question type | single passage or definition | 10/10 / 10/10 | |
+| | table or cross-reference | 12/19 / 11/19 | 0.06 / 0.03 (against simple) |
+| | multi-part | 16/21 / 15/21 | 1.0 / 1.0 |
+
+- Every incomplete Danish-law question but one is a table or a
+  cross-reference question (6 of 7 under bge-gemma2), all of them asked in
+  Danish; the incomplete IAEA questions are mostly multi-part (4 of 5).
+  No simple question is incomplete under either embedder.
+- Type and source are confounded: 12 of the 16 IAEA `tune` questions are
+  multi-part and none is a single passage or a definition, so "IAEA fails
+  more often" is largely "multi-part questions fail more often" (within
+  multi-part: IAEA 8/12, Danish law 8/9).
+- Language and type are confounded too: the seven English questions on
+  Danish law include two table or cross-reference questions, the 26 Danish
+  ones twelve. The better pass rate of English questions on Danish law
+  (6 of 7 against 19 of 26) fits their simpler types as well as their
+  language.
+- Dev cannot separate anything: 34 of 35 questions are complete under
+  bge-gemma2 at k = 5, and 23 of 35 are single-passage questions. The
+  earlier "misses only in Danish law" came from k = 3 and the old index.
+
+**3.2, Danish/English pairs (`tune`, same evidence, retrieval-only):**
+five pairs (dosimeter period, category B boundary, transport index,
+50 mSv in special cases, breastfeeding worker). bge-gemma2: four ties, one
+pair one rank better in English. bge-m3: one pair better in English (rank
+1 against 5, transport index), one better in Danish (1 against 2, dosimeter
+period), three ties. Sign test p = 1.0 under both embedders. The pairs are
+simple questions near the ceiling, so they cannot show a language effect
+either way; with five pairs the sign test could not reach p < 0.05 anyway.
+
+**Result under #168's rule: not separable at this set size.** The only
+contrast near significance is question type (table or cross-reference
+against simple, p = 0.03 under bge-m3 and 0.06 under bge-gemma2), and that
+grouping was chosen after looking at the data, so it is a hint, not a
+finding. The hint points to structure rather than language: misses
+concentrate in table and cross-reference questions (Danish law) and in
+multi-part questions (IAEA), not in a question or document language. It
+fits the candidates already listed for the next round (neighbour chunks
+and reference edges for split or cited units, re-ranking more candidates
+for tables); the PDF-versus-XML comparison (#168 step 1) stays open and
+needs an index build.
+
 ## Next round on `tune` (after step 5)
 
 Candidates, each measured on `tune` only under a rule committed before it
@@ -926,6 +1185,28 @@ for what passes. Sources are in the second brain (2026-10-17 ingest).
   text) and no repeated query in one loop (S2GRAG-Li2026,
   PartialAnswerQuality-Tian2026): cuts the wasted rounds seen on
   `refuse-skift-p-nummer`. Full run, since it acts inside the loop.
+
+## Outlook: training for behaviour and retrieval, not knowledge (2026-10-24)
+
+Not before the talk; ideas to measure on `tune` later, each under a rule
+committed first. The golden questions must never be training data.
+
+- **Not: training the documents into the model.** Answers would lose their
+  source, single facts (limits, §, table values) are learned unreliably, and
+  every new order would mean retraining. A study on this (Gekhman et al.
+  2024, "Does Fine-Tuning LLMs on New Knowledge Encourage Hallucinations?")
+  is to be read in full and ingested before it is cited.
+- **Behaviour fine-tuning of the small local model** (LoRA, DPO on
+  preference pairs): attribute content to the right §, read tables by row
+  and column, keep "should", report missing values. These are E4B's error
+  patterns on `tune`. Trust-Align (DPO on about 19k pairs) improved grounded
+  answers and correct refusals of an 8B model where prompting failed; plain
+  SFT on "I don't know" lowered abstention and raised hallucination
+  (Sufficient Context). Training data synthetic from the documents.
+- **Domain-adapted embeddings** (bge-m3 fine-tuned on synthetic
+  question–passage pairs from the documents): the misses Gemma and Flash
+  share sit in retrieval, so this helps every mode. Cheaper than training
+  the answer model.
 
 ---
 

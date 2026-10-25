@@ -180,13 +180,17 @@ An IAEA source whose PDF (its `filename_hint`) is in `documents/IAEA/` or `docum
 
 All LLM generation and embeddings run locally via [Ollama](https://ollama.com). Zero data leaves your machine — LangSmith tracing and web search are automatically disabled.
 
+### Answer quality
+
+The default local model (`gemma4:e4b-it-qat`) is much smaller than the hosted default, and its answers are measurably weaker. On the 53 held-out `confirm` questions it passed 32 (60 %, 95 % interval 47–72 %) against 44 (83 %, 71–91 %) for Gemma 4 26B on Scaleway, under both judges (net −12 questions, sign test p ≤ 0.008). It finds the right passages but more often attributes them to the wrong provision or misreads tables. The gap is model size, not local hosting: the 26B model is open weights too and was within the noise of Gemini 3.8 Flash on the same questions. The app shows a notice while the local model is selected. Details: `ROADMAP.md`, "Local model for privacy mode".
+
 ### Minimum system requirements
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
 | GPU | 4 GB VRAM (CPU fallback works but slow) | 6 GB+ VRAM (e.g. NVIDIA RTX 3060) |
 | RAM | 16 GB | 32 GB |
-| Disk | ~5 GB (models + vector DB) | ~10 GB |
+| Disk | ~8 GB (models + vector DB) | ~10 GB |
 | OS | Linux, macOS, or Windows | Linux (best Ollama performance) |
 
 ### Setup
@@ -197,7 +201,7 @@ All LLM generation and embeddings run locally via [Ollama](https://ollama.com). 
    ```
 2. Pull models:
    ```bash
-   ollama pull qwen3.5:4b
+   ollama pull gemma4:e4b-it-qat
    ollama pull bge-m3
    ```
 3. Set `LLM_PROVIDER=ollama` in `.env`

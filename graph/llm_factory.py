@@ -167,9 +167,10 @@ def _env_number(name: str, default: float) -> float:
 
 
 def ollama_model_name() -> str:
-    """The local answer model (OLLAMA_MODEL). qwen3.5:4b runs fully in 6 GB of
-    VRAM, 2.5x faster than llama3.1:8b at even quality (ROADMAP, step P2)."""
-    return (os.getenv("OLLAMA_MODEL") or "").strip() or "qwen3.5:4b"
+    """The local answer model (OLLAMA_MODEL). gemma4:e4b-it-qat runs fully in
+    6 GB of VRAM and beat qwen3.5:4b on tune (ROADMAP, local model for privacy
+    mode, stage 1)."""
+    return (os.getenv("OLLAMA_MODEL") or "").strip() or "gemma4:e4b-it-qat"
 
 
 def ollama_num_ctx() -> int:

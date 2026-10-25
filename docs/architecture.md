@@ -249,7 +249,7 @@ flowchart LR
     FAC -->|gemini| GEM[langchain-google-genai\nGemini 3.8 Flash]
     FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
     FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
-    FAC -->|ollama| OLL[langchain-ollama\nqwen3.5:4b · runs locally]
+    FAC -->|ollama| OLL[langchain-ollama\ngemma4:e4b-it-qat · runs locally]
     SCW --> CHAINS[LLM Chains]
     GEM --> CHAINS
     OAI --> CHAINS
@@ -271,7 +271,7 @@ The frontend can pass API keys directly (stored in `sessionStorage`, never persi
 
 When `LLM_PROVIDER=ollama`, the system uses local models and local embeddings — no data leaves your machine.
 
-- **LLM:** `qwen3.5:4b` by default, with thinking off (configurable via `OLLAMA_MODEL`); it fits a 6 GB GPU, where `llama3.1:8b` spills into RAM
+- **LLM:** `gemma4:e4b-it-qat` by default, with thinking off (configurable via `OLLAMA_MODEL`); it fits a 6 GB GPU and beat `qwen3.5:4b` on the tune set (ROADMAP, local model for privacy mode); `llama3.1:8b` spills into RAM
 - **Embeddings:** `bge-m3`, multilingual (configurable via `OLLAMA_EMBED_MODEL`). Questions are embedded on the CPU so the answer model keeps the GPU; documents use the GPU while indexing.
 - **Collections:** `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` (separate from cloud collections; requires a one-time re-ingestion)
 - **Context window:** `OLLAMA_NUM_CTX` (default 16384); Ollama's own 4096 would cut longer prompts

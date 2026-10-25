@@ -545,6 +545,12 @@
   color: var(--text-subtle);
 }
 
+.header-center .local-model-notice {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .header-right {
   justify-self: end;
   display: flex;
