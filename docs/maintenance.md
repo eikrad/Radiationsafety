@@ -87,6 +87,55 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-10-28
+
+> **Open PRs (verified via `mcp__github__list_pull_requests`, state=open):** none at the start of the run, so nothing was duplicated.
+
+### Checks performed
+- Branch `claude/modest-faraday-qwp3j5` reset to `origin/staging` (`a337661`).
+- Baseline **before changes**: `uv sync --all-extras`; `uv run pytest tests/ -n auto` -> **609 passed**. Frontend `npm ci`. **Nothing broken on `staging`.** `npm audit` however reported **1 high** (see below).
+- Playwright E2E not run in the sandbox; CI runs it.
+- Security: `pip-audit --path .venv/lib/python*/site-packages`; `npm -C frontend audit`.
+- Outdated: `uv lock --upgrade` (dry comparison against the current lock), `npm -C frontend outdated`.
+
+### Security findings
+
+**`npm -C frontend audit`** -- 1 high before, **0 after**: `zod` 4.4.3 -> 4.6.7 (GHSA-mrhx-c7xc-m3w5, memory exhaustion on oversized collections). It is a transitive dev dependency (`eslint-plugin-react-hooks` -> `zod`), so it was never shipped; fixed with `npm audit fix` (lockfile only).
+
+**`pip-audit`** -- unchanged, none fixable without a major (or at all):
+
+| Package | Version | Fix | Resolution |
+|---|---|---|---|
+| `pillow` | 12.3.0 | 13.0.0 (**major**), ~30 CVE/PYSEC ids | Not applied. Pillow is not imported by this repo; only docling/torchvision use it to decode locally supplied PDFs/page images. |
+| `docling`, `docling-slim` | 2.120.3 | 2.131+ | Not applied: needs `docling-ibm-models` 3 -> 4 (major) that no test exercises. Ingestion reads only trusted local PDFs/XML. |
+| `oauthlib` | 3.3.1 | 4.0.0 (major) | Not applied; transitive via `kubernetes` <- `chromadb`. |
+| `filelock` | 3.32.3 | 4.2.1 (major) | Not applied; transitive. |
+| `chromadb` | 1.5.9 | none upstream | Not reachable (embedded `PersistentClient` only). |
+| `virtualenv` | 21.14.5 | 21.14.7 / 21.14.9 | Dev tooling only (installed by `pre-commit`), not a project dependency. |
+
+### Dependency updates
+`uv.lock` (61 packages, all within their current major; `pyproject.toml` unchanged), including `fastapi` -> 0.162.0, `starlette` 1.10.0, `langchain` 1.4.7, `langchain-core` 1.7.1, `langgraph` 1.2.18, `langsmith` 0.14.14, `google-genai` 2.33.0, `huggingface-hub` 1.33.0, `transformers` 5.21.0, `torch` 2.15.0, `torchvision` 0.29.2, `onnxruntime` 1.31.1, `pandas` 3.1.0, `pypdf` 6.21.4, `pydantic-settings` 2.16.2, `pytest` 9.2.0, `ruff` 0.17.3, plus the CUDA wheels torch pulls in. New transitive: `nvidia-cuda-cccl`; dropped: `nvidia-curand`.
+Frontend: `@typescript-eslint/eslint-plugin` and `parser` 8.72.0 -> 8.72.1 (moved together), `zod` as above.
+
+**Compatibility.** `typer` 0.26 -> 0.27.3 was deliberately held back: that one upgrade makes the resolver jump `docling-ibm-models` to 4.0.4 (major), so it was excluded to keep docling on the 3.x line. Found by locking each candidate on its own.
+
+Verified: `pytest` **609 passed**, `ruff`, `black --check`, `isort --check`, `mypy` clean; frontend `test` **78 passed**, `lint`, `build` clean.
+
+### Major versions -- flagged for your decision, NOT applied
+| Package | Current | Available | Note |
+|---|---|---|---|
+| `docling-ibm-models` (via `docling` >= 2.131, `typer` 0.27) | 3.14.0 | 4.0.4 | Needed to clear the docling advisories; try with a real ingestion run |
+| `langchain-docling` | 2.0.0 | 3.0.0 | Goes with the docling update |
+| `pillow` | 12.3.0 | 13.0.0 | Clears ~30 advisories; needs an ingestion run to verify |
+| `openai` | 2.53.0 | 3.40.0 | Needs a real API call to verify |
+| `websockets` | 15.0.1 | 17.3 | Transitive |
+| `kubernetes` / `oauthlib` / `filelock` / `multidict` / `xxhash` / `soupsieve` / `python-dateutil` | -- | 37 / 4 / 4 / 7 / 4 / 3 / 3 | Transitive |
+| `isort` | 8.0.1 | 9.0.2 | Dev tool |
+| `typescript` | 6.0.3 | 7.0.2 | `typescript-eslint` does not support 7 yet |
+| `jsdom` | 30.1.3 | -- | `npm outdated` "latest" tag (29.1.1) is behind; ignore |
+
+---
+
 ## 2026-10-07
 
 > **Open PRs (verified via `mcp__github__list_pull_requests`, state=open):** #155 (docs: privacy-mode plan), #127 (vitest 5 combined), #124 / #123 (Dependabot `@vitest/coverage-v8` / `vitest` 5.x). The vitest 5 bump is already proposed there and was **not duplicated**.
