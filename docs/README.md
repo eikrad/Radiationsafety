@@ -11,6 +11,7 @@ Documentation for the Radiation Safety RAG system.
 | [maintenance.md](maintenance.md) | Dated log of periodic dependency checks, upgrade notes and security findings (newest first) |
 | [releasing.md](releasing.md) | release-please flow, commit types and version bumps, how to merge PRs |
 | [handoff-held-out-test-run.md](handoff-held-out-test-run.md) | Run plan for the held-out test set (#167): baselines, tune/confirm rules, experiments, frontier comparison |
+| [handoff-talk-prep.md](handoff-talk-prep.md) | Handoff for a new session: open measurements to run before the talk on 2026-10-30 (local model, structure vs. language, correction loop) |
 | [privacy-mode-docker-plan.md](privacy-mode-docker-plan.md) | Plan (not started): optional Ollama container for privacy mode in Docker |
 
 Related files outside `docs/`: [eval/README.md](../eval/README.md) (evaluation harness), [frontend/README.md](../frontend/README.md) (UI structure), [CONTRIBUTING.md](../CONTRIBUTING.md), [ROADMAP.md](../ROADMAP.md), and `AGENTS.md` / `CLAUDE.md` (conventions for AI agents).
