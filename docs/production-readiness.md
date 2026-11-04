@@ -109,7 +109,7 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 ### Admin routes return 503
 
 1. Verify `ADMIN_TOKEN` is set in the environment.
-2. Confirm `ADMIN_AUTH_BYPASS` is not accidentally set to `false` while `ADMIN_TOKEN` is missing.
+2. A missing `ADMIN_TOKEN` is the intended cause (fail-closed). Set it; `ADMIN_AUTH_BYPASS=true` is for local development only.
 3. Restart the backend after fixing the environment.
 
 ### Health degraded

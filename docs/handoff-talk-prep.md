@@ -1,5 +1,7 @@
 # Handoff: open measurements before the talk on 2026-10-30
 
+**Status:** time-boxed handoff for the talk of 2026-10-30, which has taken place. Results of the tasks are written up in `ROADMAP.md`; this file is kept as the record of what was planned and under which rules.
+
 For a new session. Read this file first; it stands alone. Written 2026-10-23. It lists what is still to be **tested**, not what goes on slides.
 
 **Paste this to start the session:**

@@ -40,8 +40,7 @@ release-please reads every commit on `master`, merge commits included, and treat
 line in a commit body that looks like a Conventional Commit as a change of its own. A
 GitHub merge commit carries the pull request's title in its body, so a feature PR titled
 `feat(eval): …` merged with a merge commit lands in the CHANGELOG twice: once from the
-commit itself, once from the merge commit. This is why 0.5.0 first listed 18 entries
-twice (removed by hand afterwards).
+commit itself, once from the merge commit.
 
 | Pull request                                    | Merge with            | Title                                  |
 | ----------------------------------------------- | --------------------- | -------------------------------------- |
