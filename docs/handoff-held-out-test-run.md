@@ -1,6 +1,8 @@
 # Handoff: run the held-out test set (#167)
 
-For a new session that runs and evaluates `eval/data/golden_test.json`. Read this file first; it stands alone. Rewritten 2026-10-15 on branch `ccr-833fa05d-4dad6i` (no pull request yet). The rules for the split are in `eval/README.md`, section "Held-out test questions"; this file is the run plan.
+**Status:** run plan for the first held-out round; its measurements and decisions are recorded in `ROADMAP.md` and `eval/history/runs.jsonl`. Kept as the protocol for repeating the round (for example after re-ingestion or new documents).
+
+For a new session that runs and evaluates `eval/data/golden_test.json`. Read this file first; it stands alone. The rules for the split are in `eval/README.md`, section "Held-out test questions"; this file is the run plan.
 
 **Paste this to start the session:**
 
@@ -47,7 +49,7 @@ A pass rate is not the target. Expectation recorded before measuring, a guess an
 On a machine with the project environment (`uv sync`), a `.env` with `SCW_SECRET_KEY` (and `GOOGLE_API_KEY` for step 5), the Scaleway index, and Ollama with `bge-m3` collections for the counter-check. Do not read or print `.env`.
 
 ```bash
-git checkout ccr-833fa05d-4dad6i
+git checkout staging
 uv sync
 uv run pytest tests/ -q
 uv run python -m eval.golden --golden eval/data/golden_test.json --check-index
@@ -130,7 +132,7 @@ What 53 questions can show: on pass/fail, only effects of about 6 or more consis
 ### Step 5: confirmation and frontier comparison (ask first)
 
 1. **Confirm the optimised configuration on `confirm`**, once, with the rule written before the run: adopt if net flips against the `confirm` baseline are positive and there is no significant regression. At most three confirmations per set of confirm questions.
-2. **Gemini 3.8 Flash on `confirm`**, with the same final pipeline. Code needed first (TDD): add `gemini-3.8-flash` to `_GEMINI_MODELS` in `graph/llm_factory.py`; for Gemini 3 and later use temperature 1.0 (Google's guidance; lower values can loop) and pin the thinking level to the documented default `medium`, recorded in the run config. Smoke-test it with `--limit 2 --no-history` and check the cost before the full run. Gemini 3.8 Flash costs $0.75 / $3.75 per million tokens through 2026-12-31, then double.
+2. **Gemini 3.8 Flash on `confirm`**, with the same final pipeline. `gemini-3.8-flash` is in `_GEMINI_MODELS` in `graph/llm_factory.py` and runs at temperature 1.0 (Google's guidance; lower values can loop) with the thinking level pinned to `medium`, recorded in the run config. Smoke-test it with `--limit 2 --no-history` and check the cost before the full run. Gemini 3.8 Flash costs $0.75 / $3.75 per million tokens through 2026-12-31, then double.
 3. Rescore both `confirm` runs with Mistral. Report the gap with intervals and per error type: if Flash fails the same retrieval misses, the bottleneck is retrieval, not the open model.
 
 ## 7. Rules

@@ -15,48 +15,36 @@ Ask questions about IAEA nuclear safety standards and Danish radiation legislati
 - **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
 - **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
 
-## How it works
+## Quick start
 
-```mermaid
-flowchart TB
-    USER([User question]) --> VALIDATE[Validate request]
-    VALIDATE --> NONQ{Non-question?}
-    NONQ -->|yes| QUICK_REPLY[Return canned reply]
-    NONQ -->|no| MODEL[Resolve LLM provider]
-
-    subgraph GRAPH [LangGraph Pipeline]
-        direction TB
-        RETRIEVE[Retrieve\nfrom both Chroma collections]
-        GRADE[Grade documents]
-        RETRIEVE_MISSING[Retrieve missing\n+ reflection hint]
-        WEB_SEARCH[Optional web search\nBrave Search]
-        GENERATE[Generate answer]
-        GRADE_GEN[Grade generation]
-        PREPARE_RETRY[Prepare retry]
-        VERIFY[Verify trusted sources]
-        FINALIZE[Finalize + attach warning]
-    end
-
-    MODEL --> RETRIEVE
-    RETRIEVE --> GRADE
-    GRADE -->|sufficient| GENERATE
-    GRADE -->|insufficient| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|enough docs| GENERATE
-    RETRIEVE_MISSING -->|still low, under retry cap| RETRIEVE_MISSING
-    RETRIEVE_MISSING -->|"retry cap reached, web search on"| WEB_SEARCH
-    RETRIEVE_MISSING -->|"retry cap reached, web search off"| GENERATE
-    WEB_SEARCH --> GENERATE
-    GENERATE --> GRADE_GEN
-    GRADE_GEN -->|passed| VERIFY
-    GRADE_GEN -->|failed, retries left| PREPARE_RETRY
-    PREPARE_RETRY --> RETRIEVE_MISSING
-    GRADE_GEN -->|"failed, no retries left, web search on"| WEB_SEARCH
-    GRADE_GEN -->|"failed, no retries left, web search off"| VERIFY
-    VERIFY --> FINALIZE
-    FINALIZE --> RESPONSE([Answer + sources + routing_outcome])
+```bash
+cp .env.example .env          # set SCW_SECRET_KEY (Scaleway: answers and embeddings)
+uv sync                       # Python dependencies
+uv run python ingestion.py    # one-time: build the vector index in .chroma/
+uv run uvicorn api.main:app --reload --port 8000
+npm -C frontend install && npm -C frontend run dev    # UI at http://localhost:5173
 ```
 
-See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every node, chain, ingestion workflow, and API routes.
+Prefer containers? See [Running with Docker](#running-with-docker). No cloud account? See [Privacy Mode](#privacy-mode-fully-local).
+
+## How it works
+
+A question is answered in a loop that checks itself: retrieve, grade, generate, grade again, and retry the search if the answer is not grounded. This is the simplified flow; [docs/architecture.md](docs/architecture.md) has the full graph with every routing rule, node, chain and API route.
+
+```mermaid
+flowchart LR
+    Q([Question]) --> RETRIEVE[Retrieve<br/>IAEA + Danish law]
+    RETRIEVE --> GRADE{Context<br/>sufficient?}
+    GRADE -->|no| MORE[Retrieve missing<br/>refined query]
+    MORE --> GRADE
+    GRADE -->|yes| GENERATE[Generate answer]
+    GENERATE --> CHECK{Grounded and<br/>complete?}
+    CHECK -->|no, retry| MORE
+    CHECK -->|yes| VERIFY[Verify against<br/>trusted sources]
+    VERIFY --> A([Answer + sources + warning])
+```
+
+Optional web search (`WEB_SEARCH_ENABLED`) is a last resort after the database retries; it never runs in privacy mode.
 
 ## Tech Stack
 
@@ -73,14 +61,15 @@ See [docs/architecture.md](docs/architecture.md) for a full walkthrough of every
 
 ## Documentation
 
+Start at [docs/README.md](docs/README.md), the index of all documents. The main ones:
+
 | File | What it covers |
 |------|----------------|
-| [docs/README.md](docs/README.md) | Index of all documentation |
-| [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes — with Mermaid diagrams |
+| [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes, with Mermaid diagrams |
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
-| [docs/maintenance.md](docs/maintenance.md) | Dated log of dependency checks and upgrade notes |
 | [docs/releasing.md](docs/releasing.md) | How versions, tags and the CHANGELOG are produced |
 | [eval/README.md](eval/README.md) | Evaluation harness |
+| [ROADMAP.md](ROADMAP.md) | Plans and measured results |
 
 ## Ingestion overview
 
@@ -88,10 +77,10 @@ Documents are embedded once into a local Chroma database. The same vector store 
 
 ```mermaid
 flowchart LR
-    PDFS[Local PDFs\ndocuments/] --> INGEST
-    URLS[document_sources.yaml\nURLs] --> INGEST
-    INGEST([ingestion.py\nembeddings]) --> CHROMA
-    CHROMA[(Chroma\nradiation-iaea · radiation-dk-law)] -->|similarity search| PIPELINE[LangGraph pipeline]
+    PDFS[Local PDFs<br/>documents/] --> INGEST
+    URLS[document_sources.yaml<br/>retsinformation.dk XML, IAEA] --> INGEST
+    INGEST([ingestion.py<br/>chunk + embed]) --> CHROMA
+    CHROMA[(Chroma .chroma/<br/>IAEA + Danish law)] -->|similarity search| PIPELINE[LangGraph pipeline]
 ```
 
 Ingestion needs the key of the embedding provider (`SCW_SECRET_KEY` by default). See [docs/architecture.md](docs/architecture.md) for the full ingestion and document-update workflow.
@@ -249,10 +238,25 @@ See [docs/production-readiness.md](docs/production-readiness.md) for the full ru
 | `radiation-dk-law-scw-<model>` | Danish Bekendtgørelser (retsinformation.dk XML) | Scaleway |
 | `radiation-iaea` | Same content | Gemini |
 | `radiation-dk-law` | Same content | Gemini |
-| `radiation-iaea-ollama` | Same content | Ollama local |
-| `radiation-dk-law-ollama` | Same content | Ollama local |
+| `radiation-iaea-ollama-<model>` | Same content | Ollama local (default `bge-m3`) |
+| `radiation-dk-law-ollama-<model>` | Same content | Ollama local (default `bge-m3`) |
 
 Cloud providers (Scaleway, Gemini, OpenAI, Mistral) all retrieve from the collections of `EMBEDDING_PROVIDER`. The LLM for generation only receives retrieved text — never the raw vectors. Switching the generation provider requires no re-ingestion.
+
+## Repository layout
+
+```
+api/                  FastAPI app (main.py), rate limiting
+graph/                LangGraph workflow: graph.py, nodes/, chains/, llm_factory.py, state.py
+ingestion*.py         PDF/XML loading, chunking, Chroma population (ingestion_dk.py: Danish law)
+document_updates.py   Checks for newer document versions; build_document_sources.py builds the registry
+documents/            Source PDFs (IAEA/, IAEA_other/, Bekendtgørelse/)
+eval/                 Evaluation harness, golden questions, run history, dashboard
+frontend/             React + TypeScript UI (Vite)
+tests/                pytest suite
+docs/                 Documentation (index: docs/README.md)
+main.py               Command-line interface
+```
 
 ## Contributing
 
