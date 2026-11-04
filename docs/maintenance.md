@@ -4,6 +4,38 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-11-04
+
+> **Open PRs (verified via `mcp__github__list_pull_requests`):** #202 (Dependabot, `eslint` 10.13.0 -> 10.14.0) and #201 (docs index). `eslint` is already proposed in #202 and was **not duplicated** here.
+
+### Checks performed
+- `git fetch origin`; branch `claude/modest-faraday-9i7142` reset to `origin/staging` (`164906b`).
+- Baseline **before changes**: `uv sync --all-extras`; `uv run pytest tests/ -n auto` -> **609 passed**; frontend `npm ci`, `test` (78 passed), `lint`, `build` clean. **Nothing broken on `staging`.**
+- Playwright E2E not run in the sandbox (proxy blocks the browser CDN); CI runs it.
+- Security: `pip-audit --path .venv/lib/python3.12/site-packages`; `npm -C frontend audit`.
+- Outdated: `uv lock --upgrade --dry-run`, `npm -C frontend outdated`.
+
+### Security findings (none fixable without a major version)
+| Package | Version | Fix | Resolution |
+|---|---|---|---|
+| `pillow` (transitive) | 12.3.0 | 13.0.0 (**major**), ~40 PYSEC/CVE ids | **Not applied.** Only reachable with the docling major below; Pillow only decodes locally supplied PDFs/page images during ingestion. |
+| `docling` / `docling-slim` | 2.120.3 | 2.147.0 | **Not applied**: needs `docling-ibm-models` 4 (major) and `langchain-docling` 3 (major). Needs an ingestion regression run on real PDFs. |
+| `filelock` (transitive) | 3.32.3 | 4.2.1 (**major**), 6 CVE ids | **New this week.** Not applied; file locking by the HF/torch cache, no untrusted input. |
+| `oauthlib` (transitive) | 3.3.1 | 4.0.0 (major) | Not applied; via `kubernetes` <- `chromadb`, no OAuth server code. |
+| `virtualenv` | 21.14.5 | 21.14.9 | Dev tooling only (installed by `pre-commit`), not a project dependency in `uv.lock`. |
+| `chromadb` | 1.5.9 | none upstream | Not fixable; embedded `PersistentClient` only, no HTTP server. |
+| `minimatch` (npm, dev, transitive) | 10.2.6 | >= 11.0.1 | **New this week** (GHSA-g3hv-75wg-m249, moderate, DoS via glob amplification). `eslint`, `@eslint/config-array` and `@typescript-eslint/typescript-estree` all still depend on `^10`, so it cannot be fixed without an `overrides` to a major. `npm audit fix --force` would *downgrade* eslint to 9 and was rejected. Dev/lint tooling only; globs come from the repo's own config. Re-check weekly. |
+
+### Dependency updates
+**Python** (`uv.lock` only, `pyproject.toml` unchanged, one batched `uv lock --upgrade-package ...`): `langchain` 1.4.7->1.4.9, `langchain-core` 1.7.1->1.7.5, `langchain-openai` 1.7.3->1.7.4, `langgraph` 1.2.18->1.2.19, `langgraph-sdk` 0.4.10->0.4.12, `langsmith` 0.14.14->0.14.17 (the langchain set moved together), `google-genai` 2.33.0->2.34.0, `google-auth` 2.62.1, `pydantic` 2.14.2 + `pydantic-core` 2.50.2 (together), `sqlalchemy` 2.1.8, `transformers` 5.22.1, `pandas` 3.1.1, `opentelemetry-*` 1.45.2 / 0.66b2 (together), `anyio`, `grpcio`, `hf-xet`, `python-multipart`, `typer`-adjacent tooling (`mypy` 2.4.1, `coverage`, `pytest-asyncio`, `types-requests`) and smaller transitive packages. Verified: `pytest` **609 passed**, `ruff`, `black --check`, `isort --check`, `mypy` clean.
+
+**Frontend** (`package.json` floors raised to the lockfile, no range widened): `vitest` + `@vitest/coverage-v8` 5.0.5->5.1.0 (together), `@vitejs/plugin-react` 6.1.2->6.2.1, `globals` 17.13.0->17.14.0. Verified: `npm ci`, `test` (78 passed), `lint`, `build` clean. `eslint` left to Dependabot #202. `@playwright/test` stays pinned (visual snapshots).
+
+### Major versions - flagged, NOT applied
+`docling` family (-> 2.147 incl. `docling-ibm-models` 3->4, `langchain-docling` 2->3; the one change that would clear the Pillow/docling advisories - **owner decision: try it with a real ingestion run**), `pillow` 13, `filelock` 4, `oauthlib` 4, `openai` 3, `kubernetes` 37, `isort` 9, `multidict` 7, `websockets` 17, `python-dateutil` 4, `soupsieve` 4, `xxhash` 4, `typescript` 6->7 (typescript-eslint has no TS 7 support yet).
+
+---
+
 ## 2026-10-14
 
 > **Open PRs (verified via `list_pull_requests`):** Dependabot #171-#175 (vitest, `@vitest/coverage-v8`, vite, `@vitejs/plugin-react`, `@playwright/test` bumps in `/frontend`), #166 (release 0.6.0), #155 (docs). The frontend npm bumps are already proposed there and were **not duplicated**.
