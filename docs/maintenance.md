@@ -4,6 +4,42 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-11-11
+
+> **Open PRs (verified via `mcp__github__list_pull_requests`):** #203 (last week's maintenance, **still unmerged**), Dependabot #202 (`eslint` 10.14.0), #205 (`@vitest/coverage-v8` 5.1.0), #206 (`jsdom` 31, major), #207 (`@vitejs/plugin-react` 6.2.1), #208 (`vitest` 5.1.0), and #201 (docs). #203 rewrites `uv.lock` and `frontend/package-lock.json`, so this branch is **stacked on #203** (rebased onto the current `staging`, `5dff328`) to avoid lockfile conflicts. #205/#207/#208 are already covered by #203. `eslint` is left to #202 and `jsdom` 31 to #206; neither is duplicated here.
+
+### Checks performed
+- `git fetch origin`; branch `claude/modest-faraday-l2vfoh` = #203's commit rebased onto `origin/staging` (clean rebase).
+- Recent CI on `staging` (`mcp__github__actions_list`): run #793 on `5dff328` **success**; Dependabot update jobs succeeded.
+- Baseline **before changes** (mirrors `ci.yml`): `uv sync`; `uv run pytest tests/ -n auto` -> **609 passed**; `ruff`, `black --check`, `isort --check`, `mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` clean. Frontend `npm ci`, `lint`, `build`, `test` -> **78 passed (10 files)**. **Nothing broken on `staging`.**
+- Playwright E2E, visual and docker-integration jobs are not run in the sandbox (the proxy blocks the browser CDN and there is no Docker). CI runs them.
+- Security: `pip-audit --path .venv/lib/python3.12/site-packages`; `npm -C frontend audit`.
+- Outdated: `uv lock --upgrade --dry-run`, `npm -C frontend outdated`.
+
+### Security findings (none fixable without a major version, none fixed)
+| Package | Version | Fix | Resolution |
+|---|---|---|---|
+| `pillow` (transitive) | 12.3.0 | 13.0.0 (**major**), ~40 CVE/PYSEC ids | Not applied. Only decodes locally supplied PDFs/page images during ingestion. |
+| `docling` / `docling-slim` | 2.120.3 | 2.131+ (latest 2.150.0) | Not applied: needs `docling-ibm-models` 4 and `langchain-docling` 3 (majors). Needs an ingestion regression run on real PDFs. |
+| `filelock` (transitive) | 3.32.3 | 4.2.1 (**major**), 12 CVE ids (6 more than last week) | Not applied; HF/torch cache locking, no untrusted input. |
+| `oauthlib` (transitive) | 3.3.1 | 4.0.1 (major), PYSEC-2026-4114 + **new** CVE-2026-49272 | Not applied; via `kubernetes` <- `chromadb`, no OAuth server code. |
+| `virtualenv` | 21.14.5 | 21.14.9, **new** CVE-2026-113714 | Dev tooling only (installed by `pre-commit`), not a project dependency in `uv.lock`. |
+| `chromadb` | 1.5.9 | none upstream | Not fixable; embedded `PersistentClient` only, no HTTP server. |
+| `minimatch` (npm, dev, transitive) | 10.2.6 | >= 11.0.1 (GHSA-g3hv-75wg-m249, moderate) | Unchanged: `eslint` 10.x and `typescript-eslint` 8.72.2 (newest) still depend on `^10`. `npm audit fix --force` would downgrade eslint to 9 and was rejected. Lint tooling only. |
+
+### Dependency updates (on top of #203)
+**Python** (`uv.lock` only, `pyproject.toml` unchanged, one batched `uv lock --upgrade-package ...`): `langchain` 1.4.9->1.5.0, `langchain-core` 1.7.5->1.8.0, `langchain-google-genai` 4.4.2->4.4.3, `langchain-protocol` 0.0.21, `langgraph` 1.2.19->1.2.20, `langgraph-sdk` 0.4.12->0.4.14 (the langchain set moved together; `langchain-openai` 1.7.4 resolves against the new core), `pydantic` 2.14.3 + `pydantic-core` 2.50.4 (together), `fastapi` 0.162.0->0.162.4, `transformers` 5.22.2, `google-auth` 2.62.2, `jiter` 0.19.0, `jsonpatch` 1.47, `jsonpointer` 3.12, `pypdfium2` 5.15.2, `regex`, `click`, `ormsgpack`, `pybase64`, `tree-sitter`, `markdown-it-py`, CUDA/NVIDIA wheels, and dev tools `ruff` 0.17.4, `coverage` 7.17.2, `faker` 40.54.0.
+
+**Frontend** (`package.json` floors raised to the lockfile): `@typescript-eslint/eslint-plugin` + `@typescript-eslint/parser` 8.72.1->8.72.2 (together), `vite` 8.3.5->8.3.8 (brings `rolldown` 1.2.19), `@vitejs/plugin-react` 6.2.1->6.3.0, `@testing-library/user-event` 14.6.9. `@playwright/test` stays pinned at 1.64.1 because the visual-test Docker image tag and screenshot baselines are tied to it.
+
+### Deliberately held back (0.x minors / majors) - flagged, NOT applied
+`docling` family 2.150 (with `docling-ibm-models` 4, `langchain-docling` 3, `docling-parse` 7.25) - **owner decision: try it with a real ingestion run**, it clears the docling and Pillow advisories. Also `pillow` 13, `filelock` 4, `oauthlib` 4, **`google-genai` 3 (new major this week)**, **`pypdf` 7 (new major this week, used for PDF loading)**, `openai` 3, `kubernetes` 37, `isort` 9, `multidict` 7, `websockets` 17, `python-dateutil` 4, `soupsieve` 4, `xxhash` 4, `typer` 0.26->0.27 (0.x minor). Frontend: `typescript` 6->7 (typescript-eslint has no TS 7 support), `jsdom` 31 (Dependabot #206), `@playwright/test` 1.65 (needs new visual baselines and CI image tag).
+
+### Post-change verification
+`uv sync`; `pytest` **609 passed**; `ruff`, `black --check`, `isort --check`, `mypy`, `pre-commit run --all-files` clean; imports of `langchain`, `langchain_core` 1.8.0, `langgraph`, `langchain_google_genai`, `langchain_openai`, `fastapi`, `docling` OK. Frontend `npm ci`, `lint`, `build`, `test:coverage` (**78 passed**) clean; `npm audit` unchanged (9 moderate, all the `minimatch` chain above).
+
+---
+
 ## 2026-11-04
 
 > **Open PRs (verified via `mcp__github__list_pull_requests`):** #202 (Dependabot, `eslint` 10.13.0 -> 10.14.0) and #201 (docs index). `eslint` is already proposed in #202 and was **not duplicated** here.
