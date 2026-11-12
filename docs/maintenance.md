@@ -4,6 +4,17 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-11-12 (merge round: open PRs cleared)
+
+At the owner's request every open PR was merged or closed:
+- **Merged:** #210 (maintenance 2026-11-04 + 2026-11-11, rebase-merged).
+- **Closed as superseded:** #203 (its commit landed via #210); #201 (the `handoff-talk-prep.md` row was already added to `docs/README.md` by #204); Dependabot #205 (`@vitest/coverage-v8` 5.1.0), #207 (`@vitejs/plugin-react`, `staging` already has 6.3.0) and #208 (`vitest` 5.1.0), all already on `staging` via #210.
+- **Merged via this PR, because they conflicted with #210's lockfile:** Dependabot #202 `eslint` 10.13.0 -> 10.14.0 (minor) and #206 `jsdom` 30.1.3 -> **31.0.0 (major)**. jsdom 31 changes the canvas backend (`canvas` -> `@napi-rs/canvas`), CSS parsing and async document parsing. The frontend tests use none of the canvas APIs and don't build documents with `new JSDOM()`, so they were unaffected.
+
+Verification: `npm -C frontend ci`, then `lint`, `build` and `test` (**78 passed, 10 files**). `npm audit` shows only the known dev-only `minimatch` advisory (moderate, via eslint/typescript-eslint), unchanged.
+
+---
+
 ## 2026-11-11
 
 > **Open PRs (verified via `mcp__github__list_pull_requests`):** #203 (last week's maintenance, **still unmerged**), Dependabot #202 (`eslint` 10.14.0), #205 (`@vitest/coverage-v8` 5.1.0), #206 (`jsdom` 31, major), #207 (`@vitejs/plugin-react` 6.2.1), #208 (`vitest` 5.1.0), and #201 (docs). #203 rewrites `uv.lock` and `frontend/package-lock.json`, so this branch is **stacked on #203** (rebased onto the current `staging`, `5dff328`) to avoid lockfile conflicts. #205/#207/#208 are already covered by #203. `eslint` is left to #202 and `jsdom` 31 to #206; neither is duplicated here.
