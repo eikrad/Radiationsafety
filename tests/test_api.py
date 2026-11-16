@@ -695,6 +695,10 @@ def upload_without_side_effects(monkeypatch, tmp_path):
         def __init__(self, **kwargs):
             pass
 
+        @classmethod
+        def from_documents(cls, documents, **kwargs):
+            return cls()
+
         def add_documents(self, docs):
             pass
 

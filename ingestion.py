@@ -1190,21 +1190,14 @@ def add_single_pdf_to_collection(
         return 0
     ep = get_embedding_provider()
     iaea_name, _ = get_collection_names(ep)
-    embeddings = get_embeddings(ep)
-    vectorstore = Chroma(
-        collection_name=iaea_name,
-        embedding_function=embeddings,
-        persist_directory=str(_CHROMA_DIR),
+    # the same batching (and retry) per provider as a full ingestion
+    _add_documents_rate_limited(
+        splits,
+        iaea_name,
+        get_embeddings(ep),
+        str(_CHROMA_DIR),
+        embedding_provider=ep,
     )
-    if ep == "gemini":
-        delay_sec = _gemini_batch_delay_sec()
-        for i in range(0, len(splits), GEMINI_BATCH_SIZE):
-            batch = splits[i : i + GEMINI_BATCH_SIZE]
-            vectorstore.add_documents(batch)
-            if i + GEMINI_BATCH_SIZE < len(splits) and delay_sec > 0:
-                time.sleep(delay_sec)
-    else:
-        vectorstore.add_documents(splits)
     return len(splits)
 
 
