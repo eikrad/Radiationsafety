@@ -45,10 +45,13 @@ def provider_issue(provider: str) -> str | None:
             "scaleway), which need SCW_EMBED_MODEL on the server. To use Gemini "
             "embeddings instead, set EMBEDDING_PROVIDER=gemini."
         )
-    from ingestion import check_embedding_collections_ready
+    from graph.i18n import index_not_ready_message
+    from graph.search_index import index_for
 
-    ready, message = check_embedding_collections_ready(embedding_provider)
-    return None if ready else message
+    readiness = index_for(embedding_provider).ready()
+    if readiness:
+        return None
+    return index_not_ready_message(readiness, embedding_provider, "en")
 
 
 def providers_status() -> dict[str, dict[str, object]]:

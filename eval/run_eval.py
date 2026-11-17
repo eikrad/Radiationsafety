@@ -188,13 +188,11 @@ def _model_choice():
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
     """The graph's first retrieval for a question: both collections, merged."""
     from graph.nodes.retrieve import retrieve
+    from graph.search_index import index_for
 
     out = retrieve(
-        {
-            "question": question,
-            "chat_history": [],
-            "embedding_provider": embedding_provider,
-        }
+        {"question": question, "chat_history": []},
+        index=index_for(embedding_provider),
     )
     if not out.get("documents") and out.get("retrieval_warning"):
         raise RuntimeError(out["retrieval_warning"])
@@ -206,11 +204,9 @@ def _retrieve_ranked(
 ) -> dict[str, list]:
     """Each collection's retrieval in rank order, `depth` chunks deep, through
     the same retrievers the graph uses."""
-    from graph.nodes.retrieval_common import invoke_dual_retrievers
+    from graph.search_index import index_for
 
-    iaea, dk = invoke_dual_retrievers(
-        embedding_provider=embedding_provider, query=question, config=None, k=depth
-    )
+    iaea, dk = index_for(embedding_provider).search(question, k=depth)
     return {"iaea": iaea, "dk": dk}
 
 
@@ -242,11 +238,11 @@ def _embedding_config() -> dict:
 
 
 def _index_config(embedding_provider: str) -> dict:
-    """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
-    import ingestion
+    """Which chunks the run retrieved from (see search_index.index_fingerprint)."""
+    from graph import search_index
 
     try:
-        return {"index": ingestion.index_fingerprint(embedding_provider)}
+        return {"index": search_index.index_fingerprint(embedding_provider)}
     except Exception as err:  # a missing store must not stop the run
         print(f"Warning: search index not fingerprinted: {err}", file=sys.stderr)
         return {"index": None}
@@ -441,15 +437,11 @@ def _run_eval(
     Returns summary, per-question results, and the run header (dataset
     fingerprint + config) that says what was tested.
     """
-    if no_web_search:
-        os.environ["WEB_SEARCH_ENABLED"] = "false"
-
     from eval.history import prompt_fingerprints
     from graph.answering import Answerer
     from graph.consts import env_bool
-    from graph.graph import app as graph
     from graph.llm_factory import get_llm, ollama_num_ctx
-    from ingestion import RETRIEVER_K
+    from graph.search_index import retriever_k
 
     graph_llm = get_llm()
     choice = _model_choice()
@@ -457,7 +449,9 @@ def _run_eval(
     # the model the header describes and the token count measures is the one
     # that answers
     answerer = Answerer(
-        graph, build_llm=lambda **kwargs: graph_llm, run_config=_EVAL_RUN_CONFIG
+        web_search_enabled=env_bool("WEB_SEARCH_ENABLED") and not no_web_search,
+        build_llm=lambda **kwargs: graph_llm,
+        run_config=_EVAL_RUN_CONFIG,
     )
     judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     header = {
@@ -472,9 +466,9 @@ def _run_eval(
             **judge_info,
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
-            "retriever_k": RETRIEVER_K,
+            "retriever_k": retriever_k(),
             # privacy mode keeps the graph off the web whatever the switch says
-            "web_search": env_bool("WEB_SEARCH_ENABLED") and not choice.privacy_mode,
+            "web_search": answerer.web_mode(choice) == "on",
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
@@ -560,7 +554,7 @@ def _run_retrieval_only(
     a full run; the rank metrics come from a deeper retrieval through the same
     retrievers. There is no pass rate, since nothing was answered.
     """
-    from ingestion import RETRIEVER_K
+    from graph.search_index import retriever_k
 
     embedding = _embedding_config()
     header = {
@@ -569,7 +563,7 @@ def _run_retrieval_only(
             "retrieval_only": True,
             **embedding,
             **_index_config(embedding["embedding_provider"]),
-            "retriever_k": RETRIEVER_K,
+            "retriever_k": retriever_k(),
             "retrieval_depth": depth,
             "char_budget": char_budget,
             "metrics_version": METRICS_VERSION,
@@ -754,9 +748,9 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
     """The graph's grade_documents verdict on these documents."""
     from graph.nodes.grade_documents import grade_documents
 
-    return not grade_documents(
-        {"question": question, "documents": documents, "llm": llm}
-    )["web_search"]
+    return grade_documents({"question": question, "documents": documents, "llm": llm})[
+        "context_sufficient"
+    ]
 
 
 def _grade_generation(question: str, context: str, generation: str, llm) -> bool:

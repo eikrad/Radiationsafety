@@ -1,8 +1,9 @@
 """Answer one question: the single way the API and eval run the graph.
 
-Privacy mode follows from the model choice here and nowhere else, and so does
-the rule that a question is never traced in privacy mode or when the user
-brought their own API keys.
+Privacy mode follows from the model choice here and nowhere else, and so do
+the web mode of the graph that answers (graph.graph.build_graph), the search
+index it searches, and the rule that a question is never traced in privacy
+mode or when the user brought their own API keys.
 """
 
 import os
@@ -14,7 +15,9 @@ from typing import Any
 import langsmith as ls
 from langchain_core.documents import Document
 
+from graph import search_index
 from graph.consts import GRADE_DOCUMENTS, RETRIEVE
+from graph.graph import WebMode, build_graph
 from graph.llm_factory import (
     ALLOWED_PROVIDERS,
     DEFAULT_PROVIDER,
@@ -23,6 +26,8 @@ from graph.llm_factory import (
     get_embedding_provider,
     get_llm,
 )
+from graph.search_index import SearchIndex
+from graph.web import BraveWebSearch, WebSearch
 
 _RUN_CONFIG = {"run_name": "RadiationSafetyRAG", "tags": ["rag", "radiation-safety"]}
 
@@ -108,28 +113,51 @@ class Answer:
 class Answerer:
     """Runs the graph for one question at a time.
 
-    graph: the compiled graph (default: graph.graph.app).
+    web_search_enabled: the operator's switch (WEB_SEARCH_ENABLED); privacy
+        mode never searches the web whatever it says.
+    web_search: how the web is searched when it may be (default: Brave).
+    index_for: the search index for an embedding model (default: the project's).
     build_llm: builds the answering model from provider, api_key, model_variant.
+    build_graph: builds the graph for a web mode (graph.graph.build_graph).
     run_config: the LangSmith run name and tags, when a question is traced.
     """
 
     def __init__(
         self,
-        graph: Any = None,
         *,
+        web_search_enabled: bool,
+        web_search: WebSearch | None = None,
+        index_for: Callable[[str], SearchIndex] | None = None,
         build_llm: Callable[..., Any] = get_llm,
+        build_graph: Callable[..., Any] = build_graph,
         run_config: dict | None = None,
     ):
-        self._graph = graph
+        self._web_search_enabled = web_search_enabled
+        self._web_search = web_search
+        self._index_for = index_for or search_index.index_for
         self._build_llm = build_llm
+        self._build_graph = build_graph
         self._run_config = run_config or _RUN_CONFIG
+        # per web mode: the index its graph was built on, and the graph
+        self._graphs: dict[str, tuple[Any, Any]] = {}
 
-    def _compiled_graph(self):
-        if self._graph is None:
-            from graph.graph import app
+    def web_mode(self, choice: "ModelChoice") -> WebMode:
+        """The web mode a question with this model choice is answered in."""
+        if choice.privacy_mode:
+            return "private"
+        return "on" if self._web_search_enabled else "off"
 
-            self._graph = app
-        return self._graph
+    def _graph_for(self, web_mode: WebMode, index):
+        """The graph for this web mode and index, built once; rebuilt when the
+        index was reopened (search_index.refresh after an ingestion)."""
+        built = self._graphs.get(web_mode)
+        if built is None or built[0] is not index:
+            web_search = None
+            if web_mode == "on":
+                web_search = self._web_search or BraveWebSearch()
+            built = (index, self._build_graph(web_mode, index, web_search))
+            self._graphs[web_mode] = built
+        return built[1]
 
     def answer(
         self,
@@ -164,22 +192,21 @@ class Answerer:
             api_key=choice.api_keys.get(provider) or None,
             model_variant=choice.variant,
         )
+        index = self._index_for(get_embedding_provider(provider))
+        graph = self._graph_for(self.web_mode(choice), index)
         graph_input = {
             "question": question,
             "generation": "",
-            "web_search": False,
             "documents": [],
             "web_search_attempted": False,
             "chat_history": list(history or []),
             "llm": llm,
-            "embedding_provider": get_embedding_provider(provider),
-            "privacy_mode": privacy_mode,
         }
         # never traced in privacy mode or with the user's own keys; otherwise
         # whatever the server (or an enclosing tracing_context) says
         untraced = privacy_mode or bool(choice.api_keys)
         with ls.tracing_context(enabled=False) if untraced else nullcontext():
-            final, trace = self._run(graph_input)
+            final, trace = self._run(graph, graph_input)
         return Answer(
             text=final.get("generation", ""),
             documents=list(final.get("documents") or []),
@@ -191,14 +218,14 @@ class Answerer:
             trace=trace,
         )
 
-    def _run(self, graph_input: dict) -> tuple[dict, AnswerTrace]:
+    def _run(self, graph, graph_input: dict) -> tuple[dict, AnswerTrace]:
         """Stream the graph: the final state has overwritten the first retrieval
         and the first sufficiency verdict, the node updates still have them."""
         initial_documents = None
         sufficient = None
         node_path: list[str] = []
         final: dict = {}
-        for mode, chunk in self._compiled_graph().stream(
+        for mode, chunk in graph.stream(
             graph_input, config=self._run_config, stream_mode=["updates", "values"]
         ):
             if mode == "values":

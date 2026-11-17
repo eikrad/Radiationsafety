@@ -3,7 +3,7 @@
 The loop (search the database again when the context is insufficient, retry
 after a failed answer) was gated on WEB_SEARCH_ENABLED, so with web search off
 it never ran: 251 of 251 eval questions took the straight path (ROADMAP, "The
-local correction loop never ran"). These tests run the real graph.graph.app.
+local correction loop never ran"). These tests run the real graph through the Answerer.
 """
 
 from contextlib import ExitStack
@@ -23,7 +23,9 @@ from graph.consts import (
     PREPARE_RETRY_RETRIEVE,
     RETRIEVE_MISSING,
     WEB_SEARCH,
+    env_bool,
 )
+from tests.fakes import FakeIndex
 
 FIRST = Document(
     page_content="[BEK 1385] Stk. 1. Lukkede kilder skal registreres.",
@@ -82,18 +84,11 @@ def _run(
     """Run the real graph with fakes; return (captured output, fakes)."""
     suff = _sufficiency(*sufficiency)
     query_chain = MagicMock(side_effect=lambda question, *_, **__: "follow-up query")
-    brave = MagicMock()
-    brave.from_api_key.return_value.invoke.return_value = "[]"
+    # the first search finds FIRST, every later one MISSING
+    index = FakeIndex(([], [FIRST]), ([], [MISSING]))
+    web = MagicMock(spec=["search"])
+    web.search.return_value = []
     fakes = {
-        "graph.nodes.retrieve.check_embedding_collections_ready": MagicMock(
-            return_value=(True, "")
-        ),
-        "graph.nodes.retrieve.invoke_dual_retrievers": MagicMock(
-            return_value=([], [FIRST])
-        ),
-        "graph.nodes.retrieve_missing.invoke_dual_retrievers": MagicMock(
-            return_value=([], [MISSING])
-        ),
         "graph.nodes.retrieve_missing.invoke_missing_query_chain": query_chain,
         "graph.nodes.grade_documents.get_context_sufficiency_grader": MagicMock(
             return_value=suff
@@ -120,17 +115,19 @@ def _run(
         "graph.nodes.web_search.invoke_search_query_chain": MagicMock(
             return_value="web query"
         ),
-        "graph.nodes.web_search.BraveSearch": brave,
     }
-    from graph.graph import app
-
     with ExitStack() as stack:
         for target, fake in fakes.items():
             stack.enter_context(patch(target, fake))
-        answerer = Answerer(app, build_llm=lambda **kwargs: MagicMock())
+        answerer = Answerer(
+            web_search_enabled=env_bool("WEB_SEARCH_ENABLED"),
+            web_search=web,
+            index_for=lambda embedding_provider: index,
+            build_llm=lambda **kwargs: MagicMock(),
+        )
         provider = "ollama" if privacy_mode else "scaleway"
         out = answer_output(answerer.answer(QUESTION, ModelChoice(provider=provider)))
-    return out, {"query_chain": query_chain, "web": brave.from_api_key}
+    return out, {"query_chain": query_chain, "web": web.search}
 
 
 @pytest.fixture
@@ -141,7 +138,6 @@ def web_off(monkeypatch):
 @pytest.fixture
 def web_on(monkeypatch):
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
-    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-key")
 
 
 def test_insufficient_context_is_searched_again_in_the_database_with_web_search_off(

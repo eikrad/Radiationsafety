@@ -22,16 +22,12 @@ class GraphState(TypedDict):
     generation: str
     # Exact context string passed to the generator; grader uses this so it sees the same facts.
     context_used_for_generation: NotRequired[str]
-    web_search: bool
     documents: list[Document]
     web_search_attempted: bool  # Prevent infinite web search loop
     chat_history: list[tuple[str, str]]  # (question, answer) pairs for follow-ups
     retrieval_warning: NotRequired[
         str
     ]  # Set when web search didn't yield good results or Mistral embeddings missing
-    embedding_provider: NotRequired[
-        str
-    ]  # "gemini" | "mistral"; from request model (gemini/openai → gemini)
     llm: NotRequired[
         BaseChatModel
     ]  # Chat model for generation/grading; uses env fallback if absent
@@ -39,8 +35,7 @@ class GraphState(TypedDict):
     trusted_documents: NotRequired[list[Document]]
     # Set by verify_trusted when answer was confirmed against trusted sources; finalize then skips generic web-search warning
     trusted_verified: NotRequired[bool]
-    # Set by grade_documents: the first retrieval is sufficient to answer. Unlike
-    # web_search it does not depend on privacy mode or WEB_SEARCH_ENABLED.
+    # Set by grade_documents: the retrieved context is sufficient to answer.
     context_sufficient: NotRequired[bool]
     # The context grader's needed/found on the latest insufficient verdict;
     # retrieve_missing searches for what it names as missing.
@@ -62,5 +57,3 @@ class GraphState(TypedDict):
     # Written by GRADE_GENERATION node; read by route_after_grade_generation.
     # True = generation passed; False = needs retry/web-search/end.
     generation_passed_grading: NotRequired[bool]
-    # True when running in Ollama privacy mode (fully local, no external API calls)
-    privacy_mode: NotRequired[bool]

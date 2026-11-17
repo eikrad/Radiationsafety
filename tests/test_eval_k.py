@@ -65,7 +65,7 @@ def test_two_variants_are_compared_under_their_own_names():
 def test_the_retriever_k_can_be_set_without_a_code_change(monkeypatch):
     import pytest
 
-    from ingestion import _retriever_k
+    from graph.search_index import retriever_k as _retriever_k
 
     monkeypatch.delenv("RETRIEVER_K", raising=False)
     assert _retriever_k() == 5

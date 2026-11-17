@@ -122,3 +122,43 @@ class StubAnswerer:
             raise self.error
         exchange = (question, self.next_answer.text)
         return replace(self.next_answer, chat_history=list(history or []) + [exchange])
+
+
+class FakeIndex:
+    """A search index that returns scripted chunks and records every query.
+
+    results: one (iaea_docs, dk_docs) per search, in order; the last one
+    repeats once they are used up. readiness: what ready() reports. Notes the
+    tracing state at every search.
+    """
+
+    def __init__(self, *results, readiness=None, embedding_provider="scaleway"):
+        from graph.search_index import Readiness
+
+        self.results = list(results) or [([], [])]
+        # not `or`: a Readiness that is not ready is falsy
+        self.readiness = Readiness.ready() if readiness is None else readiness
+        self.embedding_provider = embedding_provider
+        self.queries: list[str] = []
+        self.tracing_seen: list[bool] = []
+
+    def ready(self):
+        return self.readiness
+
+    def search(self, query, k=None, config=None):
+        self.queries.append(query)
+        self.tracing_seen.append(bool(tracing_is_enabled()))
+        iaea, dk = self.results[min(len(self.queries), len(self.results)) - 1]
+        return list(iaea), list(dk)
+
+
+class RecordingWebSearch:
+    """Web search that records every query and returns `results` (WebResult)."""
+
+    def __init__(self, results=()):
+        self.results = list(results)
+        self.queries: list[str] = []
+
+    def search(self, query, count=5):
+        self.queries.append(query)
+        return list(self.results)

@@ -78,10 +78,8 @@ VERDICTS = {
 
 @pytest.fixture
 def workspace(tmp_path, monkeypatch):
-    import ingestion
-
     # The fake retrievals below are built for the graph retrieving 3 per collection.
-    monkeypatch.setattr(ingestion, "RETRIEVER_K", 3)
+    monkeypatch.setenv("RETRIEVER_K", "3")
     golden = tmp_path / "golden.json"
     golden.write_text(json.dumps(GOLDEN), encoding="utf-8")
 
@@ -108,7 +106,7 @@ def workspace(tmp_path, monkeypatch):
         lambda: {"commit": "abc1234", "branch": "staging", "dirty": False},
     )
     monkeypatch.setattr(
-        "ingestion.index_fingerprint",
+        "graph.search_index.index_fingerprint",
         lambda ep: {"radiation-dk-law": {"chunks": 2, "content_hash": "c0ffee"}},
     )
     monkeypatch.setattr(

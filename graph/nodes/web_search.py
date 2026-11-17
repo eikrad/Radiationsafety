@@ -1,10 +1,7 @@
-"""Brave Search fallback for RAG context. Query is phrased by LLM from question + context."""
+"""Web search as the last resort for the context. The query is phrased by the LLM from question + context."""
 
-import json
-import os
 from typing import Any
 
-from langchain_community.tools import BraveSearch
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
 
@@ -13,6 +10,7 @@ from graph.consts import env_bool
 from graph.nodes.retrieval_common import make_doc_key
 from graph.state import GraphState
 from graph.utils import chat_context_prefix, throttle_llm_if_needed
+from graph.web import WebSearch
 
 # Trusted domains (IAEA + Danish); used when WEB_SEARCH_TRUSTED_DOMAINS_ONLY=true or for verification
 DK_DOMAINS = [
@@ -36,68 +34,14 @@ def _trusted_domains_only() -> bool:
     return env_bool("WEB_SEARCH_TRUSTED_DOMAINS_ONLY")
 
 
-def _parse_brave_results(results: Any) -> list[dict[str, str]]:
-    """Parse BraveSearch result (LangChain returns JSON list of {title, link, snippet}). Returns list of dicts with title, link, snippet."""
-    if isinstance(results, str):
-        try:
-            data = json.loads(results)
-        except json.JSONDecodeError:
-            return []
-        if isinstance(data, list):
-            return [
-                {
-                    "title": r.get("title") or "",
-                    "link": r.get("link") or r.get("url") or "",
-                    "snippet": r.get("snippet")
-                    or r.get("description")
-                    or r.get("title")
-                    or "",
-                }
-                for r in data
-                if isinstance(r, dict)
-            ]
-        if isinstance(data, dict) and "results" in data:
-            return _parse_brave_results(data["results"])
-        return []
-    if isinstance(results, list):
-        return [
-            {
-                "title": r.get("title") or "",
-                "link": r.get("link") or r.get("url") or "",
-                "snippet": r.get("snippet")
-                or r.get("description")
-                or r.get("title")
-                or "",
-            }
-            for r in results
-            if isinstance(r, dict)
-        ]
-    return []
-
-
 def web_search(
-    state: GraphState, config: RunnableConfig | None = None
+    state: GraphState, config: RunnableConfig | None = None, *, search: WebSearch
 ) -> dict[str, Any]:
-    """Run Brave Search. Query is phrased by LLM from question + current context for better results."""
+    """Search the web with a query the LLM phrases from question + current context."""
     question = state["question"]
     existing_docs = list(state.get("documents") or [])
     chat_history = state.get("chat_history") or []
     cfg = config or {}
-    if state.get("privacy_mode"):
-        # Defense in depth: privacy mode must never call an external search API,
-        # regardless of which routing path reached this node.
-        return {
-            "documents": existing_docs,
-            "web_search": False,
-            "web_search_attempted": True,
-        }
-    api_key = os.getenv("BRAVE_SEARCH_API_KEY")
-    if not api_key:
-        return {
-            "documents": existing_docs,
-            "web_search": False,
-            "web_search_attempted": True,  # prevent infinite retry when key missing
-        }
 
     doc_context = (
         "\n\n".join(d.page_content[:500] for d in existing_docs)
@@ -111,20 +55,15 @@ def web_search(
     query = _build_search_query(base_query, _trusted_domains_only())
 
     try:
-        tool = BraveSearch.from_api_key(api_key=api_key, search_kwargs={"count": 5})
-        results = tool.invoke(query)
+        results = search.search(query, count=5)
     except Exception:
-        return {
-            "documents": existing_docs,
-            "web_search": False,
-            "web_search_attempted": True,  # prevent infinite retry on failure
-        }
+        # attempted all the same: no second try on a failed search
+        return {"documents": existing_docs, "web_search_attempted": True}
 
-    parsed = _parse_brave_results(results)
     seen_keys = {make_doc_key(d) for d in existing_docs}
-    for item in parsed:
-        link = (item.get("link") or "").strip()
-        snippet = item.get("snippet") or item.get("title") or ""
+    for item in results:
+        link = item.link.strip()
+        snippet = item.snippet
         if not snippet and not link:
             continue
         # One document per result so sources list shows actual homepages
@@ -139,32 +78,23 @@ def web_search(
         seen_keys.add(key)
         existing_docs.append(doc)
 
-    return {
-        "documents": existing_docs,
-        "web_search": False,
-        "web_search_attempted": True,
-    }
+    return {"documents": existing_docs, "web_search_attempted": True}
 
 
 def run_trusted_only_search(
-    question: str, count: int = 5, llm=None, config: RunnableConfig | None = None
+    question: str,
+    *,
+    search: WebSearch,
+    count: int = 5,
+    llm=None,
+    config: RunnableConfig | None = None,
 ) -> str:
-    """Run Brave Search restricted to trusted domains. Returns concatenated snippets or empty string."""
-    api_key = os.getenv("BRAVE_SEARCH_API_KEY")
-    if not api_key:
-        return ""
+    """Search only the trusted domains; their snippets joined, or "" if none."""
     cfg = config or {}
     base = invoke_search_query_chain(question, "None.", llm, config=cfg)
     query = _build_search_query(base, trusted_domains_only=True)
     try:
-        tool = BraveSearch.from_api_key(api_key=api_key, search_kwargs={"count": count})
-        results = tool.invoke(query)
-        parsed = _parse_brave_results(results)
-        snippets = [
-            p.get("snippet") or p.get("title") or ""
-            for p in parsed
-            if p.get("snippet") or p.get("title")
-        ]
-        return "\n\n".join(snippets) if snippets else ""
+        results = search.search(query, count=count)
     except Exception:
         return ""
+    return "\n\n".join(r.snippet for r in results if r.snippet)

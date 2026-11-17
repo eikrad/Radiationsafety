@@ -64,13 +64,15 @@ _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load the graph on startup (skipped when TESTING=true)."""
+    """Set up the Answerer on startup (skipped when TESTING=true)."""
     app_state["started_at"] = time.time()
     if os.getenv("TESTING", "").lower() not in ("true", "1"):
         from graph.answering import Answerer
-        from graph.graph import app as graph_app
+        from graph.consts import env_bool
 
-        app_state["answerer"] = Answerer(graph_app)
+        app_state["answerer"] = Answerer(
+            web_search_enabled=env_bool("WEB_SEARCH_ENABLED")
+        )
     yield
     app_state["answerer"] = None
 
@@ -219,7 +221,7 @@ def require_admin(request: Request) -> None:
 
 
 def _run_ingest() -> None:
-    """Run ingestion and clear retriever cache. Updates app_state ingest_status
+    """Run ingestion and reopen the search index. Updates app_state ingest_status
     and keeps why a run failed and which PDFs it did not read as usual for
     GET /ingest/status: otherwise only the server log has them."""
     app_state["ingest_status"] = "running"
@@ -227,9 +229,10 @@ def _run_ingest() -> None:
     app_state["ingest_pdf_problems"] = []
     try:
         import ingestion
+        from graph import search_index
 
         problems = ingestion.ingest()
-        ingestion.clear_retrievers_cache()
+        search_index.refresh()
         app_state["ingest_pdf_problems"] = [
             {"file": name, "problem": what} for name, what in problems
         ]
@@ -549,6 +552,7 @@ async def documents_add_pdf(
             _lookup_iaea_publication_url_multi,
             append_source_to_registry,
         )
+        from graph import search_index
 
         title, version = _extract_pdf_title_and_version(dest)
         display_name = (title or safe_name).strip() or safe_name
@@ -571,7 +575,7 @@ async def documents_add_pdf(
             chunks = ingestion.add_single_pdf_to_collection(
                 dest, folder=folder, source_label=display_name
             )
-        ingestion.clear_retrievers_cache()
+        search_index.refresh()
         msg = f"Added PDF to collection ({chunks} chunks)."
         # the UI shows the message as it is; otherwise only the server log would
         # say that the PDF was read on the CPU or gave almost no text
