@@ -20,6 +20,10 @@ _Avoid_: Debug info, intermediates
 The answering model a request asks for, with any API keys the user brought along.
 _Avoid_: Model, provider settings
 
+**Web mode**:
+Whether the graph answering a Question may search the web: on, off (the operator switched web search off), or private (privacy mode). In off and private, nothing about a Question reaches the web.
+_Avoid_: web search flag, web search enabled
+
 **Privacy mode**:
 Answering with the local model only: nothing about the Question leaves the machine, so no web search and no tracing. It follows from the model choice and can't be requested separately.
 _Avoid_: Local mode, offline mode, Ollama mode
@@ -27,7 +31,7 @@ _Avoid_: Local mode, offline mode, Ollama mode
 ## Sources
 
 **Search index**:
-The embedded chunks of the IAEA standards and of Danish law, searched as two collections. Each embedding model has its own index.
+The embedded chunks of the IAEA standards and of Danish law, searched as two collections. Each embedding model has its own index; one that was never built is not ready, and the answer says how to build it.
 _Avoid_: Vector store, database, Chroma
 
 **Trusted documents**:

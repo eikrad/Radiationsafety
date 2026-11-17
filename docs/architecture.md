@@ -8,7 +8,7 @@ This document describes how the Radiation Safety RAG system is structured — fr
 
 The system has three main layers:
 
-1. **API** (`api/main.py`) — validates inputs, enforces rate limits, resolves LLM provider, and invokes the graph.
+1. **API** (`api/main.py`) — validates inputs, enforces rate limits, and hands the question to the Answerer (`graph/answering.py`), the one way the API and eval answer: it resolves the model, derives privacy mode, picks the web mode and the search index, and runs the graph built for that web mode.
 2. **LangGraph pipeline** (`graph/`) — a stateful workflow of retrieval, grading, generation, and verification nodes.
 3. **Vector database** (Chroma, `.chroma/`) — stores document chunks embedded by the configured embedding provider (Scaleway by default, Gemini optional; local embeddings in Ollama mode).
 
@@ -109,7 +109,9 @@ Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
 | `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and the user-facing warning (web results unverified, or the answer may be incomplete when grading still fails) |
 
-Shared helpers used across nodes: `graph/nodes/retrieval_common.py` (shared Chroma retrieval logic for `RETRIEVE`/`RETRIEVE_MISSING`), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
+Shared helpers used across nodes: `graph/search_index.py` (the search index: both Chroma collections of one embedding model, its readiness and search; ingestion only writes it), `graph/web.py` (the web search seam, Brave behind it), `graph/nodes/retrieval_common.py` (merging retrieved chunks without duplicates), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
+
+The graph is built per **web mode** (`graph.graph.build_graph`): `on` searches the web as the last resort, `off` never does because the operator switched it off (`WEB_SEARCH_ENABLED`), `private` never does because of privacy mode. The graphs for `off` and `private` have no `WEB_SEARCH` node and `VERIFY_TRUSTED` gets no web search, so they cannot reach the web. Nodes get what they depend on (the search index, the web search, the web mode) as keyword arguments when the graph is built.
 
 ---
 
@@ -142,7 +144,7 @@ Key fields:
 | `documents` | `list` | Retrieved + web chunks |
 | `trusted_documents` | `list` | Vector DB chunks only (for verification) |
 | `chat_history` | `list[tuple]` | Previous (question, answer) pairs |
-| `web_search` | `bool` | Flag: should web search run? |
+| `context_sufficient` | `bool` | The context grader's verdict on the retrieved chunks |
 | `reflection` | `str` | LLM hint about what was missing (from grader) |
 | `routing_outcome` | `str` | Final path taken through the graph |
 | `retrieval_warning` | `str` | User-facing warning (language-aware) |
@@ -275,7 +277,7 @@ When `LLM_PROVIDER=ollama`, the system uses local models and local embeddings �
 - **Embeddings:** `bge-m3`, multilingual (configurable via `OLLAMA_EMBED_MODEL`). Questions are embedded on the CPU so the answer model keeps the GPU; documents use the GPU while indexing.
 - **Collections:** `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` (separate from cloud collections; requires a one-time re-ingestion)
 - **Context window:** `OLLAMA_NUM_CTX` (default 16384); Ollama's own 4096 would cut longer prompts
-- **Auto-disabled:** LangSmith tracing and web search fallback
+- **Never:** LangSmith tracing or web search. The Answerer answers in a graph built for web mode `private`, which has no web search to call, and switches tracing off for the whole run, retrieval threads included
 
 Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud provider restores the original collections without re-ingestion.
 
@@ -309,9 +311,9 @@ Admin routes require `X-Admin-Token` header. Without `ADMIN_TOKEN` configured, t
 1. Create `graph/nodes/my_node.py` — implement `def my_node(state: GraphState) -> dict`.
 2. Export it from `graph/nodes/__init__.py`.
 3. Add a name constant in `graph/consts.py`.
-4. Register in `graph/graph.py`:
+4. Register it in `build_graph` in `graph/graph.py`; a dependency (the search index, the web search, the web mode) is passed as a keyword argument, never read from the state or the environment:
    ```python
-   workflow.add_node(MY_NODE, my_node)
+   workflow.add_node(MY_NODE, partial(my_node, index=index))
    workflow.add_edge(SOME_NODE, MY_NODE)
    ```
 
