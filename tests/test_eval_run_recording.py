@@ -85,7 +85,7 @@ def workspace(tmp_path, monkeypatch):
     golden = tmp_path / "golden.json"
     golden.write_text(json.dumps(GOLDEN), encoding="utf-8")
 
-    def fake_graph(question, graph, llm):
+    def fake_graph(question, answerer, choice):
         return {
             "generation": f"Answer to {question}",
             "documents": [Document(page_content=ANNEX_2)],
@@ -100,7 +100,7 @@ def workspace(tmp_path, monkeypatch):
     def fake_judge(item, answer, context, llm, votes=1):
         return VERDICTS[item["question"]]
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", fake_graph)
+    monkeypatch.setattr(run_eval, "_answer_question", fake_graph)
     monkeypatch.setattr(run_eval, "judge_item", fake_judge)
     monkeypatch.setattr(
         run_eval,
@@ -410,17 +410,17 @@ def _chat(model: str, tokens_in: int, tokens_out: int) -> GenericFakeChatModel:
 
 def test_a_run_records_the_tokens_each_model_used(monkeypatch, workspace):
     answering, judging = _chat("answer-model", 1000, 50), _chat("judge-model", 400, 20)
-    fake_graph, fake_judge = run_eval._invoke_graph, run_eval.judge_item
+    fake_graph, fake_judge = run_eval._answer_question, run_eval.judge_item
 
-    def graph_calling_its_model(question, graph, llm):
+    def graph_calling_its_model(question, answerer, choice):
         answering.invoke(question)
-        return fake_graph(question, graph, llm)
+        return fake_graph(question, answerer, choice)
 
     def judge_calling_its_model(item, answer, context, llm, votes=1):
         judging.invoke(answer)
         return fake_judge(item, answer, context, llm, votes)
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", graph_calling_its_model)
+    monkeypatch.setattr(run_eval, "_answer_question", graph_calling_its_model)
     monkeypatch.setattr(run_eval, "judge_item", judge_calling_its_model)
 
     _run(monkeypatch, workspace)
@@ -447,7 +447,7 @@ def test_a_run_that_crashes_is_not_recorded(monkeypatch, workspace):
     def broken_graph(*args, **kwargs):
         raise RuntimeError("Chroma collection missing")
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", broken_graph)
+    monkeypatch.setattr(run_eval, "_answer_question", broken_graph)
 
     with pytest.raises(RuntimeError):
         _run(monkeypatch, workspace)
@@ -478,7 +478,7 @@ def test_a_saved_run_can_be_rescored_without_running_the_graph(monkeypatch, work
             verdict["unsupported_claims"] = ["Grænsen er 50 mSv"]
         return verdict
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", graph_must_not_run)
+    monkeypatch.setattr(run_eval, "_answer_question", graph_must_not_run)
     monkeypatch.setattr(run_eval, "judge_item", stricter_judge)
     monkeypatch.setenv("EVAL_JUDGE_MODEL", "gpt-4o")
 
@@ -610,7 +610,7 @@ def retrieval_only(monkeypatch, workspace):
 
     monkeypatch.setattr(run_eval, "_retrieve_initial", fake_retrieve)
     monkeypatch.setattr(run_eval, "_retrieve_ranked", fake_ranked)
-    monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
+    monkeypatch.setattr(run_eval, "_answer_question", must_not_run)
     monkeypatch.setattr(run_eval, "judge_item", must_not_run)
     return SimpleNamespace(asked=asked)
 
@@ -846,12 +846,15 @@ def test_the_run_header_names_the_embeddings(monkeypatch, workspace, capsys):
 
 
 def test_a_warning_shown_with_an_answer_is_counted(monkeypatch, workspace):
-    answered = run_eval._invoke_graph
+    answered = run_eval._answer_question
 
-    def warned(question, graph, llm):
-        return {**answered(question, graph, llm), "retrieval_warning": "not verified"}
+    def warned(question, answerer, choice):
+        return {
+            **answered(question, answerer, choice),
+            "retrieval_warning": "not verified",
+        }
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", warned)
+    monkeypatch.setattr(run_eval, "_answer_question", warned)
     _run(monkeypatch, workspace)
 
     [run] = load_runs(workspace.history)
@@ -878,7 +881,7 @@ def regrade(monkeypatch, workspace):
 
     monkeypatch.setattr(run_eval, "_grade_sufficient", fake_grader)
     monkeypatch.setattr(run_eval, "_grade_generation", lambda *a: True)
-    monkeypatch.setattr(run_eval, "_invoke_graph", must_not_run)
+    monkeypatch.setattr(run_eval, "_answer_question", must_not_run)
     monkeypatch.setattr(run_eval, "judge_item", must_not_run)
     return SimpleNamespace(run_id=run["run_id"], seen=seen)
 
@@ -1025,14 +1028,14 @@ def test_a_question_whose_graph_run_crashes_counts_as_failed_and_the_run_goes_on
 ):
     """Privacy run 2026-10-11: one grader reply ended the run after 36 answers,
     and nothing was recorded."""
-    answer = run_eval._invoke_graph
+    answer = run_eval._answer_question
 
-    def crashing(question, graph, llm):
+    def crashing(question, answerer, choice):
         if question == "What is the transport index?":
             raise ValueError("1 validation error for GradeSufficiency")
-        return answer(question, graph, llm)
+        return answer(question, answerer, choice)
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", crashing)
+    monkeypatch.setattr(run_eval, "_answer_question", crashing)
 
     assert _run(monkeypatch, workspace) == 0
 
@@ -1048,16 +1051,16 @@ def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, works
     """Ollama restarts itself after the OOM killer stops it."""
     import httpx
 
-    answer = run_eval._invoke_graph
+    answer = run_eval._answer_question
     asked = []
 
-    def flaky(question, graph, llm):
+    def flaky(question, answerer, choice):
         asked.append(question)
         if question == "What is the transport index?" and asked.count(question) == 1:
             raise httpx.RemoteProtocolError("Server disconnected without a response.")
-        return answer(question, graph, llm)
+        return answer(question, answerer, choice)
 
-    monkeypatch.setattr(run_eval, "_invoke_graph", flaky)
+    monkeypatch.setattr(run_eval, "_answer_question", flaky)
     monkeypatch.setattr(run_eval, "_GRAPH_RETRY_WAIT_SEC", 0, raising=False)
 
     assert _run(monkeypatch, workspace) == 0

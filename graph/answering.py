@@ -65,6 +65,11 @@ class ModelChoice:
         provider = provider.lower()
         return provider if provider in ALLOWED_PROVIDERS else DEFAULT_PROVIDER
 
+    @property
+    def privacy_mode(self) -> bool:
+        """The local model: nothing about the question may leave the machine."""
+        return self.resolved_provider() == "ollama"
+
 
 @dataclass(frozen=True)
 class AnswerTrace:
@@ -105,6 +110,7 @@ class Answerer:
 
     graph: the compiled graph (default: graph.graph.app).
     build_llm: builds the answering model from provider, api_key, model_variant.
+    run_config: the LangSmith run name and tags, when a question is traced.
     """
 
     def __init__(
@@ -112,9 +118,11 @@ class Answerer:
         graph: Any = None,
         *,
         build_llm: Callable[..., Any] = get_llm,
+        run_config: dict | None = None,
     ):
         self._graph = graph
         self._build_llm = build_llm
+        self._run_config = run_config or _RUN_CONFIG
 
     def _compiled_graph(self):
         if self._graph is None:
@@ -150,7 +158,7 @@ class Answerer:
         provider: str,
         history: list[tuple[str, str]] | None,
     ) -> Answer:
-        privacy_mode = provider == "ollama"
+        privacy_mode = choice.privacy_mode
         llm = self._build_llm(
             provider=provider,
             api_key=choice.api_keys.get(provider) or None,
@@ -191,7 +199,7 @@ class Answerer:
         node_path: list[str] = []
         final: dict = {}
         for mode, chunk in self._compiled_graph().stream(
-            graph_input, config=_RUN_CONFIG, stream_mode=["updates", "values"]
+            graph_input, config=self._run_config, stream_mode=["updates", "values"]
         ):
             if mode == "values":
                 final = chunk

@@ -731,7 +731,7 @@ def query(req: QueryRequest, request: Request):
             warning=None,
             used_web_search=False,
             used_web_search_label=None,
-            privacy_mode=choice.resolved_provider() == "ollama",
+            privacy_mode=choice.privacy_mode,
         )
     try:
         answer = answerer.answer(req.question, choice, chat_history)

@@ -146,13 +146,15 @@ def _is_connection_error(e: BaseException) -> bool:
     return False
 
 
-def _answer(item: dict, graph, llm) -> dict:
+def _answer(item: dict, answerer, choice) -> dict:
     """The graph's output for one question, or a record of why it failed: one
     question must not end a run that has answered the others. A dropped
     connection is tried once more (Ollama restarts itself after a crash)."""
     for attempt in (1, 2):
         try:
-            return _invoke_with_retry(_invoke_graph, item["question"], graph, llm)
+            return _invoke_with_retry(
+                _answer_question, item["question"], answerer, choice
+            )
         except Exception as e:
             if attempt == 1 and _is_connection_error(e):
                 print(
@@ -165,27 +167,22 @@ def _answer(item: dict, graph, llm) -> dict:
     raise AssertionError("unreachable")
 
 
-def _invoke_graph(question: str, graph, llm) -> dict:
-    """Run graph for one question; final answer plus first retrieval, sufficiency and node path."""
-    from eval.graph_run import run_graph
-    from graph.llm_factory import get_embedding_provider
-
-    config = {"run_name": "eval-run", "tags": ["eval", "golden"]}
-    return run_graph(
-        question,
-        graph,
-        llm=llm,
-        embedding_provider=get_embedding_provider(),
-        config=config,
-        privacy_mode=_privacy_mode(),
-    )
+_EVAL_RUN_CONFIG = {"run_name": "eval-run", "tags": ["eval", "golden"]}
 
 
-def _privacy_mode() -> bool:
-    """LLM_PROVIDER=ollama: fully local, as the API runs it (no web search)."""
-    from graph.llm_factory import DEFAULT_PROVIDER
+def _answer_question(question: str, answerer, choice) -> dict:
+    """One question through the Answerer, as the API answers it, with what
+    scoring needs from its trace (first retrieval, sufficiency, node path)."""
+    from eval.graph_run import answer_output
 
-    return (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower() == "ollama"
+    return answer_output(answerer.answer(question, choice))
+
+
+def _model_choice():
+    """The server's own model (LLM_PROVIDER), as the API answers without a choice."""
+    from graph.answering import ModelChoice
+
+    return ModelChoice()
 
 
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
@@ -448,13 +445,20 @@ def _run_eval(
         os.environ["WEB_SEARCH_ENABLED"] = "false"
 
     from eval.history import prompt_fingerprints
+    from graph.answering import Answerer
     from graph.consts import env_bool
     from graph.graph import app as graph
     from graph.llm_factory import get_llm, ollama_num_ctx
     from ingestion import RETRIEVER_K
 
     graph_llm = get_llm()
-    llm_provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
+    choice = _model_choice()
+    llm_provider = choice.resolved_provider()
+    # the model the header describes and the token count measures is the one
+    # that answers
+    answerer = Answerer(
+        graph, build_llm=lambda **kwargs: graph_llm, run_config=_EVAL_RUN_CONFIG
+    )
     judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     header = {
         "dataset": dataset_fingerprint(golden),
@@ -470,7 +474,7 @@ def _run_eval(
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": RETRIEVER_K,
             # privacy mode keeps the graph off the web whatever the switch says
-            "web_search": env_bool("WEB_SEARCH_ENABLED") and not _privacy_mode(),
+            "web_search": env_bool("WEB_SEARCH_ENABLED") and not choice.privacy_mode,
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
@@ -492,8 +496,8 @@ def _run_eval(
     with get_usage_metadata_callback() as answering:
         _answer_all(
             golden,
-            graph,
-            graph_llm,
+            answerer,
+            choice,
             outputs,
             delay_after_graph_sec,
             delay_between_items_sec,
@@ -512,15 +516,15 @@ def _run_eval(
 
 def _answer_all(
     golden: list[dict],
-    graph,
-    graph_llm,
+    answerer,
+    choice,
     outputs: dict[str, dict],
     delay_after_graph_sec: float,
     delay_between_items_sec: float,
 ) -> None:
     for n, item in enumerate(golden, start=1):
         started = time.monotonic()
-        outputs[item["id"]] = _answer(item, graph, graph_llm)
+        outputs[item["id"]] = _answer(item, answerer, choice)
         status = "failed" if outputs[item["id"]].get("error") else "answered"
         print(
             f"  [{n}/{len(golden)}] {status} {item['id']} "
