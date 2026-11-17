@@ -748,9 +748,9 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
     """The graph's grade_documents verdict on these documents."""
     from graph.nodes.grade_documents import grade_documents
 
-    return grade_documents(
-        {"question": question, "documents": documents, "llm": llm}
-    )["context_sufficient"]
+    return grade_documents({"question": question, "documents": documents, "llm": llm})[
+        "context_sufficient"
+    ]
 
 
 def _grade_generation(question: str, context: str, generation: str, llm) -> bool:
