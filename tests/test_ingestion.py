@@ -93,9 +93,11 @@ class _FakeEmbeddings(Embeddings):
 
     def __init__(self, dim: int, fail_first: int = 0):
         self.dim, self.fail_first, self.calls = dim, fail_first, 0
+        self.batch_sizes: list[int] = []
 
     def embed_documents(self, texts):
         self.calls += 1
+        self.batch_sizes.append(len(texts))
         if self.calls <= self.fail_first:
             raise ConnectionError("transient")
         return [[float(len(t))] + [1.0] * (self.dim - 1) for t in texts]
@@ -207,6 +209,63 @@ def test_a_transient_embedding_failure_is_retried(chroma_dir, monkeypatch):
     ingestion.reembed_from("gemini", target="scaleway")
 
     assert _collection(chroma_dir, get_collection_names("scaleway")[0]).count() == 2
+
+
+def _uploaded_pdf(tmp_path, monkeypatch, chunks: int):
+    """A PDF on disk whose docling reading yields `chunks` chunks."""
+    pdf = tmp_path / "upload.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    monkeypatch.setattr(
+        ingestion,
+        "_load_pdf_with_docling",
+        lambda p, **kw: [
+            Document(page_content=f"chunk {i}", metadata={"source": p.name})
+            for i in range(chunks)
+        ],
+    )
+    return pdf
+
+
+def test_an_uploaded_pdf_goes_to_scaleway_in_batches(chroma_dir, monkeypatch):
+    chunks = ingestion.SCALEWAY_BATCH_SIZE * 2 + 1
+    pdf = _uploaded_pdf(chroma_dir, monkeypatch, chunks)
+    embeddings = _FakeEmbeddings(4)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: embeddings)
+
+    assert ingestion.add_single_pdf_to_collection(pdf) == chunks
+
+    assert max(embeddings.batch_sizes) <= ingestion.SCALEWAY_BATCH_SIZE
+    iaea = get_collection_names("scaleway")[0]
+    assert _collection(chroma_dir, iaea).count() == chunks
+
+
+def test_an_uploaded_pdf_retries_a_transient_embedding_failure(chroma_dir, monkeypatch):
+    pdf = _uploaded_pdf(chroma_dir, monkeypatch, 3)
+    flaky = _FakeEmbeddings(4, fail_first=1)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: flaky)
+    monkeypatch.setattr(ingestion.time, "sleep", lambda s: None)
+
+    assert ingestion.add_single_pdf_to_collection(pdf) == 3
+
+    assert _collection(chroma_dir, get_collection_names("scaleway")[0]).count() == 3
+
+
+def test_an_uploaded_pdf_keeps_the_chunks_already_indexed(chroma_dir, monkeypatch):
+    from langchain_chroma import Chroma
+
+    iaea = get_collection_names("scaleway")[0]
+    Chroma.from_documents(
+        [Document(page_content="III.1. For occupational exposure …")],
+        _FakeEmbeddings(4),
+        collection_name=iaea,
+        persist_directory=str(chroma_dir),
+    )
+    pdf = _uploaded_pdf(chroma_dir, monkeypatch, 2)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: _FakeEmbeddings(4))
+
+    ingestion.add_single_pdf_to_collection(pdf)
+
+    assert _collection(chroma_dir, iaea).count() == 3
 
 
 def test_missing_scaleway_collections_say_how_to_build_them(chroma_dir):
