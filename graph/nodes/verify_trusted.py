@@ -37,6 +37,9 @@ def verify_trusted(
     cfg = config or {}
 
     if not trusted_docs:
+        # a warning already set (e.g. how to build the search index) says more
+        if state.get("retrieval_warning"):
+            return {}
         lang = detect_language(question)
         return {"retrieval_warning": get_warning_no_trusted_sources(lang)}
     # grade_generation already found the answer grounded in the full context the

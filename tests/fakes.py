@@ -136,7 +136,8 @@ class FakeIndex:
         from graph.search_index import Readiness
 
         self.results = list(results) or [([], [])]
-        self.readiness = readiness or Readiness.ready()
+        # not `or`: a Readiness that is not ready is falsy
+        self.readiness = Readiness.ready() if readiness is None else readiness
         self.embedding_provider = embedding_provider
         self.queries: list[str] = []
         self.tracing_seen: list[bool] = []

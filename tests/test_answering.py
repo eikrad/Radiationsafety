@@ -203,6 +203,24 @@ def test_sources_name_each_document_once():
     ]
 
 
+def test_an_unbuilt_index_is_explained_in_the_answer():
+    """The hint how to build the index used to be replaced by "No trusted
+    sources available", which says nothing about what to do."""
+    from graph.search_index import Readiness
+
+    answerer = Answerer(
+        web_search_enabled=False,
+        index_for=lambda ep: FakeIndex(
+            readiness=Readiness.not_built(), embedding_provider=ep
+        ),
+        build_llm=lambda **kwargs: ScriptedChatModel(),
+    )
+
+    answer = answerer.answer("Dose limit?", ModelChoice(provider="ollama"))
+
+    assert "LLM_PROVIDER=ollama uv run python ingestion.py" in answer.warning
+
+
 @pytest.mark.parametrize(
     ("failure", "expected"),
     [
