@@ -1,10 +1,10 @@
 """Shared retrieval helpers for graph nodes."""
 
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables.config import ContextThreadPoolExecutor
 
 from ingestion import get_retrievers
 
@@ -61,7 +61,9 @@ def invoke_dual_retrievers(
                 raise map_error(exc) from exc
             raise
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    # the threads carry the caller's context: with tracing switched off for a
+    # question (privacy mode, user keys) the retrievals must not trace it either
+    with ContextThreadPoolExecutor(max_workers=2) as executor:
         fut_iaea = executor.submit(
             lambda: _invoke_safe(
                 lambda: iaea_retriever.invoke(query, config=cfg, **search)

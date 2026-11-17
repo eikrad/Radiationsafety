@@ -1,11 +1,12 @@
-"""Tests for capturing a graph run: first retrieval, sufficiency verdict, node path."""
+"""What eval keeps of an answer: first retrieval, sufficiency verdict, node path."""
 
 from typing import NotRequired, TypedDict
 
 from langchain_core.documents import Document
 from langgraph.graph import END, START, StateGraph
 
-from eval.graph_run import load_outputs, run_graph, save_outputs
+from eval.graph_run import answer_output, load_outputs, save_outputs
+from graph.answering import Answerer, ModelChoice
 from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, RETRIEVE_MISSING
 
 FIRST = Document(page_content="Første fund", metadata={"source": "BEK-1.xml"})
@@ -16,6 +17,7 @@ class State(TypedDict):
     question: str
     documents: list[Document]
     web_search: bool
+    context_sufficient: NotRequired[bool]
     generation: str
     context_used_for_generation: NotRequired[str]
     retrieval_count: NotRequired[int]
@@ -28,7 +30,10 @@ def _graph(first_sufficient: bool):
         return {"documents": [FIRST], "retrieval_count": 1}
 
     def grade_documents(state):
-        return {"web_search": not first_sufficient}
+        return {
+            "web_search": not first_sufficient,
+            "context_sufficient": first_sufficient,
+        }
 
     def retrieve_missing(state):
         return {
@@ -62,8 +67,14 @@ def _graph(first_sufficient: bool):
     return g.compile()
 
 
+def _recorded(question: str, graph) -> dict:
+    """What eval records for one question answered over `graph`."""
+    answerer = Answerer(graph, build_llm=lambda **kwargs: None)
+    return answer_output(answerer.answer(question, ModelChoice(provider="scaleway")))
+
+
 def test_the_first_retrieval_is_kept_when_later_retrievals_add_documents():
-    run = run_graph("Hvad gælder?", _graph(first_sufficient=False))
+    run = _recorded("Hvad gælder?", _graph(first_sufficient=False))
 
     assert [d.page_content for d in run["initial_documents"]] == ["Første fund"]
     assert [d.page_content for d in run["documents"]] == [
@@ -74,12 +85,12 @@ def test_the_first_retrieval_is_kept_when_later_retrievals_add_documents():
 
 
 def test_the_sufficiency_verdict_of_the_first_grading_is_recorded():
-    assert run_graph("q", _graph(first_sufficient=True))["sufficient"] is True
-    assert run_graph("q", _graph(first_sufficient=False))["sufficient"] is False
+    assert _recorded("q", _graph(first_sufficient=True))["sufficient"] is True
+    assert _recorded("q", _graph(first_sufficient=False))["sufficient"] is False
 
 
 def test_the_node_path_shows_how_often_the_graph_searched_again():
-    run = run_graph("q", _graph(first_sufficient=False))
+    run = _recorded("q", _graph(first_sufficient=False))
 
     assert run["node_path"] == [
         RETRIEVE,
@@ -91,7 +102,7 @@ def test_the_node_path_shows_how_often_the_graph_searched_again():
 
 
 def test_the_answer_and_generator_context_come_from_the_final_state():
-    run = run_graph("q", _graph(first_sufficient=True))
+    run = _recorded("q", _graph(first_sufficient=True))
 
     assert run["generation"] == "Svar: Første fund"
     assert run["context_used_for_generation"] == "Første fund"
@@ -99,7 +110,7 @@ def test_the_answer_and_generator_context_come_from_the_final_state():
 
 
 def test_saved_outputs_read_back_with_documents_and_metadata(tmp_path):
-    run = run_graph("q", _graph(first_sufficient=False))
+    run = _recorded("q", _graph(first_sufficient=False))
     path = tmp_path / "outputs_20260926_101500.json"
 
     save_outputs({"dk-dose-limits": run}, path)
@@ -117,7 +128,7 @@ def test_saved_outputs_read_back_with_documents_and_metadata(tmp_path):
 def test_an_eval_in_privacy_mode_runs_the_graph_in_privacy_mode(monkeypatch):
     """The API sets privacy_mode for Ollama, which keeps the graph off the web;
     an eval run must do the same, or it measures a mode no user gets."""
-    from eval.run_eval import _invoke_graph
+    from eval.run_eval import _answer_question, _model_choice
 
     class RecordingGraph:
         inputs: list[dict] = []
@@ -129,6 +140,10 @@ def test_an_eval_in_privacy_mode_runs_the_graph_in_privacy_mode(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
     graph = RecordingGraph()
 
-    _invoke_graph("Hvad er dosisgrænsen?", graph, llm=None)
+    _answer_question(
+        "Hvad er dosisgrænsen?",
+        Answerer(graph, build_llm=lambda **kwargs: None),
+        _model_choice(),
+    )
 
     assert graph.inputs[0].get("privacy_mode") is True

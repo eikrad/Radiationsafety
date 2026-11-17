@@ -12,7 +12,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from langchain_core.documents import Document
 
-from eval.graph_run import run_graph
+from eval.graph_run import answer_output
+from graph.answering import Answerer, ModelChoice
 from graph.chains.context_sufficiency_grader import GradeSufficiency
 from graph.chains.generation_grader import GradeGeneration, PartVerdict
 from graph.chains.hallucinations_grader import GradeHallucinations
@@ -126,13 +127,9 @@ def _run(
     with ExitStack() as stack:
         for target, fake in fakes.items():
             stack.enter_context(patch(target, fake))
-        out = run_graph(
-            QUESTION,
-            app,
-            llm=MagicMock(),
-            embedding_provider="scaleway",
-            privacy_mode=privacy_mode,
-        )
+        answerer = Answerer(app, build_llm=lambda **kwargs: MagicMock())
+        provider = "ollama" if privacy_mode else "scaleway"
+        out = answer_output(answerer.answer(QUESTION, ModelChoice(provider=provider)))
     return out, {"query_chain": query_chain, "web": brave.from_api_key}
 
 

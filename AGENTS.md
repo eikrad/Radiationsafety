@@ -20,6 +20,8 @@ RAG system for querying IAEA and Danish radiation safety documents.
 
 ```
 api/main.py              — FastAPI routes, admin auth, rate limiting
+graph/answering.py       — Answerer: the one way the API and eval answer a question (privacy mode,
+                           tracing rule, answer trace, named provider errors); terms in CONTEXT.md
 graph/graph.py           — LangGraph workflow (nodes, edges, routing)
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,

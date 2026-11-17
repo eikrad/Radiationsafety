@@ -1,8 +1,7 @@
-"""Run the RAG graph for one eval question and capture what scoring needs.
+"""What eval keeps of an answer, and saving it per run.
 
-graph.invoke only returns the final state, which has already overwritten the
-first retrieval and the grade_documents verdict. Streaming node updates keeps
-them, without changing the graph itself:
+graph.answering.Answerer answers each question and its answer trace holds
+what the final state has already overwritten:
 
 - initial_documents: output of the first RETRIEVE (before retrieve_missing),
 - sufficient: the first GRADE_DOCUMENTS verdict (context_sufficient),
@@ -19,72 +18,30 @@ from pathlib import Path
 
 from langchain_core.documents import Document
 
-from graph.consts import GRADE_DOCUMENTS, RETRIEVE
+from graph.answering import Answer
 
 # ranked_*: retrieval-only runs, each collection's deep retrieval in rank order
 _DOCUMENT_FIELDS = ("initial_documents", "documents", "ranked_iaea", "ranked_dk")
 
 
-def run_graph(
-    question: str,
-    graph,
-    llm=None,
-    embedding_provider: str | None = None,
-    config: dict | None = None,
-    privacy_mode: bool = False,
-) -> dict:
-    """Run the graph once and return the final answer plus captured intermediates.
-
-    privacy_mode: as the API sets it for Ollama; keeps the graph off the web."""
-    graph_input = {
-        "question": question,
-        "generation": "",
-        "web_search": False,
-        "documents": [],
-        "web_search_attempted": False,
-        "chat_history": [],
-        "privacy_mode": privacy_mode,
-    }
-    if llm is not None:
-        graph_input["llm"] = llm
-    if embedding_provider is not None:
-        graph_input["embedding_provider"] = embedding_provider
-
-    initial_documents = None
-    sufficient = None
-    node_path: list[str] = []
-    final: dict = {}
-    for mode, chunk in graph.stream(
-        graph_input, config=config or {}, stream_mode=["updates", "values"]
-    ):
-        if mode == "values":
-            final = chunk
-            continue
-        for node, update in chunk.items():
-            node_path.append(node)
-            update = update or {}
-            if node == RETRIEVE and initial_documents is None:
-                initial_documents = list(update.get("documents") or [])
-            if node == GRADE_DOCUMENTS and sufficient is None:
-                sufficient = update.get(
-                    "context_sufficient", not update.get("web_search", False)
-                )
-
+def answer_output(answer: Answer) -> dict:
+    """The record eval scores and saves for one answered question."""
+    trace = answer.trace
     return {
-        "generation": final.get("generation", ""),
-        "documents": list(final.get("documents") or []),
-        "context_used_for_generation": final.get("context_used_for_generation") or "",
-        "retrieval_warning": final.get("retrieval_warning"),
-        "web_search_attempted": bool(final.get("web_search_attempted", False)),
-        "initial_documents": initial_documents or [],
-        "sufficient": sufficient,
-        "node_path": node_path,
-        "missing_queries": list(final.get("missing_queries") or []),
+        "generation": answer.text,
+        "documents": list(answer.documents),
+        "context_used_for_generation": trace.context,
+        "retrieval_warning": answer.warning,
+        "web_search_attempted": answer.used_web_search,
+        "initial_documents": list(trace.initial_documents),
+        "sufficient": trace.sufficient,
+        "node_path": list(trace.node_path),
+        "missing_queries": list(trace.missing_queries),
     }
 
 
 def save_outputs(outputs: dict[str, dict], path: Path) -> None:
-    """Write {item_id: run_graph output} as JSON (documents with metadata)."""
+    """Write {item_id: answer_output record} as JSON (documents with metadata)."""
     serialisable = {
         item_id: {
             **run,
