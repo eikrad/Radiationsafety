@@ -5,11 +5,25 @@ no cloud API calls for LLM, embeddings, tracing, or web search.
 Written from the behavioral spec, not the implementation.
 """
 
+import re
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 # ---------------------------------------------------------------------------
 # 1. LLM factory: Ollama provider
 # ---------------------------------------------------------------------------
+
+
+def _assert_local_failure_says(failure: Exception, fix: str) -> None:
+    """A failing local model makes the Answerer name the command that fixes it."""
+    from graph.answering import Answerer, LocalModelUnavailable, ModelChoice
+
+    def failing_model(**kwargs):
+        raise failure
+
+    with pytest.raises(LocalModelUnavailable, match=re.escape(fix)):
+        Answerer(build_llm=failing_model).answer("q", ModelChoice(provider="ollama"))
 
 
 class TestOllamaLLM:
@@ -55,13 +69,10 @@ class TestOllamaLLM:
 
     def test_a_missing_answer_model_names_the_one_to_pull(self, monkeypatch):
         monkeypatch.delenv("OLLAMA_MODEL", raising=False)
-        from api.main import _ollama_error_detail
-
-        detail = _ollama_error_detail(
-            Exception('model "gemma4:e4b-it-qat" not found (404)')
+        _assert_local_failure_says(
+            Exception('model "gemma4:e4b-it-qat" not found (404)'),
+            "ollama pull gemma4:e4b-it-qat",
         )
-
-        assert "ollama pull gemma4:e4b-it-qat" in detail
 
     def test_model_variant_overrides_env(self, monkeypatch):
         """model_variant parameter should take precedence over OLLAMA_MODEL env."""
@@ -207,11 +218,9 @@ class TestOllamaEmbeddingProvider:
 
     def test_a_missing_embedding_model_names_the_one_to_pull(self, monkeypatch):
         monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
-        from api.main import _ollama_error_detail
-
-        detail = _ollama_error_detail(Exception('model "bge-m3" not found (404)'))
-
-        assert "ollama pull bge-m3" in detail
+        _assert_local_failure_says(
+            Exception('model "bge-m3" not found (404)'), "ollama pull bge-m3"
+        )
 
 
 # ---------------------------------------------------------------------------

@@ -80,3 +80,45 @@ class RecordingEmbeddings(Embeddings):
 
     def embed_query(self, text):
         return self.embed_documents([text])[0]
+
+
+def an_answer(**overrides):
+    """An Answer as the Answerer returns it, with any field overridden."""
+    from graph.answering import Answer, AnswerTrace
+
+    fields = {
+        "text": "Test answer from the stub answerer.",
+        "documents": [],
+        "warning": None,
+        "used_web_search": False,
+        "privacy_mode": False,
+        "routing_outcome": None,
+        "chat_history": [],
+        "trace": AnswerTrace(
+            initial_documents=[],
+            sufficient=None,
+            node_path=[],
+            missing_queries=[],
+            context="",
+        ),
+    }
+    return Answer(**{**fields, **overrides})
+
+
+class StubAnswerer:
+    """Stands in for the Answerer behind the API: returns `answer` (its
+    chat_history extended by the question) or raises `error`."""
+
+    def __init__(self, answer=None, error: Exception | None = None):
+        self.next_answer = answer or an_answer()
+        self.error = error
+        self.calls: list[tuple] = []
+
+    def answer(self, question, choice=None, history=None):
+        from dataclasses import replace
+
+        self.calls.append((question, choice, history))
+        if self.error is not None:
+            raise self.error
+        exchange = (question, self.next_answer.text)
+        return replace(self.next_answer, chat_history=list(history or []) + [exchange])

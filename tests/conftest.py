@@ -1,7 +1,5 @@
 """Pytest fixtures shared across tests."""
 
-from unittest.mock import MagicMock
-
 import dotenv
 import pytest
 from fastapi.testclient import TestClient
@@ -42,46 +40,103 @@ def _env_no_api_calls(monkeypatch):
 
 
 @pytest.fixture
-def mock_graph():
-    """Mock graph that returns a fixed result."""
+def stub_answerer():
+    """The Answerer behind the API, replaced by a stub (tests.fakes.StubAnswerer)."""
+    from tests.fakes import StubAnswerer
 
-    def _invoke(inputs, config=None):
-        question = inputs.get("question", "")
-        hist = inputs.get("chat_history") or []
-        new_hist = list(hist) + [(question, "Test answer from mocked graph.")]
-        return {
-            "question": question,
-            "generation": "Test answer from mocked graph.",
-            "documents": [],
-            "web_search": False,
-            "web_search_attempted": False,
-            "chat_history": new_hist,
-            "retrieval_warning": None,
-        }
-
-    graph = MagicMock()
-    graph.invoke.side_effect = _invoke
-    return graph
+    return StubAnswerer()
 
 
 @pytest.fixture
-def client(mock_graph):
-    """FastAPI test client with mocked graph."""
+def client(stub_answerer):
+    """FastAPI test client with a stub answerer."""
     from api.main import app, app_state
 
-    app_state["graph"] = mock_graph
+    app_state["answerer"] = stub_answerer
     with TestClient(app) as c:
         c.headers.update({"X-Admin-Token": "test-admin-token"})
         yield c
-    app_state["graph"] = None
+    app_state["answerer"] = None
 
 
 @pytest.fixture
-def unauth_client(mock_graph):
-    """FastAPI test client with mocked graph and no admin token."""
+def unauth_client(stub_answerer):
+    """FastAPI test client with a stub answerer and no admin token."""
     from api.main import app, app_state
 
-    app_state["graph"] = mock_graph
+    app_state["answerer"] = stub_answerer
     with TestClient(app) as c:
         yield c
-    app_state["graph"] = None
+    app_state["answerer"] = None
+
+
+_CHUNKS = {
+    "iaea": [
+        ("III.1. The occupational dose limit is 20 mSv per year.", "GSR-3.pdf", "IAEA"),
+        ("III.2. Averaged over five years, 100 mSv.", "GSR-3.pdf", "IAEA"),
+    ],
+    "dk": [
+        (
+            "§ 14. Dosisgrænsen for arbejdstagere er 20 mSv pr. år.",
+            "BEK-2025-138405",
+            "Danish law",
+        ),
+    ],
+}
+
+
+@pytest.fixture
+def temp_search_index(tmp_path, monkeypatch):
+    """A search index in tmp_path for the cloud and the local embeddings;
+    returns the embeddings, which note the tracing state at every call."""
+    from langchain_chroma import Chroma
+    from langchain_core.documents import Document
+
+    import ingestion
+    from tests.fakes import RecordingEmbeddings
+
+    recording = RecordingEmbeddings()
+    monkeypatch.setattr(ingestion, "_CHROMA_DIR", tmp_path)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: recording)
+    ingestion.clear_retrievers_cache()
+    for provider in ("scaleway", "ollama"):
+        for name, chunks in zip(
+            ingestion.get_collection_names(provider),
+            (_CHUNKS["iaea"], _CHUNKS["dk"]),
+            strict=True,
+        ):
+            docs = [
+                Document(
+                    page_content=text, metadata={"source": src, "document_type": t}
+                )
+                for text, src, t in chunks
+            ]
+            Chroma.from_documents(
+                docs, recording, collection_name=name, persist_directory=str(tmp_path)
+            )
+    recording.tracing_seen.clear()
+    yield recording
+    ingestion.clear_retrievers_cache()
+
+
+@pytest.fixture
+def web_queries(monkeypatch):
+    """Every query web search sends; the web itself is never reached."""
+    import importlib
+
+    queries: list[str] = []
+
+    class RecordingBrave:
+        @classmethod
+        def from_api_key(cls, api_key, search_kwargs=None):
+            return cls()
+
+        def invoke(self, query):
+            queries.append(query)
+            return "[]"
+
+    # the module, not the node function graph.nodes re-exports under its name
+    module = importlib.import_module("graph.nodes.web_search")
+    monkeypatch.setattr(module, "BraveSearch", RecordingBrave)
+    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-key")
+    return queries

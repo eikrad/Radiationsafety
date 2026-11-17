@@ -1,11 +1,9 @@
 """The Answerer end to end: the real graph, a scripted model, a temp-dir search index."""
 
-import importlib
-
+import httpx
+import openai
 import pytest
-from langchain_core.documents import Document
 
-import ingestion
 from graph.answering import (
     Answerer,
     LocalModelUnavailable,
@@ -13,67 +11,7 @@ from graph.answering import (
     RateLimited,
     TimedOut,
 )
-from tests.fakes import RecordingEmbeddings, ScriptedChatModel
-
-_CHUNKS = {
-    "iaea": [
-        Document(
-            page_content="III.1. The occupational dose limit is 20 mSv per year.",
-            metadata={"source": "GSR-3.pdf", "document_type": "IAEA"},
-        ),
-        Document(
-            page_content="III.2. Averaged over five years, 100 mSv.",
-            metadata={"source": "GSR-3.pdf", "document_type": "IAEA"},
-        ),
-    ],
-    "dk": [
-        Document(
-            page_content="§ 14. Dosisgrænsen for arbejdstagere er 20 mSv pr. år.",
-            metadata={"source": "BEK-2025-138405", "document_type": "Danish law"},
-        ),
-    ],
-}
-
-
-@pytest.fixture
-def embeddings(tmp_path, monkeypatch):
-    """A search index in tmp_path for the cloud and the local embeddings."""
-    from langchain_chroma import Chroma
-
-    recording = RecordingEmbeddings()
-    monkeypatch.setattr(ingestion, "_CHROMA_DIR", tmp_path)
-    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: recording)
-    ingestion.clear_retrievers_cache()
-    for provider in ("scaleway", "ollama"):
-        iaea, dk = ingestion.get_collection_names(provider)
-        for name, chunks in ((iaea, _CHUNKS["iaea"]), (dk, _CHUNKS["dk"])):
-            Chroma.from_documents(
-                chunks, recording, collection_name=name, persist_directory=str(tmp_path)
-            )
-    recording.tracing_seen.clear()
-    yield recording
-    ingestion.clear_retrievers_cache()
-
-
-@pytest.fixture
-def web(monkeypatch):
-    """Every query web search sends; the web itself is never reached."""
-    queries: list[str] = []
-
-    class RecordingBrave:
-        @classmethod
-        def from_api_key(cls, api_key, search_kwargs=None):
-            return cls()
-
-        def invoke(self, query):
-            queries.append(query)
-            return "[]"
-
-    # the module, not the node function graph.nodes re-exports under its name
-    web_search_module = importlib.import_module("graph.nodes.web_search")
-    monkeypatch.setattr(web_search_module, "BraveSearch", RecordingBrave)
-    monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "test-key")
-    return queries
+from tests.fakes import ScriptedChatModel
 
 
 @pytest.fixture
@@ -95,7 +33,9 @@ def _answerer(model: ScriptedChatModel) -> Answerer:
     return Answerer(build_llm=lambda **kwargs: model)
 
 
-def test_nothing_about_a_question_in_privacy_mode_is_traced(embeddings, tracing_on):
+def test_nothing_about_a_question_in_privacy_mode_is_traced(
+    temp_search_index, tracing_on
+):
     model = ScriptedChatModel()
 
     answer = _answerer(model).answer(
@@ -104,14 +44,14 @@ def test_nothing_about_a_question_in_privacy_mode_is_traced(embeddings, tracing_
 
     assert answer.privacy_mode is True
     assert model.tracing_seen and not any(model.tracing_seen)
-    assert embeddings.tracing_seen and not any(embeddings.tracing_seen)
+    assert temp_search_index.tracing_seen and not any(temp_search_index.tracing_seen)
 
 
 @pytest.mark.parametrize(
     ("api_keys", "traced"), [({"scaleway": "user-key"}, False), ({}, True)]
 )
 def test_a_question_asked_with_the_users_own_key_is_not_traced(
-    embeddings, tracing_on, api_keys, traced
+    temp_search_index, tracing_on, api_keys, traced
 ):
     model = ScriptedChatModel()
 
@@ -121,7 +61,7 @@ def test_a_question_asked_with_the_users_own_key_is_not_traced(
     )
 
     assert set(model.tracing_seen) == {traced}
-    assert set(embeddings.tracing_seen) == {traced}
+    assert set(temp_search_index.tracing_seen) == {traced}
 
 
 def _unanswerable() -> ScriptedChatModel:
@@ -130,19 +70,21 @@ def _unanswerable() -> ScriptedChatModel:
     return ScriptedChatModel(sufficient=False, answer_passes=False)
 
 
-def test_privacy_mode_never_searches_the_web(embeddings, web, monkeypatch):
+def test_privacy_mode_never_searches_the_web(
+    temp_search_index, web_queries, monkeypatch
+):
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
 
     answer = _answerer(_unanswerable()).answer(
         "Which authority is told about a lost source?", ModelChoice(provider="ollama")
     )
 
-    assert web == []
+    assert web_queries == []
     assert answer.used_web_search is False
 
 
 def test_the_web_is_the_last_resort_when_the_operator_allows_it(
-    embeddings, web, monkeypatch
+    temp_search_index, web_queries, monkeypatch
 ):
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
 
@@ -151,11 +93,13 @@ def test_the_web_is_the_last_resort_when_the_operator_allows_it(
         ModelChoice(provider="scaleway"),
     )
 
-    assert len(web) >= 1
+    assert len(web_queries) >= 1
     assert answer.used_web_search is True
 
 
-def test_with_web_search_off_an_incomplete_answer_says_so(embeddings, web, monkeypatch):
+def test_with_web_search_off_an_incomplete_answer_says_so(
+    temp_search_index, web_queries, monkeypatch
+):
     from graph.i18n import WEB_SEARCH_OFF_NOTE
 
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
@@ -165,12 +109,12 @@ def test_with_web_search_off_an_incomplete_answer_says_so(embeddings, web, monke
         ModelChoice(provider="scaleway"),
     )
 
-    assert web == []
+    assert web_queries == []
     assert WEB_SEARCH_OFF_NOTE["en"] in answer.warning
 
 
 def test_in_privacy_mode_an_incomplete_answer_does_not_mention_web_search(
-    embeddings, web, monkeypatch
+    temp_search_index, web_queries, monkeypatch
 ):
     from graph.i18n import WEB_SEARCH_OFF_NOTE
 
@@ -184,7 +128,7 @@ def test_in_privacy_mode_an_incomplete_answer_does_not_mention_web_search(
     assert WEB_SEARCH_OFF_NOTE["en"] not in answer.warning
 
 
-def test_the_trace_shows_how_the_answer_came_about(embeddings, monkeypatch):
+def test_the_trace_shows_how_the_answer_came_about(temp_search_index, monkeypatch):
     monkeypatch.setenv("WEB_SEARCH_ENABLED", "false")
 
     answer = _answerer(_unanswerable()).answer(
@@ -204,7 +148,7 @@ def test_the_trace_shows_how_the_answer_came_about(embeddings, monkeypatch):
     assert trace.context
 
 
-def test_a_follow_up_question_extends_the_conversation(embeddings):
+def test_a_follow_up_question_extends_the_conversation(temp_search_index):
     earlier = [("What is the dose limit?", "20 mSv per year.")]
 
     answer = _answerer(ScriptedChatModel(reply="Also 20 mSv.")).answer(
@@ -214,7 +158,7 @@ def test_a_follow_up_question_extends_the_conversation(embeddings):
     assert answer.chat_history == earlier + [("And in Denmark?", "Also 20 mSv.")]
 
 
-def test_sources_name_each_document_once(embeddings):
+def test_sources_name_each_document_once(temp_search_index):
     answer = _answerer(ScriptedChatModel()).answer(
         "What is the occupational dose limit?", ModelChoice(provider="scaleway")
     )
@@ -231,16 +175,22 @@ def test_sources_name_each_document_once(embeddings):
     [
         (RuntimeError("429 RESOURCE_EXHAUSTED: quota exceeded"), RateLimited),
         (TimeoutError("read timed out"), TimedOut),
+        (
+            openai.APITimeoutError(
+                request=httpx.Request("POST", "https://api.scaleway.ai/v1/chat")
+            ),
+            TimedOut,
+        ),
     ],
 )
-def test_a_provider_failure_is_named(embeddings, failure, expected):
+def test_a_provider_failure_is_named(temp_search_index, failure, expected):
     model = ScriptedChatModel(error=failure)
 
     with pytest.raises(expected):
         _answerer(model).answer("Dose limit?", ModelChoice(provider="scaleway"))
 
 
-def test_a_local_model_failure_says_how_to_fix_it(embeddings):
+def test_a_local_model_failure_says_how_to_fix_it(temp_search_index):
     model = ScriptedChatModel(error=ConnectionError("connection refused"))
 
     with pytest.raises(LocalModelUnavailable, match="ollama serve"):
