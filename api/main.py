@@ -64,13 +64,15 @@ _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load the graph on startup (skipped when TESTING=true)."""
+    """Set up the Answerer on startup (skipped when TESTING=true)."""
     app_state["started_at"] = time.time()
     if os.getenv("TESTING", "").lower() not in ("true", "1"):
         from graph.answering import Answerer
-        from graph.graph import app as graph_app
+        from graph.consts import env_bool
 
-        app_state["answerer"] = Answerer(graph_app)
+        app_state["answerer"] = Answerer(
+            web_search_enabled=env_bool("WEB_SEARCH_ENABLED")
+        )
     yield
     app_state["answerer"] = None
 

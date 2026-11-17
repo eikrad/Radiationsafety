@@ -8,6 +8,7 @@ from langgraph.graph import END, START, StateGraph
 from eval.graph_run import answer_output, load_outputs, save_outputs
 from graph.answering import Answerer, ModelChoice
 from graph.consts import GENERATE, GRADE_DOCUMENTS, RETRIEVE, RETRIEVE_MISSING
+from tests.fakes import FakeIndex
 
 FIRST = Document(page_content="Første fund", metadata={"source": "BEK-1.xml"})
 LATER = Document(page_content="Senere fund", metadata={"source": "GSR-3.pdf"})
@@ -67,10 +68,26 @@ def _graph(first_sufficient: bool):
     return g.compile()
 
 
+def _answerer(graph, built: list | None = None) -> Answerer:
+    """An Answerer whose every web mode runs `graph`; records the web modes."""
+
+    def build_graph(web_mode, index, web_search=None):
+        if built is not None:
+            built.append(web_mode)
+        return graph
+
+    return Answerer(
+        web_search_enabled=False,
+        index_for=lambda embedding_provider: FakeIndex(),
+        build_llm=lambda **kwargs: None,
+        build_graph=build_graph,
+    )
+
+
 def _recorded(question: str, graph) -> dict:
     """What eval records for one question answered over `graph`."""
-    answerer = Answerer(graph, build_llm=lambda **kwargs: None)
-    return answer_output(answerer.answer(question, ModelChoice(provider="scaleway")))
+    answer = _answerer(graph).answer(question, ModelChoice(provider="scaleway"))
+    return answer_output(answer)
 
 
 def test_the_first_retrieval_is_kept_when_later_retrievals_add_documents():
@@ -126,24 +143,17 @@ def test_saved_outputs_read_back_with_documents_and_metadata(tmp_path):
 
 
 def test_an_eval_in_privacy_mode_runs_the_graph_in_privacy_mode(monkeypatch):
-    """The API sets privacy_mode for Ollama, which keeps the graph off the web;
+    """The API answers Ollama in privacy mode, on a graph without web search;
     an eval run must do the same, or it measures a mode no user gets."""
     from eval.run_eval import _answer_question, _model_choice
 
-    class RecordingGraph:
-        inputs: list[dict] = []
-
-        def stream(self, graph_input, config=None, stream_mode=None):
-            self.inputs.append(graph_input)
-            return iter(())
-
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
-    graph = RecordingGraph()
+    built: list[str] = []
 
     _answer_question(
         "Hvad er dosisgrænsen?",
-        Answerer(graph, build_llm=lambda **kwargs: None),
+        _answerer(_graph(first_sufficient=True), built),
         _model_choice(),
     )
 
-    assert graph.inputs[0].get("privacy_mode") is True
+    assert built == ["private"]

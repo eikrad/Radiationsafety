@@ -96,7 +96,6 @@ def test_retrieve_missing_judges_the_whole_chunks():
         patch(
             "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
         ),
-        patch("graph.nodes.retrieve_missing.index_for", return_value=FakeIndex()),
         patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
             return_value=grader,
@@ -109,7 +108,8 @@ def test_retrieve_missing_judges_the_whole_chunks():
                 "documents": [LONG_CHUNK],
                 "llm": MagicMock(),
                 "chat_history": [],
-            }
+            },
+            index=FakeIndex(),
         )
 
     assert LATE_FACT in grader.invoke.call_args[0][0]["context"]
@@ -133,7 +133,9 @@ def _verify(state, grader):
         ),
         patch("graph.nodes.verify_trusted.throttle_llm_if_needed"),
     ):
-        return verify_trusted({"question": "q", "llm": MagicMock(), **state})
+        return verify_trusted(
+            {"question": "q", "llm": MagicMock(), **state}, trusted_search=None
+        )
 
 
 def test_an_answer_grounded_late_in_a_local_chunk_is_verified():
@@ -276,7 +278,7 @@ def test_no_sufficiency_verdict_counts_as_insufficient():
             {"question": "q", "documents": [LONG_CHUNK], "llm": MagicMock()}
         )
 
-    assert out["web_search"] is True
+    assert out["context_sufficient"] is False
     assert out["documents"] == [LONG_CHUNK]
 
 
@@ -311,7 +313,6 @@ def test_no_sufficiency_verdict_after_another_search_counts_as_insufficient():
         patch(
             "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
         ),
-        patch("graph.nodes.retrieve_missing.index_for", return_value=FakeIndex()),
         patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
             return_value=_broken_grader(),
@@ -324,7 +325,8 @@ def test_no_sufficiency_verdict_after_another_search_counts_as_insufficient():
                 "documents": [LONG_CHUNK],
                 "llm": MagicMock(),
                 "chat_history": [],
-            }
+            },
+            index=FakeIndex(),
         )
 
     assert out["sufficient_after_missing"] is False

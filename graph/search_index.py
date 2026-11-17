@@ -8,6 +8,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableConfig
@@ -84,6 +85,18 @@ class Readiness:
     @classmethod
     def misconfigured(cls, detail: str) -> "Readiness":
         return cls("misconfigured", detail)
+
+
+class SearchIndex(Protocol):
+    """What the graph needs from an index (ChromaIndex; tests.fakes.FakeIndex)."""
+
+    embedding_provider: str
+
+    def ready(self) -> Readiness: ...
+
+    def search(
+        self, query: str, k: int | None = None, config: RunnableConfig | None = None
+    ) -> tuple[list[Document], list[Document]]: ...
 
 
 class ChromaIndex:

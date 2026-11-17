@@ -621,18 +621,27 @@ def test_query_lists_each_source_once(client, stub_answerer):
     assert res.json()["sources"] == [{"source": "GSR-3.pdf", "document_type": "IAEA"}]
 
 
-def test_a_question_in_privacy_mode_stays_on_the_machine(
-    client, temp_search_index, web_queries, monkeypatch
-):
-    """The real Answerer behind the API: model=ollama never reaches the web,
-    even when the documents never suffice and web search is on."""
+def test_a_question_in_privacy_mode_stays_on_the_machine(client):
+    """The real Answerer and graph behind the API: model=ollama searches the
+    local index and never the web, even when the documents never suffice and
+    web search is on."""
+    from langchain_core.documents import Document
+
     from api.main import app_state
     from graph.answering import Answerer
-    from tests.fakes import ScriptedChatModel
+    from tests.fakes import FakeIndex, RecordingWebSearch, ScriptedChatModel
 
-    monkeypatch.setenv("WEB_SEARCH_ENABLED", "true")
+    gsr3 = Document(page_content="III.1", metadata={"source": "GSR-3.pdf"})
+    bek = Document(page_content="§ 14", metadata={"source": "BEK-2025-138405"})
+    indexes: dict[str, FakeIndex] = {}
+    web = RecordingWebSearch()
     model = ScriptedChatModel(sufficient=False, answer_passes=False)
-    app_state["answerer"] = Answerer(build_llm=lambda **kwargs: model)
+    app_state["answerer"] = Answerer(
+        web_search_enabled=True,
+        web_search=web,
+        index_for=lambda ep: indexes.setdefault(ep, FakeIndex(([gsr3], [bek]))),
+        build_llm=lambda **kwargs: model,
+    )
 
     res = client.post(
         "/query",
@@ -643,7 +652,8 @@ def test_a_question_in_privacy_mode_stays_on_the_machine(
     data = res.json()
     assert data["privacy_mode"] is True
     assert data["used_web_search"] is False
-    assert web_queries == []
+    assert web.queries == []
+    assert list(indexes) == ["ollama"]
     assert {s["source"] for s in data["sources"]} == {"GSR-3.pdf", "BEK-2025-138405"}
 
 

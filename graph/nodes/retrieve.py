@@ -5,9 +5,8 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from graph.i18n import detect_language, index_not_ready_message
-from graph.llm_factory import get_embedding_provider
 from graph.nodes.retrieval_common import merge_unique_documents
-from graph.search_index import index_for
+from graph.search_index import SearchIndex
 from graph.state import GraphState
 
 
@@ -21,13 +20,13 @@ def _retrieval_query(question: str, chat_history: list[tuple[str, str]]) -> str:
     return f"Previous: {last_q}. Assistant: {a_snippet}. Current question: {question}"
 
 
-def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[str, Any]:
-    """Query both collections in parallel, merge and deduplicate by content."""
+def retrieve(
+    state: GraphState, config: RunnableConfig | None = None, *, index: SearchIndex
+) -> dict[str, Any]:
+    """Search both collections of the index, merge and deduplicate by content."""
     question = state["question"]
     chat_history = state.get("chat_history") or []
     query = _retrieval_query(question, chat_history)
-    ep = state.get("embedding_provider") or get_embedding_provider()
-    index = index_for(ep)
     readiness = index.ready()
     if not readiness:
         lang = detect_language(question)
@@ -35,7 +34,9 @@ def retrieve(state: GraphState, config: RunnableConfig | None = None) -> dict[st
             "documents": [],
             "trusted_documents": [],
             "web_search_attempted": False,
-            "retrieval_warning": index_not_ready_message(readiness, ep, lang),
+            "retrieval_warning": index_not_ready_message(
+                readiness, index.embedding_provider, lang
+            ),
             "retrieval_count": 1,
         }
 

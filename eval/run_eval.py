@@ -188,13 +188,11 @@ def _model_choice():
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
     """The graph's first retrieval for a question: both collections, merged."""
     from graph.nodes.retrieve import retrieve
+    from graph.search_index import index_for
 
     out = retrieve(
-        {
-            "question": question,
-            "chat_history": [],
-            "embedding_provider": embedding_provider,
-        }
+        {"question": question, "chat_history": []},
+        index=index_for(embedding_provider),
     )
     if not out.get("documents") and out.get("retrieval_warning"):
         raise RuntimeError(out["retrieval_warning"])
@@ -439,13 +437,9 @@ def _run_eval(
     Returns summary, per-question results, and the run header (dataset
     fingerprint + config) that says what was tested.
     """
-    if no_web_search:
-        os.environ["WEB_SEARCH_ENABLED"] = "false"
-
     from eval.history import prompt_fingerprints
     from graph.answering import Answerer
     from graph.consts import env_bool
-    from graph.graph import app as graph
     from graph.llm_factory import get_llm, ollama_num_ctx
     from graph.search_index import retriever_k
 
@@ -455,7 +449,9 @@ def _run_eval(
     # the model the header describes and the token count measures is the one
     # that answers
     answerer = Answerer(
-        graph, build_llm=lambda **kwargs: graph_llm, run_config=_EVAL_RUN_CONFIG
+        web_search_enabled=env_bool("WEB_SEARCH_ENABLED") and not no_web_search,
+        build_llm=lambda **kwargs: graph_llm,
+        run_config=_EVAL_RUN_CONFIG,
     )
     judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     header = {
@@ -472,7 +468,7 @@ def _run_eval(
             **_index_config(embedding["embedding_provider"]),
             "retriever_k": retriever_k(),
             # privacy mode keeps the graph off the web whatever the switch says
-            "web_search": env_bool("WEB_SEARCH_ENABLED") and not choice.privacy_mode,
+            "web_search": answerer.web_mode(choice) == "on",
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
@@ -752,9 +748,9 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
     """The graph's grade_documents verdict on these documents."""
     from graph.nodes.grade_documents import grade_documents
 
-    return not grade_documents(
+    return grade_documents(
         {"question": question, "documents": documents, "llm": llm}
-    )["web_search"]
+    )["context_sufficient"]
 
 
 def _grade_generation(question: str, context: str, generation: str, llm) -> bool:

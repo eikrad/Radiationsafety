@@ -6,7 +6,6 @@ Written from the behavioral spec, not the implementation.
 """
 
 import re
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -23,7 +22,9 @@ def _assert_local_failure_says(failure: Exception, fix: str) -> None:
         raise failure
 
     with pytest.raises(LocalModelUnavailable, match=re.escape(fix)):
-        Answerer(build_llm=failing_model).answer("q", ModelChoice(provider="ollama"))
+        Answerer(web_search_enabled=False, build_llm=failing_model).answer(
+            "q", ModelChoice(provider="ollama")
+        )
 
 
 class TestOllamaLLM:
@@ -341,64 +342,6 @@ class TestOllamaI18nWarnings:
 
 
 # ---------------------------------------------------------------------------
-# 6. Privacy guard: no data leaks in Ollama mode
-# ---------------------------------------------------------------------------
-
-
-class TestPrivacyGuard:
-    """When using Ollama, tracing and web search must be disabled."""
-
-    def test_web_search_prevented_for_ollama(self):
-        """Ollama requests should set web_search_attempted=True to prevent Brave API calls."""
-        # This tests the behavior at the API level: the invoke_input should
-        # have web_search_attempted=True when model is ollama.
-        # We test this by inspecting what the query endpoint passes to graph.invoke.
-        import os
-
-        # Mock the graph and dependencies
-        mock_graph = MagicMock()
-        mock_graph.invoke.return_value = {
-            "generation": "test answer",
-            "documents": [],
-            "chat_history": [],
-            "web_search_attempted": True,
-        }
-
-        with (
-            patch.dict(os.environ, {"LLM_PROVIDER": "ollama"}, clear=False),
-            patch("graph.llm_factory.get_llm") as mock_get_llm,
-        ):
-            mock_get_llm.return_value = MagicMock()
-
-            from graph.llm_factory import get_embedding_provider
-
-            ep = get_embedding_provider("ollama")
-            # Verify the embedding provider is ollama (privacy mode)
-            assert ep == "ollama"
-
-    def test_tracing_disabled_for_ollama(self):
-        """Ollama mode should disable LangSmith tracing (no data to cloud)."""
-        # The privacy guard should use ls.tracing_context(enabled=False)
-        # for ollama requests, regardless of whether api_keys are set.
-        # This is a design assertion — the API code must wrap ollama invocations
-        # with tracing disabled.
-        #
-        # We verify this indirectly: the `disable_tracing` flag should be True
-        # when model is "ollama", even without api_keys.
-        is_ollama = "ollama" == "ollama"
-        api_keys = None  # No API keys for ollama
-        disable_tracing = bool(api_keys) or is_ollama
-        assert disable_tracing is True
-
-    def test_tracing_not_disabled_for_gemini_without_api_keys(self):
-        """Gemini without frontend API keys should still trace (existing behavior)."""
-        is_ollama = "gemini" == "ollama"
-        api_keys = None
-        disable_tracing = bool(api_keys) or is_ollama
-        assert disable_tracing is False
-
-
-# ---------------------------------------------------------------------------
 # 7. Frontend constants: Ollama in the model list
 # ---------------------------------------------------------------------------
 
@@ -479,95 +422,3 @@ class TestEnvExample:
         content = env_path.read_text()
         assert "Privacy" in content or "privacy" in content
         assert "no data leaves" in content.lower() or "fully local" in content.lower()
-
-
-# ---------------------------------------------------------------------------
-# 9. Graph nodes: privacy_mode blocks web search
-# ---------------------------------------------------------------------------
-
-
-class TestPrivacyModeGraphNodes:
-    """grade_documents should set web_search=False when privacy_mode=True."""
-
-    def test_grade_documents_respects_privacy_mode(self):
-        """When privacy_mode=True, web_search must be False even if context insufficient."""
-        from unittest.mock import patch
-
-        from langchain_core.documents import Document
-
-        from graph.nodes.grade_documents import grade_documents
-
-        insufficient_docs = [Document(page_content="unrelated content")]
-        state = {
-            "question": "What is ALARA?",
-            "documents": insufficient_docs,
-            "privacy_mode": True,
-        }
-
-        with patch(
-            "graph.nodes.grade_documents.get_context_sufficiency_grader"
-        ) as mock_grader:
-            mock_result = MagicMock()
-            mock_result.binary_score = False
-            mock_grader.return_value.invoke.return_value = mock_result
-
-            result = grade_documents(state)
-
-            assert result["web_search"] is False
-
-    def test_grade_documents_no_docs_respects_privacy_mode(self):
-        """When privacy_mode=True with no docs, web_search must be False."""
-        from graph.nodes.grade_documents import grade_documents
-
-        state = {"question": "What is ALARA?", "documents": [], "privacy_mode": True}
-
-        result = grade_documents(state)
-
-        assert result["web_search"] is False
-
-    def test_grade_documents_allows_web_search_without_privacy_mode(self):
-        """When privacy_mode=False (default), web_search may be True if context insufficient."""
-        from unittest.mock import patch
-
-        from langchain_core.documents import Document
-
-        from graph.nodes.grade_documents import grade_documents
-
-        insufficient_docs = [Document(page_content="unrelated content")]
-        state = {"question": "What is ALARA?", "documents": insufficient_docs}
-
-        with patch(
-            "graph.nodes.grade_documents.get_context_sufficiency_grader"
-        ) as mock_grader:
-            mock_result = MagicMock()
-            mock_result.binary_score = False
-            mock_grader.return_value.invoke.return_value = mock_result
-
-            result = grade_documents(state)
-
-            assert result["web_search"] is True
-
-    def test_web_search_node_refuses_to_call_brave_in_privacy_mode(self, monkeypatch):
-        """web_search() must not call Brave when privacy_mode=True, even with a key configured.
-
-        Regression test: the generation-retry path (route_after_grade_generation ->
-        _generation_retry_route) used to reach WEB_SEARCH without checking privacy_mode,
-        so a repeatedly-failing generation in Ollama mode could still leak the query to
-        Brave. This is the defense-in-depth check inside the node itself.
-        """
-        monkeypatch.setenv("BRAVE_SEARCH_API_KEY", "fake-key-should-never-be-used")
-        from graph.nodes.web_search import web_search
-
-        state = {
-            "question": "What is ALARA?",
-            "documents": [],
-            "chat_history": [],
-            "privacy_mode": True,
-        }
-
-        with patch("graph.nodes.web_search.BraveSearch") as mock_brave:
-            result = web_search(state)
-
-            mock_brave.from_api_key.assert_not_called()
-            assert result["web_search"] is False
-            assert result["web_search_attempted"] is True

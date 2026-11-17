@@ -17,12 +17,19 @@ from graph.llm_factory import get_llm
 from graph.nodes.web_search import run_trusted_only_search
 from graph.state import GraphState
 from graph.utils import throttle_llm_if_needed
+from graph.web import WebSearch
 
 
 def verify_trusted(
-    state: GraphState, config: RunnableConfig | None = None
+    state: GraphState,
+    config: RunnableConfig | None = None,
+    *,
+    trusted_search: WebSearch | None,
 ) -> dict[str, Any]:
-    """Check if generation is supported by trusted_documents; optionally try trusted-only web search and re-check."""
+    """Check if generation is supported by trusted_documents; after a web search,
+    also try the trusted domains on the web and re-check.
+
+    trusted_search: None in a graph without web search, which never searches."""
     generation = state.get("generation") or ""
     trusted_docs = list(state.get("trusted_documents") or [])
     web_search_attempted = state.get("web_search_attempted", False)
@@ -60,8 +67,10 @@ def verify_trusted(
     if is_supported(trusted_docs):
         return {"trusted_verified": True}
 
-    if web_search_attempted:
-        supplemental = run_trusted_only_search(question, llm=llm, config=cfg)
+    if web_search_attempted and trusted_search is not None:
+        supplemental = run_trusted_only_search(
+            question, search=trusted_search, llm=llm, config=cfg
+        )
         if supplemental:
             extra = Document(page_content=supplemental, metadata={})
             if is_supported(trusted_docs + [extra]):
