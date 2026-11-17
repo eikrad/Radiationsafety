@@ -171,7 +171,9 @@ def _cli(monkeypatch, tmp_path, items, dev, chunks, *extra):
     dev_file.write_text(json.dumps(dev, ensure_ascii=False), encoding="utf-8")
     monkeypatch.setattr("dotenv.load_dotenv", lambda *a, **k: False)
     monkeypatch.setattr("graph.llm_factory.get_embedding_provider", lambda: "scaleway")
-    monkeypatch.setattr("ingestion.load_chunk_texts", lambda provider: {"dk": chunks})
+    monkeypatch.setattr(
+        "graph.search_index.load_chunk_texts", lambda provider: {"dk": chunks}
+    )
     argv = ["eval.split", "--golden", str(golden), "--dev", str(dev_file), *extra]
     monkeypatch.setattr("sys.argv", argv)
     return split_cli.main(), json.loads(golden.read_text(encoding="utf-8"))

@@ -1,6 +1,14 @@
-"""LangGraph RAG workflow with optional Brave Search fallback and trusted-source verification."""
+"""The LangGraph RAG workflow, built for one web mode.
 
-from typing import Any
+The web mode is fixed when the graph is built (graph.answering.Answerer picks
+it): "on" searches the web as the last resort, "off" never does because the
+operator switched it off, "private" never does because privacy mode keeps
+everything on the machine. Graphs for "off" and "private" have no web search
+node and no web search to hand to any node.
+"""
+
+from functools import partial
+from typing import Any, Literal
 
 from langgraph.graph import END, StateGraph
 
@@ -14,7 +22,6 @@ from graph.consts import (
     RETRIEVE_MISSING,
     VERIFY_TRUSTED,
     WEB_SEARCH,
-    env_bool,
 )
 from graph.i18n import (
     detect_language,
@@ -28,14 +35,13 @@ from graph.nodes import (
     retrieve,
     retrieve_missing,
     verify_trusted,
-    web_search,
 )
+from graph.nodes import web_search as web_search_node
+from graph.search_index import SearchIndex
 from graph.state import GenerationRoute, GraphState, RouteAfterMissing
+from graph.web import WebSearch
 
-
-def _web_search_allowed(state: GraphState) -> bool:
-    """Web search is the last resort: only when enabled and never in privacy mode."""
-    return bool(env_bool("WEB_SEARCH_ENABLED")) and not state.get("privacy_mode")
+WebMode = Literal["on", "off", "private"]
 
 
 def decide_to_generate(state: GraphState) -> str:
@@ -47,7 +53,9 @@ def decide_to_generate(state: GraphState) -> str:
     return GENERATE
 
 
-def decide_after_retrieve_missing(state: GraphState) -> RouteAfterMissing:
+def decide_after_retrieve_missing(
+    state: GraphState, *, web_search_allowed: bool
+) -> RouteAfterMissing:
     """After retrieval: GENERATE if sufficient or in retry-after-generation path; else RETRIEVE_MISSING (up to 3 total) or WEB_SEARCH."""
     if (state.get("retry_after_generation_count") or 0) > 0:
         return GENERATE
@@ -55,34 +63,33 @@ def decide_after_retrieve_missing(state: GraphState) -> RouteAfterMissing:
         return GENERATE
     if (state.get("retrieval_count") or 1) < 3:
         return RETRIEVE_MISSING
-    return WEB_SEARCH if _web_search_allowed(state) else GENERATE
+    return WEB_SEARCH if web_search_allowed else GENERATE
 
 
 def _generation_retry_route(
     *,
-    web_search_enabled: bool,
+    web_search_allowed: bool,
     web_search_attempted: bool,
     retry_count: int,
-    privacy_mode: bool,
 ) -> GenerationRoute:
     """Retry from the database twice, then the web if allowed, then show the answer."""
     if web_search_attempted:
         return "end"
     if retry_count < 2:
         return "retry_retrieve"
-    # Privacy mode: never fall through to WEB_SEARCH, even after retries.
-    return "web_search" if web_search_enabled and not privacy_mode else "end"
+    return "web_search" if web_search_allowed else "end"
 
 
-def route_after_grade_generation(state: GraphState) -> GenerationRoute:
+def route_after_grade_generation(
+    state: GraphState, *, web_search_allowed: bool
+) -> GenerationRoute:
     """Pure routing — reads flags written by GRADE_GENERATION node. No LLM call."""
     if state.get("generation_passed_grading"):
         return "useful"
     return _generation_retry_route(
-        web_search_enabled=bool(env_bool("WEB_SEARCH_ENABLED")),
+        web_search_allowed=web_search_allowed,
         web_search_attempted=state.get("web_search_attempted", False),
         retry_count=state.get("retry_after_generation_count") or 0,
-        privacy_mode=bool(state.get("privacy_mode", False)),
     )
 
 
@@ -92,11 +99,13 @@ def prepare_retry_retrieve(state: GraphState) -> dict[str, Any]:
     return {"retry_after_generation_count": count}
 
 
-def finalize(state: GraphState) -> dict[str, Any]:
+def finalize(state: GraphState, *, web_mode: WebMode) -> dict[str, Any]:
     """Set retrieval_warning if not already set by verify_trusted. Message in the language of the question.
 
     An answer the grader still fails after the database retries, without web
-    search, gets a hint that the documents may not cover the whole question."""
+    search, gets a hint that the documents may not cover the whole question;
+    with web search switched off it says so (privacy mode never has it, so
+    there it is not worth mentioning)."""
     warning = state.get("retrieval_warning")
     web_attempted = bool(state.get("web_search_attempted"))
     trusted_verified = bool(state.get("trusted_verified"))
@@ -108,12 +117,8 @@ def finalize(state: GraphState) -> dict[str, Any]:
         and not web_attempted
         and state.get("generation_passed_grading") is False
     ):
-        # privacy mode never has web search, so it is not worth mentioning there
-        web_search_off = not env_bool("WEB_SEARCH_ENABLED") and not state.get(
-            "privacy_mode"
-        )
         warning = get_warning_answer_may_be_incomplete(
-            lang, web_search_off=web_search_off
+            lang, web_search_off=web_mode == "off"
         )
     if web_attempted:
         outcome = "web_search_verified" if trusted_verified else "web_search_unverified"
@@ -124,44 +129,62 @@ def finalize(state: GraphState) -> dict[str, Any]:
     return {"retrieval_warning": warning, "routing_outcome": outcome}
 
 
-workflow = StateGraph(GraphState)
+def build_graph(
+    web_mode: WebMode, index: SearchIndex, web_search: WebSearch | None = None
+):
+    """The compiled graph for one web mode, searching `index`.
 
-workflow.add_node(RETRIEVE, retrieve)
-workflow.add_node(GRADE_DOCUMENTS, grade_documents)
-workflow.add_node(RETRIEVE_MISSING, retrieve_missing)
-workflow.add_node(PREPARE_RETRY_RETRIEVE, prepare_retry_retrieve)
-workflow.add_node(WEB_SEARCH, web_search)
-workflow.add_node(GENERATE, generate)
-workflow.add_node(GRADE_GENERATION, grade_generation)
-workflow.add_node(VERIFY_TRUSTED, verify_trusted)
-workflow.add_node(FINALIZE, finalize)
+    web_search: required for "on", refused for "off" and "private", so a graph
+    that must stay off the web is never handed a way onto it.
+    """
+    web_on = web_mode == "on"
+    if web_on and web_search is None:
+        raise ValueError('web mode "on" needs a web search')
+    if not web_on and web_search is not None:
+        raise ValueError(f'web mode "{web_mode}" takes no web search')
 
-workflow.set_entry_point(RETRIEVE)
-workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
-workflow.add_conditional_edges(
-    GRADE_DOCUMENTS,
-    decide_to_generate,
-    {RETRIEVE_MISSING: RETRIEVE_MISSING, GENERATE: GENERATE},
-)
-workflow.add_conditional_edges(
-    RETRIEVE_MISSING,
-    decide_after_retrieve_missing,
-    {GENERATE: GENERATE, RETRIEVE_MISSING: RETRIEVE_MISSING, WEB_SEARCH: WEB_SEARCH},
-)
-workflow.add_edge(PREPARE_RETRY_RETRIEVE, RETRIEVE_MISSING)
-workflow.add_edge(WEB_SEARCH, GENERATE)
-workflow.add_edge(GENERATE, GRADE_GENERATION)
-workflow.add_conditional_edges(
-    GRADE_GENERATION,
-    route_after_grade_generation,
-    {
+    workflow = StateGraph(GraphState)
+    workflow.add_node(RETRIEVE, partial(retrieve, index=index))
+    workflow.add_node(GRADE_DOCUMENTS, grade_documents)
+    workflow.add_node(RETRIEVE_MISSING, partial(retrieve_missing, index=index))
+    workflow.add_node(PREPARE_RETRY_RETRIEVE, prepare_retry_retrieve)
+    workflow.add_node(GENERATE, generate)
+    workflow.add_node(GRADE_GENERATION, grade_generation)
+    workflow.add_node(
+        VERIFY_TRUSTED, partial(verify_trusted, trusted_search=web_search)
+    )
+    workflow.add_node(FINALIZE, partial(finalize, web_mode=web_mode))
+
+    workflow.set_entry_point(RETRIEVE)
+    workflow.add_edge(RETRIEVE, GRADE_DOCUMENTS)
+    workflow.add_conditional_edges(
+        GRADE_DOCUMENTS,
+        decide_to_generate,
+        {RETRIEVE_MISSING: RETRIEVE_MISSING, GENERATE: GENERATE},
+    )
+    after_missing = {GENERATE: GENERATE, RETRIEVE_MISSING: RETRIEVE_MISSING}
+    after_grading = {
         "useful": VERIFY_TRUSTED,
         "retry_retrieve": PREPARE_RETRY_RETRIEVE,
-        "web_search": WEB_SEARCH,
         "end": VERIFY_TRUSTED,
-    },
-)
-workflow.add_edge(VERIFY_TRUSTED, FINALIZE)
-workflow.add_edge(FINALIZE, END)
-
-app = workflow.compile()
+    }
+    if web_on:
+        workflow.add_node(WEB_SEARCH, partial(web_search_node, search=web_search))
+        workflow.add_edge(WEB_SEARCH, GENERATE)
+        after_missing[WEB_SEARCH] = WEB_SEARCH
+        after_grading["web_search"] = WEB_SEARCH
+    workflow.add_conditional_edges(
+        RETRIEVE_MISSING,
+        partial(decide_after_retrieve_missing, web_search_allowed=web_on),
+        after_missing,
+    )
+    workflow.add_edge(PREPARE_RETRY_RETRIEVE, RETRIEVE_MISSING)
+    workflow.add_edge(GENERATE, GRADE_GENERATION)
+    workflow.add_conditional_edges(
+        GRADE_GENERATION,
+        partial(route_after_grade_generation, web_search_allowed=web_on),
+        after_grading,
+    )
+    workflow.add_edge(VERIFY_TRUSTED, FINALIZE)
+    workflow.add_edge(FINALIZE, END)
+    return workflow.compile()

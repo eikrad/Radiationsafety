@@ -1,7 +1,5 @@
 """Pytest fixtures shared across tests."""
 
-from unittest.mock import MagicMock
-
 import dotenv
 import pytest
 from fastapi.testclient import TestClient
@@ -42,46 +40,31 @@ def _env_no_api_calls(monkeypatch):
 
 
 @pytest.fixture
-def mock_graph():
-    """Mock graph that returns a fixed result."""
+def stub_answerer():
+    """The Answerer behind the API, replaced by a stub (tests.fakes.StubAnswerer)."""
+    from tests.fakes import StubAnswerer
 
-    def _invoke(inputs, config=None):
-        question = inputs.get("question", "")
-        hist = inputs.get("chat_history") or []
-        new_hist = list(hist) + [(question, "Test answer from mocked graph.")]
-        return {
-            "question": question,
-            "generation": "Test answer from mocked graph.",
-            "documents": [],
-            "web_search": False,
-            "web_search_attempted": False,
-            "chat_history": new_hist,
-            "retrieval_warning": None,
-        }
-
-    graph = MagicMock()
-    graph.invoke.side_effect = _invoke
-    return graph
+    return StubAnswerer()
 
 
 @pytest.fixture
-def client(mock_graph):
-    """FastAPI test client with mocked graph."""
+def client(stub_answerer):
+    """FastAPI test client with a stub answerer."""
     from api.main import app, app_state
 
-    app_state["graph"] = mock_graph
+    app_state["answerer"] = stub_answerer
     with TestClient(app) as c:
         c.headers.update({"X-Admin-Token": "test-admin-token"})
         yield c
-    app_state["graph"] = None
+    app_state["answerer"] = None
 
 
 @pytest.fixture
-def unauth_client(mock_graph):
-    """FastAPI test client with mocked graph and no admin token."""
+def unauth_client(stub_answerer):
+    """FastAPI test client with a stub answerer and no admin token."""
     from api.main import app, app_state
 
-    app_state["graph"] = mock_graph
+    app_state["answerer"] = stub_answerer
     with TestClient(app) as c:
         yield c
-    app_state["graph"] = None
+    app_state["answerer"] = None

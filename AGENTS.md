@@ -20,7 +20,12 @@ RAG system for querying IAEA and Danish radiation safety documents.
 
 ```
 api/main.py              — FastAPI routes, admin auth, rate limiting
-graph/graph.py           — LangGraph workflow (nodes, edges, routing)
+graph/answering.py       — Answerer: the one way the API and eval answer a question (privacy mode,
+                           tracing rule, answer trace, named provider errors); terms in CONTEXT.md
+graph/graph.py           — LangGraph workflow (nodes, edges, routing), built per web mode by build_graph
+graph/search_index.py    — the search index (read side): collection names, readiness, search of both
+                           collections, fingerprint; ingestion.py only writes it
+graph/web.py             — web search seam (WebSearch) with Brave behind it
 graph/nodes/             — retrieve, grade_documents, grade_generation, retrieve_missing, generate, web_search, verify_trusted
 graph/chains/            — LLM chains (generation, generation_grader, context_sufficiency_grader,
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
@@ -28,7 +33,7 @@ graph/llm_factory.py     — LLM and embedding provider selection (Scaleway defa
 graph/provider_status.py — per-provider readiness for GET /config (answer model, embedding key, search index)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
-ingestion.py             — PDF/XML loading, chunking, Chroma population
+ingestion.py             — PDF/XML loading, chunking, Chroma population (write side of the search index)
 ingestion_dk.py          — Retsinformation XML: text, chunks along §/Stk./items/annex rows
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
@@ -59,7 +64,8 @@ RETRIEVE → GRADE_DOCUMENTS
     web    → WEB_SEARCH*
     end    → VERIFY_TRUSTED → FINALIZE → END
 
-* only with WEB_SEARCH_ENABLED and never in privacy mode; the database loop runs either way
+* only in the graph built for web mode "on" (WEB_SEARCH_ENABLED, never privacy mode); the graphs for
+  "off" and "private" have no WEB_SEARCH node at all. The database loop runs in every mode
 ```
 
 ### Key state fields
@@ -76,7 +82,8 @@ RETRIEVE → GRADE_DOCUMENTS
 
 1. Create file in `graph/nodes/`, implement function `(state: GraphState) -> dict`
 2. Export from `graph/nodes/__init__.py`
-3. Register in `graph/graph.py` with `workflow.add_node(NAME, fn)` and edges
+3. Register in `build_graph` in `graph/graph.py` with `workflow.add_node(NAME, fn)` and edges; pass a dependency
+   (search index, web search, web mode) as a keyword argument (`partial(fn, index=index)`), never via state or env
 4. Add constant in `graph/consts.py`
 
 ### Adding a new chain

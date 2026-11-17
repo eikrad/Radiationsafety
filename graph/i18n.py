@@ -84,10 +84,11 @@ WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL: dict[str, str] = {
     "de": "Vektor-Store noch nicht erstellt. GOOGLE_API_KEY in .env setzen, dann: uv run python ingestion.py",
     "da": "Vektorstore er endnu ikke bygget. Sæt GOOGLE_API_KEY i .env, derefter: uv run python ingestion.py",
 }
+# {model}: SCW_EMBED_MODEL
 WARNING_EMBEDDINGS_NOT_BUILT_SCALEWAY: dict[str, str] = {
-    "en": "Scaleway embeddings are not built yet. Run: EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini",
-    "de": "Scaleway-Embeddings sind noch nicht erstellt. Ausführen: EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini",
-    "da": "Scaleway-embeddings er endnu ikke bygget. Kør: EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini",
+    "en": "Scaleway embeddings ({model}) are not built yet. Run: EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL={model} uv run python ingestion.py --reembed-from gemini (or without --reembed-from for a full ingestion)",
+    "de": "Scaleway-Embeddings ({model}) sind noch nicht erstellt. Ausführen: EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL={model} uv run python ingestion.py --reembed-from gemini (oder ohne --reembed-from für eine vollständige Ingestion)",
+    "da": "Scaleway-embeddings ({model}) er endnu ikke bygget. Kør: EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL={model} uv run python ingestion.py --reembed-from gemini (eller uden --reembed-from for en fuld ingestion)",
 }
 # Privacy Mode: Ollama local embeddings not built yet.
 WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA: dict[str, str] = {
@@ -142,10 +143,13 @@ def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:
             or WARNING_EMBEDDINGS_NOT_BUILT_OLLAMA["en"]
         )
     if embedding_provider == "scaleway":
-        return (
+        from graph.llm_factory import get_embedding_model_name
+
+        text = (
             WARNING_EMBEDDINGS_NOT_BUILT_SCALEWAY.get(lang)
             or WARNING_EMBEDDINGS_NOT_BUILT_SCALEWAY["en"]
         )
+        return text.format(model=get_embedding_model_name("scaleway"))
     if embedding_provider == "mistral":
         return (
             WARNING_EMBEDDINGS_NOT_BUILT_MISTRAL.get(lang)
@@ -155,3 +159,11 @@ def get_warning_embeddings_not_built(embedding_provider: str, lang: str) -> str:
         WARNING_EMBEDDINGS_NOT_BUILT_GEMINI.get(lang)
         or WARNING_EMBEDDINGS_NOT_BUILT_GEMINI["en"]
     )
+
+
+def index_not_ready_message(readiness, embedding_provider: str, lang: str) -> str:
+    """Why the search index can't be searched (graph.search_index.Readiness),
+    and how to fix it, in the user's language."""
+    if readiness.problem == "misconfigured":
+        return readiness.detail
+    return get_warning_embeddings_not_built(embedding_provider, lang)

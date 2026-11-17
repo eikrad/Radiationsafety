@@ -1,12 +1,6 @@
-"""Shared retrieval helpers for graph nodes."""
-
-from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+"""Merging retrieved chunks without duplicates (graph nodes and eval)."""
 
 from langchain_core.documents import Document
-from langchain_core.runnables import RunnableConfig
-
-from ingestion import get_retrievers
 
 
 def make_doc_key(doc: Document) -> str:
@@ -34,42 +28,3 @@ def merge_unique_documents(
         merged.append(doc)
         added.append(doc)
     return merged, added
-
-
-def invoke_dual_retrievers(
-    *,
-    embedding_provider: str,
-    query: str,
-    config: RunnableConfig | None,
-    map_error: Callable[[Exception], Exception] | None = None,
-    k: int | None = None,
-) -> tuple[list[Document], list[Document]]:
-    """Invoke IAEA and DK retrievers in parallel and return both result lists.
-
-    k: chunks per collection; default the retrievers' own (RETRIEVER_K). Eval
-    retrieves deeper through this same path, so it measures what the graph does.
-    """
-    iaea_retriever, dk_retriever = get_retrievers(embedding_provider)
-    cfg = config or {}
-    search = {"k": k} if k is not None else {}
-
-    def _invoke_safe(fn):
-        try:
-            return fn()
-        except Exception as exc:
-            if map_error is not None:
-                raise map_error(exc) from exc
-            raise
-
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        fut_iaea = executor.submit(
-            lambda: _invoke_safe(
-                lambda: iaea_retriever.invoke(query, config=cfg, **search)
-            )
-        )
-        fut_dk = executor.submit(
-            lambda: _invoke_safe(
-                lambda: dk_retriever.invoke(query, config=cfg, **search)
-            )
-        )
-        return fut_iaea.result(), fut_dk.result()

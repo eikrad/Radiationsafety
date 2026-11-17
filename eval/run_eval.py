@@ -146,13 +146,15 @@ def _is_connection_error(e: BaseException) -> bool:
     return False
 
 
-def _answer(item: dict, graph, llm) -> dict:
+def _answer(item: dict, answerer, choice) -> dict:
     """The graph's output for one question, or a record of why it failed: one
     question must not end a run that has answered the others. A dropped
     connection is tried once more (Ollama restarts itself after a crash)."""
     for attempt in (1, 2):
         try:
-            return _invoke_with_retry(_invoke_graph, item["question"], graph, llm)
+            return _invoke_with_retry(
+                _answer_question, item["question"], answerer, choice
+            )
         except Exception as e:
             if attempt == 1 and _is_connection_error(e):
                 print(
@@ -165,39 +167,32 @@ def _answer(item: dict, graph, llm) -> dict:
     raise AssertionError("unreachable")
 
 
-def _invoke_graph(question: str, graph, llm) -> dict:
-    """Run graph for one question; final answer plus first retrieval, sufficiency and node path."""
-    from eval.graph_run import run_graph
-    from graph.llm_factory import get_embedding_provider
-
-    config = {"run_name": "eval-run", "tags": ["eval", "golden"]}
-    return run_graph(
-        question,
-        graph,
-        llm=llm,
-        embedding_provider=get_embedding_provider(),
-        config=config,
-        privacy_mode=_privacy_mode(),
-    )
+_EVAL_RUN_CONFIG = {"run_name": "eval-run", "tags": ["eval", "golden"]}
 
 
-def _privacy_mode() -> bool:
-    """LLM_PROVIDER=ollama: fully local, as the API runs it (no web search)."""
-    from graph.llm_factory import DEFAULT_PROVIDER
+def _answer_question(question: str, answerer, choice) -> dict:
+    """One question through the Answerer, as the API answers it, with what
+    scoring needs from its trace (first retrieval, sufficiency, node path)."""
+    from eval.graph_run import answer_output
 
-    return (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower() == "ollama"
+    return answer_output(answerer.answer(question, choice))
+
+
+def _model_choice():
+    """The server's own model (LLM_PROVIDER), as the API answers without a choice."""
+    from graph.answering import ModelChoice
+
+    return ModelChoice()
 
 
 def _retrieve_initial(question: str, embedding_provider: str) -> list:
     """The graph's first retrieval for a question: both collections, merged."""
     from graph.nodes.retrieve import retrieve
+    from graph.search_index import index_for
 
     out = retrieve(
-        {
-            "question": question,
-            "chat_history": [],
-            "embedding_provider": embedding_provider,
-        }
+        {"question": question, "chat_history": []},
+        index=index_for(embedding_provider),
     )
     if not out.get("documents") and out.get("retrieval_warning"):
         raise RuntimeError(out["retrieval_warning"])
@@ -209,11 +204,9 @@ def _retrieve_ranked(
 ) -> dict[str, list]:
     """Each collection's retrieval in rank order, `depth` chunks deep, through
     the same retrievers the graph uses."""
-    from graph.nodes.retrieval_common import invoke_dual_retrievers
+    from graph.search_index import index_for
 
-    iaea, dk = invoke_dual_retrievers(
-        embedding_provider=embedding_provider, query=question, config=None, k=depth
-    )
+    iaea, dk = index_for(embedding_provider).search(question, k=depth)
     return {"iaea": iaea, "dk": dk}
 
 
@@ -245,11 +238,11 @@ def _embedding_config() -> dict:
 
 
 def _index_config(embedding_provider: str) -> dict:
-    """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
-    import ingestion
+    """Which chunks the run retrieved from (see search_index.index_fingerprint)."""
+    from graph import search_index
 
     try:
-        return {"index": ingestion.index_fingerprint(embedding_provider)}
+        return {"index": search_index.index_fingerprint(embedding_provider)}
     except Exception as err:  # a missing store must not stop the run
         print(f"Warning: search index not fingerprinted: {err}", file=sys.stderr)
         return {"index": None}
@@ -444,17 +437,22 @@ def _run_eval(
     Returns summary, per-question results, and the run header (dataset
     fingerprint + config) that says what was tested.
     """
-    if no_web_search:
-        os.environ["WEB_SEARCH_ENABLED"] = "false"
-
     from eval.history import prompt_fingerprints
+    from graph.answering import Answerer
     from graph.consts import env_bool
-    from graph.graph import app as graph
     from graph.llm_factory import get_llm, ollama_num_ctx
-    from ingestion import RETRIEVER_K
+    from graph.search_index import retriever_k
 
     graph_llm = get_llm()
-    llm_provider = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
+    choice = _model_choice()
+    llm_provider = choice.resolved_provider()
+    # the model the header describes and the token count measures is the one
+    # that answers
+    answerer = Answerer(
+        web_search_enabled=env_bool("WEB_SEARCH_ENABLED") and not no_web_search,
+        build_llm=lambda **kwargs: graph_llm,
+        run_config=_EVAL_RUN_CONFIG,
+    )
     judge_llm, judge_info = _judge_llm(graph_llm, llm_provider, _model_name(graph_llm))
     header = {
         "dataset": dataset_fingerprint(golden),
@@ -468,9 +466,9 @@ def _run_eval(
             **judge_info,
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
-            "retriever_k": RETRIEVER_K,
+            "retriever_k": retriever_k(),
             # privacy mode keeps the graph off the web whatever the switch says
-            "web_search": env_bool("WEB_SEARCH_ENABLED") and not _privacy_mode(),
+            "web_search": answerer.web_mode(choice) == "on",
             "metrics_version": METRICS_VERSION,
             "prompts": prompt_fingerprints(),
         },
@@ -492,8 +490,8 @@ def _run_eval(
     with get_usage_metadata_callback() as answering:
         _answer_all(
             golden,
-            graph,
-            graph_llm,
+            answerer,
+            choice,
             outputs,
             delay_after_graph_sec,
             delay_between_items_sec,
@@ -512,15 +510,15 @@ def _run_eval(
 
 def _answer_all(
     golden: list[dict],
-    graph,
-    graph_llm,
+    answerer,
+    choice,
     outputs: dict[str, dict],
     delay_after_graph_sec: float,
     delay_between_items_sec: float,
 ) -> None:
     for n, item in enumerate(golden, start=1):
         started = time.monotonic()
-        outputs[item["id"]] = _answer(item, graph, graph_llm)
+        outputs[item["id"]] = _answer(item, answerer, choice)
         status = "failed" if outputs[item["id"]].get("error") else "answered"
         print(
             f"  [{n}/{len(golden)}] {status} {item['id']} "
@@ -556,7 +554,7 @@ def _run_retrieval_only(
     a full run; the rank metrics come from a deeper retrieval through the same
     retrievers. There is no pass rate, since nothing was answered.
     """
-    from ingestion import RETRIEVER_K
+    from graph.search_index import retriever_k
 
     embedding = _embedding_config()
     header = {
@@ -565,7 +563,7 @@ def _run_retrieval_only(
             "retrieval_only": True,
             **embedding,
             **_index_config(embedding["embedding_provider"]),
-            "retriever_k": RETRIEVER_K,
+            "retriever_k": retriever_k(),
             "retrieval_depth": depth,
             "char_budget": char_budget,
             "metrics_version": METRICS_VERSION,
@@ -750,9 +748,9 @@ def _grade_sufficient(question: str, documents: list, llm) -> bool:
     """The graph's grade_documents verdict on these documents."""
     from graph.nodes.grade_documents import grade_documents
 
-    return not grade_documents(
-        {"question": question, "documents": documents, "llm": llm}
-    )["web_search"]
+    return grade_documents({"question": question, "documents": documents, "llm": llm})[
+        "context_sufficient"
+    ]
 
 
 def _grade_generation(question: str, context: str, generation: str, llm) -> bool:

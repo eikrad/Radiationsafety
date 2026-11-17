@@ -4,13 +4,8 @@ import os
 from types import SimpleNamespace
 
 import ingestion
-from ingestion import (
-    DK_LAW_COLLECTION,
-    IAEA_COLLECTION,
-    get_collection_names,
-    load_dk_law_docs,
-    load_iaea_docs,
-)
+from graph.search_index import DK_LAW_COLLECTION, IAEA_COLLECTION, collection_names
+from ingestion import load_dk_law_docs, load_iaea_docs
 from ingestion_dk import structure_chunks, xml_to_text
 from tests.pdf_fakes import docling_reading, ingest_without_chroma, write_pdf
 
@@ -70,12 +65,12 @@ def test_collection_names():
     assert DK_LAW_COLLECTION == "radiation-dk-law"
 
 
-def test_get_collection_names_by_provider():
-    """get_collection_names returns base names for gemini, -mistral suffix for mistral."""
-    iaea_g, dk_g = get_collection_names("gemini")
+def test_collection_names_by_provider():
+    """collection_names returns base names for gemini, -mistral suffix for mistral."""
+    iaea_g, dk_g = collection_names("gemini")
     assert iaea_g == "radiation-iaea"
     assert dk_g == "radiation-dk-law"
-    iaea_m, dk_m = get_collection_names("mistral")
+    iaea_m, dk_m = collection_names("mistral")
     assert iaea_m == "radiation-iaea-mistral"
     assert dk_m == "radiation-dk-law-mistral"
 
@@ -93,9 +88,11 @@ class _FakeEmbeddings(Embeddings):
 
     def __init__(self, dim: int, fail_first: int = 0):
         self.dim, self.fail_first, self.calls = dim, fail_first, 0
+        self.batch_sizes: list[int] = []
 
     def embed_documents(self, texts):
         self.calls += 1
+        self.batch_sizes.append(len(texts))
         if self.calls <= self.fail_first:
             raise ConnectionError("transient")
         return [[float(len(t))] + [1.0] * (self.dim - 1) for t in texts]
@@ -108,15 +105,13 @@ class _FakeEmbeddings(Embeddings):
 def chroma_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(ingestion, "_CHROMA_DIR", tmp_path)
     monkeypatch.setenv("SCW_EMBED_MODEL", "qwen3-embedding-8b")
-    ingestion.clear_retrievers_cache()
     yield tmp_path
-    ingestion.clear_retrievers_cache()
 
 
 def _build_gemini_collections(chroma_dir):
     from langchain_chroma import Chroma
 
-    iaea, dk = get_collection_names("gemini")
+    iaea, dk = collection_names("gemini")
     docs = {
         iaea: [
             Document(
@@ -153,16 +148,16 @@ def _collection(chroma_dir, name):
 
 def test_each_scaleway_model_gets_its_own_collections(monkeypatch):
     monkeypatch.setenv("SCW_EMBED_MODEL", "qwen3-embedding-8b")
-    qwen = get_collection_names("scaleway")
+    qwen = collection_names("scaleway")
     monkeypatch.setenv("SCW_EMBED_MODEL", "bge-multilingual-gemma2")
-    bge = get_collection_names("scaleway")
+    bge = collection_names("scaleway")
 
     assert qwen == (
         "radiation-iaea-scw-qwen3-embedding-8b",
         "radiation-dk-law-scw-qwen3-embedding-8b",
     )
     assert bge != qwen
-    assert get_collection_names("gemini") == ("radiation-iaea", "radiation-dk-law")
+    assert collection_names("gemini") == ("radiation-iaea", "radiation-dk-law")
 
 
 def test_reembedding_copies_the_same_chunks_with_new_vectors(chroma_dir, monkeypatch):
@@ -172,7 +167,7 @@ def test_reembedding_copies_the_same_chunks_with_new_vectors(chroma_dir, monkeyp
     ingestion.reembed_from("gemini", target="scaleway")
 
     for src, dst in zip(
-        get_collection_names("gemini"), get_collection_names("scaleway"), strict=True
+        collection_names("gemini"), collection_names("scaleway"), strict=True
     ):
         copied = _collection(chroma_dir, dst).get(
             include=["documents", "metadatas", "embeddings"]
@@ -185,7 +180,7 @@ def test_reembedding_copies_the_same_chunks_with_new_vectors(chroma_dir, monkeyp
         )
         assert {len(e) for e in copied["embeddings"]} == {4}
     # the source stays untouched
-    assert _collection(chroma_dir, get_collection_names("gemini")[0]).count() == 2
+    assert _collection(chroma_dir, collection_names("gemini")[0]).count() == 2
 
 
 def test_reembedding_replaces_an_earlier_copy(chroma_dir, monkeypatch):
@@ -195,7 +190,7 @@ def test_reembedding_replaces_an_earlier_copy(chroma_dir, monkeypatch):
     ingestion.reembed_from("gemini", target="scaleway")
     ingestion.reembed_from("gemini", target="scaleway")
 
-    assert _collection(chroma_dir, get_collection_names("scaleway")[0]).count() == 2
+    assert _collection(chroma_dir, collection_names("scaleway")[0]).count() == 2
 
 
 def test_a_transient_embedding_failure_is_retried(chroma_dir, monkeypatch):
@@ -206,38 +201,64 @@ def test_a_transient_embedding_failure_is_retried(chroma_dir, monkeypatch):
 
     ingestion.reembed_from("gemini", target="scaleway")
 
-    assert _collection(chroma_dir, get_collection_names("scaleway")[0]).count() == 2
+    assert _collection(chroma_dir, collection_names("scaleway")[0]).count() == 2
 
 
-def test_missing_scaleway_collections_say_how_to_build_them(chroma_dir):
-    ready, message = ingestion.check_embedding_collections_ready("scaleway")
+def _uploaded_pdf(tmp_path, monkeypatch, chunks: int):
+    """A PDF on disk whose docling reading yields `chunks` chunks."""
+    pdf = tmp_path / "upload.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    monkeypatch.setattr(
+        ingestion,
+        "_load_pdf_with_docling",
+        lambda p, **kw: [
+            Document(page_content=f"chunk {i}", metadata={"source": p.name})
+            for i in range(chunks)
+        ],
+    )
+    return pdf
 
-    assert ready is False
-    assert "EMBEDDING_PROVIDER=scaleway" in message
-    assert "--reembed-from gemini" in message
+
+def test_an_uploaded_pdf_goes_to_scaleway_in_batches(chroma_dir, monkeypatch):
+    chunks = ingestion.SCALEWAY_BATCH_SIZE * 2 + 1
+    pdf = _uploaded_pdf(chroma_dir, monkeypatch, chunks)
+    embeddings = _FakeEmbeddings(4)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: embeddings)
+
+    assert ingestion.add_single_pdf_to_collection(pdf) == chunks
+
+    assert max(embeddings.batch_sizes) <= ingestion.SCALEWAY_BATCH_SIZE
+    iaea = collection_names("scaleway")[0]
+    assert _collection(chroma_dir, iaea).count() == chunks
 
 
-def test_retrievers_for_different_scaleway_models_are_not_mixed_up(
-    chroma_dir, monkeypatch
-):
+def test_an_uploaded_pdf_retries_a_transient_embedding_failure(chroma_dir, monkeypatch):
+    pdf = _uploaded_pdf(chroma_dir, monkeypatch, 3)
+    flaky = _FakeEmbeddings(4, fail_first=1)
+    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: flaky)
+    monkeypatch.setattr(ingestion.time, "sleep", lambda s: None)
+
+    assert ingestion.add_single_pdf_to_collection(pdf) == 3
+
+    assert _collection(chroma_dir, collection_names("scaleway")[0]).count() == 3
+
+
+def test_an_uploaded_pdf_keeps_the_chunks_already_indexed(chroma_dir, monkeypatch):
+    from langchain_chroma import Chroma
+
+    iaea = collection_names("scaleway")[0]
+    Chroma.from_documents(
+        [Document(page_content="III.1. For occupational exposure …")],
+        _FakeEmbeddings(4),
+        collection_name=iaea,
+        persist_directory=str(chroma_dir),
+    )
+    pdf = _uploaded_pdf(chroma_dir, monkeypatch, 2)
     monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: _FakeEmbeddings(4))
 
-    qwen_iaea, _ = ingestion.get_retrievers("scaleway")
-    monkeypatch.setenv("SCW_EMBED_MODEL", "bge-multilingual-gemma2")
-    bge_iaea, _ = ingestion.get_retrievers("scaleway")
+    ingestion.add_single_pdf_to_collection(pdf)
 
-    assert qwen_iaea.vectorstore._collection.name.endswith("qwen3-embedding-8b")
-    assert bge_iaea.vectorstore._collection.name.endswith("bge-multilingual-gemma2")
-
-
-@pytest.mark.parametrize("lang", ["en", "de", "da"])
-def test_the_user_facing_warning_for_missing_scaleway_embeddings_names_scaleway(lang):
-    from graph.i18n import get_warning_embeddings_not_built
-
-    msg = get_warning_embeddings_not_built("scaleway", lang)
-
-    assert "Scaleway" in msg
-    assert "GOOGLE_API_KEY" not in msg
+    assert _collection(chroma_dir, iaea).count() == 3
 
 
 def test_reembedding_targets_the_configured_embeddings_not_the_answer_model(
@@ -449,7 +470,7 @@ def test_ingestion_skips_the_pdfs_of_laws_it_read_from_xml(monkeypatch):
 
 
 def test_a_danish_only_rebuild_leaves_the_iaea_collection_alone(monkeypatch):
-    iaea_name, dk_name = ingestion.get_collection_names("gemini")
+    iaea_name, dk_name = collection_names("gemini")
     calls = _fake_ingest(
         monkeypatch, [ingestion.Document(page_content="iaea")], [XML_CHUNK]
     )
@@ -1095,6 +1116,6 @@ def test_a_full_run_indexes_an_iaea_publication_with_a_local_pdf_once(
 
     ingestion.ingest()
 
-    iaea_name, _ = ingestion.get_collection_names("scaleway")
+    iaea_name, _ = collection_names("scaleway")
     assert [d.metadata["source"] for d in added[iaea_name]] == [str(local)]
     assert "Ingestion complete!" in capsys.readouterr().out

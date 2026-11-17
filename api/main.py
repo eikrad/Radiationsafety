@@ -38,7 +38,8 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 app_state: dict = {
-    "graph": None,
+    # graph.answering.Answerer: answers every /query; None until startup
+    "answerer": None,
     "ingest_status": "idle",
     # why the last ingestion failed; None while it runs or when it succeeded
     "ingest_last_error": None,
@@ -63,14 +64,17 @@ _FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load graph on startup (skipped when TESTING=true)."""
+    """Set up the Answerer on startup (skipped when TESTING=true)."""
     app_state["started_at"] = time.time()
     if os.getenv("TESTING", "").lower() not in ("true", "1"):
-        from graph.graph import app as graph_app
+        from graph.answering import Answerer
+        from graph.consts import env_bool
 
-        app_state["graph"] = graph_app
+        app_state["answerer"] = Answerer(
+            web_search_enabled=env_bool("WEB_SEARCH_ENABLED")
+        )
     yield
-    app_state["graph"] = None
+    app_state["answerer"] = None
 
 
 app = FastAPI(
@@ -180,47 +184,6 @@ class SetSourceUrlBody(BaseModel):
     url: str
 
 
-def _is_timeout(exc: BaseException) -> bool:
-    """Whether a provider call gave up on its time limit (any client library)."""
-    import httpx
-
-    seen: set[int] = set()
-    current: BaseException | None = exc
-    while current is not None and id(current) not in seen:
-        seen.add(id(current))
-        name = type(current).__name__
-        if (
-            isinstance(current, (TimeoutError, httpx.TimeoutException))
-            or ("Timeout" in name and "Error" in name)
-            or name == "DeadlineExceeded"  # google-api-core (Gemini)
-        ):
-            return True
-        current = current.__cause__ or current.__context__
-    return False
-
-
-def _ollama_error_detail(exc: Exception, model_variant: str | None = None) -> str:
-    """Return a user-friendly error message for Ollama failures."""
-    err = str(exc).lower()
-    from graph.llm_factory import get_embedding_model_name, ollama_model_name
-
-    llm_model = model_variant or ollama_model_name()
-    embed_model = get_embedding_model_name("ollama")
-    if "not found" in err or "404" in err:
-        # Which model? Check if it's the embedding or LLM model
-        if embed_model.lower() in err:
-            return (
-                f"Ollama embedding model '{embed_model}' is not installed. "
-                f"Run: ollama pull {embed_model}"
-            )
-        return (
-            f"Ollama model '{llm_model}' is not installed. Run: ollama pull {llm_model}"
-        )
-    if "connect" in type(exc).__name__.lower() or "connection refused" in err:
-        return "Ollama is not running. Start it with: ollama serve"
-    return f"Ollama error: {exc}"
-
-
 api_router = APIRouter()
 _ADMIN_TOKEN_HEADER = "X-Admin-Token"
 _TRUE_VALUES = {"1", "true", "yes", "on"}
@@ -258,7 +221,7 @@ def require_admin(request: Request) -> None:
 
 
 def _run_ingest() -> None:
-    """Run ingestion and clear retriever cache. Updates app_state ingest_status
+    """Run ingestion and reopen the search index. Updates app_state ingest_status
     and keeps why a run failed and which PDFs it did not read as usual for
     GET /ingest/status: otherwise only the server log has them."""
     app_state["ingest_status"] = "running"
@@ -266,9 +229,10 @@ def _run_ingest() -> None:
     app_state["ingest_pdf_problems"] = []
     try:
         import ingestion
+        from graph import search_index
 
         problems = ingestion.ingest()
-        ingestion.clear_retrievers_cache()
+        search_index.refresh()
         app_state["ingest_pdf_problems"] = [
             {"file": name, "problem": what} for name, what in problems
         ]
@@ -282,13 +246,13 @@ def _run_ingest() -> None:
 @api_router.get("/health")
 def health() -> dict:
     """Health check."""
-    return {"status": "ok", "graph_loaded": app_state["graph"] is not None}
+    return {"status": "ok", "graph_loaded": app_state["answerer"] is not None}
 
 
 @api_router.get("/metrics", response_class=PlainTextResponse)
 def metrics() -> str:
     """Prometheus-style metrics for observability."""
-    graph_loaded = 1 if app_state.get("graph") is not None else 0
+    graph_loaded = 1 if app_state.get("answerer") is not None else 0
     started_at = app_state.get("started_at") or 0
     uptime_seconds = max(0.0, time.time() - started_at)
     req = app_state.get("request_metrics") or {}
@@ -588,6 +552,7 @@ async def documents_add_pdf(
             _lookup_iaea_publication_url_multi,
             append_source_to_registry,
         )
+        from graph import search_index
 
         title, version = _extract_pdf_title_and_version(dest)
         display_name = (title or safe_name).strip() or safe_name
@@ -610,7 +575,7 @@ async def documents_add_pdf(
             chunks = ingestion.add_single_pdf_to_collection(
                 dest, folder=folder, source_label=display_name
             )
-        ingestion.clear_retrievers_cache()
+        search_index.refresh()
         msg = f"Added PDF to collection ({chunks} chunks)."
         # the UI shows the message as it is; otherwise only the server log would
         # say that the PDF was read on the CPU or gave almost no text
@@ -733,26 +698,9 @@ def _validate_query_request(req: QueryRequest) -> None:
                 )
 
 
-def _resolve_model_and_key(
-    model: str | None,
-    api_keys: dict[str, str] | None,
-) -> tuple[str, str | None]:
-    """Resolve model (whitelist) and api_key for the request. Returns (model, api_key)."""
-    from graph.llm_factory import ALLOWED_PROVIDERS, DEFAULT_PROVIDER
-
-    provider_from_env = (os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).strip()
-    prov = (model or provider_from_env).lower()
-    if prov not in ALLOWED_PROVIDERS:
-        prov = DEFAULT_PROVIDER
-    key = None
-    if api_keys and isinstance(api_keys, dict):
-        key = api_keys.get(prov) or api_keys.get(prov.strip())
-    return prov, key if key else None
-
-
 @api_router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest, request: Request):
-    """Run RAG pipeline and return answer with sources."""
+    """Answer a question with its sources (graph.answering.Answerer)."""
     enforce_rate_limit(
         request,
         bucket="query",
@@ -761,8 +709,14 @@ def query(req: QueryRequest, request: Request):
         app_state=app_state,
     )
     _validate_query_request(req)
-    graph = app_state["graph"]
-    if not graph:
+    from graph.answering import ModelChoice
+
+    chat_history = _to_tuples(req.chat_history)
+    choice = ModelChoice(
+        provider=req.model, api_keys=req.api_keys or {}, variant=req.model_variant
+    )
+    answerer = app_state["answerer"]
+    if not answerer:
         return QueryResponse(
             answer="Backend not ready. Please try again shortly.",
             sources=[],
@@ -772,147 +726,85 @@ def query(req: QueryRequest, request: Request):
             used_web_search_label=None,
             privacy_mode=False,
         )
-    chat_history = _to_tuples(req.chat_history)
-    model, api_key = _resolve_model_and_key(req.model, req.api_keys)
-    model_variant = req.model_variant
-    is_ollama = model == "ollama"
-
     if _is_non_question(req.question):
         answer = "You're welcome! Ask me anything about radiation safety."
-        updated_history = chat_history + [(req.question, answer)]
         return QueryResponse(
             answer=answer,
             sources=[],
-            chat_history=_to_lists(updated_history),
+            chat_history=_to_lists(chat_history + [(req.question, answer)]),
             warning=None,
             used_web_search=False,
             used_web_search_label=None,
-            privacy_mode=is_ollama,
+            privacy_mode=choice.privacy_mode,
         )
-    from graph.llm_factory import (
-        APIKeyError,
-        ProviderConfigError,
-        get_embedding_provider,
-        get_llm,
-    )
-
     try:
-        llm = get_llm(provider=model, api_key=api_key, model_variant=model_variant)
-        embedding_provider = get_embedding_provider(model)
-    except APIKeyError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except ProviderConfigError as e:
-        # The operator must fix this on the server; the user can pick another provider.
-        raise HTTPException(status_code=503, detail=str(e)) from e
+        answer = answerer.answer(req.question, choice, chat_history)
     except Exception as e:
-        if is_ollama:
-            raise HTTPException(
-                status_code=503, detail=_ollama_error_detail(e, model_variant)
-            ) from e
-        raise HTTPException(
-            status_code=500, detail=str(e) or "Internal server error"
-        ) from e
-    try:
-        invoke_input = {
-            "question": req.question,
-            "generation": "",
-            "web_search": False,
-            "documents": [],
-            "web_search_attempted": False,
-            "chat_history": chat_history,
-            "llm": llm,
-            "embedding_provider": embedding_provider,
-        }
-        run_config = {
-            "run_name": "RadiationSafetyRAG",
-            "tags": ["rag", "radiation-safety"],
-        }
-        # Privacy guard: disable tracing and web search for Ollama (fully local mode)
-        disable_tracing = bool(req.api_keys) or is_ollama
-        if is_ollama:
-            invoke_input["privacy_mode"] = True
-        if disable_tracing:
-            import langsmith as ls
-
-            with ls.tracing_context(enabled=False):
-                result = graph.invoke(invoke_input, config=run_config)
-        else:
-            result = graph.invoke(invoke_input, config=run_config)
-    except Exception as e:
-        err_msg = str(e)
-        if (
-            "429" in err_msg
-            or "RESOURCE_EXHAUSTED" in err_msg
-            or "quota" in err_msg.lower()
-        ):
-            raise HTTPException(
-                status_code=429,
-                detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
-            ) from e
-        if _is_timeout(e):
-            from graph.llm_factory import request_timeout
-
-            limit = (
-                "its time limit"
-                if is_ollama
-                else f"{request_timeout():.0f} s (LLM_REQUEST_TIMEOUT_SEC)"
-            )
-            raise HTTPException(
-                status_code=504,
-                detail=(
-                    f"{model.capitalize()} did not answer within {limit}. "
-                    "Try again, or pick another provider."
-                ),
-            ) from e
-        if is_ollama:
-            raise HTTPException(
-                status_code=503, detail=_ollama_error_detail(e, model_variant)
-            ) from e
-        raise HTTPException(
-            status_code=500, detail=err_msg or "Internal server error"
-        ) from e
-
-    answer = result.get("generation", "")
-    docs = result.get("documents", [])
-    sources = []
-    seen = set()
-    for d in docs:
-        meta = getattr(d, "metadata", {}) or {}
-        src = meta.get("source", "retrieved")
-        dtype = meta.get("document_type")
-        key = (src, dtype)
-        if key not in seen:
-            seen.add(key)
-            sources.append(SourceInfo(source=str(src), document_type=dtype))
-    updated_history = result.get("chat_history") or chat_history
-    warning = result.get("retrieval_warning")
-    used_web_search = result.get("web_search_attempted", False)
-    if used_web_search:
-        req_metrics = app_state.setdefault("request_metrics", {})
-        req_metrics["query_web_search_attempts"] = (
-            int(req_metrics.get("query_web_search_attempts", 0)) + 1
-        )
+        raise _http_error(e, choice) from e
+    _count_query(answer)
     used_web_search_label = None
-    if used_web_search:
+    if answer.used_web_search:
         from graph.i18n import detect_language, get_label_sources_incl_web
 
         used_web_search_label = get_label_sources_incl_web(
             detect_language(req.question)
         )
-    outcome = str(result.get("routing_outcome") or "").strip()
+    return QueryResponse(
+        answer=answer.text,
+        sources=[
+            SourceInfo(source=source, document_type=dtype)
+            for source, dtype in answer.sources
+        ],
+        chat_history=_to_lists(answer.chat_history),
+        warning=answer.warning,
+        used_web_search=answer.used_web_search,
+        used_web_search_label=used_web_search_label,
+        privacy_mode=answer.privacy_mode,
+    )
+
+
+def _http_error(e: Exception, choice) -> HTTPException:
+    """The status code and message for a failed answer."""
+    from graph.answering import LocalModelUnavailable, RateLimited, TimedOut
+    from graph.llm_factory import APIKeyError, ProviderConfigError, request_timeout
+
+    if isinstance(e, APIKeyError):
+        return HTTPException(status_code=400, detail=str(e))
+    if isinstance(e, (ProviderConfigError, LocalModelUnavailable)):
+        # the operator must fix this on the server; the user can pick another provider
+        return HTTPException(status_code=503, detail=str(e))
+    if isinstance(e, RateLimited):
+        return HTTPException(
+            status_code=429,
+            detail="API rate limit exceeded. Please wait about 30 seconds and try again, or switch to Mistral/OpenAI in Settings.",
+        )
+    if isinstance(e, TimedOut):
+        limit = (
+            "its time limit"
+            if e.provider == "ollama"
+            else f"{request_timeout():.0f} s (LLM_REQUEST_TIMEOUT_SEC)"
+        )
+        return HTTPException(
+            status_code=504,
+            detail=(
+                f"{e.provider.capitalize()} did not answer within {limit}. "
+                "Try again, or pick another provider."
+            ),
+        )
+    return HTTPException(status_code=500, detail=str(e) or "Internal server error")
+
+
+def _count_query(answer) -> None:
+    """Metrics: web search fallbacks and routing outcomes."""
+    req_metrics = app_state.setdefault("request_metrics", {})
+    if answer.used_web_search:
+        req_metrics["query_web_search_attempts"] = (
+            int(req_metrics.get("query_web_search_attempts", 0)) + 1
+        )
+    outcome = str(answer.routing_outcome or "").strip()
     if outcome:
-        req_metrics = app_state.setdefault("request_metrics", {})
         by_outcome = req_metrics.setdefault("query_outcomes_total", {})
         by_outcome[outcome] = int(by_outcome.get(outcome, 0)) + 1
-    return QueryResponse(
-        answer=answer,
-        sources=sources,
-        chat_history=_to_lists(updated_history),
-        warning=warning,
-        used_web_search=used_web_search,
-        used_web_search_label=used_web_search_label,
-        privacy_mode=is_ollama,
-    )
 
 
 app.include_router(api_router, prefix="/api")

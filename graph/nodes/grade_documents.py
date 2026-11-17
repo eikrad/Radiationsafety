@@ -1,4 +1,4 @@
-"""Check if retrieved context is sufficient to answer; set web_search flag if not (one call over all chunks, no per-doc grading)."""
+"""Check if the retrieved context is sufficient to answer (one call over all chunks, no per-doc grading)."""
 
 from typing import Any
 
@@ -17,10 +17,9 @@ from graph.utils import throttle_llm_if_needed
 def grade_documents(
     state: GraphState, config: RunnableConfig | None = None
 ) -> dict[str, Any]:
-    """Run one sufficiency check on the whole retrieved chunks; set web_search=True if insufficient or no docs. Keeps all docs for generation."""
+    """Run one sufficiency check on the whole retrieved chunks; keeps all docs for generation."""
     question = state["question"]
     documents = state["documents"]
-    privacy_mode = state.get("privacy_mode", False)
     cfg = config or {}
     llm = state.get("llm") or get_llm()
 
@@ -28,7 +27,6 @@ def grade_documents(
         return {
             "documents": [],
             "trusted_documents": [],
-            "web_search": False if privacy_mode else True,
             "context_sufficient": False,
             "context_gap": "",
         }
@@ -45,16 +43,10 @@ def grade_documents(
         gap = "" if sufficient else context_gap(verdict)
     except ValueError:  # no verdict even when asked again: not shown sufficient
         sufficient, gap = False, ""
-    web_search = not sufficient
-
-    # Privacy mode: never enable web search
-    if privacy_mode:
-        web_search = False
 
     return {
         "documents": list(documents),
         "trusted_documents": list(documents),
-        "web_search": web_search,
         "context_sufficient": sufficient,
         "context_gap": gap,
     }

@@ -204,7 +204,7 @@ def index_chunks() -> tuple[list[str], list[str]] | None:
     None (after printing which) if a collection has not been built.
     """
     from graph.llm_factory import get_embedding_provider
-    from ingestion import load_chunk_texts
+    from graph.search_index import load_chunk_texts
 
     collections = load_chunk_texts(get_embedding_provider())
     missing = [name for name, texts in collections.items() if texts is None]

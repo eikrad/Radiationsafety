@@ -358,7 +358,7 @@ def get_embedding_provider(llm_provider: str | None = None) -> str:
 
     Ollama (privacy mode) always embeds locally. Otherwise EMBEDDING_PROVIDER
     picks the backend independently of the answering model; unset, Scaleway. Each backend has its own Chroma
-    collections (ingestion.get_collection_names).
+    collections (graph.search_index.collection_names).
     """
     prov = (llm_provider or os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER).lower()
     if prov == "ollama":

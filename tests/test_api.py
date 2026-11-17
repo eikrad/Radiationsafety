@@ -69,7 +69,7 @@ def test_query_returns_answer(client: TestClient):
     assert "chat_history" in data
     assert isinstance(data["sources"], list)
     assert isinstance(data["chat_history"], list)
-    assert "Test answer from mocked graph" in data["answer"]
+    assert "Test answer from the stub answerer" in data["answer"]
     assert len(data["chat_history"]) == 1
     assert data["chat_history"][0][0] == "What is radiation protection?"
 
@@ -86,59 +86,73 @@ def test_query_empty_question(client: TestClient):
     assert res.status_code == 200
 
 
-def test_query_accepts_model_and_api_keys(client: TestClient):
-    """Query accepts model and api_keys in request body."""
+def test_query_asks_the_answerer_for_the_chosen_model(client, stub_answerer):
+    """The request's model, keys and variant reach the Answerer as its model choice."""
     res = client.post(
         "/query",
         json={
             "question": "What is radiation protection?",
             "model": "mistral",
             "api_keys": {"mistral": "test-key-from-request"},
+            "chat_history": [["Earlier?", "Earlier answer."]],
         },
     )
     assert res.status_code == 200
-    data = res.json()
-    assert "Test answer from mocked graph" in data["answer"]
+    question, choice, history = stub_answerer.calls[-1]
+    assert question == "What is radiation protection?"
+    assert choice.provider == "mistral"
+    assert dict(choice.api_keys) == {"mistral": "test-key-from-request"}
+    assert history == [("Earlier?", "Earlier answer.")]
 
 
-def test_query_api_key_error_when_openai_selected_no_key(
-    client: TestClient, monkeypatch
-):
-    """When model=openai and no API key in request or env, returns 400 with API key message."""
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+def test_query_api_key_error_when_openai_selected_no_key(client, stub_answerer):
+    """A model that needs a key nobody supplied answers 400 with the key message."""
+    from graph.llm_factory import APIKeyError
+
+    stub_answerer.error = APIKeyError("OpenAI needs an API key: OPENAI_API_KEY")
     res = client.post(
-        "/query",
-        json={"question": "What is radiation?", "model": "openai"},
+        "/query", json={"question": "What is radiation?", "model": "openai"}
     )
     assert res.status_code == 400
-    data = res.json()
-    assert "detail" in data
-    assert "API key" in data["detail"]
+    assert "API key" in res.json()["detail"]
 
 
-def test_query_explains_a_missing_scaleway_model_instead_of_a_500(
-    client: TestClient, monkeypatch
+def test_query_explains_a_server_misconfiguration_instead_of_a_500(
+    client, stub_answerer
 ):
-    """A provider the server has not configured answers 503 with a JSON reason."""
-    monkeypatch.delenv("SCW_MODEL", raising=False)
+    """A provider the server has not configured answers 503 with the reason."""
+    from graph.llm_factory import ProviderConfigError
+
+    stub_answerer.error = ProviderConfigError("Scaleway needs SCW_MODEL on the server.")
     res = client.post(
-        "/query",
-        json={"question": "What is radiation?", "model": "scaleway"},
+        "/query", json={"question": "What is radiation?", "model": "scaleway"}
     )
     assert res.status_code == 503
     assert "SCW_MODEL" in res.json()["detail"]
 
 
-def test_query_explains_an_unsupported_embedding_provider(
-    client: TestClient, monkeypatch
-):
-    monkeypatch.setenv("EMBEDDING_PROVIDER", "word2vec")
+def test_query_asks_to_wait_when_the_provider_is_rate_limited(client, stub_answerer):
+    from graph.answering import RateLimited
+
+    stub_answerer.error = RateLimited("gemini")
     res = client.post(
-        "/query",
-        json={"question": "What is radiation?", "model": "gemini"},
+        "/query", json={"question": "What is radiation?", "model": "gemini"}
+    )
+    assert res.status_code == 429
+    assert "rate limit" in res.json()["detail"].lower()
+
+
+def test_query_says_how_to_fix_the_local_model(client, stub_answerer):
+    from graph.answering import LocalModelUnavailable
+
+    stub_answerer.error = LocalModelUnavailable(
+        "Ollama is not running. Start it with: ollama serve"
+    )
+    res = client.post(
+        "/query", json={"question": "What is radiation?", "model": "ollama"}
     )
     assert res.status_code == 503
-    assert "EMBEDDING_PROVIDER" in res.json()["detail"]
+    assert "ollama serve" in res.json()["detail"]
 
 
 def test_query_non_question_short_circuit(client: TestClient):
@@ -152,35 +166,18 @@ def test_query_non_question_short_circuit(client: TestClient):
     assert data["chat_history"][0][0] == "Thank you"
 
 
-def test_query_returns_warning_when_set(client: TestClient):
-    """Query endpoint returns warning when retrieval_warning is set."""
-    from api.main import app, app_state
+def test_query_returns_warning_when_set(client, stub_answerer):
+    """The answer's warning reaches the response."""
+    from tests.fakes import an_answer
 
-    mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
-
-    def _invoke(inputs, config=None):
-        return {
-            "question": inputs.get("question", ""),
-            "generation": "Answer with poor sources",
-            "documents": [],
-            "web_search": False,
-            "web_search_attempted": True,
-            "chat_history": [],
-            "retrieval_warning": "Die Websuche konnte keine ausreichend guten Quellen liefern.",
-        }
-
-    mock.invoke.side_effect = _invoke
-    app_state["graph"] = mock
-    with TestClient(app) as c:
-        res = c.post("/query", json={"question": "test"})
+    stub_answerer.next_answer = an_answer(
+        warning="Die Websuche konnte keine ausreichend guten Quellen liefern.",
+        used_web_search=True,
+    )
+    res = client.post("/query", json={"question": "test"})
     assert res.status_code == 200
-    data = res.json()
-    assert "warning" in data
-    assert data["warning"]  # warning text (language may match question)
-    assert (
-        "web" in data["warning"].lower()
-        or "source" in data["warning"].lower()
-        or "quelle" in data["warning"].lower()
+    assert res.json()["warning"] == (
+        "Die Websuche konnte keine ausreichend guten Quellen liefern."
     )
 
 
@@ -305,32 +302,6 @@ def test_query_response_includes_privacy_mode_field(client: TestClient):
     assert isinstance(data["privacy_mode"], bool)
 
 
-def test_query_privacy_mode_true_for_ollama(client: TestClient):
-    """Query returns privacy_mode=true when model='ollama'."""
-    res = client.post(
-        "/query",
-        json={"question": "What is radiation?", "model": "ollama"},
-    )
-    assert res.status_code == 200
-    data = res.json()
-    assert data["privacy_mode"] is True
-
-
-def test_query_privacy_mode_false_for_cloud_models(client: TestClient):
-    """Query returns privacy_mode=false when model is not ollama."""
-    res = client.post(
-        "/query",
-        json={
-            "question": "What is radiation?",
-            "model": "mistral",
-            "api_keys": {"mistral": "test-key"},
-        },
-    )
-    assert res.status_code == 200
-    data = res.json()
-    assert data["privacy_mode"] is False
-
-
 def test_query_rate_limit_allows_requests_under_threshold(
     client: TestClient, monkeypatch
 ):
@@ -450,61 +421,26 @@ def test_metrics_include_status_class_counters(client: TestClient, monkeypatch):
     )
 
 
-def test_metrics_count_query_web_search_attempts(client: TestClient):
-    """Metrics increase web-search-attempts counter when query pipeline reports fallback."""
+def test_metrics_count_query_web_search_attempts(client, stub_answerer):
+    """Metrics count the queries that fell back to web search."""
     from api.main import app_state
+    from tests.fakes import an_answer
 
     app_state["request_metrics"]["query_web_search_attempts"] = 0
-    mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
-
-    def _invoke(inputs, config=None):
-        question = inputs.get("question", "")
-        return {
-            "question": question,
-            "generation": "Answer from web fallback",
-            "documents": [],
-            "web_search": False,
-            "web_search_attempted": True,
-            "chat_history": [(question, "Answer from web fallback")],
-            "retrieval_warning": None,
-        }
-
-    mock.invoke.side_effect = _invoke
-    app_state["graph"] = mock
+    stub_answerer.next_answer = an_answer(used_web_search=True)
     client.post("/query", json={"question": "Need latest guidance"})
     res = client.get("/metrics")
     assert res.status_code == 200
-    value = 0
-    for line in res.text.splitlines():
-        if line.startswith("radiationsafety_query_web_search_attempts_total "):
-            value = int(line.rsplit(" ", 1)[-1])
-            break
-    assert value >= 1
+    assert "radiationsafety_query_web_search_attempts_total 1" in res.text
 
 
-def test_metrics_include_query_outcome_labels(client: TestClient):
+def test_metrics_include_query_outcome_labels(client, stub_answerer):
     """Metrics expose query outcome labels from graph routing result."""
     from api.main import app_state
+    from tests.fakes import an_answer
 
     app_state["request_metrics"]["query_outcomes_total"] = {}
-    mock = __import__("unittest.mock", fromlist=["MagicMock"]).MagicMock()
-
-    def _invoke(inputs, config=None):
-        question = inputs.get("question", "")
-        return {
-            "question": question,
-            "generation": "Answer",
-            "documents": [],
-            "web_search": False,
-            "web_search_attempted": False,
-            "chat_history": [(question, "Answer")],
-            "retrieval_warning": None,
-            "routing_outcome": "trusted_only_verified",
-            "trusted_verified": True,
-        }
-
-    mock.invoke.side_effect = _invoke
-    app_state["graph"] = mock
+    stub_answerer.next_answer = an_answer(routing_outcome="trusted_only_verified")
     client.post("/query", json={"question": "Need guidance"})
     res = client.get("/metrics")
     assert res.status_code == 200
@@ -655,16 +591,11 @@ def test_config_counts_a_scaleway_key_as_a_server_key(client: TestClient, monkey
     assert client.get("/config").json()["server_has_llm_key"] is True
 
 
-def test_query_explains_a_provider_that_did_not_answer_in_time(
-    client: TestClient, mock_graph
-):
+def test_query_explains_a_provider_that_did_not_answer_in_time(client, stub_answerer):
     """A provider call that times out becomes a 504 naming the provider, not a bare 500."""
-    import httpx
-    import openai
+    from graph.answering import TimedOut
 
-    mock_graph.invoke.side_effect = openai.APITimeoutError(
-        request=httpx.Request("POST", "https://api.scaleway.ai/v1/chat/completions")
-    )
+    stub_answerer.error = TimedOut("scaleway")
     res = client.post(
         "/query", json={"question": "What is ALARA?", "model": "scaleway"}
     )
@@ -672,6 +603,58 @@ def test_query_explains_a_provider_that_did_not_answer_in_time(
     detail = res.json()["detail"]
     assert "scaleway" in detail.lower()
     assert "did not answer" in detail
+
+
+def test_query_lists_each_source_once(client, stub_answerer):
+    from langchain_core.documents import Document
+
+    from tests.fakes import an_answer
+
+    gsr3 = {"source": "GSR-3.pdf", "document_type": "IAEA"}
+    stub_answerer.next_answer = an_answer(
+        documents=[
+            Document(page_content="III.1", metadata=gsr3),
+            Document(page_content="III.2", metadata=gsr3),
+        ]
+    )
+    res = client.post("/query", json={"question": "Dose limit?"})
+    assert res.json()["sources"] == [{"source": "GSR-3.pdf", "document_type": "IAEA"}]
+
+
+def test_a_question_in_privacy_mode_stays_on_the_machine(client):
+    """The real Answerer and graph behind the API: model=ollama searches the
+    local index and never the web, even when the documents never suffice and
+    web search is on."""
+    from langchain_core.documents import Document
+
+    from api.main import app_state
+    from graph.answering import Answerer
+    from tests.fakes import FakeIndex, RecordingWebSearch, ScriptedChatModel
+
+    gsr3 = Document(page_content="III.1", metadata={"source": "GSR-3.pdf"})
+    bek = Document(page_content="§ 14", metadata={"source": "BEK-2025-138405"})
+    indexes: dict[str, FakeIndex] = {}
+    web = RecordingWebSearch()
+    model = ScriptedChatModel(sufficient=False, answer_passes=False)
+    app_state["answerer"] = Answerer(
+        web_search_enabled=True,
+        web_search=web,
+        index_for=lambda ep: indexes.setdefault(ep, FakeIndex(([gsr3], [bek]))),
+        build_llm=lambda **kwargs: model,
+    )
+
+    res = client.post(
+        "/query",
+        json={"question": "Who is told about a lost source?", "model": "ollama"},
+    )
+
+    assert res.status_code == 200
+    data = res.json()
+    assert data["privacy_mode"] is True
+    assert data["used_web_search"] is False
+    assert web.queries == []
+    assert list(indexes) == ["ollama"]
+    assert {s["source"] for s in data["sources"]} == {"GSR-3.pdf", "BEK-2025-138405"}
 
 
 def test_api_reports_the_installed_package_version(client: TestClient):
@@ -694,6 +677,10 @@ def upload_without_side_effects(monkeypatch, tmp_path):
     class Store:
         def __init__(self, **kwargs):
             pass
+
+        @classmethod
+        def from_documents(cls, documents, **kwargs):
+            return cls()
 
         def add_documents(self, docs):
             pass

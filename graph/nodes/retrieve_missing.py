@@ -10,14 +10,15 @@ from graph.chains.context_sufficiency_grader import (
 )
 from graph.chains.missing_query_chain import invoke_missing_query_chain
 from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
-from graph.llm_factory import get_embedding_provider, get_llm
-from graph.nodes.retrieval_common import invoke_dual_retrievers, merge_unique_documents
+from graph.llm_factory import get_llm
+from graph.nodes.retrieval_common import merge_unique_documents
+from graph.search_index import SearchIndex
 from graph.state import GraphState
 from graph.utils import chat_context_prefix, throttle_llm_if_needed
 
 
 def retrieve_missing(
-    state: GraphState, config: RunnableConfig | None = None
+    state: GraphState, config: RunnableConfig | None = None, *, index: SearchIndex
 ) -> dict[str, Any]:
     """Retrieve again with an LLM-generated query for missing info; merge with existing docs; set sufficient_after_missing."""
     question = state["question"]
@@ -38,12 +39,7 @@ def retrieve_missing(
         question, context_str, llm, config=cfg, reflection=hint
     )
 
-    ep = state.get("embedding_provider") or get_embedding_provider()
-    iaea_docs, dk_docs = invoke_dual_retrievers(
-        embedding_provider=ep,
-        query=missing_query,
-        config=cfg,
-    )
+    iaea_docs, dk_docs = index.search(missing_query, config=cfg)
     merged, new_docs = merge_unique_documents(existing, iaea_docs + dk_docs)
     trusted_merged = list(trusted) + new_docs
 

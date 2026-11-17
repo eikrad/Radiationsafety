@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
 
 from graph.state import GraphState
+from tests.fakes import FakeIndex
 
 # ---------------------------------------------------------------------------
 # missing_query_chain: reflection parameter
@@ -79,10 +80,6 @@ def _patch_retrieve_missing_deps(missing_query: str = "query"):
             return_value=missing_query,
         ),
         patch(
-            "graph.nodes.retrieve_missing.invoke_dual_retrievers",
-            return_value=([], []),
-        ),
-        patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
             return_value=MagicMock(
                 invoke=MagicMock(return_value=MagicMock(binary_score=False))
@@ -103,8 +100,8 @@ def test_retrieve_missing_passes_empty_reflection_when_state_has_none():
         "graph.nodes.retrieve_missing.invoke_missing_query_chain", mock_invoke
     )
 
-    with patches[0], patches[1], patches[2], patches[3], patches[4]:
-        retrieve_missing(_base_state())
+    with patches[0], patches[1], patches[2], patches[3]:
+        retrieve_missing(_base_state(), index=FakeIndex())
 
     _, kwargs = mock_invoke.call_args
     assert kwargs.get("reflection", "") == ""
@@ -122,8 +119,8 @@ def test_retrieve_missing_passes_reflection_from_state():
 
     state = _base_state(reflection="occupational dose limits table Annex 2 GSR-3")
 
-    with patches[0], patches[1], patches[2], patches[3], patches[4]:
-        retrieve_missing(state)
+    with patches[0], patches[1], patches[2], patches[3]:
+        retrieve_missing(state, index=FakeIndex())
 
     _, kwargs = mock_invoke.call_args
     assert kwargs.get("reflection") == "occupational dose limits table Annex 2 GSR-3"

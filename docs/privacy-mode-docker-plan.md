@@ -35,7 +35,7 @@ docker compose --profile ollama up    # adds an Ollama container; the models are
   `radiation-dk-law-ollama-bge-m3` for the default `bge-m3`, `ingestion.py`) and are built by a
   separate ingestion run with `LLM_PROVIDER=ollama`.
 - **The error message when Ollama is unreachable** says "Start it with: ollama serve"
-  (`_ollama_error_detail` in `api/main.py`), which does not help under Docker.
+  (`_local_model_problem` in `graph/answering.py`), which does not help under Docker.
 
 ## Steps
 
@@ -74,8 +74,8 @@ docker compose --profile ollama up    # adds an Ollama container; the models are
 
 ### 4. Error message (`api/main.py`)
 
-When Ollama is unreachable, `_ollama_error_detail` names the configured `OLLAMA_BASE_URL` and
-both remedies (`ollama serve`, or `--profile ollama` under Docker). Test in `tests/test_api.py`.
+When Ollama is unreachable, `_local_model_problem` names the configured `OLLAMA_BASE_URL` and
+both remedies (`ollama serve`, or `--profile ollama` under Docker). Test in `tests/test_answering.py`.
 
 ### 5. README: "Privacy mode with Docker"
 
