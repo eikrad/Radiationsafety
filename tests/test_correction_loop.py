@@ -24,6 +24,7 @@ from graph.consts import (
     RETRIEVE_MISSING,
     WEB_SEARCH,
 )
+from tests.fakes import FakeIndex
 
 FIRST = Document(
     page_content="[BEK 1385] Stk. 1. Lukkede kilder skal registreres.",
@@ -82,18 +83,13 @@ def _run(
     """Run the real graph with fakes; return (captured output, fakes)."""
     suff = _sufficiency(*sufficiency)
     query_chain = MagicMock(side_effect=lambda question, *_, **__: "follow-up query")
+    index = FakeIndex(([], [FIRST]), ([], [MISSING]))
     brave = MagicMock()
     brave.from_api_key.return_value.invoke.return_value = "[]"
     fakes = {
-        "graph.nodes.retrieve.check_embedding_collections_ready": MagicMock(
-            return_value=(True, "")
-        ),
-        "graph.nodes.retrieve.invoke_dual_retrievers": MagicMock(
-            return_value=([], [FIRST])
-        ),
-        "graph.nodes.retrieve_missing.invoke_dual_retrievers": MagicMock(
-            return_value=([], [MISSING])
-        ),
+        # the first search finds FIRST, every later one MISSING
+        "graph.nodes.retrieve.index_for": MagicMock(return_value=index),
+        "graph.nodes.retrieve_missing.index_for": MagicMock(return_value=index),
         "graph.nodes.retrieve_missing.invoke_missing_query_chain": query_chain,
         "graph.nodes.grade_documents.get_context_sufficiency_grader": MagicMock(
             return_value=suff

@@ -10,20 +10,24 @@ def _build_search_index(chroma_dir: Path, embedding_provider: str) -> None:
     """Create both collections for `embedding_provider` with one chunk each."""
     import chromadb
 
-    from ingestion import get_collection_names
+    from graph.search_index import collection_names
 
     client = chromadb.PersistentClient(path=str(chroma_dir))
-    for name in get_collection_names(embedding_provider):
+    for name in collection_names(embedding_provider):
         client.get_or_create_collection(name).add(
             ids=["chunk-1"], documents=["ALARA"], embeddings=[[0.1, 0.2, 0.3]]
         )
 
 
 @pytest.fixture
-def chroma_dir(tmp_path, monkeypatch) -> Path:
+def chroma_dir(tmp_path, monkeypatch):
     """An empty Chroma store in place of the project's .chroma."""
-    monkeypatch.setattr("ingestion._CHROMA_DIR", tmp_path)
-    return tmp_path
+    from graph import search_index
+
+    monkeypatch.setattr(search_index, "CHROMA_DIR", tmp_path)
+    search_index.refresh()
+    yield tmp_path
+    search_index.refresh()
 
 
 def test_scaleway_without_an_answer_model_needs_setup(

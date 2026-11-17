@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
 
 from graph.chains.truncate import format_context
+from tests.fakes import FakeIndex
 
 # A ~2500-character Danish law chunk whose deciding sentence sits near its end,
 # past the 420 (grade_documents) and 1200 (verify_trusted) characters the
@@ -95,9 +96,7 @@ def test_retrieve_missing_judges_the_whole_chunks():
         patch(
             "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
         ),
-        patch(
-            "graph.nodes.retrieve_missing.invoke_dual_retrievers", return_value=([], [])
-        ),
+        patch("graph.nodes.retrieve_missing.index_for", return_value=FakeIndex()),
         patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
             return_value=grader,
@@ -312,9 +311,7 @@ def test_no_sufficiency_verdict_after_another_search_counts_as_insufficient():
         patch(
             "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
         ),
-        patch(
-            "graph.nodes.retrieve_missing.invoke_dual_retrievers", return_value=([], [])
-        ),
+        patch("graph.nodes.retrieve_missing.index_for", return_value=FakeIndex()),
         patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
             return_value=_broken_grader(),

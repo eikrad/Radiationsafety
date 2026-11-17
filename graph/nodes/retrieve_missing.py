@@ -11,7 +11,8 @@ from graph.chains.context_sufficiency_grader import (
 from graph.chains.missing_query_chain import invoke_missing_query_chain
 from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.llm_factory import get_embedding_provider, get_llm
-from graph.nodes.retrieval_common import invoke_dual_retrievers, merge_unique_documents
+from graph.nodes.retrieval_common import merge_unique_documents
+from graph.search_index import index_for
 from graph.state import GraphState
 from graph.utils import chat_context_prefix, throttle_llm_if_needed
 
@@ -39,11 +40,7 @@ def retrieve_missing(
     )
 
     ep = state.get("embedding_provider") or get_embedding_provider()
-    iaea_docs, dk_docs = invoke_dual_retrievers(
-        embedding_provider=ep,
-        query=missing_query,
-        config=cfg,
-    )
+    iaea_docs, dk_docs = index_for(ep).search(missing_query, config=cfg)
     merged, new_docs = merge_unique_documents(existing, iaea_docs + dk_docs)
     trusted_merged = list(trusted) + new_docs
 

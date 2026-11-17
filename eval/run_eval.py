@@ -206,11 +206,9 @@ def _retrieve_ranked(
 ) -> dict[str, list]:
     """Each collection's retrieval in rank order, `depth` chunks deep, through
     the same retrievers the graph uses."""
-    from graph.nodes.retrieval_common import invoke_dual_retrievers
+    from graph.search_index import index_for
 
-    iaea, dk = invoke_dual_retrievers(
-        embedding_provider=embedding_provider, query=question, config=None, k=depth
-    )
+    iaea, dk = index_for(embedding_provider).search(question, k=depth)
     return {"iaea": iaea, "dk": dk}
 
 
@@ -242,11 +240,11 @@ def _embedding_config() -> dict:
 
 
 def _index_config(embedding_provider: str) -> dict:
-    """Which chunks the run retrieved from (see ingestion.index_fingerprint)."""
-    import ingestion
+    """Which chunks the run retrieved from (see search_index.index_fingerprint)."""
+    from graph import search_index
 
     try:
-        return {"index": ingestion.index_fingerprint(embedding_provider)}
+        return {"index": search_index.index_fingerprint(embedding_provider)}
     except Exception as err:  # a missing store must not stop the run
         print(f"Warning: search index not fingerprinted: {err}", file=sys.stderr)
         return {"index": None}
@@ -449,7 +447,7 @@ def _run_eval(
     from graph.consts import env_bool
     from graph.graph import app as graph
     from graph.llm_factory import get_llm, ollama_num_ctx
-    from ingestion import RETRIEVER_K
+    from graph.search_index import retriever_k
 
     graph_llm = get_llm()
     choice = _model_choice()
@@ -472,7 +470,7 @@ def _run_eval(
             **judge_info,
             **(embedding := _embedding_config()),
             **_index_config(embedding["embedding_provider"]),
-            "retriever_k": RETRIEVER_K,
+            "retriever_k": retriever_k(),
             # privacy mode keeps the graph off the web whatever the switch says
             "web_search": env_bool("WEB_SEARCH_ENABLED") and not choice.privacy_mode,
             "metrics_version": METRICS_VERSION,
@@ -560,7 +558,7 @@ def _run_retrieval_only(
     a full run; the rank metrics come from a deeper retrieval through the same
     retrievers. There is no pass rate, since nothing was answered.
     """
-    from ingestion import RETRIEVER_K
+    from graph.search_index import retriever_k
 
     embedding = _embedding_config()
     header = {
@@ -569,7 +567,7 @@ def _run_retrieval_only(
             "retrieval_only": True,
             **embedding,
             **_index_config(embedding["embedding_provider"]),
-            "retriever_k": RETRIEVER_K,
+            "retriever_k": retriever_k(),
             "retrieval_depth": depth,
             "char_budget": char_budget,
             "metrics_version": METRICS_VERSION,

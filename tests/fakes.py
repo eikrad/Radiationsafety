@@ -122,3 +122,26 @@ class StubAnswerer:
             raise self.error
         exchange = (question, self.next_answer.text)
         return replace(self.next_answer, chat_history=list(history or []) + [exchange])
+
+
+class FakeIndex:
+    """A search index that returns scripted chunks and records every query.
+
+    results: one (iaea_docs, dk_docs) per search, in order; the last one
+    repeats once they are used up. readiness: what ready() reports.
+    """
+
+    def __init__(self, *results, readiness=None):
+        from graph.search_index import Readiness
+
+        self.results = list(results) or [([], [])]
+        self.readiness = readiness or Readiness.ready()
+        self.queries: list[str] = []
+
+    def ready(self):
+        return self.readiness
+
+    def search(self, query, k=None, config=None):
+        self.queries.append(query)
+        iaea, dk = self.results[min(len(self.queries), len(self.results)) - 1]
+        return list(iaea), list(dk)

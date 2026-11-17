@@ -207,7 +207,7 @@ class TestOllamaEmbeddingProvider:
         monkeypatch.delenv("OLLAMA_EMBED_MODEL", raising=False)
         monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
         from graph.llm_factory import get_embeddings
-        from ingestion import get_collection_names
+        from graph.search_index import collection_names as get_collection_names
 
         emb = get_embeddings("ollama")
         assert getattr(emb, "model", None) == "bge-m3"
@@ -234,7 +234,7 @@ class TestOllamaCollections:
     def test_collection_names_have_ollama_suffix(self, monkeypatch):
         """nomic-embed-text, the earlier default, keeps its '-ollama' collections."""
         monkeypatch.setenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
-        from ingestion import get_collection_names
+        from graph.search_index import collection_names as get_collection_names
 
         iaea, dk = get_collection_names("ollama")
         assert iaea == "radiation-iaea-ollama"
@@ -243,7 +243,7 @@ class TestOllamaCollections:
     def test_another_local_embedding_model_gets_its_own_collections(self, monkeypatch):
         """Local embedders are built side by side and compared, as Scaleway's
         are; the default model keeps the collections privacy users have."""
-        from ingestion import get_collection_names
+        from graph.search_index import collection_names as get_collection_names
 
         monkeypatch.setenv("OLLAMA_EMBED_MODEL", "bge-m3")
         assert get_collection_names("ollama") == (
@@ -258,7 +258,7 @@ class TestOllamaCollections:
 
     def test_collection_names_dont_collide_with_gemini(self):
         """Ollama and Gemini must use different collection names."""
-        from ingestion import get_collection_names
+        from graph.search_index import collection_names as get_collection_names
 
         iaea_g, dk_g = get_collection_names("gemini")
         iaea_o, dk_o = get_collection_names("ollama")
@@ -267,7 +267,7 @@ class TestOllamaCollections:
 
     def test_collection_names_dont_collide_with_mistral(self):
         """Ollama and Mistral must use different collection names."""
-        from ingestion import get_collection_names
+        from graph.search_index import collection_names as get_collection_names
 
         iaea_m, dk_m = get_collection_names("mistral")
         iaea_o, dk_o = get_collection_names("ollama")
@@ -281,28 +281,25 @@ class TestOllamaCollections:
 
 
 class TestOllamaReadinessCheck:
-    """check_embedding_collections_ready for ollama should give local-specific guidance."""
+    """An unbuilt local index gives local-specific guidance."""
 
-    def test_not_ready_message_mentions_ollama(self, tmp_path, monkeypatch):
+    def _message(self, tmp_path):
+        from graph.i18n import index_not_ready_message
+        from graph.search_index import ChromaIndex
+
+        readiness = ChromaIndex("ollama", persist_dir=tmp_path / "empty_chroma").ready()
+        assert not readiness
+        return index_not_ready_message(readiness, "ollama", "en")
+
+    def test_not_ready_message_mentions_ollama(self, tmp_path):
         """When ollama collections don't exist, the message should NOT mention GOOGLE_API_KEY."""
-        import ingestion
-
-        monkeypatch.setattr(ingestion, "_CHROMA_DIR", tmp_path / "empty_chroma")
-        from ingestion import check_embedding_collections_ready
-
-        ready, msg = check_embedding_collections_ready("ollama")
-        assert ready is False
+        msg = self._message(tmp_path)
         assert "GOOGLE_API_KEY" not in msg
         assert "ollama" in msg.lower() or "local" in msg.lower()
 
-    def test_not_ready_message_tells_how_to_ingest(self, tmp_path, monkeypatch):
+    def test_not_ready_message_tells_how_to_ingest(self, tmp_path):
         """Message should tell user how to run ingestion for ollama."""
-        import ingestion
-
-        monkeypatch.setattr(ingestion, "_CHROMA_DIR", tmp_path / "empty_chroma")
-        from ingestion import check_embedding_collections_ready
-
-        ready, msg = check_embedding_collections_ready("ollama")
+        msg = self._message(tmp_path)
         assert "LLM_PROVIDER=ollama" in msg
         assert "ingestion" in msg.lower()
 

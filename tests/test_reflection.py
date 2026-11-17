@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
 
 from graph.state import GraphState
+from tests.fakes import FakeIndex
 
 # ---------------------------------------------------------------------------
 # missing_query_chain: reflection parameter
@@ -78,10 +79,7 @@ def _patch_retrieve_missing_deps(missing_query: str = "query"):
             "graph.nodes.retrieve_missing.invoke_missing_query_chain",
             return_value=missing_query,
         ),
-        patch(
-            "graph.nodes.retrieve_missing.invoke_dual_retrievers",
-            return_value=([], []),
-        ),
+        patch("graph.nodes.retrieve_missing.index_for", return_value=FakeIndex()),
         patch(
             "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
             return_value=MagicMock(

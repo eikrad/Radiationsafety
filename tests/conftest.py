@@ -92,16 +92,16 @@ def temp_search_index(tmp_path, monkeypatch):
     from langchain_chroma import Chroma
     from langchain_core.documents import Document
 
-    import ingestion
+    from graph import search_index
     from tests.fakes import RecordingEmbeddings
 
     recording = RecordingEmbeddings()
-    monkeypatch.setattr(ingestion, "_CHROMA_DIR", tmp_path)
-    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep=None: recording)
-    ingestion.clear_retrievers_cache()
+    monkeypatch.setattr(search_index, "CHROMA_DIR", tmp_path)
+    monkeypatch.setattr(search_index, "get_embeddings", lambda ep=None: recording)
+    search_index.refresh()
     for provider in ("scaleway", "ollama"):
         for name, chunks in zip(
-            ingestion.get_collection_names(provider),
+            search_index.collection_names(provider),
             (_CHUNKS["iaea"], _CHUNKS["dk"]),
             strict=True,
         ):
@@ -116,7 +116,7 @@ def temp_search_index(tmp_path, monkeypatch):
             )
     recording.tracing_seen.clear()
     yield recording
-    ingestion.clear_retrievers_cache()
+    search_index.refresh()
 
 
 @pytest.fixture

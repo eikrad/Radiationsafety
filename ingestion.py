@@ -6,7 +6,6 @@ Supports (1) local PDFs in documents/IAEA, documents/IAEA_other, documents/Beken
 """
 
 import filecmp
-import hashlib
 import os
 import re
 import shutil
@@ -40,11 +39,11 @@ from tqdm import tqdm
 
 from graph.consts import env_bool
 from graph.llm_factory import (
-    get_embedding_model_name,
     get_embedding_provider,
     get_embeddings,
-    query_instruction_template,
 )
+from graph.search_index import CHROMA_DIR as _CHROMA_DIR
+from graph.search_index import collection_names
 from ingestion_dk import structure_chunks, xml_to_text
 
 load_dotenv()
@@ -73,7 +72,6 @@ class _SimpleMetaExtractor(BaseMetaExtractor):
 PROJECT_ROOT = Path(__file__).resolve().parent
 DOCS_DIR = PROJECT_ROOT / "documents"
 _BACKUP_DIR = PROJECT_ROOT / "documents" / "backup" / "Bekendtgørelse"
-_CHROMA_DIR = PROJECT_ROOT / ".chroma"
 _MAX_BACKUPS_PER_SOURCE = 2
 
 
@@ -96,8 +94,6 @@ def rotate_backups(
 
 
 # Base collection names (Gemini/OpenAI share these; Mistral uses -mistral suffix)
-IAEA_COLLECTION = "radiation-iaea"
-DK_LAW_COLLECTION = "radiation-dk-law"
 
 # Google Gemini: batch size for embeddings. Delay between batches is from GEMINI_BATCH_DELAY_SEC env (0 or unset = no delay, e.g. 65 for free tier).
 GEMINI_BATCH_SIZE = 200
@@ -119,35 +115,12 @@ def _gemini_batch_delay_sec() -> float:
         return 0.0
 
 
-def get_collection_names(embedding_provider: str) -> tuple[str, str]:
-    """Return (iaea_collection_name, dk_collection_name) for the given embedding provider.
-
-    Scaleway collections carry the model id (SCW_EMBED_MODEL), so several
-    Scaleway models can be built side by side and compared. So do local ones
-    (OLLAMA_EMBED_MODEL), except the default nomic-embed-text, whose
-    collections keep the name privacy-mode users already have.
-    """
-    if embedding_provider == "scaleway":
-        suffix = f"-scw-{get_embedding_model_name('scaleway')}"
-        return (f"{IAEA_COLLECTION}{suffix}", f"{DK_LAW_COLLECTION}{suffix}")
-    if embedding_provider == "mistral":
-        return (f"{IAEA_COLLECTION}-mistral", f"{DK_LAW_COLLECTION}-mistral")
-    if embedding_provider == "ollama":
-        model = get_embedding_model_name("ollama").removesuffix(":latest")
-        suffix = "-ollama"
-        if model != "nomic-embed-text":
-            # Chroma allows letters, digits, '.', '_' and '-' in names
-            suffix += "-" + re.sub(r"[^A-Za-z0-9._-]", "-", model)
-        return (f"{IAEA_COLLECTION}{suffix}", f"{DK_LAW_COLLECTION}{suffix}")
-    return (IAEA_COLLECTION, DK_LAW_COLLECTION)
-
-
 def _clear_chroma_collections(
     embedding_provider: str | None = None, names: list[str] | None = None
 ) -> None:
     """Delete the provider's collections (or only `names`) so ingestion recreates them."""
     ep = embedding_provider or get_embedding_provider()
-    names = names or list(get_collection_names(ep))
+    names = names or list(collection_names(ep))
     try:
         import chromadb
 
@@ -956,7 +929,7 @@ def ingest(dk_only: bool = False) -> list[tuple[str, str]]:
     """
     print("\n🚀 Starting ingestion pipeline...\n")
     ep = get_embedding_provider()
-    iaea_name, dk_name = get_collection_names(ep)
+    iaea_name, dk_name = collection_names(ep)
     print(f"📊 Using embedding provider: {ep}")
     print(f"📦 Collections: {dk_name if dk_only else f'{iaea_name}, {dk_name}'}\n")
 
@@ -1055,8 +1028,8 @@ def reembed_from(source_provider: str, target: str) -> None:
     import chromadb
 
     sources, targets = (
-        get_collection_names(source_provider),
-        get_collection_names(target),
+        collection_names(source_provider),
+        collection_names(target),
     )
     if sources == targets:
         raise ValueError(f"{source_provider} and {target} use the same collections")
@@ -1080,100 +1053,6 @@ def reembed_from(source_provider: str, target: str) -> None:
         tqdm.write(f"✅ Re-embedded {len(documents)} chunks into {dst}")
 
 
-def _retriever_k() -> int:
-    """Chunks returned per collection (IAEA and DK each) for one retrieval query
-    (RETRIEVER_K, default 5: chosen by the k test, ROADMAP step 5)."""
-    raw = (os.getenv("RETRIEVER_K") or "").strip()
-    k = int(raw) if raw else 5
-    if k < 1:
-        raise ValueError("RETRIEVER_K must be at least 1")
-    return k
-
-
-RETRIEVER_K = _retriever_k()
-
-_retrievers_cache: dict[tuple, tuple] | None = (
-    None  # keyed by collections + query instruction
-)
-
-
-def check_embedding_collections_ready(embedding_provider: str) -> tuple[bool, str]:
-    """Return (ready, message). If not ready (collections missing or empty), message explains how to build them."""
-    if embedding_provider not in ("gemini", "mistral", "ollama", "scaleway"):
-        return True, ""
-    if embedding_provider == "ollama":
-        default_msg = (
-            "Local embeddings are not built yet. Run: "
-            "LLM_PROVIDER=ollama uv run python ingestion.py"
-        )
-    elif embedding_provider == "scaleway":
-        try:
-            model = get_embedding_model_name("scaleway")
-        except ValueError as e:
-            return False, str(e)
-        default_msg = (
-            f"Scaleway embeddings ({model}) are not built yet. Run: "
-            f"EMBEDDING_PROVIDER=scaleway SCW_EMBED_MODEL={model} "
-            "uv run python ingestion.py --reembed-from gemini "
-            "(or without --reembed-from for a full ingestion)"
-        )
-    else:
-        default_msg = (
-            "Embeddings are not built yet. Set GOOGLE_API_KEY in .env (or export it), "
-            "then run: uv run python ingestion.py"
-        )
-    iaea_name, dk_name = get_collection_names(embedding_provider)
-    try:
-        import chromadb
-
-        client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-        for name in (iaea_name, dk_name):
-            try:
-                coll = client.get_collection(name)
-                if coll.count() == 0:
-                    return False, default_msg
-            except Exception:
-                return False, default_msg
-        return True, ""
-    except Exception:
-        return False, default_msg
-
-
-def load_chunk_texts(embedding_provider: str) -> dict[str, list[str] | None]:
-    """The chunk texts of both collections for this provider, in storage order;
-    None for a collection that does not exist."""
-    import chromadb
-
-    client = chromadb.PersistentClient(path=str(_CHROMA_DIR))
-    texts: dict[str, list[str] | None] = {}
-    for name in get_collection_names(embedding_provider):
-        try:
-            stored = client.get_collection(name).get(include=["documents"])
-        except Exception:
-            texts[name] = None
-            continue
-        texts[name] = [t or "" for t in stored["documents"]]
-    return texts
-
-
-def index_fingerprint(embedding_provider: str) -> dict[str, dict | None]:
-    """Per collection, the number of chunks and a hash of their texts.
-
-    Independent of chunk ids and storage order, so the same chunks embedded by
-    another model (reembed_from) fingerprint the same, and any re-chunking or
-    re-ingestion that changes a chunk shows up.
-    """
-    fingerprint: dict[str, dict | None] = {}
-    for name, texts in load_chunk_texts(embedding_provider).items():
-        if texts is None:
-            fingerprint[name] = None
-            continue
-        digests = sorted(hashlib.sha256(t.encode("utf-8")).hexdigest() for t in texts)
-        content = hashlib.sha256("".join(digests).encode("ascii")).hexdigest()
-        fingerprint[name] = {"chunks": len(texts), "content_hash": content[:12]}
-    return fingerprint
-
-
 def add_single_pdf_to_collection(
     pdf_path: Path, *, folder: str = "IAEA_other", source_label: str | None = None
 ) -> int:
@@ -1189,7 +1068,7 @@ def add_single_pdf_to_collection(
     if not splits:
         return 0
     ep = get_embedding_provider()
-    iaea_name, _ = get_collection_names(ep)
+    iaea_name, _ = collection_names(ep)
     # the same batching (and retry) per provider as a full ingestion
     _add_documents_rate_limited(
         splits,
@@ -1199,50 +1078,6 @@ def add_single_pdf_to_collection(
         embedding_provider=ep,
     )
     return len(splits)
-
-
-def clear_retrievers_cache() -> None:
-    """Clear the retriever cache so the next query uses fresh Chroma data (e.g. after re-ingestion)."""
-    global _retrievers_cache
-    _retrievers_cache = None
-
-
-def get_retrievers(embedding_provider: str | None = None):
-    """Return retriever instances for both collections (for use in graph).
-
-    Cached per collection pair and query instruction, so two Scaleway models
-    (or the instruction switched off) never share a cached retriever.
-    """
-    global _retrievers_cache
-    if _retrievers_cache is None:
-        _retrievers_cache = {}
-    ep = (
-        embedding_provider
-        if embedding_provider in ("gemini", "mistral", "ollama", "scaleway")
-        else None
-    ) or get_embedding_provider()
-    iaea_name, dk_name = get_collection_names(ep)
-    template = (
-        query_instruction_template(get_embedding_model_name(ep))
-        if ep == "scaleway"
-        else None
-    )
-    key = (iaea_name, dk_name, template)
-    if key in _retrievers_cache:
-        return _retrievers_cache[key]
-    embeddings = get_embeddings(ep)
-    iaea = Chroma(
-        collection_name=iaea_name,
-        embedding_function=embeddings,
-        persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": RETRIEVER_K})
-    dk = Chroma(
-        collection_name=dk_name,
-        embedding_function=embeddings,
-        persist_directory=str(_CHROMA_DIR),
-    ).as_retriever(search_kwargs={"k": RETRIEVER_K})
-    _retrievers_cache[key] = (iaea, dk)
-    return _retrievers_cache[key]
 
 
 def main(argv: list[str] | None = None) -> None:
