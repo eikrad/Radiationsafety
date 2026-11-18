@@ -4,6 +4,62 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-11-18
+
+> **Open PRs (verified via `mcp__github__list_pull_requests`):** Dependabot #213 (`jsdom` 31.0.0 -> 31.0.1), #214 (`@playwright/test` 1.64.1 -> 1.65.0), #215 (`@testing-library/user-event` 14.6.9 -> 14.6.10), all targeting `staging`. Those three packages were **not duplicated** here. Note for #214: the `visual` CI job runs in `mcr.microsoft.com/playwright:v1.64.0-noble` and the `test:visual:*` scripts use the same tag, so #214 also needs the image tag raised to `v1.65.0` and probably new screenshot baselines (`npm -C frontend run test:visual:update`) before it can go green.
+
+### Checks performed
+- `git fetch origin staging`; branch `claude/modest-faraday-ldn9fh` reset to `origin/staging` (`304f566`).
+- Recent CI on `staging` (`mcp__github__actions_list`): run #809 on `304f566` **success**.
+- Baseline **before changes** (mirrors `ci.yml`, Node 22.23.5, Python 3.12): `uv sync`; `uv run pytest tests/ -n auto` -> **629 passed**; `ruff`, `black --check`, `isort --check`, `mypy api/main.py api/rate_limit.py tests/test_api.py --follow-imports=skip` clean. Frontend `npm ci`, `lint`, `build`, `test:coverage` -> **78 passed (10 files)**. **Nothing broken on `staging`.**
+- Playwright E2E, visual and docker-integration jobs are not run in the sandbox (the proxy blocks the browser CDN and there is no Docker). CI runs them.
+- Security: `pip-audit --path .venv/lib/python3.12/site-packages`; `npm -C frontend audit`; root `npm audit` (the root `package-lock.json` is empty, 0 packages).
+- Outdated: `uv lock --upgrade --dry-run`, `npm -C frontend outdated`.
+
+### Security findings
+
+**`npm -C frontend audit`** -- baseline **8 moderate**, all the dev-only `minimatch` chain (GHSA-g3hv-75wg-m249, DoS via glob amplification) known since 2026-11-04. **Fixed this week:** `eslint` 10.15.0 and `typescript-eslint` 8.73.0 now accept `minimatch` 11, so the minor bumps below pull `minimatch` 10.2.6 -> 11.0.9 (and `@eslint/config-array` 0.23.6, `brace-expansion` 5.0.13). After: **0 vulnerabilities**. No `overrides` and no `--force` needed.
+
+**`pip-audit`** -- **93 known vulnerabilities in 8 packages**, unchanged before and after (none fixable without a major version or a dependency removal):
+
+| Package | Version | Fix | Resolution |
+|---|---|---|---|
+| `pillow` (transitive) | 12.3.0 | 13.0.0 (**major**), 42 ids | Not applied. Only decodes locally supplied PDFs/page images during ingestion. |
+| `docling` / `docling-slim` | 2.120.3 | 2.131+ (latest 2.150.1) | Not applied: needs `docling-ibm-models` 4 and `langchain-docling` 3 (majors). **Owner decision: try it with a real ingestion run.** |
+| `filelock` (transitive) | 3.32.3 | 4.2.1 (**major**), 12 CVE ids | Not applied; HF/torch cache locking, no untrusted input. |
+| `soupsieve` (transitive) | 2.10 | 3.0.2 / 4.0.0 (**major**), **new this week**: CVE-2026-126190, -126191, -126193 | Not applied. Via `beautifulsoup4` <- `docling-slim`; CSS selectors come from docling's own code, not from users. |
+| `oauthlib` (transitive) | 3.3.1 | 4.0.1 (major), PYSEC-2026-4114, CVE-2026-49272 | Not applied; via `kubernetes` <- `chromadb`, no OAuth server code. |
+| `virtualenv` (dev) | 21.14.5 | 21.14.10 (13 PYSEC-2026-43xx ids) | **Not fixable by a lock upgrade.** Correction to earlier entries: it *is* in `uv.lock` (dev group, via `pre-commit`). Every virtualenv >= 21.14.7 needs `packaging >= 26.3`, but the unused direct dependency `langchainhub` 0.1.21 (last release 2024) caps `packaging < 25`. Dev tooling only. See "Owner attention" below. |
+| `chromadb` | 1.5.9 | none upstream | Not fixable; embedded `PersistentClient` only, no HTTP server. |
+
+### Dependency updates
+**Python** (`uv.lock` only, `pyproject.toml` unchanged, one batched `uv lock --upgrade-package ...`): `langchain` 1.5.0->1.5.1, `langchain-core` 1.8.0->1.8.3, `langchain-openai` 1.7.4->1.8.2, `langchain-mistralai` 1.1.6->1.2.0, `langgraph` 1.2.20->1.2.22, `langgraph-checkpoint` 4.3.2, `langgraph-prebuilt` 1.1.2 (the langchain/langgraph set moved together; `langchain-openai` 1.8.2 still resolves against `openai` 2.x), `fastapi` 0.162.4->0.164.0, `python-multipart` 0.0.34, `pydantic-settings` 2.16.3, `sqlalchemy` 2.1.9, `transformers` 5.23.0, `accelerate` 1.16.0, `numpy` 2.5.5, `onnxruntime` 1.32.0, `opencv-python-headless` 5.1.0.95, `grpcio` 1.85.3, `httpx2`/`httpcore2` 2.16.2, `mail-parser` 4.11.0, `regex`, `platformdirs`, `annotated-doc`, `python-discovery`, `cuda-pathfinder`, and dev tools `ruff` 0.17.5, `coverage` 7.17.3, `pytest-asyncio` 1.5.0.
+Held back: `langchain-google-genai` stays at 4.4.3 because 4.5.0 requires `google-genai >= 3.2` (major, see below); `langsmith` 0.15 (0.x minor, not required by the new langchain-core).
+
+**Frontend** (`package.json` floors raised to the lockfile, no range widened): `eslint` 10.14.0->10.15.0, `@typescript-eslint/eslint-plugin` + `@typescript-eslint/parser` 8.72.2->8.73.0 (together), `vitest` + `@vitest/coverage-v8` 5.1.0->5.1.1 (together), `eslint-plugin-react-refresh` 0.5.7->0.5.8; transitive `minimatch` 11.0.9, `@eslint/config-array` 0.23.6, `brace-expansion` 5.0.13, `tinybench` 6.2.3. `vite` 8.3.8 and `@vitejs/plugin-react` 6.3.0 were already newest. `jsdom`, `@playwright/test` and `@testing-library/user-event` left to Dependabot #213-#215 (user-event 14.6.12 is already out, Dependabot will follow).
+
+### Major versions - flagged, NOT applied
+| Package | Current | Available | Why held back |
+|---|---|---|---|
+| `docling` family (`docling-ibm-models`, `langchain-docling`, `docling-parse`) | 2.120.3 / 3.14.0 / 2.0.0 | 2.150.1 / 4.0.4 / 3.0.0 | Majors in the chain; clears the docling, Pillow and soupsieve advisories. Needs an ingestion regression run on real PDFs |
+| `google-genai` (via `langchain-google-genai` 4.5.0) | 2.34.0 | 3.5.0 | Major; Gemini embeddings/LLM path, needs a live-key smoke test |
+| `pillow` | 12.3.0 | 13.0.0 | Major; comes with the docling upgrade |
+| `pypdf` | 6.21.4 | 7.1.1 | Major; used for PDF loading |
+| `soupsieve` | 2.10 | 4.1.2 | Major; transitive via docling |
+| `filelock`, `oauthlib`, `openai`, `kubernetes`, `multidict`, `websockets`, `python-dateutil`, `xxhash`, `isort` (dev) | -- | 4 / 4 / 3 / 37 / 7 / 17 / 4 / 4 / 9 | Majors, no reachable CVE driving them |
+| `packaging` | 24.2 | 26.x | Blocked by `langchainhub` (see below) |
+| `typer` | 0.26.8 | 0.27.3 | 0.x minor |
+| `typescript` | 6.0.3 | 7.0.2 | Major (native compiler); typescript-eslint has no TS 7 support |
+
+### Owner attention
+- **`langchainhub` is unused.** It is declared in `pyproject.toml` (and ignored in `.github/dependabot.yml`) but nothing in the code imports it. Its `packaging < 25` cap is the only thing blocking the dev-only `virtualenv` security fix (and `packaging` 26). Removing it is a one-line `pyproject.toml` change plus `uv lock`; not done here because it is a dependency removal rather than an update.
+- **#214 (`@playwright/test` 1.65)** needs the visual-test image tag in `ci.yml` and `frontend/package.json` raised to `v1.65.0` and probably new baselines.
+
+### Post-change verification
+`uv sync`; `pytest -n auto` **629 passed**; `ruff`, `black --check`, `isort --check`, `mypy`, `pre-commit run --all-files` clean; imports of `langchain`, `langchain_core` 1.8.3, `langgraph`, `langchain_openai`, `langchain_google_genai`, `langchain_mistralai`, `fastapi` 0.164.0, `docling`, `chromadb` OK. Frontend `npm ci`, `lint`, `build`, `test:coverage` (**78 passed, 10 files**) clean; `npm audit` **0 vulnerabilities** (was 8 moderate). `pip-audit` unchanged (93 in 8 packages, see table). Changed files: `uv.lock`, `frontend/package.json`, `frontend/package-lock.json`, `docs/maintenance.md`; no env vars added.
+
+---
+
 ## 2026-11-12 (merge round: open PRs cleared)
 
 At the owner's request every open PR was merged or closed:
