@@ -38,12 +38,11 @@ flowchart TD
         direction TB
         V[Validate input\nmax 10k chars, 20 history turns]
         NC{Non-question\ne.g. 'thanks'?}
-        RES[Resolve LLM provider\nenv keys or frontend override]
         V --> NC
         NC -->|yes| SC([Short-circuit reply\nno LLM cost])
-        NC -->|no| RES
     end
 
+    NC -->|no| RES[Answerer\nresolve model + privacy mode\npick web mode + search index]
     RES --> GRAPH
 
     subgraph GRAPH [LangGraph Pipeline]
