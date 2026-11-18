@@ -28,6 +28,28 @@ graph LR
 
 ---
 
+## Saved evaluation runs
+
+`eval/saved_runs.py` owns run-ID reservations, output serialization, report
+writing, answer archives, history recording, and reopening saved runs with
+their original metadata. `eval/run_eval.py` owns answering, judging, scoring,
+report formatting, and subsequent dashboard generation. `eval/graph_run.py`
+adapts an Answer into the record that evaluation scores and saves.
+
+Answers are saved locally before judging. Completion writes the JSON and
+Markdown reports, archives the answers of a new full run, and only then appends
+history. A report or archive failure leaves history unchanged and retains any
+files already written. Dashboard failure occurs after recording and does not
+undo the saved run. Retrieval-only runs, rescores, and regrades do not create
+new answer archives; `--no-history` creates neither history entries nor archives.
+
+Filenames and formats are unchanged. Reopening prefers local outputs over the
+gzip archive and reports corrupt files rather than silently falling back.
+Original metadata comes from the first matching history entry, then the local
+JSON report, or remains unknown. Regrade labels come from the latest matching
+history entry. Derived run IDs do not automatically follow their lineage to
+the original answers. Run-ID reservations remain scoped to the output directory.
+
 ## Query workflow
 
 ```mermaid
@@ -95,6 +117,13 @@ The `routing_outcome` field in the response tells you which path the query took:
 ## LangGraph nodes
 
 Each node is a Python function `(state: GraphState) -> dict` in `graph/nodes/`.
+
+The first and subsequent retrievals share the context-sufficiency check in
+`graph/sufficiency.py`: it prepares the context and interprets the model's verdict.
+No usable verdict is distinct from an insufficient verdict. Each node keeps its
+own gap policy: the first check clears the gap, while a later check retains its
+previous gap when no verdict is available. The prompt remains in
+`graph/chains/context_sufficiency_grader.py`.
 
 | Node | File | What it does |
 |---|---|---|
@@ -204,6 +233,15 @@ flowchart TD
 - **Ollama mode** uses `bge-m3` for embeddings and stores them in separate `radiation-iaea-ollama-bge-m3` and `radiation-dk-law-ollama-bge-m3` collections. Every local embedding model gets its own pair (`-ollama-<model>`); the earlier default `nomic-embed-text` keeps `radiation-iaea-ollama` / `radiation-dk-law-ollama`.
 
 ### Updating documents
+
+Uploaded PDFs are handled by `document_uploads.py`. The upload route validates
+the request; the upload module saves the file, reads its metadata, looks up its
+publication URL, indexes its chunks, registers the source, and refreshes the
+search index. Registration happens only after indexing completes with at least
+one chunk. Zero chunks returns an upload error (HTTP 422). An indexing failure
+leaves the registry unchanged; the saved PDF and any chunks already written
+remain. Registration failures also leave indexed chunks in place: uploads do
+not provide transactional rollback.
 
 The Documents panel in the UI (or the admin API) handles the update lifecycle:
 
