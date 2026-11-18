@@ -182,7 +182,7 @@ def _main(monkeypatch, tmp_path, dirty=False, extra=()):
 
     import eval.history
     import eval.prompt_test as prompt_test
-    from eval.graph_run import save_outputs
+    from eval.saved_runs import save_outputs
 
     golden = tmp_path / "golden.json"
     golden.write_text(json.dumps([ANSWER, REFUSE]), encoding="utf-8")
