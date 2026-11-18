@@ -14,7 +14,7 @@ Documentation for the Radiation Safety RAG system. Start with the [root README](
 | [handoff-held-out-test-run.md](handoff-held-out-test-run.md) | Protocol | Run plan for the held-out test set (#167): baselines, tune/confirm rules, experiments, frontier comparison |
 | [handoff-talk-prep.md](handoff-talk-prep.md) | Record | Open measurements planned for the 2026-10-30 talk (local model on `confirm`, loop analysis, language vs. structure) |
 
-Related files outside `docs/`: [eval/README.md](../eval/README.md) (evaluation harness), [frontend/README.md](../frontend/README.md) (UI structure), [CONTRIBUTING.md](../CONTRIBUTING.md), [ROADMAP.md](../ROADMAP.md) (plans and measured results), [CHANGELOG.md](../CHANGELOG.md), and `AGENTS.md` / `CLAUDE.md` (conventions for AI agents).
+Related files outside `docs/`: [eval/README.md](../eval/README.md) (evaluation harness), [frontend/README.md](../frontend/README.md) (UI structure), [CONTEXT.md](../CONTEXT.md) (glossary of the project's terms), [CONTRIBUTING.md](../CONTRIBUTING.md), [ROADMAP.md](../ROADMAP.md) (plans and measured results), [CHANGELOG.md](../CHANGELOG.md), and `AGENTS.md` / `CLAUDE.md` (conventions for AI agents).
 
 ## Where to start
 
@@ -25,4 +25,5 @@ Related files outside `docs/`: [eval/README.md](../eval/README.md) (evaluation h
 - **Updating source documents?** [architecture.md, Updating documents](architecture.md#updating-documents).
 - **Cutting a release?** [releasing.md](releasing.md).
 - **Checking dependencies?** [maintenance.md](maintenance.md).
+- **Unsure what a term means?** [CONTEXT.md](../CONTEXT.md) defines question, answer, web mode, privacy mode and the search index.
 - **Measuring answer quality?** [eval/README.md](../eval/README.md).

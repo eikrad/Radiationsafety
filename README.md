@@ -68,6 +68,7 @@ Start at [docs/README.md](docs/README.md), the index of all documents. The main 
 | [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes, with Mermaid diagrams |
 | [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
 | [docs/releasing.md](docs/releasing.md) | How versions, tags and the CHANGELOG are produced |
+| [CONTEXT.md](CONTEXT.md) | Glossary of the terms used in code and docs (question, answer, web mode, privacy mode, search index) |
 | [eval/README.md](eval/README.md) | Evaluation harness |
 | [ROADMAP.md](ROADMAP.md) | Plans and measured results |
 
@@ -247,7 +248,9 @@ Cloud providers (Scaleway, Gemini, OpenAI, Mistral) all retrieve from the collec
 
 ```
 api/                  FastAPI app (main.py), rate limiting
-graph/                LangGraph workflow: graph.py, nodes/, chains/, llm_factory.py, state.py
+graph/                LangGraph workflow: graph.py, nodes/, chains/, llm_factory.py, state.py,
+                      answering.py (the Answerer: one entry point for API and eval),
+                      search_index.py (reads the vector index), web.py (web search)
 ingestion*.py         PDF/XML loading, chunking, Chroma population (ingestion_dk.py: Danish law)
 document_updates.py   Checks for newer document versions; build_document_sources.py builds the registry
 documents/            Source PDFs (IAEA/, IAEA_other/, Bekendtgørelse/)
@@ -255,6 +258,7 @@ eval/                 Evaluation harness, golden questions, run history, dashboa
 frontend/             React + TypeScript UI (Vite)
 tests/                pytest suite
 docs/                 Documentation (index: docs/README.md)
+CONTEXT.md            Glossary of the project's terms
 main.py               Command-line interface
 ```
 
