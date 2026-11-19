@@ -993,6 +993,54 @@ def test_regrading_scores_the_grader_on_the_saved_first_retrievals(
     assert results["out-of-scope-mri"]["metrics"]["grade_documents_correct"] == 0.0
 
 
+@pytest.mark.parametrize("extra", [[], ["--no-history"]])
+def test_regrading_rejects_changed_questions_before_loading_a_grader(
+    monkeypatch, workspace, regrade, capsys, extra
+):
+    history_before = workspace.history.read_bytes()
+    reports_before = set(workspace.reports.glob("report_*"))
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["question"] = "A different question with the same ID?"
+    workspace.golden.write_text(json.dumps(golden))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a grader")
+    )
+
+    assert _run(monkeypatch, workspace, "--regrade", regrade.run_id, *extra) == 1
+    assert "dk-dose-limits: question text changed" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+    assert set(workspace.reports.glob("report_*")) == reports_before
+    assert regrade.seen == []
+
+
+def test_regrading_rejects_labels_from_an_unrelated_answer_run(
+    monkeypatch, workspace, capsys
+):
+    assert _run(monkeypatch, workspace) == 0
+    assert _run(monkeypatch, workspace) == 0
+    original, unrelated = load_runs(workspace.history)
+    history_before = workspace.history.read_bytes()
+    reports_before = set(workspace.reports.glob("report_*"))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a grader")
+    )
+
+    assert (
+        _run(
+            monkeypatch,
+            workspace,
+            "--regrade",
+            original["run_id"],
+            "--labels",
+            unrelated["run_id"],
+        )
+        == 1
+    )
+    assert "not a rescore of" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+    assert set(workspace.reports.glob("report_*")) == reports_before
+
+
 def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
     monkeypatch, workspace, regrade
 ):
@@ -1077,6 +1125,48 @@ def test_regrading_can_take_the_verdicts_from_a_later_rescore(
         "passed_kept": 0,
     }
     assert run["config"]["labels_from"] == rescore_id
+
+
+def test_regrading_partial_rescore_labels_does_not_invent_missing_verdicts(
+    monkeypatch, workspace, regrade, answer_grader
+):
+    monkeypatch.setattr(
+        run_eval, "judge_item", lambda item, *a, **k: VERDICTS[item["question"]]
+    )
+    assert (
+        _run(monkeypatch, workspace, "--rescore", regrade.run_id, "--limit", "1") == 0
+    )
+    rescore_id = load_runs(workspace.history)[-1]["run_id"]
+    monkeypatch.setattr(run_eval, "judge_item", lambda *a, **k: pytest.fail("judged"))
+
+    assert (
+        _run(
+            monkeypatch, workspace, "--regrade", regrade.run_id, "--labels", rescore_id
+        )
+        == 0
+    )
+    run = load_runs(workspace.history)[-1]
+    results = _results(run)
+    assert results["dk-dose-limits"]["metrics"]["grade_generation_correct"] == 1.0
+    for item_id in ("iaea-transport-index", "out-of-scope-mri"):
+        assert "grade_generation_correct" not in results[item_id]["metrics"]
+        assert "grade_documents_correct" in results[item_id]["metrics"]
+    assert sum(run["summary"]["grade_generation_confusion"].values()) == 1
+    assert len(answer_grader) == 1
+
+
+def test_regrading_archive_accepts_updated_evidence_and_reordered_subset(
+    monkeypatch, workspace, regrade
+):
+    (workspace.reports / f"outputs_{regrade.run_id}.json").unlink()
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["nuggets"][0]["evidence"].append("Newly reviewed evidence")
+    workspace.golden.write_text(json.dumps([golden[2], golden[0]]))
+
+    assert _run(monkeypatch, workspace, "--regrade", regrade.run_id) == 0
+    run = load_runs(workspace.history)[-1]
+    assert [r["id"] for r in run["results"]] == ["out-of-scope-mri", "dk-dose-limits"]
+    assert run["dataset"]["n_items"] == 2
 
 
 def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
