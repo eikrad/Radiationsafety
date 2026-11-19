@@ -139,7 +139,7 @@ What 53 questions can show: on pass/fail, only effects of about 6 or more consis
 
 - Do not tune on `confirm`, and do not read its failures question by question; that turns it into development data (eval/README.md).
 - Never move an item between splits after a run; never delete items. New questions go in without a split and `uv run python -m eval.split` places them; new questions change the `questions_hash`, so baselines are run again.
-- Do not reword questions to make them pass; a genuinely ambiguous question is a finding: report it, fix it, rescore.
+- Do not reword questions to make them pass; a genuinely ambiguous question is a finding: report it, fix it, and run a new evaluation. Rescoring reuses answers to the exact original question; only grading criteria and evidence may change.
 - After any re-ingestion or new documents (#169): run `--check-index`; record split leaks, do not fix them by moving items; check the six refusals again (new documents can answer them).
 - Conventional Commits; never edit version numbers. Pull requests against `staging`, only when the maintainer asks.
 

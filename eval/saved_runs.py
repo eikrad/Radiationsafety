@@ -11,12 +11,17 @@ import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Never
 
 from langchain_core.documents import Document
 
 from eval.history import append_run, build_run_record, load_runs
 
 _DOCUMENT_FIELDS = ("initial_documents", "documents", "ranked_iaea", "ranked_dk")
+
+
+class RescoreProvenanceError(ValueError):
+    """Saved answers cannot be attributed to the requested original questions."""
 
 
 @dataclass(frozen=True)
@@ -74,6 +79,64 @@ class SavedRuns:
         report = self._report_paths(run_id)[0]
         return json.loads(report.read_text("utf-8")) if report.exists() else {}
 
+    def rescore_provenance(self, run_id: str, questions: list[dict]) -> dict:
+        """Require original settings and exact text for the questions being reused.
+
+        Questions may be reordered or omitted, and their grading criteria may
+        change. An ID alone does not establish that the saved answer belongs to
+        today's question. Unknown metadata must never be replaced by today's
+        model configuration or git state.
+        """
+
+        def reject(reason: str) -> Never:
+            raise RescoreProvenanceError(
+                f"Cannot rescore {run_id}: {reason}. Restore the original "
+                "history/report and question text, or run a new evaluation."
+            )
+
+        try:
+            original = self.provenance(run_id)
+        except json.JSONDecodeError:
+            reject("original report is not valid JSON")
+        if not isinstance(original, dict) or not original:
+            reject("missing original metadata")
+        if original.get("run_id") != run_id:
+            reject("original metadata identifies a different run")
+
+        config = original.get("config")
+        if not isinstance(config, dict) or not config:
+            reject("missing original configuration")
+        git = original.get("git")
+        if not isinstance(git, dict) or not _known_text(git.get("commit")):
+            reject("missing original git commit")
+        if "retrieval_only" in config and not isinstance(
+            config["retrieval_only"], bool
+        ):
+            reject("invalid original retrieval_only setting")
+        if not config.get("retrieval_only"):
+            for key in ("llm_provider", "llm_model"):
+                if not _known_text(config.get(key)):
+                    reject(f"missing original {key}")
+
+        if not questions:
+            reject("no saved questions match the selected golden set")
+        results = original.get("results")
+        if not isinstance(results, list):
+            reject("missing original questions")
+        problems = []
+        for question in questions:
+            item_id = question["id"]
+            matches = [
+                r for r in results if isinstance(r, dict) and r.get("id") == item_id
+            ]
+            if len(matches) != 1 or not _known_text(matches[0].get("question")):
+                problems.append(f"{item_id}: missing or ambiguous original question")
+            elif matches[0]["question"] != question["question"]:
+                problems.append(f"{item_id}: question text changed")
+        if problems:
+            reject("; ".join(problems))
+        return original
+
     def judged_passes(self, run_id: str) -> dict[str, bool] | None:
         """Known judge verdicts from the latest history entry; no report fallback."""
         run = next(
@@ -130,6 +193,10 @@ class SavedRuns:
             self.output_dir / f"report_{run_id}.json",
             self.output_dir / f"report_{run_id}.md",
         )
+
+
+def _known_text(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
 def save_outputs(outputs: dict[str, dict], path: Path) -> None:

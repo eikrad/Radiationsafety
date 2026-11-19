@@ -7,7 +7,12 @@ import pytest
 from langchain_core.documents import Document
 
 from eval.history import append_run, load_runs
-from eval.saved_runs import SavedRuns, load_outputs, save_outputs
+from eval.saved_runs import (
+    RescoreProvenanceError,
+    SavedRuns,
+    load_outputs,
+    save_outputs,
+)
 
 RUN_ID = "20261118_120000"
 OUTPUTS = {
@@ -32,10 +37,10 @@ def report(**changes):
     return {
         "run_id": RUN_ID,
         "dataset": {"questions_hash": "questions"},
-        "config": {"llm_model": "original"},
+        "config": {"llm_provider": "gemini", "llm_model": "original"},
         "git": {"commit": "original-commit"},
         "summary": {"pass_rate": 1.0},
-        "results": [{"id": "question", "pass": True}],
+        "results": [{"id": "question", "question": "Original question?", "pass": True}],
         **changes,
     }
 
@@ -180,3 +185,87 @@ def test_standalone_outputs_supply_absent_document_fields(tmp_path):
             "ranked_dk": [],
         }
     }
+
+
+@pytest.mark.parametrize(
+    "changes, message",
+    [
+        ({"run_id": "another-run"}, "different run"),
+        ({"config": None}, "original configuration"),
+        ({"config": {}}, "original configuration"),
+        ({"config": {"llm_model": "original"}}, "original llm_provider"),
+        (
+            {"config": {"llm_provider": "gemini", "llm_model": " "}},
+            "original llm_model",
+        ),
+        ({"config": {"retrieval_only": "false"}}, "invalid original retrieval_only"),
+        ({"git": None}, "original git commit"),
+        ({"git": {"commit": ""}}, "original git commit"),
+        ({"results": None}, "missing original questions"),
+        ({"results": []}, "missing or ambiguous original question"),
+        (
+            {"results": [{"id": "question", "question": ""}]},
+            "missing or ambiguous original question",
+        ),
+        (
+            {"results": [{"id": "question", "question": "Different?"}]},
+            "question text changed",
+        ),
+        (
+            {"results": [{"id": "question", "question": "Original question?"}] * 2},
+            "ambiguous original question",
+        ),
+    ],
+)
+def test_rescore_rejects_incomplete_or_mismatched_metadata(runs, changes, message):
+    artifacts = runs.finish(report(), "# Report", record_history=False)
+    artifacts.json_report.write_text(json.dumps(report(**changes)))
+    with pytest.raises(RescoreProvenanceError, match=message):
+        runs.rescore_provenance(
+            RUN_ID, [{"id": "question", "question": "Original question?"}]
+        )
+
+
+def test_rescore_reports_corrupt_metadata_and_empty_selection(runs):
+    artifacts = runs.finish(report(), "# Report", record_history=False)
+    with pytest.raises(RescoreProvenanceError, match="no saved questions match"):
+        runs.rescore_provenance(RUN_ID, [])
+    artifacts.json_report.write_text("invalid json")
+    with pytest.raises(RescoreProvenanceError, match="not valid JSON"):
+        runs.rescore_provenance(
+            RUN_ID, [{"id": "question", "question": "Original question?"}]
+        )
+
+
+def test_rescore_preserves_history_priority_instead_of_hiding_incomplete_metadata(runs):
+    runs.finish(report(), "# Report", record_history=False)
+    append_run(report(config={}), runs.history_file)
+    with pytest.raises(RescoreProvenanceError, match="original configuration"):
+        runs.rescore_provenance(
+            RUN_ID, [{"id": "question", "question": "Original question?"}]
+        )
+
+
+def test_rescore_accepts_selected_original_questions_with_changed_grading_criteria(
+    runs,
+):
+    original = report(
+        results=[
+            {"id": "one", "question": "First?"},
+            {"id": "two", "question": "Second?"},
+            {"id": "removed", "question": "Not selected?"},
+        ]
+    )
+    runs.finish(original, "# Report", record_history=False)
+    questions = [
+        {"id": "two", "question": "Second?", "nuggets": [{"text": "new fact"}]},
+        {"id": "one", "question": "First?", "expected_behavior": "refuse"},
+    ]
+    assert runs.rescore_provenance(RUN_ID, questions) == original
+
+
+def test_rescore_validates_retrieval_runs_without_requiring_an_answer_model(runs):
+    original = report(config={"retrieval_only": True, "embedding_model": "original"})
+    runs.finish(original, "# Report", record_history=False)
+    questions = [{"id": "question", "question": "Original question?"}]
+    assert runs.rescore_provenance(RUN_ID, questions) == original

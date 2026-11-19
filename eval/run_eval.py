@@ -28,7 +28,7 @@ from eval.history import (
     prompt_fingerprints,
 )
 from eval.judge import judge_item
-from eval.saved_runs import SavedRuns
+from eval.saved_runs import RescoreProvenanceError, SavedRuns
 from eval.scoring import (
     METRICS_VERSION,
     RECALL_DEPTHS,
@@ -656,20 +656,25 @@ def _rescore(
 
     The answers, and therefore the answering model, retrieval settings, prompts
     and git state, are the original run's; only the judgement is new.
-    Returns None (after printing why) if the run cannot be found.
+    Returns None (after printing why) if answers or their provenance cannot
+    establish that this is the same question asked in the original run.
     """
     outputs = runs.load(run_id)
     if outputs is None:
         return None
-    original = runs.provenance(run_id)
-    config = dict(original.get("config") or {})
-
     saved = [item for item in golden if item["id"] in outputs]
     for item in golden:
         if item["id"] not in outputs:
             print(
                 f"Warning: {item['id']}: not in the saved run, skipped", file=sys.stderr
             )
+
+    try:
+        original = runs.rescore_provenance(run_id, saved)
+    except RescoreProvenanceError as err:
+        print(str(err), file=sys.stderr)
+        return None
+    config = dict(original["config"])
 
     if config.get("retrieval_only"):
         summary, results = _score_retrieval(saved, outputs, config)
@@ -683,12 +688,8 @@ def _rescore(
 
     from graph.llm_factory import get_llm
 
-    llm_provider = (
-        config.get("llm_provider") or os.getenv("LLM_PROVIDER") or DEFAULT_PROVIDER
-    )
-    judge_llm, judge_info = _judge_llm(
-        get_llm(), llm_provider, config.get("llm_model") or "n/a"
-    )
+    llm_provider = config["llm_provider"]
+    judge_llm, judge_info = _judge_llm(get_llm(), llm_provider, config["llm_model"])
     _warn_if_self_judged(judge_info)
     with get_usage_metadata_callback() as judging:
         results = score_outputs(saved, outputs, judge_llm, judge_info["judge_votes"])
