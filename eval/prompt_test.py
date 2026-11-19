@@ -132,7 +132,7 @@ def run(
     answers: dict[str, dict] | None = None,
 ) -> dict:
     """Answer every golden question in outputs (a saved full run, see
-    eval.graph_run.load_outputs) with both prompts and score both answers.
+    eval.saved_runs.load_outputs) with both prompts and score both answers.
 
     answers: {question id: {prompt name: answer}} from an earlier prompt test,
     judged again instead of generating new ones."""
@@ -225,9 +225,9 @@ def _print_summary(record: dict) -> None:
 def main() -> int:
     from dotenv import load_dotenv
 
-    from eval.graph_run import load_outputs
     from eval.history import git_info
     from eval.run_eval import _delay_sec
+    from eval.saved_runs import load_outputs
 
     load_dotenv()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])

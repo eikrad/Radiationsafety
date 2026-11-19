@@ -1379,7 +1379,6 @@ def append_source_to_registry(
     while sid in existing_ids:
         c += 1
         sid = f"{source_id}-{c}"
-        existing_ids.add(sid)
     entry = {
         "id": sid,
         "name": name,

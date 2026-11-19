@@ -11,30 +11,24 @@ can be re-scored without re-running the graph.
 """
 
 import argparse
-import gzip
-import json
 import os
 import sys
 import time
 from collections import Counter
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from langchain_core.callbacks import get_usage_metadata_callback
 
 from eval.dashboard import write_dashboard
 from eval.golden import GoldenError, golden_warnings, load_golden
-from eval.graph_run import load_outputs, save_outputs
 from eval.history import (
     DEFAULT_HISTORY_PATH,
-    append_run,
-    build_run_record,
     dataset_fingerprint,
     git_info,
-    load_runs,
     prompt_fingerprints,
 )
 from eval.judge import judge_item
+from eval.saved_runs import SavedRuns
 from eval.scoring import (
     METRICS_VERSION,
     RECALL_DEPTHS,
@@ -427,7 +421,7 @@ def summarize(results: list[dict]) -> dict:
 def _run_eval(
     golden: list[dict],
     no_web_search: bool,
-    output_dir: Path,
+    runs: SavedRuns,
     run_id: str,
     delay_after_graph_sec: float = 0.0,
     delay_between_items_sec: float = 0.0,
@@ -500,7 +494,7 @@ def _run_eval(
     if errors and len(errors) == len(outputs):
         # nothing was answered: a broken setup, not a measurement
         raise RuntimeError(f"Every question failed; the first: {errors[0]}")
-    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
+    runs.save(run_id, outputs)
 
     with get_usage_metadata_callback() as judging:
         results = score_outputs(golden, outputs, judge_llm, judge_info["judge_votes"])
@@ -542,7 +536,7 @@ def _usage(**stages) -> dict:
 
 def _run_retrieval_only(
     golden: list[dict],
-    output_dir: Path,
+    runs: SavedRuns,
     run_id: str,
     depth: int = _DEFAULT_RETRIEVAL_DEPTH,
     char_budget: int = _DEFAULT_CHAR_BUDGET,
@@ -590,7 +584,7 @@ def _run_retrieval_only(
             "ranked_iaea": ranked["iaea"],
             "ranked_dk": ranked["dk"],
         }
-    save_outputs(outputs, output_dir / f"outputs_{run_id}.json")
+    runs.save(run_id, outputs)
     return (*_score_retrieval(golden, outputs, header["config"]), header)
 
 
@@ -655,40 +649,8 @@ def _score_retrieval(
     return summary, results
 
 
-def _archive_path(run_id: str, history_file: Path) -> Path:
-    """Gzipped answers of a recorded run, committed next to the history."""
-    return history_file.parent / "outputs" / f"{run_id}.json.gz"
-
-
-def _archive_outputs(run_id: str, output_dir: Path, history_file: Path) -> Path:
-    """Keep a recorded run's answers with the history, so it can be judged again
-    on another machine or by a later judge after the model behind it is gone."""
-    archive = _archive_path(run_id, history_file)
-    archive.parent.mkdir(parents=True, exist_ok=True)
-    raw = (output_dir / f"outputs_{run_id}.json").read_bytes()
-    # mtime=0: the same answers always give the same bytes in git
-    archive.write_bytes(gzip.compress(raw, compresslevel=9, mtime=0))
-    return archive
-
-
-def _saved_outputs(run_id: str, output_dir: Path, history_file: Path) -> Path | None:
-    """The run's saved answers: the local file, else the archived copy."""
-    for path in (
-        output_dir / f"outputs_{run_id}.json",
-        _archive_path(run_id, history_file),
-    ):
-        if path.exists():
-            return path
-    print(
-        f"There are no saved outputs for run {run_id} in {output_dir} "
-        f"or {_archive_path(run_id, history_file).parent}",
-        file=sys.stderr,
-    )
-    return None
-
-
 def _rescore(
-    run_id: str, golden: list[dict], output_dir: Path, history_file: Path
+    run_id: str, golden: list[dict], runs: SavedRuns
 ) -> tuple[dict, list[dict], dict] | None:
     """Judge and score a saved run again with today's judge and scoring.
 
@@ -696,14 +658,10 @@ def _rescore(
     and git state, are the original run's; only the judgement is new.
     Returns None (after printing why) if the run cannot be found.
     """
-    outputs_path = _saved_outputs(run_id, output_dir, history_file)
-    if outputs_path is None:
+    outputs = runs.load(run_id)
+    if outputs is None:
         return None
-    outputs = load_outputs(outputs_path)
-    original = next((r for r in load_runs(history_file) if r["run_id"] == run_id), None)
-    if original is None:
-        report = output_dir / f"report_{run_id}.json"
-        original = json.loads(report.read_text("utf-8")) if report.exists() else {}
+    original = runs.provenance(run_id)
     config = dict(original.get("config") or {})
 
     saved = [item for item in golden if item["id"] in outputs]
@@ -768,23 +726,10 @@ def _grade_generation(question: str, context: str, generation: str, llm) -> bool
     )["generation_passed_grading"]
 
 
-def _judged_passes(run_id: str, history_file: Path) -> dict[str, bool] | None:
-    """Per question, whether the judge passed the answer in this recorded run
-    (the latest record with that id)."""
-    run = next(
-        (r for r in reversed(load_runs(history_file)) if r["run_id"] == run_id), None
-    )
-    if run is None:
-        print(f"Run {run_id} is not in {history_file}", file=sys.stderr)
-        return None
-    return {r["id"]: r["pass"] for r in run["results"] if r.get("pass") is not None}
-
-
 def _regrade(
     run_id: str,
     golden: list[dict],
-    output_dir: Path,
-    history_file: Path,
+    runs: SavedRuns,
     labels_from: str | None = None,
 ) -> tuple[dict, list[dict], dict] | None:
     """Run today's sufficiency and answer graders on a saved run.
@@ -801,13 +746,12 @@ def _regrade(
     grader passes is one the correction loop never sees.
     About three grader calls per question.
     """
-    outputs_path = _saved_outputs(run_id, output_dir, history_file)
-    if outputs_path is None:
+    outputs = runs.load(run_id)
+    if outputs is None:
         return None
-    labels = _judged_passes(labels_from or run_id, history_file)
+    labels = runs.judged_passes(labels_from or run_id)
     if labels is None:
         return None
-    outputs = load_outputs(outputs_path)
     saved = [item for item in golden if item["id"] in outputs]
     confusion = dict.fromkeys(
         ("failed_flagged", "failed_missed", "passed_flagged", "passed_kept"), 0
@@ -892,26 +836,15 @@ def _regrade(
     )
 
 
-def _write_report(
+def _render_report(
     summary: dict,
     results: list[dict],
-    output_dir: Path,
     run_id: str,
     header: dict | None = None,
-) -> tuple[Path, Path]:
-    """Write report_<run_id>.json and report_<run_id>.md; return both paths.
-
-    header: label, notes, git, dataset, config, duration_sec, stored alongside
-    the results so a report says what it tested.
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
-    json_path = output_dir / f"report_{run_id}.json"
-    md_path = output_dir / f"report_{run_id}.md"
+) -> tuple[dict, str]:
+    """Format both reports, with the same provenance alongside their results."""
     header = header or {}
-
     payload = {"run_id": run_id, **header, "summary": summary, "results": results}
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
 
     pass_rate = summary["pass_rate"]
     lines = [
@@ -955,10 +888,7 @@ def _write_report(
         for claim in (r.get("judge") or {}).get("unsupported_claims") or []:
             lines.append(f"- **Unsupported claim:** {claim}")
         lines.append("")
-    with open(md_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines))
-
-    return json_path, md_path
+    return payload, "\n".join(lines)
 
 
 def _interval_text(summary: dict) -> str:
@@ -1011,24 +941,6 @@ def _markdown_header_lines(header: dict) -> list[str]:
         "",
     ]
     return lines
-
-
-def _claim_run_id(output_dir: Path) -> str:
-    """The start time as run ID, one second later if another run took it.
-
-    Two runs started in the same second (parallel eval chains) would otherwise
-    write the same report and archive. The claim is an exclusive file create,
-    so it also holds between processes.
-    """
-    output_dir.mkdir(parents=True, exist_ok=True)
-    moment = datetime.now(UTC)
-    while True:
-        run_id = moment.strftime("%Y%m%d_%H%M%S")
-        try:
-            (output_dir / f".run_{run_id}").touch(exist_ok=False)
-            return run_id
-        except FileExistsError:
-            moment += timedelta(seconds=1)
 
 
 def main() -> int:
@@ -1205,17 +1117,16 @@ def main() -> int:
         )
         return 1
     started = time.monotonic()
-    run_id = _claim_run_id(args.output_dir)
+    runs = SavedRuns(args.output_dir, args.history_file)
+    run_id = runs.claim_run_id()
     if args.rescore:
-        rescored = _rescore(args.rescore, golden, args.output_dir, args.history_file)
+        rescored = _rescore(args.rescore, golden, runs)
         if rescored is None:
             return 1
         summary, results, header = rescored
         label = args.label or f"rescore of {args.rescore}"
     elif args.regrade:
-        regraded = _regrade(
-            args.regrade, golden, args.output_dir, args.history_file, args.labels
-        )
+        regraded = _regrade(args.regrade, golden, runs, args.labels)
         if regraded is None:
             return 1
         summary, results, header = regraded
@@ -1236,7 +1147,7 @@ def main() -> int:
             return 1
         summary, results, header = _run_retrieval_only(
             golden,
-            output_dir=args.output_dir,
+            runs=runs,
             run_id=run_id,
             depth=args.depth,
             char_budget=args.char_budget,
@@ -1247,7 +1158,7 @@ def main() -> int:
         summary, results, header = _run_eval(
             golden,
             no_web_search=args.no_web_search,
-            output_dir=args.output_dir,
+            runs=runs,
             run_id=run_id,
             delay_after_graph_sec=delay_after_graph,
             delay_between_items_sec=delay_between_items,
@@ -1260,34 +1171,20 @@ def main() -> int:
         **header,
         "duration_sec": round(time.monotonic() - started, 1),
     }
-    json_path, md_path = _write_report(
-        summary, results, args.output_dir, run_id, header
-    )
+    report, markdown = _render_report(summary, results, run_id, header)
+    artifacts = runs.finish(report, markdown, record_history=not args.no_history)
     if not args.no_history:
-        append_run(
-            build_run_record(
-                run_id=run_id,
-                summary=summary,
-                results=results,
-                report_file=json_path.name,
-                **header,
-            ),
-            args.history_file,
-        )
         print(f"Run recorded: {args.history_file}")
-        # only new answers are worth keeping: a retrieval-only run is cheap to
-        # repeat, a rescore or regrade reuses the answers already archived
-        if not (args.rescore or args.regrade or args.retrieval_only):
-            archive = _archive_outputs(run_id, args.output_dir, args.history_file)
-            print(f"Answers archived: {archive}")
+        if artifacts.archive is not None:
+            print(f"Answers archived: {artifacts.archive}")
         dashboard = write_dashboard(
             args.output_dir / "dashboard.html",
             args.history_file,
             reports_dir=args.output_dir,
         )
         print(f"Dashboard updated: {dashboard}")
-    print(f"Report written: {json_path}")
-    print(f"Report written: {md_path}")
+    print(f"Report written: {artifacts.json_report}")
+    print(f"Report written: {artifacts.markdown_report}")
     if summary["pass_rate"] is not None:
         print(
             f"Pass rate: {summary['pass_rate']:.0%} of {summary['judged']} judged"

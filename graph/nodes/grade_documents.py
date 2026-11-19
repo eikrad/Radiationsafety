@@ -4,14 +4,9 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from graph.chains.context_sufficiency_grader import (
-    context_gap,
-    get_context_sufficiency_grader,
-)
-from graph.chains.truncate import MAX_GRADER_CONTEXT_CHARS, format_context
 from graph.llm_factory import get_llm
 from graph.state import GraphState
-from graph.utils import throttle_llm_if_needed
+from graph.sufficiency import check_sufficiency
 
 
 def grade_documents(
@@ -23,30 +18,11 @@ def grade_documents(
     cfg = config or {}
     llm = state.get("llm") or get_llm()
 
-    if not documents:
-        return {
-            "documents": [],
-            "trusted_documents": [],
-            "context_sufficient": False,
-            "context_gap": "",
-        }
-
-    context = format_context(documents, max_context_chars=MAX_GRADER_CONTEXT_CHARS)
-    throttle_llm_if_needed()
-    sufficiency = get_context_sufficiency_grader(llm)
-    try:
-        verdict = sufficiency.invoke(
-            {"question": question, "context": context},
-            config=cfg,
-        )
-        sufficient = bool(verdict.binary_score)
-        gap = "" if sufficient else context_gap(verdict)
-    except ValueError:  # no verdict even when asked again: not shown sufficient
-        sufficient, gap = False, ""
+    verdict = check_sufficiency(question, documents, llm, config=cfg)
 
     return {
-        "documents": list(documents),
-        "trusted_documents": list(documents),
-        "context_sufficient": sufficient,
-        "context_gap": gap,
+        "documents": list(documents or []),
+        "trusted_documents": list(documents or []),
+        "context_sufficient": verdict.sufficient if verdict is not None else False,
+        "context_gap": verdict.gap if verdict is not None else "",
     }

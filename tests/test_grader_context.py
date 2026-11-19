@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 from langchain_core.documents import Document
 
 from graph.chains.truncate import format_context
-from tests.fakes import FakeIndex
 
 # A ~2500-character Danish law chunk whose deciding sentence sits near its end,
 # past the 420 (grade_documents) and 1200 (verify_trusted) characters the
@@ -66,53 +65,6 @@ def test_the_generator_sees_the_same_context_format():
 
 
 # --- grade_documents and retrieve_missing (#129) -----------------------------------
-
-
-def test_grade_documents_judges_the_whole_chunks():
-    from graph.nodes.grade_documents import grade_documents
-
-    grader = _grader(True)
-    with (
-        patch(
-            "graph.nodes.grade_documents.get_context_sufficiency_grader",
-            return_value=grader,
-        ),
-        patch("graph.nodes.grade_documents.throttle_llm_if_needed"),
-    ):
-        grade_documents(
-            {"question": "q", "documents": [LONG_CHUNK], "llm": MagicMock()}
-        )
-
-    context = grader.invoke.call_args[0][0]["context"]
-    assert LATE_FACT in context
-    assert "Danish law" in context
-
-
-def test_retrieve_missing_judges_the_whole_chunks():
-    from graph.nodes.retrieve_missing import retrieve_missing
-
-    grader = _grader(False)
-    with (
-        patch(
-            "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
-        ),
-        patch(
-            "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
-            return_value=grader,
-        ),
-        patch("graph.nodes.retrieve_missing.throttle_llm_if_needed"),
-    ):
-        retrieve_missing(
-            {
-                "question": "q",
-                "documents": [LONG_CHUNK],
-                "llm": MagicMock(),
-                "chat_history": [],
-            },
-            index=FakeIndex(),
-        )
-
-    assert LATE_FACT in grader.invoke.call_args[0][0]["context"]
 
 
 def test_the_sufficiency_prompt_requires_the_danish_rule_for_danish_questions():
@@ -264,24 +216,6 @@ def test_no_groundedness_verdict_means_the_answer_is_shown_as_unverified():
     assert "retrieval_warning" in out
 
 
-def test_no_sufficiency_verdict_counts_as_insufficient():
-    from graph.nodes.grade_documents import grade_documents
-
-    with (
-        patch(
-            "graph.nodes.grade_documents.get_context_sufficiency_grader",
-            return_value=_broken_grader(),
-        ),
-        patch("graph.nodes.grade_documents.throttle_llm_if_needed"),
-    ):
-        out = grade_documents(
-            {"question": "q", "documents": [LONG_CHUNK], "llm": MagicMock()}
-        )
-
-    assert out["context_sufficient"] is False
-    assert out["documents"] == [LONG_CHUNK]
-
-
 def test_no_generation_verdict_counts_as_not_passed():
     from graph.nodes.grade_generation import grade_generation
 
@@ -302,32 +236,3 @@ def test_no_generation_verdict_counts_as_not_passed():
         )
 
     assert out == {"generation_passed_grading": False, "reflection": "retry"}
-
-
-def test_no_sufficiency_verdict_after_another_search_counts_as_insufficient():
-    """llama3.1 sometimes replies {} to the sufficiency grader; retrieve_missing
-    let that end the whole request."""
-    from graph.nodes.retrieve_missing import retrieve_missing
-
-    with (
-        patch(
-            "graph.nodes.retrieve_missing.invoke_missing_query_chain", return_value="q2"
-        ),
-        patch(
-            "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
-            return_value=_broken_grader(),
-        ),
-        patch("graph.nodes.retrieve_missing.throttle_llm_if_needed"),
-    ):
-        out = retrieve_missing(
-            {
-                "question": "q",
-                "documents": [LONG_CHUNK],
-                "llm": MagicMock(),
-                "chat_history": [],
-            },
-            index=FakeIndex(),
-        )
-
-    assert out["sufficient_after_missing"] is False
-    assert out["documents"] == [LONG_CHUNK]

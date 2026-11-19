@@ -41,7 +41,7 @@ def write_pdf(path, pages):
 
 
 def docling_reading(monkeypatch, results, default=None):
-    """docling that gives, per file name, one chunk of text or raises the error;
+    """docling that gives, per file name, text, a list of chunks, or an error;
     default for any other file (an attachment's temporary copy)."""
 
     class Tokenizer:
@@ -56,6 +56,8 @@ def docling_reading(monkeypatch, results, default=None):
         def load(self):
             if isinstance(self.result, Exception):
                 raise self.result
+            if isinstance(self.result, list):
+                return self.result
             return [Document(page_content=self.result)]
 
     monkeypatch.setattr(ingestion, "HuggingFaceTokenizer", Tokenizer)
