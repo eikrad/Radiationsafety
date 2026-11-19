@@ -287,6 +287,23 @@ uv run python -m eval.run_eval --rescore 20260926_101500
 
 Retrieval-only runs are re-scored from their saved ranked lists, without retrieving or judging (see [Pooling](#pooling-passages-the-golden-set-does-not-list-yet)). For full runs: judges and scores a saved run again with the current golden set, judge and scoring, without running the graph: change a nugget, the judge prompt or the judge model and see the effect for the cost of the judge calls only. The new history entry keeps the original run's git state and answer-side settings (the answers are the original ones), records the new judge and `rescored_from`, and is labelled `rescore of <run_id>` unless `--label` is given. Questions added to the golden set after the run are skipped with a warning. Without the local `outputs_<run_id>.json` (another machine), the archived copy in `eval/history/outputs/` is used.
 
+Rescoring requires the original metadata in the first matching history entry,
+or in the local JSON report when no history entry exists. It must identify the
+same run, retain its configuration and git commit, and contain one original
+question text for each saved question being scored. Full runs also require the
+original answer provider and model; today's environment cannot fill in missing
+answer metadata. Legacy runs without this information must have their original
+metadata restored or be evaluated anew.
+
+Question text must match exactly, including whitespace and punctuation. Reusing
+an ID for a reworded question is rejected before loading a judge or creating a
+new report/history entry. Use the original question to rescore old answers, or
+run a new evaluation for the changed question. Reordered questions, subsets,
+updated nuggets/evidence, and changed grading criteria remain supported. Added
+questions are still skipped; an entirely disjoint selection is an error.
+`--no-history` does not bypass these checks. Rescoring does not modify the
+original outputs, archive, or metadata.
+
 ## Run history
 
 Every finished run records what it tested, so a score change can be traced to a cause:

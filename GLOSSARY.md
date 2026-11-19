@@ -27,3 +27,11 @@ the evaluation completed.
 **Recorded evaluation run**:
 A completed evaluation included in the run history for comparison with other
 evaluations.
+
+**Rescore**:
+A new assessment of saved answers to the same original questions, using current
+grading criteria, judge, and metrics.
+
+**Run provenance**:
+The original code revision, recorded configuration, and exact questions that
+identify what an evaluation measured.

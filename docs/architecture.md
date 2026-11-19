@@ -50,6 +50,15 @@ JSON report, or remains unknown. Regrade labels come from the latest matching
 history entry. Derived run IDs do not automatically follow their lineage to
 the original answers. Run-ID reservations remain scoped to the output directory.
 
+Rescoring requires known original configuration, git commit, and matching run
+identity. `SavedRuns.rescore_provenance` verifies exact original question text
+for each selected saved ID before scoring or constructing a judge; full runs
+also require their original answer provider and model. Missing or ambiguous
+question metadata and changed questions fail with a recovery message. New
+evidence, grading criteria, subsets, and ordering can change without rerunning
+the graph. An empty overlap is rejected. Reading saved outputs for other uses
+and regrading keep their existing behavior.
+
 ## Query workflow
 
 ```mermaid

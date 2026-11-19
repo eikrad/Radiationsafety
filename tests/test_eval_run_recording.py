@@ -584,6 +584,81 @@ def test_questions_added_after_the_run_are_skipped_when_rescoring(
     assert "out-of-scope-mri: not in the saved run" in capsys.readouterr().err
 
 
+def test_rescore_requires_original_metadata_before_loading_a_judge(
+    monkeypatch, workspace, capsys
+):
+    assert _run(monkeypatch, workspace) == 0
+    [original] = load_runs(workspace.history)
+    workspace.history.unlink()
+    (workspace.reports / original["report_file"]).unlink()
+    reports_before = set(workspace.reports.glob("report_*"))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a judge")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 1
+    assert "Cannot rescore" in capsys.readouterr().err
+    assert not workspace.history.exists()
+    assert set(workspace.reports.glob("report_*")) == reports_before
+
+
+def test_rescore_rejects_changed_question_text_before_loading_a_judge(
+    monkeypatch, workspace, capsys
+):
+    assert _run(monkeypatch, workspace) == 0
+    [original] = load_runs(workspace.history)
+    history_before = workspace.history.read_bytes()
+    reports_before = set(workspace.reports.glob("report_*"))
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["question"] = "A different question with the same ID?"
+    workspace.golden.write_text(json.dumps(golden))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a judge")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 1
+    assert "dk-dose-limits: question text changed" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+    assert set(workspace.reports.glob("report_*")) == reports_before
+
+
+def test_rescore_uses_local_report_provenance_after_a_no_history_run(
+    monkeypatch, workspace
+):
+    assert _run(monkeypatch, workspace, "--no-history") == 0
+    [path] = workspace.reports.glob("report_*.json")
+    original = json.loads(path.read_text())
+    monkeypatch.setattr(
+        run_eval, "_answer_question", lambda *a, **k: pytest.fail("answered")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+    [rescored] = load_runs(workspace.history)
+    assert rescored["git"] == original["git"]
+    assert rescored["config"]["llm_model"] == original["config"]["llm_model"]
+    assert rescored["rescored_from"] == original["run_id"]
+
+
+def test_rescore_accepts_reordered_subset_and_updated_evidence(monkeypatch, workspace):
+    assert _run(monkeypatch, workspace) == 0
+    [original] = load_runs(workspace.history)
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["nuggets"][0]["evidence"].append("Newly reviewed evidence")
+    workspace.golden.write_text(json.dumps([golden[2], golden[0]]))
+    monkeypatch.setattr(
+        run_eval, "_answer_question", lambda *a, **k: pytest.fail("answered")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+    rescored = load_runs(workspace.history)[-1]
+    assert [r["id"] for r in rescored["results"]] == [
+        "out-of-scope-mri",
+        "dk-dose-limits",
+    ]
+    assert rescored["dataset"]["n_items"] == 2
+    assert rescored["dataset"]["content_hash"] != original["dataset"]["content_hash"]
+
+
 # --- Retrieval-only runs: compare embeddings without answering or judging -----
 
 
@@ -763,6 +838,24 @@ def test_a_retrieval_only_run_can_be_rescored_after_evidence_was_added(
     assert rescored["rescored_from"] == first["run_id"]
     transport = _results(rescored)["iaea-transport-index"]["metrics"]
     assert transport["evidence_recall_at_1"] == 1.0
+
+
+def test_retrieval_rescore_rejects_changed_questions_before_scoring(
+    monkeypatch, workspace, retrieval_only, capsys
+):
+    assert _run(monkeypatch, workspace, "--retrieval-only") == 0
+    [original] = load_runs(workspace.history)
+    history_before = workspace.history.read_bytes()
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["question"] = "Different retrieval question?"
+    workspace.golden.write_text(json.dumps(golden))
+    monkeypatch.setattr(
+        run_eval, "_score_retrieval", lambda *a, **k: pytest.fail("scored")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 1
+    assert "dk-dose-limits: question text changed" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
 
 
 # --- Guards: what a recorded run can be trusted to describe -------------------
