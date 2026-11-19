@@ -205,8 +205,30 @@ Runs `grade_documents` as the graph does, on the first retrieval saved with a fu
 
 - `grade_documents_correct`: the verdict is right when it says "sufficient" exactly if every vital nugget's evidence was retrieved, and "insufficient" for questions to refuse. The same metric as in a full run, on identical retrievals.
 - `grade_documents_ablation_correct`: for each retrieval that held all its evidence, the chunks holding it are removed and the grader must now say "insufficient". This gives about as many labelled insufficient cases as there are answerable questions, without new retrieval (#129).
+- `grade_generation_correct`: the answer grader's verdict agrees with the recorded judge label for that saved answer. The confusion counts distinguish missed failures from incorrectly flagged passing answers.
 
-It costs about two grader calls per question, so a prompt change to the grader can be measured in minutes rather than with a full run.
+Regrading checks original run provenance and exact question text before loading
+a grader. Updated evidence, grading criteria, question subsets, and ordering
+remain supported; changed question text, ambiguous metadata, and an empty
+overlap require correction or a new evaluation. `--no-history` does not bypass
+these checks.
+
+By default, labels come from the original run's latest history entry. Use
+`--labels RESCORE_ID` to use judge verdicts from a later rescore of those same
+answers. The selected entry must name the original run in `rescored_from`;
+independent answer runs, rescores of another run, and regrade records are
+rejected. Label question text must also match exactly. Labels are read only
+from history, with no local-report fallback or automatic lineage traversal.
+
+Partial rescores and unjudged questions remain valid: absent or null labels
+contribute no answer-grader accuracy or confusion counts, while sufficiency
+grading still runs. A non-null label must be a boolean. The latest label entry
+is validated directly; an invalid entry is not silently replaced by an older
+one.
+
+It costs up to three grader calls per question (two sufficiency checks and one
+answer check), so a prompt change to the grader can be measured without running
+retrieval or answer generation again.
 
 ## Position test
 

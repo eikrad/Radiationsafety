@@ -57,7 +57,15 @@ also require their original answer provider and model. Missing or ambiguous
 question metadata and changed questions fail with a recovery message. New
 evidence, grading criteria, subsets, and ordering can change without rerunning
 the graph. An empty overlap is rejected. Reading saved outputs for other uses
-and regrading keep their existing behavior.
+keeps its existing behavior.
+
+`SavedRuns.regrade_labels` applies the same original-provenance checks before
+grader calls. It selects the latest history record for labels and requires
+either the original run or a direct rescore of its answers. Label question
+text must match, duplicate question entries are rejected, and only boolean
+verdicts contribute to answer-grader metrics. Partial rescores and null labels
+still allow sufficiency grading, without inventing judge verdicts. Labels do
+not fall back to local reports or older history entries.
 
 ## Query workflow
 

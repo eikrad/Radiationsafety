@@ -28,7 +28,7 @@ from eval.history import (
     prompt_fingerprints,
 )
 from eval.judge import judge_item
-from eval.saved_runs import RescoreProvenanceError, SavedRuns
+from eval.saved_runs import SavedRunProvenanceError, SavedRuns
 from eval.scoring import (
     METRICS_VERSION,
     RECALL_DEPTHS,
@@ -671,7 +671,7 @@ def _rescore(
 
     try:
         original = runs.rescore_provenance(run_id, saved)
-    except RescoreProvenanceError as err:
+    except SavedRunProvenanceError as err:
         print(str(err), file=sys.stderr)
         return None
     config = dict(original["config"])
@@ -750,10 +750,12 @@ def _regrade(
     outputs = runs.load(run_id)
     if outputs is None:
         return None
-    labels = runs.judged_passes(labels_from or run_id)
-    if labels is None:
-        return None
     saved = [item for item in golden if item["id"] in outputs]
+    try:
+        labels = runs.regrade_labels(run_id, saved, labels_from=labels_from)
+    except SavedRunProvenanceError as err:
+        print(str(err), file=sys.stderr)
+        return None
     confusion = dict.fromkeys(
         ("failed_flagged", "failed_missed", "passed_flagged", "passed_kept"), 0
     )

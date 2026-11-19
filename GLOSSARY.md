@@ -35,3 +35,8 @@ grading criteria, judge, and metrics.
 **Run provenance**:
 The original code revision, recorded configuration, and exact questions that
 identify what an evaluation measured.
+
+**Regrade**:
+A new assessment of the retrieval and answer graders using saved retrievals
+and answers to the same original questions. Answer-grader accuracy is measured
+against judge labels for those same saved answers.

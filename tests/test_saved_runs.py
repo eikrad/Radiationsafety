@@ -8,13 +8,14 @@ from langchain_core.documents import Document
 
 from eval.history import append_run, load_runs
 from eval.saved_runs import (
-    RescoreProvenanceError,
+    SavedRunProvenanceError,
     SavedRuns,
     load_outputs,
     save_outputs,
 )
 
 RUN_ID = "20261118_120000"
+QUESTIONS = [{"id": "question", "question": "Original question?"}]
 OUTPUTS = {
     "question": {
         "generation": "Dosisgrænser",
@@ -65,7 +66,7 @@ def test_finished_answers_reopen_with_original_provenance_in_another_workspace(
     assert elsewhere.load(RUN_ID) == OUTPUTS
     assert elsewhere.provenance(RUN_ID)["config"] == report()["config"]
     assert elsewhere.provenance(RUN_ID)["git"] == report()["git"]
-    assert elsewhere.judged_passes(RUN_ID) == {"question": True}
+    assert elsewhere.regrade_labels(RUN_ID, QUESTIONS) == {"question": True}
 
 
 @pytest.mark.parametrize("blocked", ["json", "markdown", "archive"])
@@ -133,7 +134,8 @@ def test_no_history_keeps_only_local_artifacts(runs):
     assert not runs.history_file.parent.exists()
     assert runs.load(RUN_ID) == OUTPUTS
     assert runs.provenance(RUN_ID) == report()
-    assert runs.judged_passes(RUN_ID) is None
+    with pytest.raises(SavedRunProvenanceError, match="not recorded in history"):
+        runs.regrade_labels(RUN_ID, QUESTIONS)
 
 
 def test_local_answers_take_priority_and_corruption_is_not_hidden(runs):
@@ -149,19 +151,20 @@ def test_local_answers_take_priority_and_corruption_is_not_hidden(runs):
 
 def test_provenance_uses_first_history_entry_but_labels_use_latest(runs):
     runs.finish(report(), "# Report", record_history=False)
-    append_run(report(config={"llm_model": "first"}), runs.history_file)
+    first_config = {"llm_provider": "gemini", "llm_model": "first"}
+    append_run(report(config=first_config), runs.history_file)
     append_run(
         report(
             config={"llm_model": "latest"},
             results=[
-                {"id": "question", "pass": False},
+                {"id": "question", "question": "Original question?", "pass": False},
                 {"id": "unjudged", "pass": None},
             ],
         ),
         runs.history_file,
     )
-    assert runs.provenance(RUN_ID)["config"] == {"llm_model": "first"}
-    assert runs.judged_passes(RUN_ID) == {"question": False}
+    assert runs.provenance(RUN_ID)["config"] == first_config
+    assert runs.regrade_labels(RUN_ID, QUESTIONS) == {"question": False}
 
 
 def test_missing_provenance_is_unknown_and_derived_ids_are_not_followed(runs):
@@ -220,7 +223,7 @@ def test_standalone_outputs_supply_absent_document_fields(tmp_path):
 def test_rescore_rejects_incomplete_or_mismatched_metadata(runs, changes, message):
     artifacts = runs.finish(report(), "# Report", record_history=False)
     artifacts.json_report.write_text(json.dumps(report(**changes)))
-    with pytest.raises(RescoreProvenanceError, match=message):
+    with pytest.raises(SavedRunProvenanceError, match=message):
         runs.rescore_provenance(
             RUN_ID, [{"id": "question", "question": "Original question?"}]
         )
@@ -228,10 +231,10 @@ def test_rescore_rejects_incomplete_or_mismatched_metadata(runs, changes, messag
 
 def test_rescore_reports_corrupt_metadata_and_empty_selection(runs):
     artifacts = runs.finish(report(), "# Report", record_history=False)
-    with pytest.raises(RescoreProvenanceError, match="no saved questions match"):
+    with pytest.raises(SavedRunProvenanceError, match="no saved questions match"):
         runs.rescore_provenance(RUN_ID, [])
     artifacts.json_report.write_text("invalid json")
-    with pytest.raises(RescoreProvenanceError, match="not valid JSON"):
+    with pytest.raises(SavedRunProvenanceError, match="not valid JSON"):
         runs.rescore_provenance(
             RUN_ID, [{"id": "question", "question": "Original question?"}]
         )
@@ -240,7 +243,7 @@ def test_rescore_reports_corrupt_metadata_and_empty_selection(runs):
 def test_rescore_preserves_history_priority_instead_of_hiding_incomplete_metadata(runs):
     runs.finish(report(), "# Report", record_history=False)
     append_run(report(config={}), runs.history_file)
-    with pytest.raises(RescoreProvenanceError, match="original configuration"):
+    with pytest.raises(SavedRunProvenanceError, match="original configuration"):
         runs.rescore_provenance(
             RUN_ID, [{"id": "question", "question": "Original question?"}]
         )
@@ -269,3 +272,92 @@ def test_rescore_validates_retrieval_runs_without_requiring_an_answer_model(runs
     runs.finish(original, "# Report", record_history=False)
     questions = [{"id": "question", "question": "Original question?"}]
     assert runs.rescore_provenance(RUN_ID, questions) == original
+
+
+@pytest.mark.parametrize(
+    "changes, message",
+    [
+        ({"rescored_from": "unrelated"}, "not a rescore of"),
+        ({"rescored_from": None}, "not a rescore of"),
+        ({"regraded_from": RUN_ID}, "regrade does not supply judge labels"),
+        ({"config": {"grader_only": True}}, "regrade does not supply judge labels"),
+        ({"config": None}, "missing label run configuration"),
+        ({"results": None}, "missing original questions"),
+        (
+            {"results": [{"id": "question", "pass": True}]},
+            "ambiguous original question",
+        ),
+        (
+            {"results": [{"id": "question", "question": "Changed?", "pass": True}]},
+            "question text changed",
+        ),
+        ({"results": report()["results"] * 2}, "ambiguous original question"),
+        (
+            {"results": [{**report()["results"][0], "pass": "false"}]},
+            "label must be true, false, or null",
+        ),
+        (
+            {"results": [{**report()["results"][0], "pass": 1}]},
+            "label must be true, false, or null",
+        ),
+    ],
+)
+def test_regrade_rejects_unrelated_or_invalid_label_records(runs, changes, message):
+    append_run(report(), runs.history_file)
+    label = report(run_id="labels", rescored_from=RUN_ID)
+    append_run({**label, **changes}, runs.history_file)
+    with pytest.raises(SavedRunProvenanceError, match=message):
+        runs.regrade_labels(RUN_ID, QUESTIONS, labels_from="labels")
+
+
+def test_regrade_validates_latest_label_record_without_falling_back(runs):
+    append_run(report(), runs.history_file)
+    label = report(run_id="labels", rescored_from=RUN_ID)
+    append_run(label, runs.history_file)
+    append_run({**label, "rescored_from": "other-answer-run"}, runs.history_file)
+    with pytest.raises(SavedRunProvenanceError, match="not a rescore of"):
+        runs.regrade_labels(RUN_ID, QUESTIONS, labels_from="labels")
+
+
+def test_regrade_partial_labels_keep_only_selected_boolean_verdicts(runs):
+    questions = QUESTIONS + [
+        {"id": "unjudged", "question": "Not judged?"},
+        {"id": "omitted", "question": "Not rescored?"},
+    ]
+    append_run(report(results=questions), runs.history_file)
+    append_run(
+        report(
+            run_id="labels",
+            rescored_from=RUN_ID,
+            results=[
+                {**questions[0], "pass": False},
+                {**questions[1], "pass": None},
+                {"id": "not-selected", "question": "Another?", "pass": True},
+            ],
+        ),
+        runs.history_file,
+    )
+    assert runs.regrade_labels(RUN_ID, questions, labels_from="labels") == {
+        "question": False
+    }
+
+
+def test_regrade_requires_source_metadata_even_with_valid_label_lineage(runs):
+    append_run(report(run_id="labels", rescored_from=RUN_ID), runs.history_file)
+    with pytest.raises(
+        SavedRunProvenanceError, match="Cannot regrade.*missing original metadata"
+    ):
+        runs.regrade_labels(RUN_ID, QUESTIONS, labels_from="labels")
+
+
+def test_regrade_allows_sufficiency_checks_on_unjudged_retrieval_outputs(runs):
+    append_run(
+        report(
+            config={"retrieval_only": True},
+            results=[
+                {**QUESTIONS[0], "pass": None},
+            ],
+        ),
+        runs.history_file,
+    )
+    assert runs.regrade_labels(RUN_ID, QUESTIONS) == {}

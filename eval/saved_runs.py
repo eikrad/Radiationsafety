@@ -20,7 +20,7 @@ from eval.history import append_run, build_run_record, load_runs
 _DOCUMENT_FIELDS = ("initial_documents", "documents", "ranked_iaea", "ranked_dk")
 
 
-class RescoreProvenanceError(ValueError):
+class SavedRunProvenanceError(ValueError):
     """Saved answers cannot be attributed to the requested original questions."""
 
 
@@ -88,9 +88,14 @@ class SavedRuns:
         model configuration or git state.
         """
 
+        return self._validated_provenance(run_id, questions, operation="rescore")
+
+    def _validated_provenance(
+        self, run_id: str, questions: list[dict], *, operation: str
+    ) -> dict:
         def reject(reason: str) -> Never:
-            raise RescoreProvenanceError(
-                f"Cannot rescore {run_id}: {reason}. Restore the original "
+            raise SavedRunProvenanceError(
+                f"Cannot {operation} {run_id}: {reason}. Restore the original "
                 "history/report and question text, or run a new evaluation."
             )
 
@@ -120,37 +125,66 @@ class SavedRuns:
 
         if not questions:
             reject("no saved questions match the selected golden set")
-        results = original.get("results")
-        if not isinstance(results, list):
-            reject("missing original questions")
-        problems = []
-        for question in questions:
-            item_id = question["id"]
-            matches = [
-                r for r in results if isinstance(r, dict) and r.get("id") == item_id
-            ]
-            if len(matches) != 1 or not _known_text(matches[0].get("question")):
-                problems.append(f"{item_id}: missing or ambiguous original question")
-            elif matches[0]["question"] != question["question"]:
-                problems.append(f"{item_id}: question text changed")
+        problems = _question_problems(original.get("results"), questions)
         if problems:
             reject("; ".join(problems))
         return original
 
-    def judged_passes(self, run_id: str) -> dict[str, bool] | None:
-        """Known judge verdicts from the latest history entry; no report fallback."""
+    def regrade_labels(
+        self, run_id: str, questions: list[dict], *, labels_from: str | None = None
+    ) -> dict[str, bool]:
+        """Validate saved questions and select judge labels for those same answers.
+
+        Labels must be recorded in history under the original run or a direct
+        rescore of it. Keep the latest label record, allowing partial rescores
+        and unjudged questions; those contribute no answer-grader accuracy.
+        """
+        self._validated_provenance(run_id, questions, operation="regrade")
+        label_id = labels_from or run_id
+
+        def reject(reason: str) -> Never:
+            raise SavedRunProvenanceError(
+                f"Cannot regrade {run_id} with labels from {label_id}: {reason}. "
+                "Choose the original run or a recorded rescore of its answers "
+                "with matching question text."
+            )
+
         run = next(
             (
                 r
                 for r in reversed(load_runs(self.history_file))
-                if r["run_id"] == run_id
+                if r["run_id"] == label_id
             ),
             None,
         )
         if run is None:
-            print(f"Run {run_id} is not in {self.history_file}", file=sys.stderr)
-            return None
-        return {r["id"]: r["pass"] for r in run["results"] if r.get("pass") is not None}
+            reject("label run is not recorded in history")
+        if label_id != run_id and run.get("rescored_from") != run_id:
+            reject(f"label run is not a rescore of {run_id}")
+        config = run.get("config")
+        if not isinstance(config, dict):
+            reject("missing label run configuration")
+        if run.get("regraded_from") or config.get("grader_only"):
+            reject("a regrade does not supply judge labels")
+        problems = _question_problems(run.get("results"), questions, allow_missing=True)
+        if problems:
+            reject("; ".join(problems))
+        selected = {q["id"] for q in questions}
+        labels = {}
+        for result in run["results"]:
+            if (
+                not isinstance(result, dict)
+                or not isinstance(result.get("id"), str)
+                or result["id"] not in selected
+            ):
+                continue
+            verdict = result.get("pass")
+            if verdict is None:
+                continue
+            if not isinstance(verdict, bool):
+                reject(f"{result['id']}: judge label must be true, false, or null")
+            labels[result["id"]] = verdict
+        return labels
 
     def finish(
         self, report: dict, markdown: str, *, record_history: bool = True
@@ -193,6 +227,24 @@ class SavedRuns:
             self.output_dir / f"report_{run_id}.json",
             self.output_dir / f"report_{run_id}.md",
         )
+
+
+def _question_problems(
+    results: object, questions: list[dict], *, allow_missing: bool = False
+) -> list[str]:
+    if not isinstance(results, list):
+        return ["missing original questions"]
+    problems = []
+    for question in questions:
+        item_id = question["id"]
+        matches = [r for r in results if isinstance(r, dict) and r.get("id") == item_id]
+        if not matches and allow_missing:
+            continue
+        if len(matches) != 1 or not _known_text(matches[0].get("question")):
+            problems.append(f"{item_id}: missing or ambiguous original question")
+        elif matches[0]["question"] != question["question"]:
+            problems.append(f"{item_id}: question text changed")
+    return problems
 
 
 def _known_text(value: object) -> bool:
