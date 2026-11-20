@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from eval.golden import GoldenError, load_golden
-from eval.graph_run import load_outputs
+from eval.saved_runs import load_outputs
 from eval.scoring import evidence_found
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent

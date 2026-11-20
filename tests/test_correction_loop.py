@@ -90,10 +90,7 @@ def _run(
     web.search.return_value = []
     fakes = {
         "graph.nodes.retrieve_missing.invoke_missing_query_chain": query_chain,
-        "graph.nodes.grade_documents.get_context_sufficiency_grader": MagicMock(
-            return_value=suff
-        ),
-        "graph.nodes.retrieve_missing.get_context_sufficiency_grader": MagicMock(
+        "graph.sufficiency.get_context_sufficiency_grader": MagicMock(
             return_value=suff
         ),
         "graph.nodes.generate.get_generation_chain": MagicMock(

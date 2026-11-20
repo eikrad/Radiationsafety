@@ -514,7 +514,7 @@ async def documents_add_pdf(
     folder: str = Form("IAEA_other"),
     _admin: None = Depends(require_admin),
 ):
-    """Upload a PDF from retsinformation.dk or IAEA: add to collection, extract title/version, look up URL, append to registry."""
+    """Validate an upload and return the uploaded-document ingestion outcome."""
     if folder not in _ALLOWED_ADD_PDF_FOLDERS:
         raise HTTPException(
             status_code=400,
@@ -528,70 +528,23 @@ async def documents_add_pdf(
             status_code=400,
             detail=f"PDF must be at most {_MAX_PDF_UPLOAD_BYTES // (1024 * 1024)} MB.",
         )
-    safe_name = (
-        "".join(c for c in file.filename if c.isalnum() or c in "._- ").strip()
-        or "uploaded.pdf"
-    )
-    if not safe_name.lower().endswith(".pdf"):
-        safe_name += ".pdf"
-    docs_dir = _PROJECT_ROOT / "documents" / folder
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    dest = docs_dir / safe_name
-    try:
-        dest.write_bytes(content)
-    except OSError as e:
-        raise HTTPException(status_code=500, detail=f"Could not save file: {e}") from e
-    try:
-        import ingestion
-        from build_document_sources import (
-            _extract_iaea_search_terms,
-            _extract_pdf_title_and_version,
-            _slug,
-        )
-        from document_updates import (
-            _lookup_iaea_publication_url_multi,
-            append_source_to_registry,
-        )
-        from graph import search_index
+    from document_uploads import NoIndexableContent, add_uploaded_pdf
 
-        title, version = _extract_pdf_title_and_version(dest)
-        display_name = (title or safe_name).strip() or safe_name
-        search_terms = _extract_iaea_search_terms(Path(dest))
-        url = _lookup_iaea_publication_url_multi(search_terms)
-        source_id = (
-            f"iaea-{_slug(display_name)}"
-            if folder == "IAEA"
-            else f"iaea-other-{_slug(display_name)}"
-        )
-        append_source_to_registry(
-            source_id=source_id,
-            name=display_name,
-            url=url,
+    try:
+        uploaded = add_uploaded_pdf(
+            content,
+            file.filename,
             folder=folder,
-            filename_hint=safe_name,
-            version=version,
+            documents_dir=_PROJECT_ROOT / "documents",
         )
-        with ingestion.collecting_pdf_problems() as problems:
-            chunks = ingestion.add_single_pdf_to_collection(
-                dest, folder=folder, source_label=display_name
-            )
-        search_index.refresh()
-        msg = f"Added PDF to collection ({chunks} chunks)."
-        # the UI shows the message as it is; otherwise only the server log would
-        # say that the PDF was read on the CPU or gave almost no text
-        msg += "".join(f" Warning: {what}." for _name, what in problems)
-        if url:
-            msg += f" URL: {url}"
-        else:
-            msg += (
-                " No publication URL found (try Build list from local PDFs to refresh)."
-            )
         return {
-            "message": msg,
-            "chunks_added": chunks,
-            "url_found": bool(url),
-            "url": url or None,
+            "message": uploaded.message,
+            "chunks_added": uploaded.chunks_added,
+            "url_found": bool(uploaded.url),
+            "url": uploaded.url,
         }
+    except NoIndexableContent as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 

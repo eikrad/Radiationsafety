@@ -7,6 +7,25 @@ from unittest.mock import MagicMock, patch
 import document_updates as du
 
 
+def test_appending_a_source_uses_the_first_available_id_suffix(tmp_path, monkeypatch):
+    import yaml
+
+    registry = tmp_path / "sources.yaml"
+    registry.write_text("sources:\n  - id: guide\n  - id: guide-1\n  - id: guide-3\n")
+    monkeypatch.setattr(du, "REGISTRY_PATH", registry)
+
+    du.append_source_to_registry("guide", "New guide")
+
+    sources = yaml.safe_load(registry.read_text())["sources"]
+    assert [source["id"] for source in sources] == [
+        "guide",
+        "guide-1",
+        "guide-3",
+        "guide-2",
+    ]
+    assert sources[-1]["name"] == "New guide"
+
+
 def test_load_registry_from_example():
     """Registry loads from example YAML when document_sources.yaml is missing."""
     with patch.object(du, "REGISTRY_PATH", Path("/nonexistent")):
