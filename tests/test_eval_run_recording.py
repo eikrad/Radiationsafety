@@ -10,8 +10,9 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 
 import eval.run_eval as run_eval
-from eval.graph_run import load_outputs
+import eval.saved_runs as saved_runs
 from eval.history import load_runs
+from eval.saved_runs import load_outputs
 
 ANNEX_2 = "For erhvervsmæssig bestråling gælder dosisgrænserne i bilag 2."
 FILLER = "Unrelated chunk about packaging."
@@ -583,6 +584,81 @@ def test_questions_added_after_the_run_are_skipped_when_rescoring(
     assert "out-of-scope-mri: not in the saved run" in capsys.readouterr().err
 
 
+def test_rescore_requires_original_metadata_before_loading_a_judge(
+    monkeypatch, workspace, capsys
+):
+    assert _run(monkeypatch, workspace) == 0
+    [original] = load_runs(workspace.history)
+    workspace.history.unlink()
+    (workspace.reports / original["report_file"]).unlink()
+    reports_before = set(workspace.reports.glob("report_*"))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a judge")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 1
+    assert "Cannot rescore" in capsys.readouterr().err
+    assert not workspace.history.exists()
+    assert set(workspace.reports.glob("report_*")) == reports_before
+
+
+def test_rescore_rejects_changed_question_text_before_loading_a_judge(
+    monkeypatch, workspace, capsys
+):
+    assert _run(monkeypatch, workspace) == 0
+    [original] = load_runs(workspace.history)
+    history_before = workspace.history.read_bytes()
+    reports_before = set(workspace.reports.glob("report_*"))
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["question"] = "A different question with the same ID?"
+    workspace.golden.write_text(json.dumps(golden))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a judge")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 1
+    assert "dk-dose-limits: question text changed" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+    assert set(workspace.reports.glob("report_*")) == reports_before
+
+
+def test_rescore_uses_local_report_provenance_after_a_no_history_run(
+    monkeypatch, workspace
+):
+    assert _run(monkeypatch, workspace, "--no-history") == 0
+    [path] = workspace.reports.glob("report_*.json")
+    original = json.loads(path.read_text())
+    monkeypatch.setattr(
+        run_eval, "_answer_question", lambda *a, **k: pytest.fail("answered")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+    [rescored] = load_runs(workspace.history)
+    assert rescored["git"] == original["git"]
+    assert rescored["config"]["llm_model"] == original["config"]["llm_model"]
+    assert rescored["rescored_from"] == original["run_id"]
+
+
+def test_rescore_accepts_reordered_subset_and_updated_evidence(monkeypatch, workspace):
+    assert _run(monkeypatch, workspace) == 0
+    [original] = load_runs(workspace.history)
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["nuggets"][0]["evidence"].append("Newly reviewed evidence")
+    workspace.golden.write_text(json.dumps([golden[2], golden[0]]))
+    monkeypatch.setattr(
+        run_eval, "_answer_question", lambda *a, **k: pytest.fail("answered")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 0
+    rescored = load_runs(workspace.history)[-1]
+    assert [r["id"] for r in rescored["results"]] == [
+        "out-of-scope-mri",
+        "dk-dose-limits",
+    ]
+    assert rescored["dataset"]["n_items"] == 2
+    assert rescored["dataset"]["content_hash"] != original["dataset"]["content_hash"]
+
+
 # --- Retrieval-only runs: compare embeddings without answering or judging -----
 
 
@@ -764,6 +840,24 @@ def test_a_retrieval_only_run_can_be_rescored_after_evidence_was_added(
     assert transport["evidence_recall_at_1"] == 1.0
 
 
+def test_retrieval_rescore_rejects_changed_questions_before_scoring(
+    monkeypatch, workspace, retrieval_only, capsys
+):
+    assert _run(monkeypatch, workspace, "--retrieval-only") == 0
+    [original] = load_runs(workspace.history)
+    history_before = workspace.history.read_bytes()
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["question"] = "Different retrieval question?"
+    workspace.golden.write_text(json.dumps(golden))
+    monkeypatch.setattr(
+        run_eval, "_score_retrieval", lambda *a, **k: pytest.fail("scored")
+    )
+
+    assert _run(monkeypatch, workspace, "--rescore", original["run_id"]) == 1
+    assert "dk-dose-limits: question text changed" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+
+
 # --- Guards: what a recorded run can be trusted to describe -------------------
 
 
@@ -899,6 +993,54 @@ def test_regrading_scores_the_grader_on_the_saved_first_retrievals(
     assert results["out-of-scope-mri"]["metrics"]["grade_documents_correct"] == 0.0
 
 
+@pytest.mark.parametrize("extra", [[], ["--no-history"]])
+def test_regrading_rejects_changed_questions_before_loading_a_grader(
+    monkeypatch, workspace, regrade, capsys, extra
+):
+    history_before = workspace.history.read_bytes()
+    reports_before = set(workspace.reports.glob("report_*"))
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["question"] = "A different question with the same ID?"
+    workspace.golden.write_text(json.dumps(golden))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a grader")
+    )
+
+    assert _run(monkeypatch, workspace, "--regrade", regrade.run_id, *extra) == 1
+    assert "dk-dose-limits: question text changed" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+    assert set(workspace.reports.glob("report_*")) == reports_before
+    assert regrade.seen == []
+
+
+def test_regrading_rejects_labels_from_an_unrelated_answer_run(
+    monkeypatch, workspace, capsys
+):
+    assert _run(monkeypatch, workspace) == 0
+    assert _run(monkeypatch, workspace) == 0
+    original, unrelated = load_runs(workspace.history)
+    history_before = workspace.history.read_bytes()
+    reports_before = set(workspace.reports.glob("report_*"))
+    monkeypatch.setattr(
+        "graph.llm_factory.get_llm", lambda *a, **k: pytest.fail("loaded a grader")
+    )
+
+    assert (
+        _run(
+            monkeypatch,
+            workspace,
+            "--regrade",
+            original["run_id"],
+            "--labels",
+            unrelated["run_id"],
+        )
+        == 1
+    )
+    assert "not a rescore of" in capsys.readouterr().err
+    assert workspace.history.read_bytes() == history_before
+    assert set(workspace.reports.glob("report_*")) == reports_before
+
+
 def test_regrading_removes_the_evidence_to_test_a_retrieval_that_misses_it(
     monkeypatch, workspace, regrade
 ):
@@ -983,6 +1125,48 @@ def test_regrading_can_take_the_verdicts_from_a_later_rescore(
         "passed_kept": 0,
     }
     assert run["config"]["labels_from"] == rescore_id
+
+
+def test_regrading_partial_rescore_labels_does_not_invent_missing_verdicts(
+    monkeypatch, workspace, regrade, answer_grader
+):
+    monkeypatch.setattr(
+        run_eval, "judge_item", lambda item, *a, **k: VERDICTS[item["question"]]
+    )
+    assert (
+        _run(monkeypatch, workspace, "--rescore", regrade.run_id, "--limit", "1") == 0
+    )
+    rescore_id = load_runs(workspace.history)[-1]["run_id"]
+    monkeypatch.setattr(run_eval, "judge_item", lambda *a, **k: pytest.fail("judged"))
+
+    assert (
+        _run(
+            monkeypatch, workspace, "--regrade", regrade.run_id, "--labels", rescore_id
+        )
+        == 0
+    )
+    run = load_runs(workspace.history)[-1]
+    results = _results(run)
+    assert results["dk-dose-limits"]["metrics"]["grade_generation_correct"] == 1.0
+    for item_id in ("iaea-transport-index", "out-of-scope-mri"):
+        assert "grade_generation_correct" not in results[item_id]["metrics"]
+        assert "grade_documents_correct" in results[item_id]["metrics"]
+    assert sum(run["summary"]["grade_generation_confusion"].values()) == 1
+    assert len(answer_grader) == 1
+
+
+def test_regrading_archive_accepts_updated_evidence_and_reordered_subset(
+    monkeypatch, workspace, regrade
+):
+    (workspace.reports / f"outputs_{regrade.run_id}.json").unlink()
+    golden = json.loads(workspace.golden.read_text())
+    golden[0]["nuggets"][0]["evidence"].append("Newly reviewed evidence")
+    workspace.golden.write_text(json.dumps([golden[2], golden[0]]))
+
+    assert _run(monkeypatch, workspace, "--regrade", regrade.run_id) == 0
+    run = load_runs(workspace.history)[-1]
+    assert [r["id"] for r in run["results"]] == ["out-of-scope-mri", "dk-dose-limits"]
+    assert run["dataset"]["n_items"] == 2
 
 
 def test_a_privacy_mode_run_records_the_local_context_window(monkeypatch, workspace):
@@ -1071,12 +1255,12 @@ def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, works
 
 def test_runs_started_in_the_same_second_keep_their_own_reports(monkeypatch, workspace):
     # two eval chains run in parallel; a shared run ID let one report overwrite the other
-    class FrozenClock(run_eval.datetime):
+    class FrozenClock(saved_runs.datetime):
         @classmethod
         def now(cls, tz=None):
-            return run_eval.datetime(2026, 10, 17, 19, 6, 26, tzinfo=tz)
+            return saved_runs.datetime(2026, 10, 17, 19, 6, 26, tzinfo=tz)
 
-    monkeypatch.setattr(run_eval, "datetime", FrozenClock)
+    monkeypatch.setattr(saved_runs, "datetime", FrozenClock)
     assert _run(monkeypatch, workspace, "--label", "first") == 0
     assert _run(monkeypatch, workspace, "--label", "second") == 0
 
@@ -1085,3 +1269,51 @@ def test_runs_started_in_the_same_second_keep_their_own_reports(monkeypatch, wor
     for run in (first, second):
         report = json.loads((workspace.reports / run["report_file"]).read_text())
         assert report["label"] == run["label"]
+
+
+def test_archive_failure_leaves_reports_and_answers_but_does_not_record(
+    monkeypatch, workspace
+):
+    workspace.history.parent.mkdir(parents=True)
+    # A real filesystem failure at the archive destination.
+    (workspace.history.parent / "outputs").write_text("cannot create directory here")
+    with pytest.raises(FileExistsError):
+        _run(monkeypatch, workspace)
+
+    assert load_runs(workspace.history) == []
+    [outputs] = workspace.reports.glob("outputs_*.json")
+    assert set(load_outputs(outputs)) == {item["id"] for item in GOLDEN}
+    assert len(list(workspace.reports.glob("report_*.json"))) == 1
+    assert len(list(workspace.reports.glob("report_*.md"))) == 1
+    assert not (workspace.reports / "dashboard.html").exists()
+
+
+def test_interrupted_scoring_keeps_answers_saved_before_judging(monkeypatch, workspace):
+    def interrupted(*args, **kwargs):
+        raise RuntimeError("scoring interrupted")
+
+    monkeypatch.setattr(run_eval, "score_outputs", interrupted)
+    with pytest.raises(RuntimeError, match="scoring interrupted"):
+        _run(monkeypatch, workspace)
+
+    [outputs] = workspace.reports.glob("outputs_*.json")
+    assert set(load_outputs(outputs)) == {item["id"] for item in GOLDEN}
+    assert load_runs(workspace.history) == []
+    assert not list(workspace.reports.glob("report_*"))
+
+
+def test_dashboard_failure_keeps_the_recorded_run_and_archived_answers(
+    monkeypatch, workspace
+):
+    def broken_dashboard(*args, **kwargs):
+        raise OSError("dashboard unavailable")
+
+    monkeypatch.setattr(run_eval, "write_dashboard", broken_dashboard)
+    with pytest.raises(OSError, match="dashboard unavailable"):
+        _run(monkeypatch, workspace)
+
+    [run] = load_runs(workspace.history)
+    assert set(load_outputs(_archived(workspace, run["run_id"]))) == {
+        item["id"] for item in GOLDEN
+    }
+    assert (workspace.reports / run["report_file"]).is_file()
