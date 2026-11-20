@@ -4,6 +4,8 @@ Answers questions about radiation safety from IAEA standards and Danish law, and
 
 ## Answering
 
+[GLOSSARY.md](GLOSSARY.md) defines context sufficiency.
+
 **Question**:
 What a user asks, in English, German or Danish, possibly following up on earlier exchanges.
 _Avoid_: Query, prompt

@@ -666,75 +666,84 @@ def test_api_reports_the_installed_package_version(client: TestClient):
     )
 
 
-@pytest.fixture
-def upload_without_side_effects(monkeypatch, tmp_path):
-    """add-pdf with the real ingestion code, but no registry file, URL lookup or
-    Chroma: the uploaded PDF lands in tmp_path."""
+def test_upload_returns_the_ingestion_outcome(client, monkeypatch, tmp_path):
     import api.main
-    import document_updates
-    import ingestion
+    import document_uploads
 
-    class Store:
-        def __init__(self, **kwargs):
-            pass
+    calls = []
+    outcome = document_uploads.UploadedDocument(
+        2, "https://www.iaea.org/publications/123", (("scan.pdf", "read on the CPU"),)
+    )
 
-        @classmethod
-        def from_documents(cls, documents, **kwargs):
-            return cls()
-
-        def add_documents(self, docs):
-            pass
+    def upload(content, filename, **kwargs):
+        calls.append((content, filename, kwargs))
+        return outcome
 
     monkeypatch.setattr(api.main, "_PROJECT_ROOT", tmp_path)
-    monkeypatch.setattr(
-        document_updates, "_lookup_iaea_publication_url_multi", lambda queries: None
-    )
-    monkeypatch.setattr(
-        document_updates, "append_source_to_registry", lambda **kwargs: None
-    )
-    monkeypatch.setattr(ingestion, "get_embedding_provider", lambda *a: "scaleway")
-    monkeypatch.setattr(ingestion, "get_embeddings", lambda ep: object())
-    monkeypatch.setattr(ingestion, "Chroma", Store)
-
-
-def test_an_uploaded_scan_docling_got_almost_no_text_from_says_so(
-    client: TestClient, monkeypatch, tmp_path, upload_without_side_effects
-):
-    """The upload answered "Added PDF to collection (1 chunks)."; the warning
-    went to the server log only."""
-    from tests.pdf_fakes import docling_reading, write_pdf
-
-    pdf = write_pdf(tmp_path / "scan.pdf", [""] * 12)
-    docling_reading(monkeypatch, {"scan.pdf": "IAEA, Vienna"})
+    monkeypatch.setattr(document_uploads, "add_uploaded_pdf", upload)
 
     res = client.post(
         "/api/documents/add-pdf",
-        files={"file": ("scan.pdf", pdf.read_bytes(), "application/pdf")},
+        files={"file": ("scan.pdf", b"pdf content", "application/pdf")},
+        data={"folder": "IAEA"},
     )
 
     assert res.status_code == 200
-    assert "almost no text" in res.json()["message"]
+    assert res.json() == {
+        "message": outcome.message,
+        "chunks_added": 2,
+        "url_found": True,
+        "url": outcome.url,
+    }
+    assert calls == [
+        (
+            b"pdf content",
+            "scan.pdf",
+            {"folder": "IAEA", "documents_dir": tmp_path / "documents"},
+        )
+    ]
 
 
-def test_an_upload_docling_cannot_read_names_the_setting_that_allows_plain_text(
-    client: TestClient, monkeypatch, tmp_path, upload_without_side_effects
-):
-    """A command-line flag is no way out for whoever uploads through the UI."""
-    from tests.pdf_fakes import docling_reading, write_pdf
+@pytest.mark.parametrize("kind,status", [("empty", 422), ("failed", 500)])
+def test_upload_reports_ingestion_failures(client, monkeypatch, kind, status):
+    import document_uploads
 
-    monkeypatch.delenv("INGEST_ALLOW_PYPDF_FALLBACK", raising=False)
-    pdf = write_pdf(tmp_path / "rapport.pdf", ["Safety assessment " * 20])
-    docling_reading(monkeypatch, {"rapport.pdf": RuntimeError("CUDA out of memory")})
-
-    res = client.post(
-        "/api/documents/add-pdf",
-        files={"file": ("rapport.pdf", pdf.read_bytes(), "application/pdf")},
+    error = (
+        document_uploads.NoIndexableContent("No content was indexed")
+        if kind == "empty"
+        else RuntimeError("Embedding failed")
     )
 
-    assert res.status_code == 500
-    detail = res.json()["detail"]
-    assert "CUDA out of memory" in detail
-    assert "INGEST_ALLOW_PYPDF_FALLBACK=true" in detail
+    def fail(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(document_uploads, "add_uploaded_pdf", fail)
+    res = client.post(
+        "/api/documents/add-pdf",
+        files={"file": ("scan.pdf", b"pdf content", "application/pdf")},
+    )
+
+    assert res.status_code == status
+    assert res.json()["detail"] == str(error)
+
+
+@pytest.mark.parametrize(
+    "filename,folder", [("notes.txt", "IAEA"), ("scan.pdf", "other")]
+)
+def test_invalid_uploads_do_not_start_ingestion(client, monkeypatch, filename, folder):
+    import document_uploads
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("Invalid upload reached ingestion")
+
+    monkeypatch.setattr(document_uploads, "add_uploaded_pdf", unexpected)
+    res = client.post(
+        "/api/documents/add-pdf",
+        files={"file": (filename, b"content", "application/pdf")},
+        data={"folder": folder},
+    )
+
+    assert res.status_code == 400
 
 
 def _one_danish_pdf(monkeypatch, tmp_path, docling_gives, pages=("Kapitel 1 " * 30,)):

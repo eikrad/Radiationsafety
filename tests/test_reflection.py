@@ -80,7 +80,7 @@ def _patch_retrieve_missing_deps(missing_query: str = "query"):
             return_value=missing_query,
         ),
         patch(
-            "graph.nodes.retrieve_missing.get_context_sufficiency_grader",
+            "graph.sufficiency.get_context_sufficiency_grader",
             return_value=MagicMock(
                 invoke=MagicMock(return_value=MagicMock(binary_score=False))
             ),
