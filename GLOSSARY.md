@@ -17,6 +17,14 @@ A PDF supplied through the Documents panel. It is registered as a source only
 after its content has been indexed successfully with at least one chunk.
 _Avoid_: Uploaded source
 
+**Document source**:
+A named publication or regulation tracked by the project, with its identity,
+location, and recorded revision.
+
+**Fetched revision**:
+A document revision whose contents have been obtained. It does not establish
+which revision is available in a search index.
+
 ## Evaluation
 
 **Saved evaluation run**:

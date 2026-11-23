@@ -37,6 +37,7 @@ ingestion.py             — PDF/XML loading, chunking, Chroma population (write
 ingestion_dk.py          — Retsinformation XML: text, chunks along §/Stk./items/annex rows
 ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
+source_catalog.py        — document source identity, URLs and fetched revisions; coordinated registry/version persistence
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
 eval/                    — evaluation: run_eval.py (runner, --rescore), golden.py + data/golden.json
                            (nuggets + verbatim evidence), judge.py + judge_check.py (LLM judge and its

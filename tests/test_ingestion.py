@@ -1119,3 +1119,60 @@ def test_a_full_run_indexes_an_iaea_publication_with_a_local_pdf_once(
     iaea_name, _ = collection_names("scaleway")
     assert [d.metadata["source"] for d in added[iaea_name]] == [str(local)]
     assert "Ingestion complete!" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("failure", [None, "fetch", "save"])
+def test_download_records_revision_only_after_content_is_saved(
+    monkeypatch, tmp_path, catalog, failure
+):
+    import document_updates
+    import ingestion_fetch
+
+    old = "BEK nr 670 af 01/01/2019"
+    new = "BEK nr 1385 af 18/11/2025"
+    url = "https://www.retsinformation.dk/eli/lta/2025/1385"
+    catalog.register("law", "Law", folder="Bekendtgørelse", version=old)
+    catalog.update("law", accession_id="A123", fetched_version=old)
+    monkeypatch.setattr(ingestion, "DOCS_DIR", tmp_path / "documents")
+    monkeypatch.setattr(ingestion, "_BACKUP_DIR", tmp_path / "backup")
+    monkeypatch.setattr(
+        document_updates,
+        "check_one_source",
+        lambda *args: {
+            "update_available": True,
+            "download_url": url,
+            "remote_version": new,
+        },
+    )
+    fetched = tmp_path / "fetched.xml"
+    fetched.write_text(RETSINFO_XML)
+    monkeypatch.setattr(
+        ingestion_fetch, "get_xml_url_retsinformation", lambda url: url + "/xml"
+    )
+    monkeypatch.setattr(
+        ingestion_fetch,
+        "_download_xml",
+        lambda url: None if failure == "fetch" else fetched,
+    )
+    if failure == "save":
+
+        def cannot_save(*args, **kwargs):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(ingestion.shutil, "copy2", cannot_save)
+        with pytest.raises(OSError, match="disk full"):
+            ingestion.download_update_for_source("law")
+    else:
+        ok, _message = ingestion.download_update_for_source("law")
+        assert ok is (failure is None)
+    snapshot = catalog.snapshot()
+    expected = old if failure else new
+    assert (
+        snapshot.sources[0].version == snapshot.versions["law"]["version"] == expected
+    )
+    assert snapshot.versions["law"]["accession_id"] == "A123"
+    if failure is None:
+        assert (
+            tmp_path / "documents/Bekendtgørelse/law_current.xml"
+        ).read_text() == RETSINFO_XML
+        assert snapshot.sources[0].url == url

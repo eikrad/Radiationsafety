@@ -65,6 +65,7 @@ source = [
     "ingestion_dk",
     "ingestion_fetch",
     "document_updates",
+    "source_catalog",
     "document_uploads",
     "build_document_sources",
 ]
