@@ -9,15 +9,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import ingestion
+import source_catalog
 from build_document_sources import (
     _extract_iaea_search_terms,
     _extract_pdf_title_and_version,
     _slug,
 )
-from document_updates import (
-    _lookup_iaea_publication_url_multi,
-    append_source_to_registry,
-)
+from document_updates import _lookup_iaea_publication_url_multi
 from graph import search_index
 
 
@@ -86,7 +84,7 @@ def add_uploaded_pdf(
             "No content could be indexed from this PDF; the document was not registered."
         )
 
-    append_source_to_registry(
+    source_catalog.catalog.register(
         source_id=source_id,
         name=display_name,
         url=url,

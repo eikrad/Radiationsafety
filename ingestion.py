@@ -37,6 +37,7 @@ from langchain_docling.loader import BaseMetaExtractor
 from pypdf import PdfReader
 from tqdm import tqdm
 
+import source_catalog
 from graph.consts import env_bool
 from graph.llm_factory import (
     get_embedding_provider,
@@ -139,12 +140,8 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
 
     try:
         from document_updates import (
-            _load_registry,
-            _load_versions,
             check_one_source,
             get_local_pdf_path,
-            update_registry_url,
-            update_version_after_ingest,
         )
         from ingestion_fetch import (
             _download_to_temp,
@@ -154,13 +151,14 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
         )
     except ImportError as e:
         return False, str(e)
-    registry = _load_registry()
+    snapshot = source_catalog.catalog.snapshot()
+    registry = snapshot.sources
     source = next(
         (s for s in registry if (s.id or "").strip() == source_id.strip()), None
     )
     if not source:
         return False, "Source not found"
-    versions = _load_versions()
+    versions = snapshot.versions
     result = check_one_source(source, versions)
     if not result.get("update_available") or not result.get("download_url"):
         return False, "No update available for this source"
@@ -193,8 +191,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                 (folder_path / f"{source_id}_version.txt").write_text(
                     remote_label, encoding="utf-8"
                 )
-                update_registry_url(source_id, download_url)
-                update_version_after_ingest(source_id, remote_label)
+                source_catalog.catalog.update(
+                    source_id, url=download_url, fetched_version=remote_label
+                )
                 return True, "Downloaded new version and backed up previous."
             finally:
                 try:
@@ -212,8 +211,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
             _save_danish_current_and_trim_backups(
                 source_id, path, version_label=remote_label
             )
-            update_registry_url(source_id, download_url)
-            update_version_after_ingest(source_id, remote_label)
+            source_catalog.catalog.update(
+                source_id, url=download_url, fetched_version=remote_label
+            )
             return True, "Downloaded new version and backed up previous."
         finally:
             try:
@@ -245,8 +245,9 @@ def download_update_for_source(source_id: str) -> tuple[bool, str]:
                 shutil.copy2(str(path), str(dest))
             except OSError as e:
                 return False, f"Could not save PDF: {e}"
-            update_registry_url(source_id, download_url)
-            update_version_after_ingest(source_id, remote_label)
+            source_catalog.catalog.update(
+                source_id, url=download_url, fetched_version=remote_label
+            )
             return True, "Downloaded new version and backed up previous."
         finally:
             try:
@@ -311,17 +312,11 @@ def _save_danish_current_and_trim_backups(
     # The same law in another layout leaves the file alone, so git shows no change.
     if not (current_file.exists() and _same_document(current_file, xml_path, "xml")):
         _backup_previous(current_file, xml_path, _BACKUP_DIR, source_id, "xml")
-        try:
-            shutil.copy2(str(xml_path), str(current_file))
-        except OSError:
-            pass
+        shutil.copy2(str(xml_path), str(current_file))
     if version_label:
-        try:
-            (current_dir / f"{source_id}_version.txt").write_text(
-                version_label, encoding="utf-8"
-            )
-        except OSError:
-            pass
+        (current_dir / f"{source_id}_version.txt").write_text(
+            version_label, encoding="utf-8"
+        )
 
 
 def _saved_danish_law(
@@ -372,7 +367,6 @@ def _load_docs_from_registry(
     name and id in document_sources.yaml.
     """
     try:
-        from document_updates import update_registry_url, update_version_after_ingest
         from ingestion_fetch import (
             FetchError,
             fetch_danish_xml_for_source,
@@ -406,18 +400,17 @@ def _load_docs_from_registry(
                 continue  # not on retsinformation.dk: its PDF is read from the folder
             try:
                 dk_docs.extend(structure_chunks(path, label))
-                if resolved_url and resolved_url != url:
-                    try:
-                        update_registry_url(source_id, resolved_url)
-                    except Exception:
-                        pass
                 _save_danish_current_and_trim_backups(
                     source_id, path, version_label=label
                 )
                 try:
-                    update_version_after_ingest(source_id, label)
-                except Exception:
-                    pass
+                    source_catalog.catalog.update(
+                        source_id, fetched_version=label, url=resolved_url or url
+                    )
+                except (OSError, source_catalog.CatalogError) as error:
+                    _report_pdf_problem(
+                        registry_name, f"could not record fetched revision ({error})"
+                    )
             finally:
                 try:
                     path.unlink(missing_ok=True)
@@ -442,9 +435,11 @@ def _load_docs_from_registry(
                 d.metadata["document_type"] = "IAEA"
             iaea_docs.extend(docs)
             try:
-                update_version_after_ingest(source_id, label)
-            except Exception:
-                pass
+                source_catalog.catalog.update(source_id, fetched_version=label)
+            except (OSError, source_catalog.CatalogError) as error:
+                _report_pdf_problem(
+                    registry_name, f"could not record fetched revision ({error})"
+                )
         finally:
             try:
                 path.unlink(missing_ok=True)

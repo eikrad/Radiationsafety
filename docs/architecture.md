@@ -236,6 +236,39 @@ flowchart TD
     end
 ```
 
+### Source catalog
+
+`source_catalog.py` owns source registration, location/identity changes, and
+fetched revisions. Uploads, ingestion, update checking, and registry rebuilding
+use `SourceCatalog`; fetching, PDF/XML parsing, and embedding stay with their
+existing modules. `snapshot()` reads the source list and version metadata
+consistently, `register()` assigns an unused ID, `update()` preserves unrelated
+metadata, and `replace_sources()` rejects discovery based on a stale snapshot.
+
+New version writes describe obtained document contents. Discovering or confirming
+a newer URL changes location/identity only; the previous revision remains current
+until fetching succeeds. Ingestion records the revision during document loading,
+before embedding. Existing values are retained without claiming they prove either
+fetching or indexing, and the catalog does not track revisions per search index.
+Version lookup retains JSON → YAML → local-file fallback precedence.
+
+The existing `document_sources.yaml` and `document_versions.json` formats remain.
+A Linux file lock coordinates threads/processes; atomic replacement prevents
+partial files. A durable `document_sources.yaml.pending.json` records a combined
+write before either data file is replaced. Every catalog access completes a pending
+write under the lock. A failure after that record is durable can therefore finish
+on the next access, even if the original caller received an error. Keep the pending
+file with the catalog during recovery; do not retry registration blindly after an
+ambiguous failure. Direct readers/editors outside the catalog do not participate
+in this guarantee. Malformed state raises an error instead of being overwritten.
+
+Rebuilding remains replacement: sources absent from local discovery disappear.
+Discovery runs outside the lock, then compares the snapshot revision before saving,
+so a concurrent upload or metadata edit causes a retryable conflict rather than a
+lost edit (HTTP 409 from the rebuild endpoint). Example-file fallback is retained: registration starts an actual registry,
+and location updates do not materialize an absent registry. Custom CLI output uses
+its own companion lock, pending-write, and versions files.
+
 ### Key ingestion facts
 
 - **Commands:** `uv run python ingestion.py` (full), `--dk-only` (rebuild only the Danish collection), `--reembed-from <provider>` (embed the existing chunks of that provider's collections with the configured `EMBEDDING_PROVIDER`, without re-parsing documents).

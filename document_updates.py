@@ -15,10 +15,10 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-import yaml
-
+import source_catalog
 from graph.services.retsinformation_eli import resolve_latest_document
 from graph.services.retsinformation_harvest import run_incremental_harvest
+from source_catalog import DocumentSource
 
 # Brave Search API: min seconds between requests to avoid 429 Too Many Requests
 BRAVE_REQUEST_DELAY_SECONDS = 4
@@ -39,9 +39,6 @@ def _brave_throttle() -> None:
 # Paths (aligned with ingestion)
 PROJECT_ROOT = Path(__file__).resolve().parent
 DOCS_DIR = PROJECT_ROOT / "documents"
-REGISTRY_PATH = PROJECT_ROOT / "document_sources.yaml"
-REGISTRY_EXAMPLE = PROJECT_ROOT / "document_sources.example.yaml"
-VERSIONS_PATH = PROJECT_ROOT / "document_versions.json"
 RETSINFO_SYNC_STATE_PATH = PROJECT_ROOT / "retsinformation_sync_state.json"
 RETSINFO_RESOLVER_MODE = (
     os.getenv("RETSINFO_RESOLVER_MODE", "shadow").strip().lower() or "shadow"
@@ -74,65 +71,11 @@ def _is_retsinformation_url(url: str) -> bool:
 
 
 @dataclass
-class DocumentSource:
-    id: str
-    name: str
-    url: str
-    folder: str
-    filename_hint: str | None
-    version: str | None = (
-        None  # current version from document_sources.yaml (written after ingest)
-    )
-
-
-@dataclass
 class ResolvedUrl:
     """Normalized result for URL resolution steps."""
 
     label: str | None = None
     url: str | None = None
-
-
-def load_registry_raw() -> list[dict[str, Any]]:
-    """Load document_sources.yaml (or .example). Returns list of source dicts with id, name, url, folder, filename_hint. Includes sources with null url (e.g. local-only IAEA PDFs)."""
-    path = REGISTRY_PATH if REGISTRY_PATH.exists() else REGISTRY_EXAMPLE
-    if not path.exists():
-        return []
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    sources = data.get("sources") or []
-    return [s for s in sources if s.get("id") and s.get("name")]
-
-
-def _load_registry() -> list[DocumentSource]:
-    """Load registry as list of DocumentSource (uses load_registry_raw)."""
-    raw = load_registry_raw()
-    return [
-        DocumentSource(
-            id=s["id"],
-            name=s["name"],
-            url=(s.get("url") or "").strip(),
-            folder=s.get("folder", "IAEA"),
-            filename_hint=s.get("filename_hint"),
-            version=(s.get("version") or "").strip() or None,
-        )
-        for s in raw
-    ]
-
-
-def _load_versions() -> dict[str, dict[str, str]]:
-    if not VERSIONS_PATH.exists():
-        return {}
-    try:
-        with open(VERSIONS_PATH, encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-
-
-def _save_versions(versions: dict[str, dict[str, str]]) -> None:
-    with open(VERSIONS_PATH, "w", encoding="utf-8") as f:
-        json.dump(versions, f, indent=2)
 
 
 # Runtime caches (cleared per top-level update run)
@@ -1166,8 +1109,8 @@ def check_one_source(
 def check_updates() -> list[dict[str, Any]]:
     """Load registry and version state, check each source (one Brave request per document, in parallel), return list of status dicts."""
     _reset_runtime_caches()
-    registry = _load_registry()
-    versions = _load_versions()
+    snapshot = source_catalog.catalog.snapshot()
+    registry, versions = snapshot.sources, snapshot.versions
     # One request per document; run checks in parallel with bounded concurrency to avoid rate limits.
     max_workers = min(4, max(1, len(registry)))
     results_by_index: dict[int, dict[str, Any]] = {}
@@ -1190,43 +1133,11 @@ def check_updates() -> list[dict[str, Any]]:
     return [results_by_index[i] for i in range(len(registry))]
 
 
-def update_version_after_ingest(source_id: str, version: str) -> None:
-    """Write current version for a source (e.g. after user re-ingests). Updates document_versions.json and document_sources.yaml."""
-    versions = _load_versions()
-    versions[source_id] = {
-        "version": version,
-        "updated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-    }
-    _save_versions(versions)
-    update_registry_version(source_id, version)
-
-
-def update_source_identity(
-    source_id: str,
-    *,
-    canonical_eli_url: str | None = None,
-    accession_id: str | None = None,
-    resolver_confidence: float | None = None,
-) -> None:
-    """Persist canonical identity metadata for a source in versions state."""
-    versions = _load_versions()
-    entry = versions.get(source_id, {})
-    if canonical_eli_url:
-        entry["canonical_eli_url"] = canonical_eli_url.strip()
-    if accession_id:
-        entry["accession_id"] = accession_id.strip()
-    if resolver_confidence is not None:
-        entry["resolver_confidence"] = f"{resolver_confidence:.3f}"
-    entry["identity_updated_at"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    versions[source_id] = entry
-    _save_versions(versions)
-
-
 def sync_danish_legislation(*, apply_updates: bool = False) -> dict[str, Any]:
     """Run Harvest + ELI incremental sync for Danish retsinformation sources."""
     _reset_runtime_caches()
-    registry = _load_registry()
-    versions = _load_versions()
+    snapshot = source_catalog.catalog.snapshot()
+    registry, versions = snapshot.sources, snapshot.versions
     subscription_key = (os.getenv("RETSINFO_API_KEY") or "").strip() or None
     harvest_report = run_incremental_harvest(
         state_path=RETSINFO_SYNC_STATE_PATH,
@@ -1259,17 +1170,15 @@ def sync_danish_legislation(*, apply_updates: bool = False) -> dict[str, Any]:
             )
             continue
         changed = (resolved.url or "").strip() != (source.url or "").strip()
-        if apply_updates and changed:
-            update_registry_url(source.id, resolved.url)
-            if resolved.label:
-                update_version_after_ingest(source.id, resolved.label)
-            updated_count += 1
-        if evidence:
-            update_source_identity(
+        if (apply_updates and changed) or evidence:
+            source_catalog.catalog.update(
                 source.id,
-                canonical_eli_url=resolved.url,
-                resolver_confidence=evidence.get("confidence"),
+                url=resolved.url if apply_updates and changed else None,
+                canonical_eli_url=resolved.url if evidence else None,
+                resolver_confidence=evidence.get("confidence") if evidence else None,
             )
+        if apply_updates and changed:
+            updated_count += 1
         items.append(
             {
                 "id": source.id,
@@ -1292,31 +1201,10 @@ def sync_danish_legislation(*, apply_updates: bool = False) -> dict[str, Any]:
     }
 
 
-def _update_registry_field(source_id: str, field: str, value: str) -> None:
-    """Update one field for a source in document_sources.yaml."""
-    if not REGISTRY_PATH.exists():
-        return
-    with open(REGISTRY_PATH, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    for s in data.get("sources") or []:
-        if isinstance(s, dict) and (s.get("id") or "").strip() == source_id.strip():
-            s[field] = value.strip()
-            break
-    with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
-        yaml.dump(
-            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
-        )
-
-
-def update_registry_version(source_id: str, version: str) -> None:
-    """Write current version for a source into document_sources.yaml."""
-    _update_registry_field(source_id, "version", version)
-
-
 def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
     """Try to find the document URL for a source (Danish: sst.dk or retsinformation.dk via Brave/probe; IAEA: search). Returns (url, error_message)."""
     _reset_runtime_caches()
-    registry = _load_registry()
+    registry = source_catalog.catalog.snapshot().sources
     source = next(
         (s for s in registry if (s.id or "").strip() == source_id.strip()), None
     )
@@ -1351,46 +1239,3 @@ def lookup_source_url(source_id: str) -> tuple[str | None, str | None]:
         None,
         "Unknown folder; only Bekendtgørelse and IAEA/IAEA_other are supported.",
     )
-
-
-def update_registry_url(source_id: str, new_url: str) -> None:
-    """Update document_sources.yaml so the source's url is set to new_url (e.g. after resolving newest Danish)."""
-    _update_registry_field(source_id, "url", new_url)
-
-
-def append_source_to_registry(
-    source_id: str,
-    name: str,
-    *,
-    url: str | None = None,
-    folder: str = "IAEA_other",
-    filename_hint: str | None = None,
-    version: str | None = None,
-) -> None:
-    """Append a new source to document_sources.yaml. Ensures source_id is unique by appending -1, -2 if needed."""
-    data: dict[str, Any] = {}
-    if REGISTRY_PATH.exists():
-        with open(REGISTRY_PATH, encoding="utf-8") as f:
-            data = yaml.safe_load(f) or {}
-    sources: list[dict[str, Any]] = list(data.get("sources") or [])
-    existing_ids = {s.get("id") for s in sources if isinstance(s, dict) and s.get("id")}
-    sid = source_id
-    c = 0
-    while sid in existing_ids:
-        c += 1
-        sid = f"{source_id}-{c}"
-    entry = {
-        "id": sid,
-        "name": name,
-        "url": (url or "").strip() or None,
-        "folder": folder,
-        "filename_hint": filename_hint,
-        "version": version,
-    }
-    sources.append(entry)
-    data["sources"] = sources
-    REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
-        yaml.dump(
-            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
-        )
