@@ -140,3 +140,22 @@ def test_missing_answers_and_changed_questions_are_reported(tmp_path):
     assert any("question text differs" in p for p in problems)
     assert any("no answer" in p for p in problems)
     assert any("not in the golden selection: z" in p for p in problems)
+
+
+def test_main_loads_the_env_file_like_run_eval(monkeypatch):
+    """The judge settings and API keys live in .env, as for eval.run_eval."""
+    import dotenv
+    import pytest
+
+    from eval import score_external
+
+    class Loaded(Exception):
+        pass
+
+    def fake_load_dotenv(*args, **kwargs):
+        raise Loaded
+
+    monkeypatch.setattr(dotenv, "load_dotenv", fake_load_dotenv)
+    monkeypatch.setattr("sys.argv", ["score_external", "answers.jsonl"])
+    with pytest.raises(Loaded):
+        score_external.main()

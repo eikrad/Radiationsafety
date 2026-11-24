@@ -445,6 +445,10 @@ def check(golden: list[dict], outputs: dict[str, dict]) -> None:
 
 
 def main() -> int:
+    from dotenv import load_dotenv
+
+    # Judge settings and API keys come from .env, as for eval.run_eval.
+    load_dotenv()
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("answers", type=Path, help="JSONL with one answer per question")
     p.add_argument("--golden", type=Path, default=DEFAULT_GOLDEN)
