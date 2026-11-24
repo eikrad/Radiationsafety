@@ -176,6 +176,11 @@ def _render_seen(seen: dict[str, set[int]], corpus: CorpusFiles) -> list[str]:
     blocks = []
     for rel, numbers in seen.items():
         lines = corpus.lines(rel) or []
+        # The file's title (line 1, e.g. "# ... (BEK nr 1385 af 18.11.2025)") heads
+        # every index chunk, so the judge can check a cited order number for the
+        # pipeline; it does the same here, whatever offset the agent read from.
+        if lines and lines[0].startswith("# "):
+            numbers = numbers | {1}
         run: list[int] = []
         for n in sorted(numbers) + [None]:
             if n is not None and (not run or n == run[-1] + 1):

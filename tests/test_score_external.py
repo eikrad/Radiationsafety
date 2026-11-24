@@ -159,3 +159,28 @@ def test_main_loads_the_env_file_like_run_eval(monkeypatch):
     monkeypatch.setattr("sys.argv", ["score_external", "answers.jsonl"])
     with pytest.raises(Loaded):
         score_external.main()
+
+
+def test_each_file_is_shown_with_its_title_like_the_index_chunks(tmp_path):
+    # every index chunk starts with its law's title line ("... (BEK nr 1385 af
+    # 18.11.2025)"), so the judge can check a cited order number; the export has
+    # it only on line 1, which an agent that reads from an offset never sees
+    (tmp_path / "dk").mkdir()
+    (tmp_path / "dk" / "law.md").write_text(
+        "# Bekendtgørelse om x (BEK nr 1385 af 18.11.2025)\n"
+        + "\n".join(f"line {n}" for n in range(2, 101)),
+        encoding="utf-8",
+    )
+    record = {
+        "trace": [
+            {"file": "dk/law.md", "offset": 9, "limit": 2},
+            {"file": "dk/law.md", "offset": 49, "limit": 1},
+        ]
+    }
+    context, _, problems = rebuild_context(record, CorpusFiles(tmp_path))
+    assert not problems
+    assert context.split("\n\n") == [
+        "[dk/law.md, lines 1-1]\n# Bekendtgørelse om x (BEK nr 1385 af 18.11.2025)",
+        "[dk/law.md, lines 10-11]\nline 10\nline 11",
+        "[dk/law.md, lines 50-50]\nline 50",
+    ]
