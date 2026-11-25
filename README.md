@@ -3,276 +3,201 @@
 ![Alpha](https://img.shields.io/badge/status-alpha-orange)
 [![CI](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml/badge.svg)](https://github.com/eikrad/Radiationsafety/actions/workflows/ci.yml)
 
-Ask questions about IAEA nuclear safety standards and Danish radiation legislation in plain language. The system retrieves the most relevant chunks from a local vector database, grades them, generates a grounded answer, and flags anything it cannot verify.
+Ask questions about IAEA safety standards and Danish radiation protection law in plain language (English, German or Danish). The system searches a local index of the source documents, checks whether what it found is enough, writes an answer from those passages, checks the answer again, and tells you which sources it used and whether anything could not be verified.
+
+It is a retrieval-augmented generation (RAG) system: a FastAPI backend runs a [LangGraph](https://github.com/langchain-ai/langgraph) workflow over a [Chroma](https://www.trychroma.com/) vector index, with a React chat UI on top.
+
+> **Status: alpha.** Answers can be wrong or incomplete. Always check the cited source before relying on an answer.
+
+## What it covers
+
+| Jurisdiction | Documents |
+|---|---|
+| **IAEA** (`documents/IAEA/`, `documents/IAEA_other/`) | General Safety Requirements GSR Parts 1–7, General Safety Guides GSG-2 and GSG-7, Specific Safety Guides SSG-11, -39, -40, -44, -46, -86, -87, Transport Regulations SSR-6, TECDOC-1380 and TECDOC-1638, Nuclear Security Series 24-G |
+| **Denmark** (`documents/Bekendtgørelse/`) | Executive orders (bekendtgørelser) from retsinformation.dk on ionising radiation and radiation protection, radioactive substances, radiation generators, patient dosimetry and diagnostic reference levels, and transport of radioactive material; Danish Health Authority (SST) guidance on open radioactive sources and on safety assessments |
+
+You can add your own PDFs through the **Documents** panel in the UI, or register further sources in `document_sources.yaml` (see [Managing documents](#managing-documents)).
 
 ## Features
 
-- **RAG over IAEA and Danish sources** — covers IAEA GSR, SSG, SSR, TECDOC standards and Danish Bekendtgørelser
-- **Multi-provider LLM** — Scaleway (EU-hosted, default), Gemini, OpenAI, Mistral, or fully-local Ollama (privacy mode, zero data leaves your machine)
-- **Grounded answers** — every answer is verified against retrieved source documents; unverified web results are flagged
-- **Optional web search fallback** — off by default; with `WEB_SEARCH_ENABLED=true` and a Brave Search key it fills gaps the local documents leave, and the answer is still checked against trusted sources (never used in privacy mode)
-- **Document management UI** — check for updated versions of source documents and re-ingest from the browser
-- **Docker-ready** — compose setup with persistent Chroma volume; run ingestion once and you're done
-- **Evaluation harness** — golden questions with expected facts and source passages, an independent LLM judge, deterministic retrieval metrics, run history and a local dashboard
-
-## Quick start
-
-```bash
-cp .env.example .env          # set SCW_SECRET_KEY (Scaleway: answers and embeddings)
-uv sync                       # Python dependencies
-uv run python ingestion.py    # one-time: build the vector index in .chroma/
-uv run uvicorn api.main:app --reload --port 8000
-npm -C frontend install && npm -C frontend run dev    # UI at http://localhost:5173
-```
-
-Prefer containers? See [Running with Docker](#running-with-docker). No cloud account? See [Privacy Mode](#privacy-mode-fully-local).
+- **Grounded answers with sources.** Each answer lists the documents it drew from. An answer that cannot be verified against the indexed documents carries a warning.
+- **Self-correcting search.** If the retrieved passages are not enough, or the draft answer misses part of the question, the system searches the index again with a refined query before answering.
+- **Choice of model.** Answers come from Scaleway (EU-hosted, default), Google Gemini, OpenAI or Mistral, selectable in the UI. You can also bring your own API key in the browser.
+- **Privacy mode.** With [Ollama](https://ollama.com), answers and embeddings run entirely on your machine; no web search and no tracing.
+- **Optional web search.** Off by default. When switched on (Brave Search), it is a last resort after the index searches, and the answer is still checked against the trusted documents.
+- **Document management.** Check for newer versions of the sources (retsinformation.dk, IAEA), download them, upload PDFs and re-index, all from the browser.
+- **Evaluation harness.** Golden questions with expected facts and source passages, an independent LLM judge, retrieval metrics, run history and a local dashboard ([eval/README.md](eval/README.md)).
 
 ## How it works
 
-A question is answered in a loop that checks itself: retrieve, grade, generate, grade again, and retry the search if the answer is not grounded. This is the simplified flow; [docs/architecture.md](docs/architecture.md) has the full graph with every routing rule, node, chain and API route.
-
 ```mermaid
 flowchart LR
-    Q([Question]) --> RETRIEVE[Retrieve<br/>IAEA + Danish law]
-    RETRIEVE --> GRADE{Context<br/>sufficient?}
-    GRADE -->|no| MORE[Retrieve missing<br/>refined query]
-    MORE --> GRADE
-    GRADE -->|yes| GENERATE[Generate answer]
-    GENERATE --> CHECK{Grounded and<br/>complete?}
-    CHECK -->|no, retry| MORE
-    CHECK -->|yes| VERIFY[Verify against<br/>trusted sources]
-    VERIFY --> A([Answer + sources + warning])
+    USER(["Browser"]) --> UI["React UI"]
+    UI -->|"/api"| API["FastAPI backend"]
+    API --> GRAPH["LangGraph workflow"]
+    GRAPH --> INDEX[("Chroma index<br/>IAEA + Danish law")]
+    GRAPH --> LLM["LLM provider<br/>Scaleway, Gemini, OpenAI,<br/>Mistral or local Ollama"]
+    GRAPH -.->|"optional"| WEB["Brave web search"]
+    DOCS["documents/ and<br/>document_sources.yaml"] --> INGEST["ingestion.py"]
+    INGEST --> INDEX
 ```
 
-Optional web search (`WEB_SEARCH_ENABLED`) is a last resort after the database retries; it never runs in privacy mode.
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|------------|
-| Backend API | FastAPI + Python |
-| AI pipeline | LangGraph + LangChain |
-| Embeddings | Scaleway `bge-multilingual-gemma2` (default) or Google Gemini (`EMBEDDING_PROVIDER`); local Ollama in privacy mode |
-| LLM for answers | Scaleway (default, Gemma 4) / Gemini / OpenAI / Mistral / Ollama (configurable via `LLM_PROVIDER`) |
-| Vector database | Chroma |
-| Document processing | Docling HybridChunker |
-| Frontend | React + TypeScript (Vite) |
-| Container | Docker + Docker Compose |
-
-## Documentation
-
-Start at [docs/README.md](docs/README.md), the index of all documents. The main ones:
-
-| File | What it covers |
-|------|----------------|
-| [docs/architecture.md](docs/architecture.md) | Pipeline nodes, chains, ingestion workflow, LLM providers, API routes, with Mermaid diagrams |
-| [docs/production-readiness.md](docs/production-readiness.md) | Security, admin auth, rate limiting, container hardening, and runbook |
-| [docs/releasing.md](docs/releasing.md) | How versions, tags and the CHANGELOG are produced |
-| [CONTEXT.md](CONTEXT.md) | Glossary of the terms used in code and docs (question, answer, web mode, privacy mode, search index) |
-| [eval/README.md](eval/README.md) | Evaluation harness |
-| [ROADMAP.md](ROADMAP.md) | Plans and measured results |
-
-## Ingestion overview
-
-Documents are embedded once into a local Chroma database. The same vector store is reused for all queries — changing which LLM generates answers does **not** require re-ingestion.
+Documents are split into chunks and embedded once by `ingestion.py`. Each question then goes through this loop:
 
 ```mermaid
-flowchart LR
-    PDFS[Local PDFs<br/>documents/] --> INGEST
-    URLS[document_sources.yaml<br/>retsinformation.dk XML, IAEA] --> INGEST
-    INGEST([ingestion.py<br/>chunk + embed]) --> CHROMA
-    CHROMA[(Chroma .chroma/<br/>IAEA + Danish law)] -->|similarity search| PIPELINE[LangGraph pipeline]
+flowchart TD
+    Q(["Question"]) --> R["Search the index"]
+    R --> S{"Enough context?"}
+    S -->|"no"| M["Search again for<br/>what is missing"]
+    M --> S
+    S -->|"yes"| G["Write answer"]
+    G --> C{"Answer complete<br/>and grounded?"}
+    C -->|"no, retry"| M
+    C -->|"yes, or retries used up"| V["Verify against<br/>trusted documents"]
+    V --> A(["Answer, sources, warning"])
 ```
 
-Ingestion needs the key of the embedding provider (`SCW_SECRET_KEY` by default). See [docs/architecture.md](docs/architecture.md) for the full ingestion and document-update workflow.
+The index is searched at most three times before answering, and twice more if the answer check fails. With web search switched on, it is tried only after these searches. [docs/architecture.md](docs/architecture.md) shows the full workflow with every node and routing rule.
 
-## Running with Docker
+## Quick start
 
-The image does not ship the vector DB (`.chroma` is too large for the repo). The backend
-mounts the project's `.chroma/` directory, so Docker and local runs share one index.
+You need an API key for the default provider, [Scaleway Generative APIs](https://www.scaleway.com/en/generative-apis/) (`SCW_SECRET_KEY`), which is used both for answers and for embeddings. Other providers, or none at all with privacy mode, are covered under [Configuration](#configuration).
 
-1. Copy `.env.example` to `.env`. Set **`SCW_SECRET_KEY`** (Scaleway: default for answers and embeddings). Optionally set another `LLM_PROVIDER` and its key for generation (`GOOGLE_API_KEY`, `MISTRAL_API_KEY`, or `OPENAI_API_KEY`).
-2. Start the stack:
-   ```bash
-   docker compose up --build
-   ```
-3. If `.chroma/` is empty, build the index once, either locally (`uv run python ingestion.py`) or in the container:
-   ```bash
-   docker compose run --rm backend python ingestion.py
-   ```
-   Both write to `.chroma/` on the host. After a local ingestion, run `docker compose restart backend` so the running container picks it up. Do not ingest locally while the container is writing to the index.
-4. Open **http://localhost:8080** for the UI. The frontend proxies `/api` to the backend. Settings show per provider whether its search index is built.
+### 1. Configure and build the index
 
-Rebuilding the images (`--build`) never touches the index. Changing `LLM_PROVIDER` does not require re-ingestion.
-
-**On a server:** `.chroma/` is not in git, so a fresh clone starts without an index. Copy yours (`rsync -a .chroma/ server:path/to/Radiationsafety/.chroma/`, no API cost) or run the ingestion there. You do not need to create the directory or fix its owner: a one-shot `chroma-permissions` service hands it to the backend's uid 1000 before the backend starts (only that short-lived container gets root and `CHOWN`). If your user on the server is not uid 1000, the files then belong to uid 1000, so ingest in the container rather than with `uv run` there. To keep the index elsewhere, set `CHROMA_DIR=/srv/radiationsafety/chroma` in `.env`. The embedding settings on the server (`EMBEDDING_PROVIDER`, `SCW_EMBED_MODEL`) must match collections in the copied index.
-
-## Setup (local)
-
-1. Copy `.env.example` to `.env` and configure:
-   - **`SCW_SECRET_KEY`** — Scaleway, the default for answers (`SCW_MODEL`) and embeddings (`SCW_EMBED_MODEL`); `.env.example` sets the measured defaults
-   - **`LLM_PROVIDER`** — `scaleway` (default), `gemini`, `openai`, `mistral`, or `ollama`; set the matching API key
-   - **`EMBEDDING_PROVIDER`** — `scaleway` (default) or `gemini` (`GOOGLE_API_KEY`); independent of the answering model
-   - Optional: `WEB_SEARCH_ENABLED=true` + `BRAVE_SEARCH_API_KEY` for web search fallback
-   - Optional: `LANGCHAIN_API_KEY` for LangSmith tracing
-
-2. Install dependencies:
-   ```bash
-   uv sync
-   ```
-
-3. Run ingestion (one-time; uses the configured embedding provider):
-   ```bash
-   uv run python ingestion.py
-   ```
-   Changing `LLM_PROVIDER` later does **not** require re-running ingestion — retrieval uses the embeddings chosen by `EMBEDDING_PROVIDER` (default Scaleway) regardless of which model generates answers.
-
-   To switch embeddings (e.g. from Gemini to Scaleway), embed the existing chunks again without re-parsing the documents:
-   ```bash
-   EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini
-   ```
-   Each embedding model gets its own collections (`radiation-iaea-scw-<model>`, …), so switching back needs no rebuild.
-
-   Danish orders are read from retsinformation.dk XML (the sources in `document_sources.yaml`, kept current by the update check). A PDF of the same order in `documents/Bekendtgørelse/` is skipped, so each law is indexed once and an old PDF cannot sit next to a newer version; other PDFs there (e.g. SST guidance) are still read. If retsinformation.dk cannot deliver an order, the XML saved by its last fetch (`<id>_current.xml`) is indexed instead, so the PDF stays skipped. To rebuild only the Danish collection, e.g. after an update:
-   ```bash
-   uv run python ingestion.py --dk-only
-   ```
-
-   PDFs are read with docling (layout and OCR). If docling fails on its default device, for example because a local model fills the GPU, it reads the PDF again on the CPU, which is slower (`DOCLING_DEVICE=cpu uv run python ingestion.py` uses the CPU from the start). If docling cannot read a PDF on the CPU either, ingestion stops and names the file and the error before any collection is emptied. Pass `--allow-pypdf-fallback` to index that PDF as plain text instead (a scanned PDF then gives no text). The run ends with a list of every PDF that was not read as usual: read on the CPU, read as plain text, skipped, or with almost no text (fewer than 100 characters per page, likely a scan without OCR); and every source in `document_sources.yaml` that could not be fetched, with the reason. A PDF uploaded in the Documents panel reports the same in its message, and an ingestion started there shows that list, or why it failed, in the panel.
-
-4. Start the backend:
-   ```bash
-   uv run uvicorn api.main:app --reload --port 8000
-   ```
-
-5. Start the frontend (choose one):
-   - **Single server**: `npm -C frontend run build` then open http://localhost:8000
-   - **Dev mode** (hot reload): `npm -C frontend install && npm -C frontend run dev` → http://localhost:5173
-
-6. Optional CLI:
-   ```bash
-   uv run python main.py
-   ```
-
-### Document sources
-
-Copy `document_sources.example.yaml` to `document_sources.yaml` to register source URLs for automatic fetching and update checking. Or build the registry from local PDFs already in `documents/`:
+The search index is built on your machine with [uv](https://docs.astral.sh/uv/) (Python 3.12+), for Docker and local runs alike:
 
 ```bash
-uv run python build_document_sources.py
+cp .env.example .env              # then set SCW_SECRET_KEY in .env
+uv sync                           # install Python dependencies
+uv run python ingestion.py        # one-time: read documents/, embed, write .chroma/
 ```
 
-The **Documents** panel in the UI lets you check for newer versions (retsinformation.dk, IAEA) and trigger re-ingestion without leaving the browser. Danish sources are always fetched as the newest version of the series; older versions are backed up to `documents/backup/Bekendtgørelse/`.
+The index lives in `.chroma/`, which is not in git. Ingestion takes a while: PDFs are parsed with [Docling](https://github.com/docling-project/docling) (layout and OCR).
 
-An IAEA source whose PDF (its `filename_hint`) is in `documents/IAEA/` or `documents/IAEA_other/` is indexed from that file and not fetched again during ingestion, so each publication is indexed once. A new edition has its own publication page, which only the update check finds; downloading it replaces the local PDF and keeps the old one in `documents/backup/`. Only an IAEA source without a local PDF is fetched from its URL.
+### 2a. Run with Docker
 
-## Privacy Mode (Fully Local)
+```bash
+docker compose up --build
+```
 
-All LLM generation and embeddings run locally via [Ollama](https://ollama.com). Zero data leaves your machine — LangSmith tracing and web search are automatically disabled.
+Open **http://localhost:8080**. The backend mounts the project's `.chroma/` directory, so it uses the index you just built. After rebuilding the index on the host, run `docker compose restart backend`.
 
-### Answer quality
+The backend image contains no `documents/` folder, so build or rebuild the index from a checkout of the repository as in step 1 rather than inside the container. To run on a server, copy your `.chroma/` there (for example with `rsync`) or set `CHROMA_DIR` in `.env` to where the index lives; the embedding settings must match the copied index. Privacy mode is not set up for Docker yet ([plan](docs/privacy-mode-docker-plan.md)).
 
-The default local model (`gemma4:e4b-it-qat`) is much smaller than the hosted default, and its answers are measurably weaker. On the 53 held-out `confirm` questions it passed 32 (60 %, 95 % interval 47–72 %) against 44 (83 %, 71–91 %) for Gemma 4 26B on Scaleway, under both judges (net −12 questions, sign test p ≤ 0.008). It finds the right passages but more often attributes them to the wrong provision or misreads tables. The gap is model size, not local hosting: the 26B model is open weights too and was within the noise of Gemini 3.8 Flash on the same questions. The app shows a notice while the local model is selected. Details: `ROADMAP.md`, "Local model for privacy mode".
+### 2b. Run locally (development)
 
-### Minimum system requirements
+```bash
+uv run uvicorn api.main:app --reload --port 8000     # backend
+npm -C frontend install && npm -C frontend run dev    # UI with hot reload
+```
+
+Open **http://localhost:5173**. Alternatively, run `npm -C frontend run build` once and the backend serves the UI at http://localhost:8000.
+
+## Configuration
+
+All settings are environment variables in `.env`. [`.env.example`](.env.example) lists every one with an explanation; these are the main ones:
+
+| Variable | Purpose |
+|---|---|
+| `LLM_PROVIDER` | Model that writes answers: `scaleway` (default), `gemini`, `openai`, `mistral` or `ollama` (privacy mode). The UI can switch between them per question. |
+| `EMBEDDING_PROVIDER` | Model that embeds documents and questions: `scaleway` (default) or `gemini`. Independent of `LLM_PROVIDER`; privacy mode always embeds locally. |
+| `SCW_SECRET_KEY`, `SCW_MODEL`, `SCW_ALLOWED_MODELS`, `SCW_EMBED_MODEL` | Scaleway key, default answer model, further models offered in the UI, embedding model |
+| `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY` | Keys for the other providers |
+| `OLLAMA_MODEL`, `OLLAMA_EMBED_MODEL`, `OLLAMA_BASE_URL` | Local models for privacy mode (defaults `gemma4:e4b-it-qat` and `bge-m3`) |
+| `WEB_SEARCH_ENABLED`, `BRAVE_SEARCH_API_KEY` | Optional web search fallback (off by default) |
+| `ADMIN_TOKEN` | Required for admin routes (ingestion, document changes); without it they return 503 |
+| `RETRIEVER_K` | Chunks retrieved per collection per search (default 5) |
+| `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY` | Optional LangSmith tracing (off by default; never in privacy mode or with a user's own key) |
+| `PRIVACY_CONTROLLER_NAME`, `PRIVACY_CONTROLLER_CONTACT` | Who to name in the in-app privacy notice when you run a shared instance |
+
+Changing the answering model never requires re-indexing: all cloud providers search the index of `EMBEDDING_PROVIDER`. Changing the embedding model does, because each embedding model has its own pair of collections (see [docs/architecture.md](docs/architecture.md#key-ingestion-facts)).
+
+## Privacy mode (fully local)
+
+With `LLM_PROVIDER=ollama`, or **Ollama (Local)** selected in the UI, answers and embeddings are computed by [Ollama](https://ollama.com) on your machine. Nothing about the question leaves it: web search and LangSmith tracing are always off.
+
+```bash
+ollama pull gemma4:e4b-it-qat     # answer model
+ollama pull bge-m3                # multilingual embeddings
+LLM_PROVIDER=ollama uv run python ingestion.py   # one-time: builds the local collections
+```
+
+Then start the backend and UI as usual. The local collections sit next to the cloud ones in `.chroma/`, so you can switch back and forth without re-indexing.
+
+The local model is much smaller than the hosted default, and its answers are measurably weaker (60 % vs. 83 % of held-out test questions answered correctly; details in [ROADMAP.md](ROADMAP.md), "Local model for privacy mode"). The UI shows a notice while it is selected.
 
 | Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| GPU | 4 GB VRAM (CPU fallback works but slow) | 6 GB+ VRAM (e.g. NVIDIA RTX 3060) |
+|---|---|---|
+| GPU | 4 GB VRAM (CPU works, slowly) | 6 GB+ VRAM |
 | RAM | 16 GB | 32 GB |
-| Disk | ~8 GB (models + vector DB) | ~10 GB |
-| OS | Linux, macOS, or Windows | Linux (best Ollama performance) |
+| Disk | ~8 GB (models + index) | ~10 GB |
 
-### Setup
+## Managing documents
 
-1. Install Ollama:
-   ```bash
-   curl -fsSL https://ollama.com/install.sh | sh
-   ```
-2. Pull models:
-   ```bash
-   ollama pull gemma4:e4b-it-qat
-   ollama pull bge-m3
-   ```
-3. Set `LLM_PROVIDER=ollama` in `.env`
-4. Run ingestion (one-time, builds local embedding collections):
-   ```bash
-   uv run python ingestion.py
-   ```
-5. Start backend and frontend as usual, select **Ollama (Local)** in the UI dropdown.
+| Command | What it does |
+|---|---|
+| `uv run python ingestion.py` | Rebuild both collections (IAEA and Danish law) for the configured embedding model |
+| `uv run python ingestion.py --dk-only` | Rebuild only the Danish law collection |
+| `EMBEDDING_PROVIDER=scaleway uv run python ingestion.py --reembed-from gemini` | Embed the chunks of an existing index with another model, without parsing the documents again |
+| `uv run python ingestion.py --allow-pypdf-fallback` | Index a PDF that Docling cannot read as plain text instead of stopping |
+| `uv run python build_document_sources.py` | Build the source registry `document_sources.yaml` from the PDFs in `documents/` |
 
-Local collections (`radiation-iaea-ollama-bge-m3`, `radiation-dk-law-ollama-bge-m3`) coexist with the cloud collections. Upgrading from `nomic-embed-text` (English-only, the earlier default): pull `bge-m3` and run the ingestion again, or set `OLLAMA_EMBED_MODEL=nomic-embed-text` to keep the old collections. Switching back to a cloud provider reuses the original collections without re-ingesting.
+Ingestion reads the PDFs in `documents/` and the sources listed in `document_sources.yaml` (copy [`document_sources.example.yaml`](document_sources.example.yaml) or generate it as above). Danish executive orders are fetched as XML from retsinformation.dk, always in their newest version, and chunked along their paragraphs. At the end, ingestion lists every document it could not read normally.
 
-## Evaluation
+In the UI, the **Documents** panel checks for newer versions, downloads them (older Danish versions are kept in `documents/backup/`), uploads PDFs and starts a re-ingestion. These actions need the admin token.
 
-The evaluation harness lives in `eval/`. It runs the RAG pipeline against a golden set of questions whose facts (nuggets) and source passages (evidence) are known, has an independent LLM judge assign the facts, scores retrieval deterministically, and records every run for a local dashboard. `--retrieval-only` compares embeddings or retrieval settings by evidence recall alone. See [eval/README.md](eval/README.md).
+## Evaluation and tests
 
 ```bash
-uv run python -m eval.run_eval
+uv run python -m eval.run_eval          # answer the golden questions and score them
+uv run pytest tests/ -v                 # backend tests
+npm -C frontend run test                # frontend unit tests
 ```
 
-Run ingestion first so the graph has documents to retrieve. See `eval/README.md` for options (`--limit`, `--no-web-search`) and optional LangSmith tracing.
-
-## Testing
-
-CI runs the test suite on push and on pull requests (see badge above).
-
-- **Backend**: `uv sync` (includes the dev tools) then `uv run pytest tests/ -v`
-- **Frontend (unit)**: `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
-- **Frontend (E2E)**: `cd frontend && npx playwright install --with-deps chromium && npm run test:e2e` — UI-only Playwright tests against a mocked API (see `frontend/e2e/`)
-- **Frontend (visual)**: `cd frontend && npm run test:visual:docker` — screenshot comparisons of header, settings and an answer in light and dark mode (see `frontend/visual/`). They run in the Playwright Docker image so fonts match CI; after an intended UI change, refresh the baselines with `npm run test:visual:update` and commit the new PNGs.
-- **Coverage**: `uv run pytest tests/ --cov` and `cd frontend && npm run test:coverage`; CI writes both to the run summary
+The evaluation harness, its options and the dashboard are described in [eval/README.md](eval/README.md). Frontend end-to-end tests (`npm -C frontend run test:e2e`, mocked API) and visual tests (`npm -C frontend run test:visual:docker`) are explained in [CONTRIBUTING.md](CONTRIBUTING.md). CI runs all of them, plus linting and a Docker smoke test, on every push and pull request.
 
 ## Security
 
-- Admin routes (`/ingest` and mutating `/documents/*` endpoints) require `X-Admin-Token`.
-- Without `ADMIN_TOKEN` configured, admin routes are fail-closed (`503`). Set `ADMIN_AUTH_BYPASS=true` only for local-only development.
-- Rate limiting is in-memory per-client by default; switch to Redis for multi-worker deployments (`RATE_LIMIT_BACKEND=redis`).
+Admin routes (`/ingest` and the routes that change documents) require an `X-Admin-Token` header matching `ADMIN_TOKEN`; without `ADMIN_TOKEN` they return 503. Queries are rate-limited per client (in memory by default, Redis for several workers). See [docs/production-readiness.md](docs/production-readiness.md) before exposing the app to others.
 
-See [docs/production-readiness.md](docs/production-readiness.md) for the full runbook, rate limiting config, container hardening details, and observability setup.
-
-## Vector collections
-
-| Collection | Content | Embeddings |
-|---|---|---|
-| `radiation-iaea-scw-<model>` | IAEA standards and TECDOC documents | Scaleway (default: `bge-multilingual-gemma2`) |
-| `radiation-dk-law-scw-<model>` | Danish Bekendtgørelser (retsinformation.dk XML) | Scaleway |
-| `radiation-iaea` | Same content | Gemini |
-| `radiation-dk-law` | Same content | Gemini |
-| `radiation-iaea-ollama-<model>` | Same content | Ollama local (default `bge-m3`) |
-| `radiation-dk-law-ollama-<model>` | Same content | Ollama local (default `bge-m3`) |
-
-Cloud providers (Scaleway, Gemini, OpenAI, Mistral) all retrieve from the collections of `EMBEDDING_PROVIDER`. The LLM for generation only receives retrieved text — never the raw vectors. Switching the generation provider requires no re-ingestion.
-
-## Repository layout
+## Project structure
 
 ```
-api/                  FastAPI app (main.py), rate limiting
-graph/                LangGraph workflow: graph.py, nodes/, chains/, llm_factory.py, state.py,
-                      answering.py (the Answerer: one entry point for API and eval),
-                      search_index.py (reads the vector index), web.py (web search)
-ingestion*.py         PDF/XML loading, chunking, Chroma population (ingestion_dk.py: Danish law)
-document_updates.py   Checks for newer document versions; build_document_sources.py builds the registry
-documents/            Source PDFs (IAEA/, IAEA_other/, Bekendtgørelse/)
+api/                  FastAPI app: routes, admin auth, rate limiting
+graph/                Question answering: the LangGraph workflow (graph.py), its nodes/ and chains/,
+                      the Answerer (answering.py), model selection (llm_factory.py), the index (search_index.py)
+ingestion.py          Builds the index: PDF/XML loading, chunking, embedding (+ ingestion_dk.py, ingestion_fetch.py)
+document_updates.py   Checks retsinformation.dk and IAEA for newer versions
+source_catalog.py     The source registry (document_sources.yaml, document_versions.json)
+documents/            Source documents: IAEA/, IAEA_other/, Bekendtgørelse/
 eval/                 Evaluation harness, golden questions, run history, dashboard
 frontend/             React + TypeScript UI (Vite)
 tests/                pytest suite
-docs/                 Documentation (index: docs/README.md)
-CONTEXT.md            Glossary of the project's terms
-main.py               Command-line interface
+docs/                 Documentation
 ```
+
+## Documentation
+
+| Document | For |
+|---|---|
+| [docs/README.md](docs/README.md) | Index of all documentation |
+| [docs/architecture.md](docs/architecture.md) | How a question is answered, the workflow nodes, ingestion, providers, API routes |
+| [docs/production-readiness.md](docs/production-readiness.md) | Deploying and operating: auth, rate limits, metrics, container hardening, runbook |
+| [CONTEXT.md](CONTEXT.md) | The project's vocabulary (question, answer, web mode, privacy mode, search index) |
+| [eval/README.md](eval/README.md) | Measuring answer quality |
+| [ROADMAP.md](ROADMAP.md) | Plans and measured results |
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, code quality checks, and the branching workflow (`feature branch → staging → master`; PRs target `staging`).
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, code quality checks and the branching workflow: pull requests target `staging`, and commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) ([docs/releasing.md](docs/releasing.md)).
 
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for third-party attributions.
 
-## Credits and references
+## Credits
 
-This project was inspired by and draws on patterns from the **LangChain / LangGraph course** by **Eden Marco**:
-- Repository: [github.com/emarco177/langchain-course](https://github.com/emarco177/langchain-course) (Apache-2.0)
+This project draws on patterns from the **LangChain / LangGraph course** by **Eden Marco** ([github.com/emarco177/langchain-course](https://github.com/emarco177/langchain-course), Apache-2.0).
 
 We thank [Roman Kuznetsov (@kuznero)](https://github.com/kuznero) for valuable comments on the project.
