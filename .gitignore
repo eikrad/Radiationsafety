@@ -43,3 +43,8 @@ run-*.json
 .coverage.*
 coverage.xml
 frontend/coverage/
+
+# GEUS comparison: corpus export and exchanged files (local only)
+export/
+export_sent/
+radiationsafety_export_*.zip
