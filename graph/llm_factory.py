@@ -149,8 +149,10 @@ def with_text_fallback(structured_with_raw, schema, include_raw: bool):
 
 
 # The OpenAI client alone waits up to 600 s per attempt and retries twice, so a
-# stalled provider call could hold a /query open for half an hour.
-_DEFAULT_REQUEST_TIMEOUT_SEC = 60.0
+# stalled provider call could hold a /query open for half an hour. 60 s was too
+# short: in Nov 2026 Scaleway's gemma-4-26b took 34-76 s for one generation-grader
+# verdict, and the calls over 60 s failed whole questions (eval 20261124_212557).
+_DEFAULT_REQUEST_TIMEOUT_SEC = 180.0
 _DEFAULT_OLLAMA_TIMEOUT_SEC = 300.0  # local models on a CPU answer slowly
 # Ollama's own window (4096) cut longer prompts silently; at k=5 the first
 # retrieval alone reaches ~4200 tokens, and retrieve_missing adds chunks
