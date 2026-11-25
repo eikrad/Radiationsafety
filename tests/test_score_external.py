@@ -72,7 +72,13 @@ def test_read_steps_are_rebuilt_from_the_export(tmp_path):
             {"file": "dk/law.md", "offset": 9, "limit": 2},  # 0-based offset
             {"path": "export/markdown/dk/law.md", "lines": "50-51"},
             {"file": "law.md", "start": 99, "end": 100},  # file name alone
-            {"tool": "read", "file": "dk/law.md", "offset": 50, "limit": 2, "lines": [50, 51]},
+            {
+                "tool": "read",
+                "file": "dk/law.md",
+                "offset": 50,
+                "limit": 2,
+                "lines": [50, 51],
+            },
         ]
     }
     context, source, problems = rebuild_context(record, corpus)
@@ -89,9 +95,24 @@ def test_grep_output_is_replayed_on_the_export(tmp_path):
     corpus = _corpus(tmp_path)
     record = {
         "trace": [
-            {"tool": "grep", "pattern": "line 4[2-3]$", "path": "/home/x/corpus", "n_matches": 2},
-            {"tool": "grep", "pattern": "line 7$", "include": "dk/*.md", "n_matches": 1},
-            {"tool": "grep", "pattern": "line 9$", "include": "other*.md", "n_matches": 0},
+            {
+                "tool": "grep",
+                "pattern": "line 4[2-3]$",
+                "path": "/home/x/corpus",
+                "n_matches": 2,
+            },
+            {
+                "tool": "grep",
+                "pattern": "line 7$",
+                "include": "dk/*.md",
+                "n_matches": 1,
+            },
+            {
+                "tool": "grep",
+                "pattern": "line 9$",
+                "include": "other*.md",
+                "n_matches": 0,
+            },
             {"tool": "glob", "pattern": "dk/*.md"},
         ]
     }
@@ -111,13 +132,26 @@ def test_a_search_that_found_nothing_on_one_side_is_reported(tmp_path):
 
 def test_include_with_a_folder_is_matched_below_the_searched_folder(tmp_path):
     # ripgrep: include "dk/*.md" under path "dk" looks for dk/dk/*.md
-    record = {"trace": [{"tool": "grep", "pattern": "line 7$", "path": "dk", "include": "dk/*.md", "n_matches": 0}]}
+    record = {
+        "trace": [
+            {
+                "tool": "grep",
+                "pattern": "line 7$",
+                "path": "dk",
+                "include": "dk/*.md",
+                "n_matches": 0,
+            }
+        ]
+    }
     context, _, problems = rebuild_context(record, _corpus(tmp_path))
     assert (context, problems) == ("", [])
 
 
 def test_without_a_trace_the_quotes_stand_in(tmp_path):
-    record = {"trace": [{"tool": "read", "file": "missing.md"}], "quotes": [{"file": "x", "quote": "Q"}]}
+    record = {
+        "trace": [{"tool": "read", "file": "missing.md"}],
+        "quotes": [{"file": "x", "quote": "Q"}],
+    }
     context, source, problems = rebuild_context(record, _corpus(tmp_path))
     assert (context, source) == ("Q", "quotes")
     assert problems == ["trace file not in the export: missing.md"]
@@ -130,8 +164,10 @@ def test_missing_answers_and_changed_questions_are_reported(tmp_path):
     ]
     path = tmp_path / "answers.jsonl"
     path.write_text(
-        json.dumps({"id": "a", "question": "Other?", "answer": "A"}) + "\n"
-        + json.dumps({"id": "z", "answer": "Z"}) + "\n",
+        json.dumps({"id": "a", "question": "Other?", "answer": "A"})
+        + "\n"
+        + json.dumps({"id": "z", "answer": "Z"})
+        + "\n",
         encoding="utf-8",
     )
     outputs, problems = build_outputs(golden, load_answers(path), _corpus(tmp_path))

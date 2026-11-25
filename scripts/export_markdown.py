@@ -197,7 +197,9 @@ class _Writer:
                     self.walk(child, depth)
             return
         # paragraph-level containers (Exitus, TekstGruppe, Index, Titel, ...)
-        if len(elem) == 0 or not _has(elem, ("Table", "Image", "Exitus", "Indentatio", "Stk", "Paragraf")):
+        if len(elem) == 0 or not _has(
+            elem, ("Table", "Image", "Exitus", "Indentatio", "Stk", "Paragraf")
+        ):
             self.para(_text(elem))
             return
         if (elem.text or "").strip():
@@ -209,7 +211,10 @@ class _Writer:
 def xml_to_markdown(xml_path: Path) -> tuple[str, str]:
     root = ET.parse(str(xml_path)).getroot()
     meta_elem = root.find("Meta")
-    meta = {c.tag: (c.text or "").strip() for c in (meta_elem if meta_elem is not None else [])}
+    meta = {
+        c.tag: (c.text or "").strip()
+        for c in (meta_elem if meta_elem is not None else [])
+    }
     title = meta.get("DocumentTitle", xml_path.stem)
     number, signed = meta.get("Number", ""), meta.get("DiesSigni", "")
     date = ".".join(reversed(signed.split("-"))) if signed else ""
@@ -224,7 +229,7 @@ def xml_to_markdown(xml_path: Path) -> tuple[str, str]:
         if child.tag == "TitelGruppe":
             # the title is the H1 above; keep what follows it (the EU footnote)
             full = _text(child)
-            rest = full[len(title):].strip() if full.startswith(title) else full
+            rest = full[len(title) :].strip() if full.startswith(title) else full
             if rest:
                 w.para(f"Fodnote: {rest}")
             continue
@@ -237,7 +242,10 @@ def xml_to_markdown(xml_path: Path) -> tuple[str, str]:
 
 
 def _converter(cpu: bool = False):
-    from docling.datamodel.accelerator_options import AcceleratorDevice, AcceleratorOptions
+    from docling.datamodel.accelerator_options import (
+        AcceleratorDevice,
+        AcceleratorOptions,
+    )
     from docling.datamodel.base_models import InputFormat
     from docling.datamodel.pipeline_options import PdfPipelineOptions
     from docling.document_converter import DocumentConverter, PdfFormatOption

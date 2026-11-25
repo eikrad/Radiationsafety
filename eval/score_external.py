@@ -86,8 +86,9 @@ class CorpusFiles:
             self._cache[path] = path.read_text(encoding="utf-8").splitlines()
         return self._cache[path]
 
-
-    def files_under(self, path: str | None, include: str | None) -> list[tuple[str, Path]]:
+    def files_under(
+        self, path: str | None, include: str | None
+    ) -> list[tuple[str, Path]]:
         """(relative name, path) of the export's files a grep step searched.
 
         path is relative to the corpus (".", "dk", a file) or an absolute path on the
@@ -98,14 +99,22 @@ class CorpusFiles:
 
         base = (path or ".").replace("\\", "/")
         if base.startswith("/"):
-            base = "." if base.rstrip("/").endswith("corpus") else base.split("corpus/")[-1]
+            base = (
+                "."
+                if base.rstrip("/").endswith("corpus")
+                else base.split("corpus/")[-1]
+            )
         target = self.root / base
         if target.is_file():
             candidates = [target]
         elif target.is_dir():
             candidates = sorted(target.rglob("*.md"))
         else:
-            candidates = [self._by_name[Path(base).name]] if Path(base).name in self._by_name else []
+            candidates = (
+                [self._by_name[Path(base).name]]
+                if Path(base).name in self._by_name
+                else []
+            )
         found = []
         for p in candidates:
             rel = p.relative_to(self.root).as_posix()
@@ -129,7 +138,9 @@ class CorpusFiles:
 GREP_MAX_MATCHES = 100
 
 
-def replay_grep(step: dict, corpus: CorpusFiles) -> tuple[list[tuple[str, int]], int] | None:
+def replay_grep(
+    step: dict, corpus: CorpusFiles
+) -> tuple[list[tuple[str, int]], int] | None:
     """The lines a grep step showed, re-run on the export: ([(file, line)], matches).
 
     The trace records the search (pattern, path, include) but not what it returned;
@@ -204,7 +215,13 @@ def judge_context(record: dict, corpus: CorpusFiles, full: str) -> tuple[str, bo
     agent read (grep hit lines left out), cut at MAX_JUDGE_CONTEXT."""
     if len(full) <= MAX_JUDGE_CONTEXT:
         return full, False
-    reads = {"trace": [s for s in record.get("trace") or [] if not (isinstance(s, dict) and s.get("tool") == "grep")]}
+    reads = {
+        "trace": [
+            s
+            for s in record.get("trace") or []
+            if not (isinstance(s, dict) and s.get("tool") == "grep")
+        ]
+    }
     text, _, _ = rebuild_context(reads, corpus)
     note = "\n\n[grep hit lines left out: the agent's full context exceeded the judge's limit]"
     return text[: MAX_JUDGE_CONTEXT - len(note)] + note, True
@@ -232,7 +249,9 @@ def rebuild_context(record: dict, corpus: CorpusFiles) -> tuple[str, str, list[s
             (step[k] for k in ("output", "content", "result") if step.get(k)), None
         )
         if text:
-            pieces.append(text if isinstance(text, str) else json.dumps(text, ensure_ascii=False))
+            pieces.append(
+                text if isinstance(text, str) else json.dumps(text, ensure_ascii=False)
+            )
             continue
         if step.get("tool") == "grep":
             if step.get("error") or not step.get("pattern"):
@@ -265,11 +284,16 @@ def rebuild_context(record: dict, corpus: CorpusFiles) -> tuple[str, str, list[s
             continue
         rel = corpus.relative(str(name))
         start, end = _line_range(step, len(lines))
-        seen.setdefault(rel, set()).update(range(max(start, 1), min(end, len(lines)) + 1))
+        seen.setdefault(rel, set()).update(
+            range(max(start, 1), min(end, len(lines)) + 1)
+        )
     pieces += _render_seen(seen, corpus)
     if pieces:
         return "\n\n".join(pieces), "trace", problems
-    quotes = [q.get("quote", "") if isinstance(q, dict) else str(q) for q in record.get("quotes") or []]
+    quotes = [
+        q.get("quote", "") if isinstance(q, dict) else str(q)
+        for q in record.get("quotes") or []
+    ]
     return "\n\n".join(q for q in quotes if q), "quotes", problems
 
 
@@ -375,7 +399,10 @@ def build_outputs(
         record = answers.get(item["id"])
         if record is None:
             problems.append(f"{item['id']}: no answer (scored as failed)")
-            outputs[item["id"]] = {"generation": "", "error": "no answer from the external system"}
+            outputs[item["id"]] = {
+                "generation": "",
+                "error": "no answer from the external system",
+            }
             continue
         asked = record.get("question")
         if asked and normalize(asked) != normalize(item["question"]):
@@ -399,13 +426,22 @@ def build_outputs(
             "error": record.get("error"),
             "external": {
                 k: record.get(k)
-                for k in ("quotes", "tokens_in", "tokens_out", "seconds", "model", "harness")
+                for k in (
+                    "quotes",
+                    "tokens_in",
+                    "tokens_out",
+                    "seconds",
+                    "model",
+                    "harness",
+                )
                 if record.get(k) is not None
             },
         }
     extra = sorted(set(answers) - {i["id"] for i in golden})
     if extra:
-        problems.append(f"answers for ids not in the golden selection: {', '.join(extra)}")
+        problems.append(
+            f"answers for ids not in the golden selection: {', '.join(extra)}"
+        )
     return outputs, problems
 
 
@@ -435,11 +471,15 @@ def check(golden: list[dict], outputs: dict[str, dict]) -> None:
     sources: dict[str, int] = {}
     for item in golden:
         run = outputs[item["id"]]
-        sources[run.get("context_source", "none")] = sources.get(run.get("context_source", "none"), 0) + 1
+        sources[run.get("context_source", "none")] = (
+            sources.get(run.get("context_source", "none"), 0) + 1
+        )
         context = evidence_context(run.get("context_seen") or "")
         vital = [n for n in item.get("nuggets") or [] if n["importance"] == "vital"]
         found = sum(evidence_found(n["evidence"], [context]) for n in vital)
-        evidence = f"vital evidence read {found}/{len(vital)}" if vital else "refusal item"
+        evidence = (
+            f"vital evidence read {found}/{len(vital)}" if vital else "refusal item"
+        )
         trimmed = " TRIMMED" if run.get("context_trimmed_for_judge") else ""
         print(
             f"{item['id'][:55]:55} {len(run.get('generation') or ''):>6} ch answer "
@@ -459,9 +499,15 @@ def main() -> int:
     p.add_argument("--golden", type=Path, default=DEFAULT_GOLDEN)
     p.add_argument("--split", default="confirm", help="tune, confirm or all")
     p.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
-    p.add_argument("--check", action="store_true", help="no judge: check the file and the context")
-    p.add_argument("--model", default="unknown", help="answer model of the external system")
-    p.add_argument("--system", default="external system", help="name of the external system")
+    p.add_argument(
+        "--check", action="store_true", help="no judge: check the file and the context"
+    )
+    p.add_argument(
+        "--model", default="unknown", help="answer model of the external system"
+    )
+    p.add_argument(
+        "--system", default="external system", help="name of the external system"
+    )
     p.add_argument("--label", default=None)
     p.add_argument("--notes", default=None)
     p.add_argument("--output-dir", type=Path, default=ROOT / "eval" / "reports")
@@ -500,8 +546,14 @@ def main() -> int:
 
     started = time.monotonic()
     judge_llm, judge_info = _judge_llm(get_llm(), EXTERNAL_PROVIDER, args.model)
-    if not (judge_info["judge_provider"] and judge_info["judge_provider"] != EXTERNAL_PROVIDER):
-        print("Set EVAL_GRADER_PROVIDER and EVAL_JUDGE_MODEL for the judge.", file=sys.stderr)
+    if not (
+        judge_info["judge_provider"]
+        and judge_info["judge_provider"] != EXTERNAL_PROVIDER
+    ):
+        print(
+            "Set EVAL_GRADER_PROVIDER and EVAL_JUDGE_MODEL for the judge.",
+            file=sys.stderr,
+        )
         return 1
     _warn_if_self_judged(judge_info)
 
@@ -514,7 +566,11 @@ def main() -> int:
             run = outputs[item["id"]]
             if run.get("error"):
                 verdict = None
-                scores = {**_scores(item, run, None), "error_type": "graph_error", "pass": False}
+                scores = {
+                    **_scores(item, run, None),
+                    "error_type": "graph_error",
+                    "pass": False,
+                }
             else:
                 verdict = _invoke_with_retry(
                     judge_item,
@@ -526,12 +582,18 @@ def main() -> int:
                 )
                 scores = _scores(item, run, verdict)
             results.append(_result(item, run, scores, verdict))
-            print(f"  [{n}/{len(golden)}] judged {item['id']}: {scores['error_type']}", file=sys.stderr)
+            print(
+                f"  [{n}/{len(golden)}] judged {item['id']}: {scores['error_type']}",
+                file=sys.stderr,
+            )
 
     tokens = {
-        k: sum(int(r.get(k) or 0) for r in answers.values()) for k in ("tokens_in", "tokens_out")
+        k: sum(int(r.get(k) or 0) for r in answers.values())
+        for k in ("tokens_in", "tokens_out")
     }
-    seconds = [float(r["seconds"]) for r in answers.values() if r.get("seconds") is not None]
+    seconds = [
+        float(r["seconds"]) for r in answers.values() if r.get("seconds") is not None
+    ]
     sources = [outputs[i["id"]].get("context_source") for i in golden]
     header = {
         "label": args.label,
@@ -544,7 +606,9 @@ def main() -> int:
             "llm_model": args.model,
             "external_system": args.system,
             "answers_file": args.answers.name,
-            "answers_sha256": hashlib.sha256(args.answers.read_bytes()).hexdigest()[:12],
+            "answers_sha256": hashlib.sha256(args.answers.read_bytes()).hexdigest()[
+                :12
+            ],
             "context_from_trace": sources.count("trace"),
             "context_from_quotes": sources.count("quotes"),
             "context_trimmed_for_judge": sum(
@@ -552,7 +616,9 @@ def main() -> int:
             ),
             "max_judge_context_chars": MAX_JUDGE_CONTEXT,
             "external_tokens": tokens,
-            "external_median_seconds": sorted(seconds)[len(seconds) // 2] if seconds else None,
+            "external_median_seconds": (
+                sorted(seconds)[len(seconds) // 2] if seconds else None
+            ),
             "evidence_tables_linearised": True,
             **judge_info,
             "web_search": False,
@@ -565,13 +631,20 @@ def main() -> int:
     report, markdown = _render_report(summary, results, run_id, header)
     artifacts = runs.finish(report, markdown, record_history=not args.no_history)
     if not args.no_history:
-        write_dashboard(args.output_dir / "dashboard.html", args.history_file, reports_dir=args.output_dir)
+        write_dashboard(
+            args.output_dir / "dashboard.html",
+            args.history_file,
+            reports_dir=args.output_dir,
+        )
         print(f"Run recorded: {run_id}")
     print(f"Report written: {artifacts.markdown_report}")
     if summary["pass_rate"] is not None:
         lo, hi = summary.get("pass_rate_interval") or (None, None)
         passed = sum(1 for r in results if r["pass"])
-        print(f"Pass: {passed}/{summary['judged']}" + (f" (95 % {lo:.0%}–{hi:.0%})" if lo is not None else ""))
+        print(
+            f"Pass: {passed}/{summary['judged']}"
+            + (f" (95 % {lo:.0%}–{hi:.0%})" if lo is not None else "")
+        )
     return 0
 
 
