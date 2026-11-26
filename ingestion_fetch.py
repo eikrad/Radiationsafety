@@ -8,6 +8,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+import source_catalog
+
 # Allowlist for URLs (same as document_updates)
 _ALLOWED_HOSTS = frozenset(
     {
@@ -201,13 +203,14 @@ def _pdf_link(html: str) -> str | None:
 def _resolve_newest_dk_url(source_id: str, url: str, name: str) -> tuple[str, str]:
     """Resolve newest Danish document URL from registry/check. Returns (resolved_eli_url, label)."""
     try:
-        from document_updates import _load_registry, _load_versions, check_one_source
+        from document_updates import check_one_source
 
-        registry = _load_registry()
+        snapshot = source_catalog.catalog.snapshot()
+        registry = snapshot.sources
         src = next((s for s in registry if s.id == source_id), None)
         if not src:
             return url, name
-        r = check_one_source(src, _load_versions())
+        r = check_one_source(src, snapshot.versions)
         resolved = (r.get("download_url") or url).strip()
         label = r.get("remote_version") or name
         return resolved, label
@@ -218,13 +221,12 @@ def _resolve_newest_dk_url(source_id: str, url: str, name: str) -> tuple[str, st
 def _get_current_version_label(source_id: str) -> str | None:
     """Return the stored version label for a source (from document_versions or registry), or None."""
     try:
-        from document_updates import _load_registry, _load_versions
-
-        versions = _load_versions()
+        snapshot = source_catalog.catalog.snapshot()
+        versions = snapshot.versions
         v = versions.get(source_id, {}).get("version")
         if v:
             return v
-        registry = _load_registry()
+        registry = snapshot.sources
         src = next((s for s in registry if s.id == source_id), None)
         if src and getattr(src, "version", None):
             return src.version
@@ -336,10 +338,5 @@ def fetch_pdf_for_source(
 
 
 def load_sources_registry() -> list[dict[str, Any]]:
-    """Load document_sources.yaml (or .example). Returns list of source dicts with id, name, url, folder. Delegates to document_updates."""
-    try:
-        from document_updates import load_registry_raw
-
-        return load_registry_raw()
-    except ImportError:
-        return []
+    """Sources for fetching, including local-only entries with no URL."""
+    return source_catalog.catalog.snapshot().entries

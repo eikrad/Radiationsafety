@@ -390,11 +390,7 @@ def documents_set_source_url(
     if not url:
         raise HTTPException(status_code=400, detail="url is required")
     try:
-        from document_updates import (
-            _allowed_url,
-            load_registry_raw,
-            update_registry_url,
-        )
+        from document_updates import _allowed_url
     except ImportError:
         raise HTTPException(
             status_code=500, detail="document_updates not available"
@@ -404,10 +400,12 @@ def documents_set_source_url(
             status_code=400,
             detail="URL must be from retsinformation.dk, sst.dk, or iaea.org.",
         )
-    raw = load_registry_raw()
+    import source_catalog
+
+    raw = source_catalog.catalog.snapshot().entries
     if not any((s.get("id") or "").strip() == source_id.strip() for s in raw):
         raise HTTPException(status_code=404, detail=f"Source '{source_id}' not found")
-    update_registry_url(source_id, url)
+    source_catalog.catalog.update(source_id, url=url)
     return {"ok": True, "message": "URL updated."}
 
 
@@ -415,12 +413,13 @@ def documents_set_source_url(
 def documents_get_source_file(source_id: str):
     """Serve the local PDF for a document source. Returns 404 if source not found or no local file."""
     try:
-        from document_updates import _load_registry, get_local_pdf_path
+        import source_catalog
+        from document_updates import get_local_pdf_path
     except ImportError:
         raise HTTPException(
             status_code=500, detail="document_updates not available"
         ) from None
-    registry = _load_registry()
+    registry = source_catalog.catalog.snapshot().sources
     source = next(
         (s for s in registry if (s.id or "").strip() == source_id.strip()), None
     )
@@ -436,7 +435,8 @@ def documents_get_source_file(source_id: str):
 def documents_lookup_source_url(source_id: str, _admin: None = Depends(require_admin)):
     """Try to find the document URL (Danish: sst.dk or retsinformation.dk via Brave/probe; IAEA: search). If found, update registry and return URL."""
     try:
-        from document_updates import lookup_source_url, update_registry_url
+        import source_catalog
+        from document_updates import lookup_source_url
     except ImportError:
         raise HTTPException(
             status_code=500, detail="document_updates not available"
@@ -444,7 +444,7 @@ def documents_lookup_source_url(source_id: str, _admin: None = Depends(require_a
     url, error = lookup_source_url(source_id)
     if not url:
         raise HTTPException(status_code=404, detail=error or "URL not found")
-    update_registry_url(source_id, url)
+    source_catalog.catalog.update(source_id, url=url)
     return {"url": url, "updated": True}
 
 
@@ -483,16 +483,17 @@ def documents_sync_danish(
 @api_router.post("/documents/build-from-local")
 def documents_build_from_local(_admin: None = Depends(require_admin)):
     """Discover local PDFs, extract versions, optionally confirm URLs, write document_sources.yaml. Returns new sources list."""
-    try:
-        from build_document_sources import build_sources, write_document_sources_yaml
+    from source_catalog import CatalogChanged
 
-        sources = build_sources(confirm_urls=True)
+    try:
+        from build_document_sources import rebuild_sources
+
+        sources = rebuild_sources(confirm_urls=True)
         if not sources:
             return {
                 "sources": [],
                 "message": "No documents discovered in documents/IAEA, IAEA_other, or Bekendtgørelse.",
             }
-        write_document_sources_yaml(sources)
         from document_updates import check_updates
 
         updated = check_updates()
@@ -500,6 +501,8 @@ def documents_build_from_local(_admin: None = Depends(require_admin)):
             "sources": updated,
             "message": f"Wrote {len(sources)} source(s) to document_sources.yaml.",
         }
+    except CatalogChanged as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 

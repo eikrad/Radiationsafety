@@ -68,3 +68,13 @@ def unauth_client(stub_answerer):
     with TestClient(app) as c:
         yield c
     app_state["answerer"] = None
+
+
+@pytest.fixture(autouse=True)
+def catalog(tmp_path, monkeypatch):
+    """Every document workflow uses temporary catalog files, never developer state."""
+    import source_catalog
+
+    catalog = source_catalog.SourceCatalog(tmp_path / "document_sources.yaml")
+    monkeypatch.setattr(source_catalog, "catalog", catalog)
+    return catalog

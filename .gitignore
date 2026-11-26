@@ -29,6 +29,8 @@ eval/reports/
 # Document registry (generated or from example; remove this line to commit a shared registry)
 document_sources.yaml
 document_versions.json
+document_sources.yaml.lock
+document_sources.yaml.pending.json
 
 # Local planning artifacts
 .cursor/plans/
@@ -41,3 +43,8 @@ run-*.json
 .coverage.*
 coverage.xml
 frontend/coverage/
+
+# GEUS comparison: corpus export and exchanged files (local only)
+export/
+export_sent/
+radiationsafety_export_*.zip
