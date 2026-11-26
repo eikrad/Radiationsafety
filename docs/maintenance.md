@@ -4,6 +4,53 @@ Weekly dependency and health checks for the Radiationsafety RAG project.
 
 ---
 
+## 2026-11-26 -- major updates (owner decision on #229)
+
+The owner approved the majors flagged on 2026-11-25. They were applied on top of #229. Only `typescript` 7 is still blocked.
+
+### Applied
+- `langchainhub` **removed** (imported nowhere). That unblocks `packaging` 24.2->26.4 and `virtualenv` 21.15.13 (the dev-only security fix).
+- docling family: `docling`/`docling-slim` 2.120.3->2.154.0, `docling-core` 2.108.0, `docling-ibm-models` 3.14->4.0.5, `docling-parse` 7.28.0, `langchain-docling` 2.0.0->3.0.0.
+- `langchain-google-genai` 4.4.3->4.5.3 with `google-genai` 2.34.0->3.6.1; `openai` 2.53.0->3.60.0 (`langchain-openai` 1.8.5 supports it); `pypdf` 6.21.4->7.2.0; `huggingface-hub` 1.33.0->2.5.0; `pillow` 13.0.0.
+- Transitive majors: `filelock` 4.3.1, `soupsieve` 4.1.3, `oauthlib` 4.0.1, `kubernetes` 37.0.3, `multidict` 7.2.1, `websockets` 17.4, `python-dateutil` 4.0.0, `xxhash` 4.1.0, and `isort` 9.0.2 (dev).
+- `pyproject.toml` floors: `docling>=2.153.0`, `langchain-docling>=3.0.0`, `langchain-google-genai>=4.5.0`, `pypdf>=7.0.0`. `.github/dependabot.yml` no longer lists `langchainhub`.
+
+### Code changes forced by openai 3 / google-genai 3
+Both SDKs now send with **`httpx2`** instead of `httpx`. ollama, mistral and chromadb still use `httpx`.
+- `graph/answering.py` `_is_timeout` and `eval/run_eval.py` `_is_connection_error` only knew `httpx` exception classes. A bare `httpx2` timeout was no longer named `TimedOut`, and an eval question whose Scaleway connection dropped was not tried again. Both now accept `httpx2` too, test-first (two new tests).
+- `tests/test_llm_factory.py` faked Scaleway by patching `httpx.Client.send`. Under openai 3 that patch no longer took effect and seven tests reached the real Scaleway API (403 with the fake key). The fakes now patch `httpx2.Client.send`.
+
+### Ingestion regression (docling 2.120 vs 2.154, real PDFs, `ingestion._load_pdf_with_docling`)
+Five PDFs: `Udarbejdelse af en sikkerhedsvurdering`, `Brug af aabne radioaktive kilder` (144 pages), `B20250138605`, GSR-2, IAEA-TECDOC-1380 (table-heavy).
+
+| PDF | chunks old->new | words overlap | seconds old->new |
+|---|---|---|---|
+| Udarbejdelse af en sikkerhedsvurdering | 16->20 | 0.88 | 9->15 |
+| Brug af aabne radioaktive kilder | 627->632 | 0.96 | 27->135 |
+| B20250138605 | 157->156 | 0.995 | 5->6 |
+| GSR-2 | 103->103 | 0.99 | 9->9 |
+| TECDOC-1380 | 743->741 | 0.97 | 74->79 |
+
+- **Nothing lost:** every one of the longest old-only stretches occurs word for word in the new output, only reordered (table cells, contents entries, hyphenation).
+- **Better:** GSR-2 reading order across a page break is fixed, and the member-state table no longer repeats its title in every row. TECDOC tables keep their full titles. `Brug af aabne...` gains a 227-word passage the old version missed ("Krav til undtagelseskolli"). Hyperlink URLs are now part of the text.
+- **Worse:** in `Brug af aabne...` the glossary table (Bilag A: Ordliste) takes the first definition as its column header and repeats it in each row (7 chunks instead of 2). That PDF also takes 5x as long to read.
+- The search index is **not** changed by the upgrade. The new chunking only applies to a full re-ingestion and to uploads through the app. `ingestion.py --reembed-from` copies stored chunks and does not re-parse. Re-ingesting changes chunk texts, which matters for eval labels tied to index chunks.
+
+### pypdf 7 (all 27 local PDFs)
+Page counts, metadata titles and attachments are identical. Text differs on many pages, but **only in whitespace** (GSR-3: 471/471 pages identical once whitespace is removed). pypdf text only feeds the opt-in fallback and the first-page title/version heuristics.
+
+### Security
+`pip-audit`: **93 findings in 8 packages -> 5 in 1** (`chromadb` 1.5.9, no upstream fix, embedded `PersistentClient` only). npm unchanged (0).
+
+### Verification
+`uv run pytest tests/ -n auto` **751 passed** (749 + 2 new). `ruff`, `black --check`, `isort --check` (isort 9), `mypy` and `pre-commit run --all-files` are clean. The huggingface-hub 2 run reused the existing HF cache (docling layout models, MiniLM tokenizer) without re-downloading or migrating it.
+**Not verified here:** a live Gemini/Scaleway call with real keys (`.env` is the owner's to load); CI's e2e/visual/docker jobs.
+
+### Still blocked
+- `typescript` 7.0.2: `typescript-eslint` 8.74 (also canary 8.74.1-alpha) declares `typescript <6.1`. TS 7 exports only `./unstable/*` APIs, so the parser cannot run on it. Option under consideration: replace ESLint with Oxlint, which covers today's rules natively plus the React Compiler rules via `jsPlugins`.
+
+---
+
 ## 2026-11-25
 
 > **Open PRs (verified via `mcp__github__list_pull_requests`):** Dependabot #225 (`@testing-library/jest-dom` 7.0.1 -> 8.0.0, **major**), #215 (`@testing-library/user-event` 14.6.9 -> 14.6.10), #214 (`@playwright/test` 1.64.1 -> 1.65.1), all targeting `staging`. Those packages were **not duplicated** here. CI status of each (`get_check_runs`):
