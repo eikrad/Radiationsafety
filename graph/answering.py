@@ -264,7 +264,9 @@ def _named_failure(
 
 def _is_timeout(exc: BaseException) -> bool:
     """Whether a provider call gave up on its time limit (any client library)."""
+    # openai 3 and google-genai 3 send with httpx2, ollama and mistral with httpx
     import httpx
+    import httpx2
 
     seen: set[int] = set()
     current: BaseException | None = exc
@@ -272,7 +274,10 @@ def _is_timeout(exc: BaseException) -> bool:
         seen.add(id(current))
         name = type(current).__name__
         if (
-            isinstance(current, (TimeoutError, httpx.TimeoutException))
+            isinstance(
+                current,
+                (TimeoutError, httpx.TimeoutException, httpx2.TimeoutException),
+            )
             or ("Timeout" in name and "Error" in name)
             or name == "DeadlineExceeded"  # google-api-core (Gemini)
         ):

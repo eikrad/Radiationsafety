@@ -1253,6 +1253,37 @@ def test_a_dropped_connection_to_the_model_is_tried_once_more(monkeypatch, works
     assert asked.count("What is the transport index?") == 2
 
 
+def test_a_connection_dropped_under_the_openai_client_is_tried_once_more(
+    monkeypatch, workspace
+):
+    """openai 3 (Scaleway) sends with httpx2 and wraps its transport errors."""
+    import httpx2
+    import openai
+
+    answer = run_eval._answer_question
+    asked = []
+
+    def flaky(question, answerer, choice):
+        asked.append(question)
+        if question == "What is the transport index?" and asked.count(question) == 1:
+            request = httpx2.Request("POST", "https://api.scaleway.ai/v1/chat")
+            try:
+                raise httpx2.RemoteProtocolError("Server disconnected.")
+            except httpx2.RemoteProtocolError as dropped:
+                raise openai.APIConnectionError(request=request) from dropped
+        return answer(question, answerer, choice)
+
+    monkeypatch.setattr(run_eval, "_answer_question", flaky)
+    monkeypatch.setattr(run_eval, "_GRAPH_RETRY_WAIT_SEC", 0, raising=False)
+
+    assert _run(monkeypatch, workspace) == 0
+
+    [run] = load_runs(workspace.history)
+    result = next(r for r in run["results"] if r["id"] == "iaea-transport-index")
+    assert result["error_type"] != "graph_error"
+    assert asked.count("What is the transport index?") == 2
+
+
 def test_runs_started_in_the_same_second_keep_their_own_reports(monkeypatch, workspace):
     # two eval chains run in parallel; a shared run ID let one report overwrite the other
     class FrozenClock(saved_runs.datetime):

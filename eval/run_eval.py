@@ -130,11 +130,15 @@ def _invoke_with_retry(fn, *args, **kwargs):
 
 def _is_connection_error(e: BaseException) -> bool:
     """A dropped or refused connection, also when wrapped in another error."""
+    # openai 3 and google-genai 3 send with httpx2, ollama and mistral with httpx
     import httpx
+    import httpx2
 
     current: BaseException | None = e
     while current is not None:
-        if isinstance(current, ConnectionError | httpx.TransportError):
+        if isinstance(
+            current, ConnectionError | httpx.TransportError | httpx2.TransportError
+        ):
             return True
         current = current.__cause__ or current.__context__
     return False
