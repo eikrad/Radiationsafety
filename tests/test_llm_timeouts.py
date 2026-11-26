@@ -21,7 +21,9 @@ def _timeout(llm) -> float:
 def test_cloud_models_give_up_on_a_stalled_call(provider):
     llm = get_llm(provider=provider)
 
-    assert _timeout(llm) == 60
+    # Scaleway's gemma-4-26b took 34-76 s for one generation-grader verdict in
+    # Nov 2026; at 60 s a third of those calls timed out (eval 20261124_212557)
+    assert _timeout(llm) == 180
     assert llm.max_retries == 1
 
 
@@ -38,7 +40,7 @@ def test_the_limits_can_be_changed_in_env(monkeypatch):
 def test_an_unreadable_limit_falls_back_to_the_default(monkeypatch):
     monkeypatch.setenv("LLM_REQUEST_TIMEOUT_SEC", "soon")
 
-    assert _timeout(get_llm(provider="openai")) == 60
+    assert _timeout(get_llm(provider="openai")) == 180
 
 
 def test_local_ollama_gets_more_time_on_slow_hardware():
@@ -50,5 +52,5 @@ def test_scaleway_search_embeddings_give_up_too(monkeypatch):
     monkeypatch.setenv("EMBED_QUERY_INSTRUCTION", "false")
     client = get_embeddings("scaleway")
 
-    assert client.request_timeout == 60
+    assert client.request_timeout == 180
     assert client.max_retries == 1

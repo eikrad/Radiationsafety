@@ -7,9 +7,9 @@ import pytest
 import yaml
 from langchain_core.documents import Document
 
-import document_updates
 import document_uploads
 import ingestion
+import source_catalog
 from graph import search_index
 from tests.fakes import RecordingEmbeddings
 from tests.pdf_fakes import docling_reading, write_pdf
@@ -28,7 +28,9 @@ def workspace(tmp_path, monkeypatch):
     )
     monkeypatch.setenv("EMBEDDING_PROVIDER", "scaleway")
     monkeypatch.setattr(ingestion, "_CHROMA_DIR", ws.index)
-    monkeypatch.setattr(document_updates, "REGISTRY_PATH", ws.registry)
+    monkeypatch.setattr(
+        source_catalog, "catalog", source_catalog.SourceCatalog(ws.registry)
+    )
     monkeypatch.setattr(
         document_uploads, "_lookup_iaea_publication_url_multi", lambda terms: URL
     )
@@ -55,7 +57,7 @@ def _collection(ws):
 def test_a_successful_upload_indexes_before_registering_and_reopens_the_index(
     workspace, monkeypatch, folder, prefix
 ):
-    register = document_uploads.append_source_to_registry
+    register = source_catalog.catalog.register
     registered = []
 
     def register_after_indexing(**entry):
@@ -69,9 +71,7 @@ def test_a_successful_upload_indexes_before_registering_and_reopens_the_index(
         assert workspace.registry.exists()
         reopened.append(True)
 
-    monkeypatch.setattr(
-        document_uploads, "append_source_to_registry", register_after_indexing
-    )
+    monkeypatch.setattr(source_catalog.catalog, "register", register_after_indexing)
     monkeypatch.setattr(search_index, "refresh", reopen_after_registration)
 
     result = _upload(workspace, folder=folder)
@@ -180,9 +180,7 @@ def test_registration_failure_is_reported_and_keeps_the_indexed_document(
     def fail_registration(**entry):
         raise OSError("Registry is read-only")
 
-    monkeypatch.setattr(
-        document_uploads, "append_source_to_registry", fail_registration
-    )
+    monkeypatch.setattr(source_catalog.catalog, "register", fail_registration)
 
     with pytest.raises(OSError, match="Registry is read-only"):
         _upload(workspace)

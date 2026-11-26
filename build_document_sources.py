@@ -10,10 +10,11 @@ from typing import Any
 
 from pypdf import PdfReader
 
+import source_catalog
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 DOCS_DIR = PROJECT_ROOT / "documents"
 REGISTRY_PATH = PROJECT_ROOT / "document_sources.yaml"
-REGISTRY_EXAMPLE = PROJECT_ROOT / "document_sources.example.yaml"
 
 
 def _slug(s: str) -> str:
@@ -224,18 +225,6 @@ def _discover_danish_pdfs() -> list[dict[str, Any]]:
     return out
 
 
-def _load_existing_registry() -> list[dict[str, Any]]:
-    """Load existing document_sources.yaml (or example) to reuse URLs and merge with discoveries."""
-    path = REGISTRY_PATH if REGISTRY_PATH.exists() else REGISTRY_EXAMPLE
-    if not path.exists():
-        return []
-    import yaml
-
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    return data.get("sources") or []
-
-
 def _merge_url_and_version(
     discovered: dict[str, Any], existing: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -267,11 +256,9 @@ def _confirm_danish_url(source: dict[str, Any]) -> None:
         from document_updates import _fetch_url, _parse_retsinformation
 
         html = _fetch_url(source["url"])
-        label, new_url = _parse_retsinformation(html, source["url"])
+        _label, new_url = _parse_retsinformation(html, source["url"])
         if new_url and new_url != source["url"]:
             source["url"] = new_url
-            if label:
-                source["version"] = label
     except Exception:
         pass
 
@@ -305,9 +292,11 @@ def _confirm_iaea_url(source: dict[str, Any]) -> None:
 def build_sources(
     *,
     confirm_urls: bool = True,
+    existing: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Discover all local documents, extract versions, optionally confirm URLs, merge with existing registry. Returns list of source dicts for YAML."""
-    existing = _load_existing_registry()
+    if existing is None:
+        existing = source_catalog.catalog.snapshot().entries
     sources: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
 
@@ -363,20 +352,29 @@ def build_sources(
     return result
 
 
-def write_document_sources_yaml(
-    sources: list[dict[str, Any]], path: Path | None = None
-) -> None:
-    """Write sources to document_sources.yaml (or given path)."""
-    import yaml
+def rebuild_sources(
+    *, confirm_urls: bool = True, output: Path | None = None, dry_run: bool = False
+) -> list[dict[str, Any]]:
+    """Discover outside the lock, then replace only the unchanged catalog.
 
-    path = path or REGISTRY_PATH
-    data = {
-        "sources": sources,
-    }
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(
-            data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
-        )
+    Rebuilding retains its replacement semantics: existing-only sources disappear.
+    Custom CLI output is another catalog and retains the usual YAML format.
+    """
+    catalog = (
+        source_catalog.catalog
+        if output is None
+        else source_catalog.SourceCatalog(output)
+    )
+    snapshot = catalog.snapshot()
+    existing = (
+        snapshot.entries
+        if output is None
+        else source_catalog.catalog.snapshot().entries
+    )
+    sources = build_sources(confirm_urls=confirm_urls, existing=existing)
+    if sources and not dry_run:
+        catalog.replace_sources(sources, expected_revision=snapshot.revision)
+    return sources
 
 
 def main() -> None:
@@ -398,7 +396,11 @@ def main() -> None:
         help="Output YAML path (default: document_sources.yaml)",
     )
     args = p.parse_args()
-    sources = build_sources(confirm_urls=not args.no_confirm)
+    sources = rebuild_sources(
+        confirm_urls=not args.no_confirm,
+        output=Path(args.output) if args.output else None,
+        dry_run=args.dry_run,
+    )
     if not sources:
         print(
             "No documents discovered. Add PDFs to documents/IAEA, documents/IAEA_other, or documents/Bekendtgørelse."
@@ -411,7 +413,6 @@ def main() -> None:
         print("(Dry run: not writing file)")
         return
     out_path = Path(args.output) if args.output else REGISTRY_PATH
-    write_document_sources_yaml(sources, out_path)
     print(f"Wrote {out_path}")
 
 

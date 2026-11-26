@@ -36,3 +36,53 @@ def test_extract_iaea_search_terms_nonexistent(tmp_path):
     assert any(
         "1380" in t or "tecdoc" in t.lower() or "iaea" in t.lower() for t in terms
     ) or "iaea tecdoc 1380" in [t.lower() for t in terms]
+
+
+def test_confirming_newer_danish_url_keeps_the_local_version(monkeypatch):
+    import document_updates
+
+    source = {
+        "url": "https://www.retsinformation.dk/eli/lta/2019/670",
+        "version": "BEK nr 670 af 01/01/2019",
+    }
+    newer = "https://www.retsinformation.dk/eli/lta/2025/1385"
+    monkeypatch.setattr(document_updates, "_fetch_url", lambda url: "html")
+    monkeypatch.setattr(
+        document_updates,
+        "_parse_retsinformation",
+        lambda *args: ("BEK nr 1385 af 18/11/2025", newer),
+    )
+    bds._confirm_danish_url(source)
+    assert source == {"url": newer, "version": "BEK nr 670 af 01/01/2019"}
+
+
+def test_rebuild_does_not_overwrite_an_upload_during_discovery(monkeypatch, catalog):
+    import pytest
+
+    from source_catalog import CatalogChanged
+
+    catalog.register("old", "Old")
+
+    def discover(**kwargs):
+        catalog.register("uploaded", "Uploaded")
+        return [{"id": "discovered", "name": "Discovered"}]
+
+    monkeypatch.setattr(bds, "build_sources", discover)
+    with pytest.raises(CatalogChanged):
+        bds.rebuild_sources(confirm_urls=False)
+    assert {s.id for s in catalog.snapshot().sources} == {"old", "uploaded"}
+
+
+def test_rebuild_and_custom_output_preserve_yaml_format(monkeypatch, catalog, tmp_path):
+    import yaml
+
+    discovered = [{"id": "local", "name": "Local", "version": "v1"}]
+    monkeypatch.setattr(bds, "build_sources", lambda **kwargs: discovered)
+    assert bds.rebuild_sources(confirm_urls=False, dry_run=True) == discovered
+    assert not catalog.registry_path.exists()
+    output = tmp_path / "export.yaml"
+    bds.rebuild_sources(confirm_urls=False, output=output)
+    assert yaml.safe_load(output.read_text()) == {"sources": discovered}
+    assert not catalog.registry_path.exists()
+    bds.rebuild_sources(confirm_urls=False)
+    assert catalog.snapshot().entries == discovered

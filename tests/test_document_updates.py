@@ -1,62 +1,9 @@
 """Tests for document_updates module."""
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import document_updates as du
-
-
-def test_appending_a_source_uses_the_first_available_id_suffix(tmp_path, monkeypatch):
-    import yaml
-
-    registry = tmp_path / "sources.yaml"
-    registry.write_text("sources:\n  - id: guide\n  - id: guide-1\n  - id: guide-3\n")
-    monkeypatch.setattr(du, "REGISTRY_PATH", registry)
-
-    du.append_source_to_registry("guide", "New guide")
-
-    sources = yaml.safe_load(registry.read_text())["sources"]
-    assert [source["id"] for source in sources] == [
-        "guide",
-        "guide-1",
-        "guide-3",
-        "guide-2",
-    ]
-    assert sources[-1]["name"] == "New guide"
-
-
-def test_load_registry_from_example():
-    """Registry loads from example YAML when document_sources.yaml is missing."""
-    with patch.object(du, "REGISTRY_PATH", Path("/nonexistent")):
-        with patch.object(
-            du,
-            "REGISTRY_EXAMPLE",
-            Path(__file__).resolve().parent.parent / "document_sources.example.yaml",
-        ):
-            sources = du._load_registry()
-    assert len(sources) >= 1
-    assert any(
-        s.id == "dk-radioaktivitet"
-        or s.id == "iaea-safety-assessment-research-reactors"
-        for s in sources
-    )
-
-
-def test_load_registry_raw_returns_dicts():
-    """load_registry_raw returns list of dicts with id, name, folder; url optional. _load_registry preserves url (or '' if null)."""
-    with patch.object(du, "REGISTRY_PATH", Path("/nonexistent")):
-        with patch.object(
-            du,
-            "REGISTRY_EXAMPLE",
-            Path(__file__).resolve().parent.parent / "document_sources.example.yaml",
-        ):
-            raw = du.load_registry_raw()
-            assert isinstance(raw, list)
-            if raw:
-                assert "id" in raw[0] and "name" in raw[0] and "folder" in raw[0]
-                loaded = du._load_registry()
-                assert loaded[0].url == (raw[0].get("url") or "").strip()
 
 
 def test_parse_iaea_superseded():
@@ -361,8 +308,8 @@ def test_check_one_source_guarded_prefers_eli(monkeypatch):
     assert result["resolver_source"] == "eli"
 
 
-def test_sync_danish_legislation_apply_updates(monkeypatch):
-    """Incremental sync updates URL/version when apply_updates=true and URL changed."""
+def test_sync_danish_legislation_apply_updates(monkeypatch, catalog):
+    """Discovery updates location/identity while the fetched revision stays current."""
     source = du.DocumentSource(
         id="dk-radio",
         name="Radioaktivitetsbekendtgørelsen",
@@ -371,8 +318,13 @@ def test_sync_danish_legislation_apply_updates(monkeypatch):
         filename_hint=None,
         version="BEK nr 670 af 01/01/2019",
     )
-    monkeypatch.setattr(du, "_load_registry", lambda: [source])
-    monkeypatch.setattr(du, "_load_versions", lambda: {})
+    catalog.register(
+        source.id,
+        source.name,
+        url=source.url,
+        folder=source.folder,
+        version=source.version,
+    )
     monkeypatch.setattr(du, "_reset_runtime_caches", lambda: None)
     monkeypatch.setattr(
         du,
@@ -390,19 +342,22 @@ def test_sync_danish_legislation_apply_updates(monkeypatch):
             {"confidence": 0.92},
         ),
     )
-    updated: list[tuple[str, str]] = []
-    versions: list[tuple[str, str]] = []
-    monkeypatch.setattr(
-        du, "update_registry_url", lambda sid, url: updated.append((sid, url))
-    )
-    monkeypatch.setattr(
-        du, "update_version_after_ingest", lambda sid, ver: versions.append((sid, ver))
-    )
-    monkeypatch.setattr(du, "update_source_identity", lambda *args, **kwargs: None)
     report = du.sync_danish_legislation(apply_updates=True)
     assert report["updated_count"] == 1
-    assert updated == [("dk-radio", "https://www.retsinformation.dk/eli/lta/2025/1385")]
-    assert versions == [("dk-radio", "BEK nr 1385 af 18/11/2025")]
+    snapshot = catalog.snapshot()
+    [stored] = snapshot.sources
+    assert stored.url == "https://www.retsinformation.dk/eli/lta/2025/1385"
+    assert stored.version == "BEK nr 670 af 01/01/2019"
+    assert "version" not in snapshot.versions[source.id]
+    assert snapshot.versions[source.id]["canonical_eli_url"] == stored.url
+    # URL discovery alone must not suppress the subsequent content download.
+    monkeypatch.setattr(du, "_fetch_url", lambda url: "")
+    monkeypatch.setattr(
+        du,
+        "_resolve_danish_source",
+        lambda *a, **k: du.ResolvedUrl("BEK nr 1385 af 18/11/2025", stored.url),
+    )
+    assert du.check_one_source(stored, snapshot.versions)["update_available"] is True
 
 
 def test_get_current_version_from_file_bekendtgoerelse(tmp_path):
@@ -422,51 +377,3 @@ def test_get_current_version_from_file_bekendtgoerelse(tmp_path):
     with patch.object(du, "DOCS_DIR", tmp_path / "documents"):
         version = du._get_current_version_from_file(source)
     assert version == "BEK nr 1385 af 18/11/2025"
-
-
-def test_update_registry_url(tmp_path):
-    """update_registry_url updates the source url in document_sources.yaml."""
-    yaml_path = tmp_path / "document_sources.yaml"
-    yaml_path.write_text(
-        """
-sources:
-  - id: dk-1
-    name: Test
-    url: "https://www.retsinformation.dk/eli/lta/2019/670"
-    folder: Bekendtgørelse
-""",
-        encoding="utf-8",
-    )
-    with patch.object(du, "REGISTRY_PATH", yaml_path):
-        du.update_registry_url(
-            "dk-1", "https://www.retsinformation.dk/eli/lta/2025/1385"
-        )
-    import yaml
-
-    with open(yaml_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    urls = [s["url"] for s in data["sources"] if s.get("id") == "dk-1"]
-    assert urls == ["https://www.retsinformation.dk/eli/lta/2025/1385"]
-
-
-def test_update_registry_version(tmp_path):
-    """update_registry_version writes the version into document_sources.yaml."""
-    yaml_path = tmp_path / "document_sources.yaml"
-    yaml_path.write_text(
-        """
-sources:
-  - id: dk-1
-    name: Test
-    url: "https://www.retsinformation.dk/eli/lta/2025/1385"
-    folder: Bekendtgørelse
-""",
-        encoding="utf-8",
-    )
-    with patch.object(du, "REGISTRY_PATH", yaml_path):
-        du.update_registry_version("dk-1", "BEK nr 1385 af 18/11/2025")
-    import yaml
-
-    with open(yaml_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    versions = [s.get("version") for s in data["sources"] if s.get("id") == "dk-1"]
-    assert versions == ["BEK nr 1385 af 18/11/2025"]
