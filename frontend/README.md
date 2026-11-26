@@ -58,11 +58,11 @@ npm run preview # preview the production build locally
 | `npm run test:watch` | Unit tests in watch mode |
 | `npm run test:e2e` | Playwright end-to-end tests against a **mocked** API (`e2e/`) — run `npx playwright install --with-deps chromium` once first |
 | `npm run test:e2e:ui` | Playwright tests with the interactive UI runner |
-| `npm run lint` | ESLint |
+| `npm run lint` | [Oxlint](https://oxc.rs/docs/guide/usage/linter) with the rules in `.oxlintrc.json` |
 
 Unit tests live alongside the components they cover (e.g. `src/components/QueryForm.test.tsx`).
 
 ## Notes
 
-- Built with [Vite](https://vite.dev) + [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (Babel-based Fast Refresh) and [`typescript-eslint`](https://typescript-eslint.io) for linting/type-checking.
+- Built with [Vite](https://vite.dev) + [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (Babel-based Fast Refresh). Type-checking is `tsc --noEmit`; linting is Oxlint, including its native ports of the React Compiler rules. `oxlint` is pinned to an exact version because those rules are experimental.
 - API keys entered in the Settings modal are kept in `sessionStorage` only — never sent anywhere but the backend, never persisted to disk.

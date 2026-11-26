@@ -21,22 +21,36 @@ def test_langchain_google_genai_requires_v4():
     ), f"langchain-google-genai constraint '{constraint}' should pin to >=4.0.0"
 
 
-def test_eslint_requires_v10():
-    # ESLint version is tracked in frontend/package.json, not pyproject.toml
+def _frontend_package() -> dict:
     import json
 
-    pkg = json.loads(
+    return json.loads(
         (Path(__file__).parent.parent / "frontend" / "package.json").read_text()
     )
+
+
+def test_frontend_lint_uses_pinned_oxlint():
+    # Oxlint's React Compiler rules are experimental, so the version is pinned exactly.
+    pkg = _frontend_package()
     dev = pkg.get("devDependencies", {})
-    eslint_version = dev.get("eslint", "")
-    assert eslint_version.startswith("^10") or eslint_version.startswith(
-        "~10"
-    ), f"eslint in package.json should be ^10.x, got '{eslint_version}'"
-    eslint_js_version = dev.get("@eslint/js", "")
-    assert eslint_js_version.startswith("^10") or eslint_js_version.startswith(
-        "~10"
-    ), f"@eslint/js in package.json should be ^10.x, got '{eslint_js_version}'"
+    oxlint_version = dev.get("oxlint", "")
+    assert re.fullmatch(
+        r"\d+\.\d+\.\d+", oxlint_version
+    ), f"oxlint should be pinned to an exact version, got '{oxlint_version}'"
+    assert pkg["scripts"]["lint"].startswith("oxlint")
+
+
+def test_frontend_has_no_eslint_toolchain():
+    # ESLint and typescript-eslint were replaced by Oxlint so TypeScript 7 can be used.
+    dev = _frontend_package().get("devDependencies", {})
+    leftovers = [
+        name
+        for name in dev
+        if name in {"eslint", "@eslint/js", "globals"}
+        or name.startswith("@typescript-eslint/")
+        or name.startswith("eslint-plugin-")
+    ]
+    assert not leftovers, f"ESLint packages left in devDependencies: {leftovers}"
 
 
 def test_vite_requires_v8():
