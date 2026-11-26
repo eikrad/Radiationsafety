@@ -14,7 +14,6 @@ updates:
       langchain:
         patterns:
           - "langchain*"
-          - "langchainhub"
           - "langgraph*"
 
   # React/TypeScript frontend
