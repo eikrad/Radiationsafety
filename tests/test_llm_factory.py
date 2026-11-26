@@ -195,7 +195,7 @@ class _Verdict(BaseModel):
 @pytest.fixture
 def scaleway_replies(scaleway_env, monkeypatch):
     """Answer Scaleway chat requests with a canned reply; keep the request bodies."""
-    import httpx
+    import httpx2  # the openai client (Scaleway) sends with httpx2 since openai 3
 
     sent: list[dict] = []
     reply = {}
@@ -223,9 +223,9 @@ def scaleway_replies(scaleway_env, monkeypatch):
             "model": "qwen3.8-27b",
             "choices": [{"index": 0, "message": message, "finish_reason": "stop"}],
         }
-        return httpx.Response(200, json=body, request=request)
+        return httpx2.Response(200, json=body, request=request)
 
-    monkeypatch.setattr(httpx.Client, "send", send)
+    monkeypatch.setattr(httpx2.Client, "send", send)
     return SimpleNamespace(sent=sent, reply=reply, queue=queue)
 
 
@@ -377,7 +377,7 @@ def embedding_requests(scaleway_embedding_env, monkeypatch):
     import base64
     import struct
 
-    import httpx
+    import httpx2  # the openai client (Scaleway) sends with httpx2 since openai 3
 
     sent: list[dict] = []
 
@@ -393,9 +393,9 @@ def embedding_requests(scaleway_embedding_env, monkeypatch):
             for i in range(len(inputs))
         ]
         reply = {"object": "list", "data": data, "model": body["model"], "usage": {}}
-        return httpx.Response(200, json=reply, request=request)
+        return httpx2.Response(200, json=reply, request=request)
 
-    monkeypatch.setattr(httpx.Client, "send", send)
+    monkeypatch.setattr(httpx2.Client, "send", send)
     return sent
 
 
