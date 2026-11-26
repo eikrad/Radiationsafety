@@ -53,6 +53,13 @@ def test_frontend_has_no_eslint_toolchain():
     assert not leftovers, f"ESLint packages left in devDependencies: {leftovers}"
 
 
+def test_typescript_requires_v7():
+    ts_version = _frontend_package().get("devDependencies", {}).get("typescript", "")
+    assert ts_version.lstrip("^~").startswith(
+        "7."
+    ), f"typescript should be 7.x, got '{ts_version}'"
+
+
 def test_vite_requires_v8():
     import json
 

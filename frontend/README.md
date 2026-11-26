@@ -64,5 +64,5 @@ Unit tests live alongside the components they cover (e.g. `src/components/QueryF
 
 ## Notes
 
-- Built with [Vite](https://vite.dev) + [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (Babel-based Fast Refresh). Type-checking is `tsc --noEmit`; linting is Oxlint, including its native ports of the React Compiler rules. `oxlint` is pinned to an exact version because those rules are experimental.
+- Built with [Vite](https://vite.dev) + [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (Babel-based Fast Refresh). Type-checking is `tsc --noEmit` with TypeScript 7 (the native compiler); linting is Oxlint, including its native ports of the React Compiler rules. `oxlint` is pinned to an exact version because those rules are experimental.
 - API keys entered in the Settings modal are kept in `sessionStorage` only — never sent anywhere but the backend, never persisted to disk.
