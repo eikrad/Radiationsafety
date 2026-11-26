@@ -54,6 +54,8 @@ ADMIN_AUTH_BYPASS=true
 
 **Single-process deployments:** `in_memory` is suitable. Limits are per-client (IP-based).
 
+**Behind a reverse proxy:** `TRUST_PROXY_HEADERS=true` (default `false`) keys the limits on the first `X-Forwarded-For` address. Enable it only when a proxy you control sets that header; otherwise any client can spoof its identity.
+
 **Multi-worker / multi-replica deployments:** set `RATE_LIMIT_BACKEND=redis` and provide `RATE_LIMIT_REDIS_URL`. Without this, each worker has its own counter and limits are not enforced globally.
 
 ---
@@ -103,7 +105,7 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 ### 429 Too Many Requests spike
 
 1. Check `RATE_LIMIT_QUERY_MAX_REQUESTS` and `RATE_LIMIT_QUERY_WINDOW_SEC`.
-2. Identify the source IP from logs (each request logs its `X-Request-ID` and client IP).
+2. Identify the source IP from the uvicorn access log or your reverse proxy. Every response carries an `X-Request-ID` header (taken from the request or generated) for correlating a request across logs. Behind a trusted reverse proxy that sets `X-Forwarded-For`, set `TRUST_PROXY_HEADERS=true` so limits apply per real client instead of per proxy.
 3. If the rate is legitimate traffic, increase the limit or switch to Redis backend for global enforcement.
 
 ### Admin routes return 503
@@ -114,7 +116,7 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 
 ### Health degraded
 
-1. Check `GET /health` — returns `{"status": "ok"}` when healthy.
+1. Check `GET /health` — returns `{"status": "ok", "graph_loaded": true}` when healthy; `graph_loaded: false` means the answering pipeline did not start.
 2. Check `GET /metrics` for error rate increases.
 3. Inspect container health status: `docker compose ps`.
 4. Check backend logs: `docker compose logs backend`.
@@ -122,13 +124,16 @@ The Docker setup (`Dockerfile` + `docker-compose.yml`) applies these defaults:
 ### Re-ingestion needed (new documents or updated sources)
 
 ```bash
-# Via Docker
-docker compose run --rm backend python ingestion.py
+# From a checkout on the host (writes .chroma/, which the Docker backend mounts)
+uv run python ingestion.py
+docker compose restart backend
 
-# Via admin API
+# Via admin API (local, non-Docker backend)
 curl -X POST http://localhost:8000/ingest \
   -H "X-Admin-Token: your-token"
 ```
+
+Do not run the ingestion inside the Docker backend (`docker compose run backend python ingestion.py`, or `POST /ingest` / the Documents panel against the Docker stack): the image contains no `documents/` and no `document_sources.yaml`, so the run finds no documents and leaves the collections empty. Do not ingest on the host while the container is writing to the index.
 
 ---
 

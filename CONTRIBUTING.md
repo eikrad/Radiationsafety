@@ -12,12 +12,15 @@ Thanks for your interest in contributing to Radiation Safety RAG.
    - Copy `.env.example` to `.env`. Set **`SCW_SECRET_KEY`** (Scaleway: default for answers and embeddings). To use another provider, set `LLM_PROVIDER` / `EMBEDDING_PROVIDER` and the matching key (e.g. `GOOGLE_API_KEY`, `OPENAI_API_KEY`).
 
 3. **Document registry**
-   - `document_sources.yaml` holds source URLs for ingestion and “Check for updates”. Prefer **generating** it (see [Document sources](README.md#document-sources)) or copying from `document_sources.example.yaml` rather than committing repo-specific URLs. It is listed in `.gitignore` by default; remove that line if you want to commit a shared registry.
+   - `document_sources.yaml` holds source URLs for ingestion and “Check for updates”. Prefer **generating** it (`uv run python build_document_sources.py`, see [Managing documents](README.md#managing-documents)) or copying from `document_sources.example.yaml` rather than committing repo-specific URLs. It is listed in `.gitignore` by default; remove that line if you want to commit a shared registry.
 
 ## Running tests
 
 - **Backend:** `uv run pytest tests/ -v`
-- **Frontend:** `cd frontend && npm run test` (or `npm run test:watch` for watch mode); E2E and visual tests are described in the [README](README.md#testing)
+- **Frontend (unit):** `cd frontend && npm run test` (or `npm run test:watch` for watch mode)
+- **Frontend (E2E):** `cd frontend && npx playwright install --with-deps chromium && npm run test:e2e`: UI-only Playwright tests against a mocked API (`frontend/e2e/`)
+- **Frontend (visual):** `cd frontend && npm run test:visual:docker`: screenshot comparisons in light and dark mode (`frontend/visual/`), run in the Playwright Docker image so fonts match CI. After an intended UI change, refresh the baselines with `npm run test:visual:update` and commit the new PNGs
+- **Coverage:** `uv run pytest tests/ --cov` and `cd frontend && npm run test:coverage`
 
 CI runs these (plus E2E, visual and Docker checks) on push and on pull requests.
 
