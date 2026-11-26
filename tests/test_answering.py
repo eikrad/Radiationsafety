@@ -1,6 +1,7 @@
 """The Answerer end to end: the real graph, a scripted model, a fake index and web."""
 
 import httpx
+import httpx2
 import openai
 import pytest
 from langchain_core.documents import Document
@@ -232,6 +233,8 @@ def test_an_unbuilt_index_is_explained_in_the_answer():
             ),
             TimedOut,
         ),
+        # openai 3 and google-genai 3 send their requests with httpx2, not httpx
+        (httpx2.ReadTimeout("The read operation timed out"), TimedOut),
     ],
 )
 def test_a_provider_failure_is_named(failure, expected):
