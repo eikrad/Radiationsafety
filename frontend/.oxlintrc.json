@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Only the rules listed below run, as with the former ESLint config.
+  "categories": {
+    "correctness": "off"
+  },
+  "env": {
+    "builtin": true
+  },
+  "ignorePatterns": ["dist"],
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "env": {
+        "es2020": true,
+        "browser": true
+      },
+      "plugins": ["react"],
+      "rules": {
+        "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+
+        // eslint-plugin-react-hooks recommended: classic hooks rules
+        "react/rules-of-hooks": "error",
+        "react/exhaustive-deps": "warn",
+
+        // eslint-plugin-react-hooks recommended: React Compiler rules (native, experimental)
+        "react/static-components": "error",
+        "react/use-memo": "error",
+        "react/preserve-manual-memoization": "error",
+        "react/incompatible-library": "warn",
+        "react/immutability": "error",
+        "react/globals": "error",
+        "react/refs": "error",
+        "react/error-boundaries": "error",
+        "react/purity": "error",
+        "react/set-state-in-render": "error",
+        "react/unsupported-syntax": "warn",
+        // False positive for async fetch-in-effect: setState is called after await,
+        // not synchronously in the effect body, so no cascading-render risk here.
+        "react/set-state-in-effect": "off",
+
+        // eslint-plugin-react-refresh `vite` preset
+        "react/only-export-components": [
+          "error",
+          { "allowConstantExport": true, "allowCompoundComponents": true }
+        ]
+      }
+    }
+  ]
+}
