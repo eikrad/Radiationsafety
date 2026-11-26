@@ -9,7 +9,7 @@ Central reference for all AI agents (Claude Code, Codex, Cursor, Gemini CLI, etc
 RAG system for querying IAEA and Danish radiation safety documents.
 
 - **Backend**: FastAPI + LangGraph workflow (`graph/`) + Chroma vector database
-- **Embeddings**: chosen by `EMBEDDING_PROVIDER`, independently of the answering LLM: Scaleway (default, `SCW_EMBED_MODEL`, collections `-scw-<model>`) or Gemini (`GOOGLE_API_KEY`); Ollama privacy mode always embeds locally (`-ollama` collections). `ingestion.py --reembed-from gemini` embeds the existing chunks with another model
+- **Embeddings**: chosen by `EMBEDDING_PROVIDER`, independently of the answering LLM: Scaleway (default, `SCW_EMBED_MODEL`, collections `-scw-<model>`) or Gemini (`GOOGLE_API_KEY`); Ollama privacy mode always embeds locally (`-ollama-<model>` collections, default `bge-m3`). `ingestion.py --reembed-from gemini` embeds the existing chunks with another model
 - **LLM for generation**: configurable — `scaleway` (default, `SCW_MODEL`), `gemini`, `openai`, `mistral`, or `ollama` (fully local privacy mode) via `LLM_PROVIDER`
 - **Frontend**: React/TypeScript in `frontend/`
 - **Documents**: `documents/IAEA/`, `documents/IAEA_other/`, `documents/Bekendtgørelse/`
@@ -31,6 +31,7 @@ graph/chains/            — LLM chains (generation, generation_grader, context_
                            hallucinations_grader, missing_query_chain, search_query_chain, truncate)
 graph/llm_factory.py     — LLM and embedding provider selection (Scaleway default; Gemini/OpenAI/Mistral/Ollama)
 graph/provider_status.py — per-provider readiness for GET /config (answer model, embedding key, search index)
+graph/sufficiency.py     — shared context-sufficiency check (grade_documents, retrieve_missing)
 graph/state.py           — GraphState TypedDict
 graph/consts.py          — node name constants, env_bool()
 ingestion.py             — PDF/XML loading, chunking, Chroma population (write side of the search index)
@@ -39,13 +40,15 @@ ingestion_fetch.py       — URL fetch logic for retsinformation.dk and IAEA
 build_document_sources.py — builds document_sources.yaml from local PDFs
 source_catalog.py        — document source identity, URLs and fetched revisions; coordinated registry/version persistence
 document_updates.py      — checks for newer versions (retsinformation.dk, IAEA)
+document_uploads.py      — PDF upload from the Documents panel: save, index, then register
 eval/                    — evaluation: run_eval.py (runner, --rescore), golden.py + data/golden.json
                            (nuggets + verbatim evidence), judge.py + judge_check.py (LLM judge and its
                            calibration fixtures), scoring.py (deterministic metrics, error types),
                            history.py → history/runs.jsonl, dashboard.py (local HTML dashboard),
                            pool.py (unlabelled retrieved chunks for human review),
                            split.py (tune/confirm split of the held-out set by shared index chunks),
-                           costs.py + data/prices.json (run cost from recorded tokens, dated prices)
+                           costs.py + data/prices.json (run cost from recorded tokens, dated prices),
+                           saved_runs.py (saving/reopening runs), score_external.py (judge another system's answers)
 tests/                   — pytest suite
 frontend/src/App.tsx     — main UI component
 frontend/src/constants.ts — API URLs, configuration
@@ -102,7 +105,7 @@ RETRIEVE → GRADE_DOCUMENTS
 - **Linting**: pre-commit hooks (`.pre-commit-config.yaml`)
 - **Environment variables**: always update `.env.example` when adding new variables
 - **Commit messages**: Conventional Commits (`feat:`, `fix:`, `feat!:`, `docs:`, `chore:` …), enforced in PRs; release-please derives versions and the CHANGELOG from them (see `docs/releasing.md`). Never edit version numbers by hand
-- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` (Gemini) — do not rename without re-ingestion; other embeddings use suffixed pairs (`-ollama`, `-scw-<model>`)
+- **Chroma collections**: `radiation-iaea` and `radiation-dk-law` (Gemini) — do not rename without re-ingestion; other embeddings use suffixed pairs (`-scw-<model>`, `-ollama-<model>`; plain `-ollama` for `nomic-embed-text`)
 - **Admin routes**: require `X-Admin-Token` header; without `ADMIN_TOKEN` → 503
 
 ### Branching workflow
@@ -248,7 +251,8 @@ SSG-11, SSG-39, SSG-40, SSG-44, SSG-46, SSG-86, SSG-87,
 SSR-6, TECDOC-1380, TECDOC-1638, nuclear_safety_measures (24G)
 
 **Danish sources (Bekendtgørelse):**
-BEK-2025-138405, BEK-2025-138505, Brug af åbne radioaktive kilder,
+BEK-2025-138405, BEK-2025-138505, BEK-2025-138605, BEK-2025-138705, BEK-2025-138805
+(indexed from retsinformation.dk XML), Brug af åbne radioaktive kilder,
 Udarbejdelse af en sikkerhedsvurdering
 
 These should be the first pages created in Logseq under `Sources/IAEA/` and `Sources/Danish/`.

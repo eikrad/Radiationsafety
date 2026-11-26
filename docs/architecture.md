@@ -16,56 +16,17 @@ The frontend (`frontend/`) is a React/TypeScript chat UI that calls the API. Key
 
 ```mermaid
 graph LR
-    USER([Browser / CLI]) --> FE[React UI\nnginx :8080]
-    FE --> API[FastAPI\n:8000]
-    API --> LG[LangGraph\nPipeline]
-    LG --> CHROMA[(Chroma\nVector DB)]
-    LG --> LLM[LLM Provider\nScaleway / Gemini / OpenAI / Mistral / Ollama]
+    USER([Browser / CLI]) --> FE[React UI<br/>nginx :8080]
+    FE --> API[FastAPI<br/>:8000]
+    API --> LG[LangGraph<br/>Pipeline]
+    LG --> CHROMA[(Chroma<br/>Vector DB)]
+    LG --> LLM[LLM Provider<br/>Scaleway / Gemini / OpenAI / Mistral / Ollama]
     LG -.->|optional| BRAVE[Brave Search]
     INGEST([ingestion.py]) --> CHROMA
-    DOCS[documents/\nIAEA + Danish law] --> INGEST
+    DOCS[documents/<br/>IAEA + Danish law] --> INGEST
 ```
 
 ---
-
-## Saved evaluation runs
-
-`eval/saved_runs.py` owns run-ID reservations, output serialization, report
-writing, answer archives, history recording, and reopening saved runs with
-their original metadata. `eval/run_eval.py` owns answering, judging, scoring,
-report formatting, and subsequent dashboard generation. `eval/graph_run.py`
-adapts an Answer into the record that evaluation scores and saves.
-
-Answers are saved locally before judging. Completion writes the JSON and
-Markdown reports, archives the answers of a new full run, and only then appends
-history. A report or archive failure leaves history unchanged and retains any
-files already written. Dashboard failure occurs after recording and does not
-undo the saved run. Retrieval-only runs, rescores, and regrades do not create
-new answer archives; `--no-history` creates neither history entries nor archives.
-
-Filenames and formats are unchanged. Reopening prefers local outputs over the
-gzip archive and reports corrupt files rather than silently falling back.
-Original metadata comes from the first matching history entry, then the local
-JSON report, or remains unknown. Regrade labels come from the latest matching
-history entry. Derived run IDs do not automatically follow their lineage to
-the original answers. Run-ID reservations remain scoped to the output directory.
-
-Rescoring requires known original configuration, git commit, and matching run
-identity. `SavedRuns.rescore_provenance` verifies exact original question text
-for each selected saved ID before scoring or constructing a judge; full runs
-also require their original answer provider and model. Missing or ambiguous
-question metadata and changed questions fail with a recovery message. New
-evidence, grading criteria, subsets, and ordering can change without rerunning
-the graph. An empty overlap is rejected. Reading saved outputs for other uses
-keeps its existing behavior.
-
-`SavedRuns.regrade_labels` applies the same original-provenance checks before
-grader calls. It selects the latest history record for labels and requires
-either the original run or a direct rescore of its answers. Label question
-text must match, duplicate question entries are rejected, and only boolean
-verdicts contribute to answer-grader metrics. Partial rescores and null labels
-still allow sufficiency grading, without inventing judge verdicts. Labels do
-not fall back to local reports or older history entries.
 
 ## Query workflow
 
@@ -75,31 +36,31 @@ flowchart TD
 
     subgraph API [API Layer]
         direction TB
-        V[Validate input\nmax 10k chars, 20 history turns]
-        NC{Non-question\ne.g. 'thanks'?}
+        V[Validate input<br/>max 10k chars, 20 history turns]
+        NC{Non-question<br/>e.g. 'thanks'?}
         V --> NC
-        NC -->|yes| SC([Short-circuit reply\nno LLM cost])
+        NC -->|yes| SC([Short-circuit reply<br/>no LLM cost])
     end
 
-    NC -->|no| RES[Answerer\nresolve model + privacy mode\npick web mode + search index]
+    NC -->|no| RES[Answerer<br/>resolve model + privacy mode<br/>pick web mode + search index]
     RES --> GRAPH
 
     subgraph GRAPH [LangGraph Pipeline]
         direction TB
-        R[RETRIEVE\nParallel search\nradiation-iaea + radiation-dk-law]
-        GD{GRADE_DOCUMENTS\nContext sufficient?}
-        RM[RETRIEVE_MISSING\nLLM generates refined query\nthen re-retrieves]
-        WS[WEB_SEARCH\nBrave Search fallback\nadds results as web-type docs]
-        GEN[GENERATE\nFormats context + chat history\nLLM produces answer]
-        GG{GRADE_GENERATION\nGrounded + complete?}
-        PRR[PREPARE_RETRY_RETRIEVE\nIncrements retry counter\nmax 2 before web search]
-        VT[VERIFY_TRUSTED\nHallucination check vs\ntrusted sources only]
-        FIN[FINALIZE\nSet routing_outcome\nAttach warning if needed]
+        R[RETRIEVE<br/>Parallel search<br/>radiation-iaea + radiation-dk-law]
+        GD{GRADE_DOCUMENTS<br/>Context sufficient?}
+        RM[RETRIEVE_MISSING<br/>LLM generates refined query<br/>then re-retrieves]
+        WS[WEB_SEARCH<br/>Brave Search fallback<br/>adds results as web-type docs]
+        GEN[GENERATE<br/>Formats context + chat history<br/>LLM produces answer]
+        GG{GRADE_GENERATION<br/>Grounded + complete?}
+        PRR[PREPARE_RETRY_RETRIEVE<br/>Increments retry counter<br/>max 2 before web search]
+        VT[VERIFY_TRUSTED<br/>Hallucination check vs<br/>trusted sources only]
+        FIN[FINALIZE<br/>Set routing_outcome<br/>Attach warning if needed]
 
         R --> GD
         GD -->|sufficient| GEN
         GD -->|insufficient| RM
-        RM -->|enough docs, or retry-after-generation path| GEN
+        RM -->|"enough docs, or retry-after-generation path"| GEN
         RM -->|"still insufficient, retrieval_count < 3"| RM
         RM -->|"cap reached, web search on"| WS
         RM -->|"cap reached, web search off"| GEN
@@ -113,14 +74,16 @@ flowchart TD
         VT --> FIN
     end
 
-    FIN --> ANS([Answer + sources + routing_outcome + warning])
+    FIN --> ANS([Answer + sources + warning])
 ```
+
+`WEB_SEARCH` and its edges exist only in the graph built for web mode `on` (see below); in web modes `off` and `private` a capped loop or a failed answer check goes to `GENERATE` or `VERIFY_TRUSTED` instead.
 
 A pre-rendered, full-resolution version of this graph (built directly from `graph/graph.py`) is kept at [`architecture.svg`](../architecture.svg) / [`architecture.png`](../architecture.png) in the repo root, source [`architecture.mmd`](../architecture.mmd).
 
 ### Routing outcomes
 
-The `routing_outcome` field in the response tells you which path the query took:
+`FINALIZE` records which path the query took as `routing_outcome`. It is not part of the `/query` response; it is counted per outcome in `GET /metrics` (`radiationsafety_query_outcomes_total`) and kept on the `Answer` returned by `graph/answering.py`:
 
 | Outcome | Meaning |
 |---|---|
@@ -145,13 +108,13 @@ previous gap when no verdict is available. The prompt remains in
 | Node | File | What it does |
 |---|---|---|
 | `RETRIEVE` | `retrieve.py` | Parallel vector search on both Chroma collections |
-| `GRADE_DOCUMENTS` | `grade_documents.py` | Asks LLM: is the retrieved context sufficient? |
-| `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM generates a targeted query; re-retrieves |
+| `GRADE_DOCUMENTS` | `grade_documents.py` | Asks the LLM whether the retrieved context is sufficient (what is needed, where it was found, verdict) |
+| `RETRIEVE_MISSING` | `retrieve_missing.py` | LLM writes a targeted query from the context gap or the answer grader's reflection hint; re-retrieves, merges and re-checks sufficiency |
 | `GENERATE` | `generate.py` | Formats context + chat history; calls generation chain |
-| `GRADE_GENERATION` | `grade_generation.py` | Checks answer is grounded and complete |
+| `GRADE_GENERATION` | `grade_generation.py` | Grades the answer part by part against the context (each supported part needs a quote the context contains); writes the reflection hint on failure |
 | `PREPARE_RETRY_RETRIEVE` | *(inline in graph.py)* | Increments the retry counter before another `RETRIEVE_MISSING` pass (max 2; then web search if enabled, else the answer is shown with a warning) |
 | `WEB_SEARCH` | `web_search.py` | Brave Search → appends results as extra documents |
-| `VERIFY_TRUSTED` | `verify_trusted.py` | Hallucination check against trusted-source docs only |
+| `VERIFY_TRUSTED` | `verify_trusted.py` | Checks the answer against the trusted (index) documents only; skipped as verified when the answer already passed grading without web results; after a web search it may also try trusted domains |
 | `FINALIZE` | *(inline in graph.py)* | Sets `routing_outcome` and the user-facing warning (web results unverified, or the answer may be incomplete when grading still fails) |
 
 Shared helpers used across nodes: `graph/search_index.py` (the search index: both Chroma collections of one embedding model, its readiness and search; ingestion only writes it), `graph/web.py` (the web search seam, Brave behind it), `graph/nodes/retrieval_common.py` (merging retrieved chunks without duplicates), `graph/i18n.py` (language-aware warning/label text), `graph/utils.py` (misc formatting helpers).
@@ -167,12 +130,12 @@ Chains are factory functions in `graph/chains/` that return a LangChain runnable
 | Chain | File | Output |
 |---|---|---|
 | `generation` | `generation.py` | Answer text |
-| `generation_grader` | `generation_grader.py` | `{passed: bool, missing_info: str}` |
-| `context_sufficiency_grader` | `context_sufficiency_grader.py` | `{binary_score: bool}` |
+| `generation_grader` | `generation_grader.py` | `{parts: [{part, status, quote}], missing_info: str}`; the pass/fail verdict is computed from the parts in code, not taken from the model |
+| `context_sufficiency_grader` | `context_sufficiency_grader.py` | `{needed: str, found: str, binary_score: bool}` (interpreted by `graph/sufficiency.py`) |
 | `hallucinations_grader` | `hallucinations_grader.py` | `{binary_score: bool}` |
 | `missing_query_chain` | `missing_query_chain.py` | Refined retrieval query string |
 | `search_query_chain` | `search_query_chain.py` | Web search query string |
-| `truncate` | `truncate.py` | Truncated document list (fits token budget) |
+| `truncate` | `truncate.py` | Formats the context for generator and graders: whole chunks with their source label; a very long context drops whole chunks, never the end of one |
 
 ---
 
@@ -191,6 +154,8 @@ Key fields:
 | `chat_history` | `list[tuple]` | Previous (question, answer) pairs |
 | `context_sufficient` | `bool` | The context grader's verdict on the retrieved chunks |
 | `reflection` | `str` | LLM hint about what was missing (from grader) |
+| `generation_passed_grading` | `bool` | Verdict of `GRADE_GENERATION`, read by the routing |
+| `retrieval_count` / `retry_after_generation_count` | `int` | Loop counters (max 3 retrievals; max 2 retries after a failed answer check) |
 | `routing_outcome` | `str` | Final path taken through the graph |
 | `retrieval_warning` | `str` | User-facing warning (language-aware) |
 
@@ -211,8 +176,8 @@ flowchart TD
 
     subgraph REGISTRY [document_sources.yaml]
         direction TB
-        DKURL[Danish ELI URL\nretsinformation.dk]
-        IAEAURL[IAEA publication URL\niaea.org]
+        DKURL[Danish ELI URL<br/>retsinformation.dk]
+        IAEAURL[IAEA publication URL<br/>iaea.org]
         DIRECT[Direct PDF URL]
     end
 
@@ -223,11 +188,11 @@ flowchart TD
 
     subgraph CHUNK [Chunking]
         direction LR
-        C1[PDFs - IAEA + other\nDocling HybridChunker\nmax 512 tokens per chunk]
-        C2[Danish XML\nchunks along §, Stk., items, table rows\n≤1500 chars + law › chapter › § header]
+        C1[PDFs - IAEA + other<br/>Docling HybridChunker<br/>max 512 tokens per chunk]
+        C2[Danish XML<br/>chunks along §, Stk., items, table rows<br/>≤1500 chars + law › chapter › § header]
     end
 
-    CHUNK --> EMBED[Embeddings\nScaleway or Gemini]
+    CHUNK --> EMBED[Embeddings<br/>Scaleway or Gemini]
     EMBED --> CHROMA
 
     subgraph CHROMA [Chroma .chroma/ - suffix per embedding model]
@@ -293,17 +258,17 @@ leaves the registry unchanged; the saved PDF and any chunks already written
 remain. Registration failures also leave indexed chunks in place: uploads do
 not provide transactional rollback.
 
-The Documents panel in the UI (or the admin API) handles the update lifecycle:
+The Documents panel in the UI (or the admin API) handles the update lifecycle. Ingestion reads `documents/` and `document_sources.yaml` from the backend's working directory; the Docker backend image contains neither (only `.chroma/` is mounted), so in the Docker setup rebuild the index from a checkout on the host (`uv run python ingestion.py`, then `docker compose restart backend`).
 
 ```mermaid
 flowchart TD
-    CHECK[GET /documents/check-updates\npolls retsinformation.dk + IAEA] --> FOUND{newer version?}
-    FOUND -->|yes| DL[POST .../download-update\ndownload + register new file]
+    CHECK[GET /documents/check-updates<br/>polls retsinformation.dk + IAEA] --> FOUND{newer version?}
+    FOUND -->|yes| DL[POST .../download-update<br/>download + register new file]
     FOUND -->|no| DONE([up to date])
-    DL --> INGEST[POST /ingest\nre-ingest into Chroma]
-    INGEST --> READY([Chroma updated\nbackend ready])
+    DL --> INGEST[POST /ingest<br/>re-ingest into Chroma]
+    INGEST --> READY([Chroma updated<br/>backend ready])
 
-    LOCAL[Drop PDF into documents/] --> BUILD[POST /documents/build-from-local\nrebuild registry]
+    LOCAL[Drop PDF into documents/] --> BUILD[POST /documents/build-from-local<br/>rebuild registry]
     BUILD --> INGEST
 ```
 
@@ -313,10 +278,10 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    SYNC[POST /documents/sync-danish] --> HARVEST[retsinformation_harvest.py\nincremental harvest of changed docs]
-    HARVEST --> ELI[retsinformation_eli.py\nresolve latest ELI expression per source]
-    ELI --> REPLACE[Download newest XML\nback up old version]
-    REPLACE --> BACKUP[(documents/backup/Bekendtgørelse/\nmax 2 kept per source)]
+    SYNC[POST /documents/sync-danish] --> HARVEST[retsinformation_harvest.py<br/>incremental harvest of changed docs]
+    HARVEST --> ELI[retsinformation_eli.py<br/>resolve latest ELI expression per source]
+    ELI --> REPLACE[Download newest XML<br/>back up old version]
+    REPLACE --> BACKUP[(documents/backup/Bekendtgørelse/<br/>max 2 kept per source)]
     REPLACE --> INGEST[Re-ingest into Chroma]
 ```
 
@@ -333,12 +298,12 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    ENV[LLM_PROVIDER env var\nor frontend override] --> FAC{llm_factory}
-    FAC -->|scaleway| SCW[Scaleway\nSCW_MODEL · default]
-    FAC -->|gemini| GEM[langchain-google-genai\nGemini 3.8 Flash]
-    FAC -->|openai| OAI[langchain-openai\ngpt-4o-mini / gpt-4o]
-    FAC -->|mistral| MIS[langchain-mistralai\nMistral default]
-    FAC -->|ollama| OLL[langchain-ollama\ngemma4:e4b-it-qat · runs locally]
+    ENV[LLM_PROVIDER env var<br/>or frontend override] --> FAC{llm_factory}
+    FAC -->|scaleway| SCW[Scaleway<br/>SCW_MODEL · default]
+    FAC -->|gemini| GEM[langchain-google-genai<br/>Gemini 3.8 Flash]
+    FAC -->|openai| OAI[langchain-openai<br/>gpt-4o-mini / gpt-4o]
+    FAC -->|mistral| MIS[langchain-mistralai<br/>Mistral default]
+    FAC -->|ollama| OLL[langchain-ollama<br/>gemma4:e4b-it-qat · runs locally]
     SCW --> CHAINS[LLM Chains]
     GEM --> CHAINS
     OAI --> CHAINS
@@ -390,6 +355,47 @@ Cloud and Ollama collections coexist in `.chroma/`. Switching back to a cloud pr
 | `POST` | `/documents/sync-danish` | Admin | Sync all Danish sources to newest versions |
 
 Admin routes require `X-Admin-Token` header. Without `ADMIN_TOKEN` configured, they return `503`.
+
+---
+
+## Saved evaluation runs
+
+`eval/saved_runs.py` owns run-ID reservations, output serialization, report
+writing, answer archives, history recording, and reopening saved runs with
+their original metadata. `eval/run_eval.py` owns answering, judging, scoring,
+report formatting, and subsequent dashboard generation. `eval/graph_run.py`
+adapts an Answer into the record that evaluation scores and saves.
+
+Answers are saved locally before judging. Completion writes the JSON and
+Markdown reports, archives the answers of a new full run, and only then appends
+history. A report or archive failure leaves history unchanged and retains any
+files already written. Dashboard failure occurs after recording and does not
+undo the saved run. Retrieval-only runs, rescores, and regrades do not create
+new answer archives; `--no-history` creates neither history entries nor archives.
+
+Filenames and formats are unchanged. Reopening prefers local outputs over the
+gzip archive and reports corrupt files rather than silently falling back.
+Original metadata comes from the first matching history entry, then the local
+JSON report, or remains unknown. Regrade labels come from the latest matching
+history entry. Derived run IDs do not automatically follow their lineage to
+the original answers. Run-ID reservations remain scoped to the output directory.
+
+Rescoring requires known original configuration, git commit, and matching run
+identity. `SavedRuns.rescore_provenance` verifies exact original question text
+for each selected saved ID before scoring or constructing a judge; full runs
+also require their original answer provider and model. Missing or ambiguous
+question metadata and changed questions fail with a recovery message. New
+evidence, grading criteria, subsets, and ordering can change without rerunning
+the graph. An empty overlap is rejected. Reading saved outputs for other uses
+keeps its existing behavior.
+
+`SavedRuns.regrade_labels` applies the same original-provenance checks before
+grader calls. It selects the latest history record for labels and requires
+either the original run or a direct rescore of its answers. Label question
+text must match, duplicate question entries are rejected, and only boolean
+verdicts contribute to answer-grader metrics. Partial rescores and null labels
+still allow sufficiency grading, without inventing judge verdicts. Labels do
+not fall back to local reports or older history entries.
 
 ---
 
